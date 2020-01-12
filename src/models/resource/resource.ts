@@ -65,8 +65,8 @@ export function createResource<
     subscribe,
   }
 
-  // TODO: memoize these by options other than context, so that we never pass
-  // different reducers/enhancers to the store
+  // TODO: memoize these by all options other than context, so that we never
+  // pass different reducers/enhancers to the store
   const taskRunner = createTaskRunner<Data, Key, Context>({
     computeHashForKey,
     strategies,
@@ -249,8 +249,16 @@ class ResourceKeyControllerImplementation<Data, Key>
   }
 
   fetch() {
+    // - check task.nextId to get the id of the next task that will be created
+    // - hold, pass in the token
+    // - look for the token in the pending queue between the previous nextId
+    //   and the current nextId
+    // - subscribe to changes, dispatching a release once the task is no longer
+    //   pending.
+
     return () => {
       // abort
+      // - dispatch a release, if we haven't done so above
     }
   }
 

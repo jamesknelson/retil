@@ -22,7 +22,6 @@ export function createUpdateMapper<Data, Key>(action: UpdateAction<Data, Key>) {
       expired: !!action.updates[i].expired,
       tasks: {
         // Stop all tasks that take a value
-        effect: null,
         expire: null,
         purge: null,
         // Stop the fetch if it's just given us a result, but don't stop it

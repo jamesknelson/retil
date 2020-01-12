@@ -14,13 +14,13 @@ export function dehydrateState<Data, Key>(
   // - remove tasks from key states
 
   return {
-    keys: state.keys,
+    records: state.records,
     tasks: {
       nextId: 1,
+      pausedBy: {},
       pending: {},
-      startQueue: [],
-      stopQueue: [],
-      stoppers: {},
+      queue: {},
     },
+    valueChanges: null,
   }
 }

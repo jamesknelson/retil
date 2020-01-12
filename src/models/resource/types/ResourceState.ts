@@ -3,60 +3,44 @@ import { ResourceRequestPolicy } from './ResourceRequestPolicy'
 import { ResourceKeyTasks, ResourceTask } from './ResourceTasks'
 import { ResourceValue } from './ResourceValue'
 
-export interface ResourceStateNode<Data, Key> {
-  keys?: {
-    [keyHash: string]: ResourceKeyState<Data, Key>[]
-  }
-  paths?: {
-    [pathPath: string]: ResourceStateNode<Data, Key>
-  }
-}
-
-export interface ResourceState<Data, Key> extends ResourceStateNode<Data, Key> {
+export interface ResourceState<Data, Key> {
   error?: any
 
-  pauses: {
-    path: string[]
-    keys: Key[]
-  }[]
+  records: {
+    [pathPath: string]: {
+      [keyHash: string]: ResourceKeyState<Data, Key>[]
+    }
+  }
 
   tasks: {
     nextId: number
 
+    pausedBy: {
+      [taskId: string]: Key[]
+    }
+
     /**
-     * Holds all tasks until we receive notification that they've been stopped.
+     * Holds all tasks that haven't yet been stopped.
      */
     pending: {
       [taskId: string]: ResourceTask<Data, Key, any>
     }
 
     /**
-     * A list of tasks that still need to be started. This is identical to
-     * the list of tasks that are in `pending`, but do not yet have a
-     * stopper.
+     * Holds a list of task ids which have had their states changed by the
+     * reducer, but which haven't yet had that changed acknowledged by the
+     * runner.
+     *
+     * - `start`: the task was added to `pending`, or removed from `pausedBy`
+     * - `pause`: the task was added to `pausedBy`
+     * - `stop`: the task was removed from pending (and possibly also pausedBy)
      */
-    startQueue: string[]
-
-    /**
-     * Holds any tasks that need to have their `abort` method called.
-     */
-    stopQueue: {
-      id: string
-
-      /**
-       * Used by `pause` -- indicates that after stopping, the task id should be
-       * moved back to the start queue.
-       */
-      reenqueue?: boolean
-    }[]
-
-    /**
-     * Holds stoppers for tasks that are currently running.
-     */
-    stoppers: {
-      [taskId: string]: () => void
+    queue: {
+      [taskId: string]: 'start' | 'pause' | 'stop'
     }
   }
+
+  valueChanges: Map<Key, ResourceValue<Data> | null | undefined> | null
 }
 
 export interface ResourceKeyState<Data = any, Key = any> {

@@ -1,11 +1,15 @@
+import { Dispose } from 'store'
+
 import { ResourcePrediction } from './ResourcePredicton'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
 import { ResourceUpdateCallback } from './ResourceUpdateCallback'
 import { ResourceValue } from './ResourceValue'
 
 export type ResourceAction<Data, Key> =
+  | { type: Dispose }
   | AbandonFetchAction<Key>
   | AbandonSubscribeAction<Key>
+  | ClearQueueAction
   | ErrorAction
   | ExpireAction<Key>
   | HoldAction<Key>
@@ -18,8 +22,6 @@ export type ResourceAction<Data, Key> =
   | ReleaseHoldWithPredictionAction<Data, Key>
   | ReleaseHoldWithRequestPolicyAction<Key>
   | ReleaseHoldWithPauseAction<Key>
-  | StartedTasksAction<Data, Key>
-  | StoppedTasksAction<Data, Key>
   | UpdateAction<Data, Key>
 
 /**
@@ -27,7 +29,7 @@ export type ResourceAction<Data, Key> =
  */
 export type AbandonFetchAction<Key> = {
   type: 'abandonFetch'
-  path: string[]
+  path: string
   keys: Key[]
   taskId: string
 }
@@ -38,9 +40,16 @@ export type AbandonFetchAction<Key> = {
  */
 export type AbandonSubscribeAction<Key> = {
   type: 'abandonSubscribe'
-  path: string[]
+  path: string
   keys: Key[]
   taskId: string
+}
+
+/**
+ * Handle notification from the task runner that the queue has been processed.
+ */
+export type ClearQueueAction = {
+  type: 'clearQueue'
 }
 
 /**
@@ -59,7 +68,7 @@ export type ErrorAction = {
 export type ExpireAction<Key> = {
   type: 'expire'
   context?: any
-  path: string[]
+  path: string
   keys: Key[]
   taskId: string | null
 }
@@ -70,7 +79,7 @@ export type ExpireAction<Key> = {
 export type HoldAction<Key> = {
   type: 'hold'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
 }
 
@@ -81,7 +90,7 @@ export type HoldAction<Key> = {
 export type HoldWithPauseAction<Key> = {
   type: 'holdWithPause'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
 }
 
@@ -91,7 +100,7 @@ export type HoldWithPauseAction<Key> = {
 export type HoldWithPredictionAction<Data, Key> = {
   type: 'holdWithPrediction'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
   prediction: ResourcePrediction<Data, Key>
 }
@@ -104,7 +113,7 @@ export type HoldWithPredictionAction<Data, Key> = {
 export type HoldWithRequestPolicyAction<Key> = {
   type: 'holdWithRequestPolicy'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
   requestPolicies: ResourceRequestPolicy[]
 }
@@ -115,7 +124,7 @@ export type HoldWithRequestPolicyAction<Key> = {
  */
 export type MarkAsEvergreenAction<Key> = {
   type: 'markAsEvergreen'
-  path: string[]
+  path: string
   keys: Key[]
   taskId: string
 }
@@ -125,7 +134,7 @@ export type MarkAsEvergreenAction<Key> = {
  */
 export type PurgeAction<Key> = {
   type: 'purge'
-  path: string[]
+  path: string
   keys: Key[]
   taskId: string
 }
@@ -136,7 +145,7 @@ export type PurgeAction<Key> = {
 export type ReleaseHoldAction<Key> = {
   type: 'releaseHold'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
 }
 
@@ -146,7 +155,7 @@ export type ReleaseHoldAction<Key> = {
 export type ReleaseHoldWithPauseAction<Key> = {
   type: 'releaseHoldWithPause'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
 }
 
@@ -157,7 +166,7 @@ export type ReleaseHoldWithPauseAction<Key> = {
 export type ReleaseHoldWithPredictionAction<Data, Key> = {
   type: 'releaseHoldWithPrediction'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
   prediction: ResourcePrediction<Data, Key>
   timestamp: number
@@ -174,27 +183,9 @@ export type ReleaseHoldWithPredictionAction<Data, Key> = {
 export type ReleaseHoldWithRequestPolicyAction<Key> = {
   type: 'releaseHoldWithRequestPolicy'
   context: any
-  path: string[]
+  path: string
   keys: Key[]
   requestPolicies: ResourceRequestPolicy[]
-}
-
-/**
- * Handle notification from the task runner that an enqueued task has started.
- */
-export type StartedTasksAction<Data, Key> = {
-  type: 'startedTasks'
-  taskStoppers: {
-    [taskId: string]: () => void
-  }
-}
-
-/**
- * Handle notification from the task runner that a task has been stopped.
- */
-export type StoppedTasksAction<Data, Key> = {
-  type: 'stoppedTasks'
-  taskIds: string[]
 }
 
 /**
@@ -203,7 +194,7 @@ export type StoppedTasksAction<Data, Key> = {
 export type UpdateAction<Data, Key> = {
   type: 'update'
   context?: any
-  path: string[]
+  path: string
   taskId: string | null
   timestamp: number
   updates: {

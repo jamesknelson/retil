@@ -13,3 +13,11 @@ export type ResourceValue<Data> = {
    */
   timestamp: number
 }
+
+export type ResourceValueChangeEffect<Data, Key, Context extends object> = (
+  states: {
+    key: Key
+    value: ResourceValue<Data> | null
+  },
+  context: Context,
+) => void | undefined | (() => void)

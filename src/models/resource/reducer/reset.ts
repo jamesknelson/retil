@@ -1,19 +1,20 @@
+import { fromEntries } from 'utils'
+
 import { ResourceState } from '../types'
 
 export function reset<Data, Key>(
   state?: ResourceState<Data, Key>,
 ): ResourceState<Data, Key> {
-  const { stoppers } = state ? state.tasks : { stoppers: {} }
+  const { pending, nextId } = state ? state.tasks : { pending: {}, nextId: 1 }
 
   return {
-    keys: {},
-    paths: {},
+    records: {},
     tasks: {
-      nextId: 1,
+      nextId,
       pending: {},
-      stoppers,
-      startQueue: [],
-      stopQueue: Object.keys(stoppers).map(id => ({ id })),
+      pausedBy: {},
+      queue: fromEntries(Object.keys(pending).map(key => [key, 'stop'])),
     },
+    valueChanges: new Map(),
   }
 }

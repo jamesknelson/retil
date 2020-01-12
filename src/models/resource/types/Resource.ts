@@ -4,13 +4,13 @@ import { Store } from 'store'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
 import { ResourceState } from './ResourceState'
 import {
-  ResourceEffect,
-  ResourceExpireStrategy,
-  ResourceFetchStrategy,
-  ResourcePurgeStrategy,
-  ResourceSubscribeStrategy,
+  ResourceExpireTask,
+  ResourceFetchTask,
+  ResourcePurgeTask,
+  ResourceSubscribeTask,
 } from './ResourceTasks'
 import { ResourceUpdateCallback } from './ResourceUpdateCallback'
+import { ResourceValueChangeEffect } from './ResourceValue'
 
 // TODO:
 // - function to create default strategies -- so you can pass optional:
@@ -66,13 +66,13 @@ export interface ResourceOptions<
    * model contains items that are indexed in another model, you could use an
    * effect to expire indexes as the indexed items change.
    */
-  effect?: ResourceEffect<Data, Key, Context>
+  effect?: ResourceValueChangeEffect<Data, Key, Context>
 
   /**
    * Strategy to run when we have up to date data. Can expire the data after
    * some amount of time to re-fetch it. By default, expires after an hour.
    */
-  expire?: ResourceExpireStrategy<Data, Key, Context>
+  expire?: ResourceExpireTask<Data, Key, Context>
 
   /**
    * Configures how to upate data once there are active subscriptions. This will
@@ -83,7 +83,7 @@ export interface ResourceOptions<
    * resource decide that a load is no longer needed - allowing the strategy to
    * free up any resources being used.
    */
-  fetch?: ResourceFetchStrategy<Data, Key, Context>
+  fetch?: ResourceFetchTask<Data, Key, Context>
 
   preloadedState?: ResourceState<Data, Key>
 
@@ -99,7 +99,7 @@ export interface ResourceOptions<
    * state change before the purge takes place -- in which case the strategy
    * function will be called again with the new state.
    */
-  purge?: ResourcePurgeStrategy<Data, Key, Context>
+  purge?: ResourcePurgeTask<Data, Key, Context>
 
   requestPolicy?: ResourceRequestPolicy | null
 
@@ -107,7 +107,7 @@ export interface ResourceOptions<
 
   storeKey?: string
 
-  subscribe?: ResourceSubscribeStrategy<Data, Key, Context>
+  subscribe?: ResourceSubscribeTask<Data, Key, Context>
 }
 
 export interface Resource<Data, Key, DefaultSelected = Data> {

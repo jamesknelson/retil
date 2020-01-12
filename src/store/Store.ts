@@ -11,10 +11,15 @@ import {
 } from './KeyStoreOptions'
 import { createStoreCache, StoreCacheMap } from './StoreCache'
 
+export const Dispose = Symbol.for('/antidux/dispose')
+export type Dispose = typeof Dispose
+
 export type StoreState = { [key: string]: any }
 
 export interface Store {
   dehydrate(): Promise<StoreState>
+
+  dispose(): void
 
   // Throws an error if two different reducers, isPending or hasValue functions
   // are ever registered on the same key. Once a reducer has been registered,
