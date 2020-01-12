@@ -15,8 +15,11 @@ export type IssueOptions<I extends Issues> =
   | I[typeof Base]
   | { [Prop in keyof I]?: I[Prop] | undefined | null }
 
-export type IssueDependencies<I extends Issues, PropNames extends string> = {
-  [PropName in keyof I]?: PropNames[]
+export type IssueDependencies<
+  I extends Issues,
+  DataPropNames extends string
+> = {
+  [PropName in keyof I]?: DataPropNames[]
 }
 
 export interface IssueMessageDefinitions<I extends Issues> {

@@ -1,5 +1,5 @@
 {
-  "name": "retils",
+  "name": "antidux",
   "version": "0.1.0",
   "description": "A collection of simple hooks and functions for use with React",
   "author": "James K Nelson <james@jamesknelson.com>",
@@ -69,5 +69,9 @@
         "diagnostics": false
       }
     }
+  },
+  "dependencies": {
+    "abort-controller": "^3.0.0",
+    "redux": "^4.0.5"
   }
 }

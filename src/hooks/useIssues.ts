@@ -107,9 +107,6 @@ export function useIssues<
     data,
     validate,
     validators,
-    asyncValidate,
-    asyncValidators,
-    asyncValidationDebounce = 500,
     validateOnInit = false,
 
     defaultMessage,
@@ -121,6 +118,8 @@ export function useIssues<
     IssuesState<I, DataPropNames>
   >(() => {
     if (validateOnInit) {
+      //
+
       return {
         // TODO
         // issues: null,
@@ -133,6 +132,8 @@ export function useIssues<
       }
     }
   })
+
+  const issuePropNames = Object.keys(issues)
 
   const messages = useMemo(
     () =>
@@ -170,10 +171,15 @@ export function useIssues<
   )
 
   // Remove any issues that are no longer valid.
+  for (let propName of issuePropNames) {
+    // if an issue has changed
+    if (validators[propName]) {
+    }
+  }
   // todo:
-  // - for issues added imperatively / from async validators, clear them if
-  //   their source data has changed
-  // - for issues from sync validators, clear them if they're no longer invalid
+  // - if an issue has sync validators, clear the issue if its no longer
+  //   invalid
+  // - for other issues, clear them if their source data has changed.
 
   return {
     issues,
