@@ -1,10 +1,10 @@
-import { ResourceState, PurgeAction } from '../types'
+import { ResourceState } from '../types'
 
 import { ChangeTracker } from './changeTracker'
 
 export function purge<Key, Data>(
   state: ResourceState<Data, Key>,
-  { taskId, keys, path }: PurgeAction<Key>,
+  { taskId, keys, path }: { taskId: string; keys: Key[]; path: string },
   computeHashForKey: (key: Key) => string,
 ): ResourceState<Data, Key> {
   const pathRecords = state.records[path]
@@ -37,6 +37,7 @@ export function purge<Key, Data>(
               nextPathRecords[hash].splice(i, 1)
             }
 
+            tracker.recordEffect(key, undefined)
             tracker.removeKeysFromTasks(key, tasks)
           }
           continue outer

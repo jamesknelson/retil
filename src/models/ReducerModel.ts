@@ -52,8 +52,8 @@ function createReducer<
   options: ReducerOptions<State, Action, Value>,
 ): [ReducerOutlet<State, Value>, ReducerController<Action>] {
   const { storeAt, reducer, ...restOptions } = options
-  const [store, key] = storeAt || [createStore(), 'reducerService']
-  return store.key(key, {
+  const [store, namespace] = storeAt || [createStore(), 'reducerService']
+  return store.namespace(namespace, {
     reducer,
     ...restOptions,
   })

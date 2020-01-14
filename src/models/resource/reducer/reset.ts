@@ -8,6 +8,7 @@ export function reset<Data, Key>(
   const { pending, nextId } = state ? state.tasks : { pending: {}, nextId: 1 }
 
   return {
+    effects: [],
     records: {},
     tasks: {
       nextId,
@@ -15,6 +16,5 @@ export function reset<Data, Key>(
       pausedBy: {},
       queue: fromEntries(Object.keys(pending).map(key => [key, 'stop'])),
     },
-    valueChanges: new Map(),
   }
 }

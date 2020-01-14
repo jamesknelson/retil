@@ -1,4 +1,4 @@
-import { OutletDescriptor, createOutlet } from './Outlet'
+import { OutletDescriptor, Outlet, createOutlet } from './Outlet'
 
 export type MapCallback<T, U> = (value: T) => U
 
@@ -9,7 +9,7 @@ export type MapCallback<T, U> = (value: T) => U
 export function map<T, U>(
   outletDescriptor: OutletDescriptor<T>,
   mapFn: MapCallback<T, U>,
-): OutletDescriptor<U> {
+): Outlet<U> {
   let last:
     | undefined
     | {

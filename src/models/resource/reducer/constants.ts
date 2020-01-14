@@ -1,8 +1,9 @@
-import { ResourceKeyState, ResourceTaskType } from './types'
+import { ResourceKeyState, ResourceTaskType } from '../types'
 
 export const TaskTypes: ResourceTaskType[] = [
   'expire',
-  'fetch',
+  'forceLoad',
+  'load',
   'purge',
   'subscribe',
 ]
@@ -12,14 +13,14 @@ export const InitialKeyState: Omit<ResourceKeyState<any, any>, 'key'> = {
   pauseCount: 0,
   predictions: [],
   requestPolicies: {
-    fetchExpired: 0,
-    fetchManual: 0,
+    fetchStale: 0,
     fetchOnce: 0,
     subscribe: 0,
   },
   tasks: {
     expire: null,
-    fetch: null,
+    forceLoad: null,
+    load: null,
     purge: null,
     subscribe: null,
   },

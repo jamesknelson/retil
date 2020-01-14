@@ -1,15 +1,19 @@
-import { TaskTypes } from '../constants'
 import {
+  ResourceEffect,
   ResourceKeyTasks,
   ResourceTaskType,
   ResourceValue,
   ResourceState,
 } from '../types'
 
+import { TaskTypes } from './constants'
+
 export class ChangeTracker<Data, Key> {
   private readonly prevState: Readonly<ResourceState<Data, Key>>
   private path: string
   private context: any
+
+  private effects: ResourceEffect<Data, Key, any>[]
 
   private nextNextId: number
   private nextPausedBy: { [key: string]: Key[] } | undefined
@@ -20,9 +24,6 @@ export class ChangeTracker<Data, Key> {
 
   // Used to record values for new task objects
   private keyValues: Map<Key, ResourceValue<Data> | null> = new Map()
-
-  // Used for running effects
-  private valueChanges: Map<Key, ResourceValue<Data> | null | undefined>
 
   constructor(state: ResourceState<Data, Key>, path: string, context?: any) {
     this.prevState = state
@@ -37,16 +38,9 @@ export class ChangeTracker<Data, Key> {
   ): ResourceState<Data, Key> {
     const prevState = this.prevState
 
-    let nextValueChanges = prevState.valueChanges
-    if (this.valueChanges.size) {
-      if (!this.prevState.valueChanges) {
-        nextValueChanges = this.valueChanges
-      } else {
-        nextValueChanges = new Map([
-          ...this.prevState.valueChanges,
-          ...this.valueChanges,
-        ])
-      }
+    let nextEffects = prevState.effects
+    if (this.effects.length) {
+      nextEffects = prevState.effects.concat(this.effects)
     }
 
     let nextTasks = prevState.tasks
@@ -82,14 +76,19 @@ export class ChangeTracker<Data, Key> {
 
     return {
       ...prevState,
+      effects: nextEffects,
       records: nextRecords,
       tasks: nextTasks,
-      valueChanges: nextValueChanges,
     }
   }
 
-  recordValueChange(key: Key, to: ResourceValue<Data> | null | undefined) {
-    this.valueChanges.set(key, to)
+  recordEffect(key: Key, value: ResourceValue<Data> | null | undefined) {
+    this.effects.push({
+      context: this.context,
+      path: this.path,
+      key,
+      value,
+    })
   }
 
   /**

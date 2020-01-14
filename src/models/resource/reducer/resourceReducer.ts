@@ -40,133 +40,155 @@ export function createResourceReducer<Data, Key>(
       case Dispose:
         return reset(state)
 
-      case 'abandonFetch':
+      case 'abandonLoad':
         return merge(state, action, keyState => {
-          if (keyState.tasks.fetch !== action.taskId) {
-            return
-          }
-          return {
-            tasks: {
-              ...keyState.tasks,
-              fetch: false,
-            },
+          if (
+            keyState.tasks.load === action.taskId ||
+            keyState.tasks.forceLoad === action.taskId
+          ) {
+            return {
+              tasks: {
+                ...keyState.tasks,
+                load: keyState.tasks.forceLoad ? null : false,
+                forceLoad: null,
+              },
+            }
           }
         })
 
       case 'abandonSubscribe':
         return merge(state, action, keyState => {
-          if (keyState.tasks.subscribe !== action.taskId) {
-            return
+          if (keyState.tasks.subscribe === action.taskId) {
+            return {
+              tasks: {
+                ...keyState.tasks,
+                subscribe: false,
+              },
+            }
           }
-          return {
-            tasks: {
-              ...keyState.tasks,
-              subscribe: false,
-            },
+        })
+
+      case 'abortForceLoad':
+        return merge(state, action, keyState => {
+          if (keyState.tasks.forceLoad === action.taskId) {
+            return {
+              tasks: {
+                ...keyState.tasks,
+                forceLoad: null,
+              },
+            }
           }
         })
 
       case 'clearQueue': {
         return {
           ...state,
+          effects: [],
           tasks: {
             ...state.tasks,
             queue: {},
           },
-          valueChanges: null,
         }
       }
 
-      case 'error': {
-        return action.taskId !== null && !state.tasks.pending[action.taskId]
-          ? state
-          : {
-              ...reset(state),
-              error: action.error,
-            }
-      }
+      case 'error':
+        return {
+          ...reset(state),
+          error: action.error,
+        }
 
       case 'expire':
         return merge(state, action, keyState => {
           if (
-            action.taskId !== null &&
-            keyState.tasks.expire !== action.taskId
+            action.taskId === null ||
+            keyState.tasks.expire === action.taskId
           ) {
-            return
-          }
-          return {
-            expired: true,
+            return {
+              stale: true,
+            }
           }
         })
 
+      case 'forceLoad':
+        return merge(state, action, (keyState, i, tracker) => ({
+          tasks: {
+            ...keyState.tasks,
+            load: null,
+            forceLoad: tracker.startTasks('forceLoad', keyState.key, null),
+          },
+        }))
+
       case 'hold':
-        return merge(state, action, keyState => ({
-          holdCount: keyState.holdCount + 1,
-        }))
-
-      case 'holdWithPause':
-        return merge(state, action, keyState => ({
-          holdCount: keyState.holdCount + 1,
-          pauseCount: keyState.pauseCount + 1,
-        }))
-
-      case 'holdWithPrediction':
-        return merge(state, action, keyState => ({
-          holdCount: keyState.holdCount + 1,
-          predictions: keyState.predictions.concat(action.prediction),
-        }))
-
-      case 'holdWithRequestPolicy':
         return merge(state, action, keyState => {
-          const nextPolicies = { ...keyState.requestPolicies }
-          for (let i = 0; i < action.requestPolicies.length; i++) {
-            ++nextPolicies[action.requestPolicies[i]]
+          let nextRequestPolicies = keyState.requestPolicies
+          if (action.requestPolicies) {
+            nextRequestPolicies = { ...keyState.requestPolicies }
+            for (let i = 0; i < action.requestPolicies.length; i++) {
+              ++nextRequestPolicies[action.requestPolicies[i]]
+            }
           }
           return {
             holdCount: keyState.holdCount + 1,
-            requestPolicies: nextPolicies,
+            requestPolicies: nextRequestPolicies,
           }
         })
 
       case 'markAsEvergreen':
         return merge(state, action, keyState => {
-          if (keyState.tasks.expire !== action.taskId) {
-            return
-          }
-          return {
-            expired: false,
-            tasks: {
-              ...keyState.tasks,
-              expire: false,
-            },
+          if (keyState.tasks.expire === action.taskId) {
+            return {
+              stale: false,
+              tasks: {
+                ...keyState.tasks,
+                expire: false,
+              },
+            }
           }
         })
+
+      case 'pause':
+        return merge(state, action, keyState => ({
+          pauseCount: keyState.pauseCount + 1,
+        }))
+
+      case 'predict':
+        return merge(state, action, keyState => ({
+          // Add a hold with the prediction, as we don't want the record to be
+          // purged with any unresolved predictions.
+          holdCount: keyState.holdCount + 1,
+          predictions: keyState.predictions.concat(action.prediction),
+        }))
 
       case 'purge':
         return purge(state, action, computeHashForKey)
 
       case 'releaseHold':
-        return merge(state, action, keyState => ({
-          holdCount: keyState.holdCount - 1,
-        }))
-
-      case 'releaseHoldWithPause':
-        return merge(state, action, keyState => ({
-          holdCount: keyState.holdCount - 1,
-          pauseCount: keyState.pauseCount - 1,
-        }))
-
-      case 'releaseHoldWithPrediction': {
-        const updateMapper = createUpdateMapper({
-          ...action,
-          type: 'update',
-          taskId: null,
-        })
-        const updateIndexes = new Map(
-          action.updates.map((update, i) => [update.key, i]),
-        )
         return merge(state, action, keyState => {
-          const updateIndex = updateIndexes.get(keyState.key)
+          let nextRequestPolicies = keyState.requestPolicies
+          if (action.requestPolicies) {
+            nextRequestPolicies = { ...keyState.requestPolicies }
+            for (let i = 0; i < action.requestPolicies.length; i++) {
+              --nextRequestPolicies[action.requestPolicies[i]]
+            }
+          }
+          return {
+            holdCount: keyState.holdCount - 1,
+            requestPolicies: nextRequestPolicies,
+          }
+        })
+
+      case 'resolvePrediction': {
+        const updateMapper =
+          action.update &&
+          createUpdateMapper({
+            taskId: null,
+            update: action.update,
+          })
+        const updateIndexes =
+          action.update &&
+          new Map(action.update.changes.map((update, i) => [update.key, i]))
+        return merge(state, action, (keyState, i, tracker) => {
+          const updateIndex = updateIndexes && updateIndexes.get(keyState.key)
           return {
             holdCount: keyState.holdCount - 1,
             predictions: keyState.predictions.filter(
@@ -174,29 +196,22 @@ export function createResourceReducer<Data, Key>(
             ),
             ...(updateIndex === undefined
               ? undefined
-              : updateMapper(keyState, updateIndex)),
+              : updateMapper!(keyState, updateIndex, tracker)),
           }
         })
       }
 
-      case 'releaseHoldWithRequestPolicy':
-        return merge(state, action, keyState => {
-          const nextPolicies = { ...keyState.requestPolicies }
-          for (let i = 0; i < action.requestPolicies.length; i++) {
-            --nextPolicies[action.requestPolicies[i]]
-          }
-          return {
-            holdCount: keyState.holdCount - 1,
-            requestPolicies: nextPolicies,
-          }
-        })
+      case 'resumePause':
+        return merge(state, action, keyState => ({
+          pauseCount: keyState.pauseCount - 1,
+        }))
 
       case 'update':
         return merge(
           state,
           {
             ...action,
-            keys: action.updates.map(({ key }) => key),
+            keys: action.update.changes.map(({ key }) => key),
           },
           createUpdateMapper(action),
         )

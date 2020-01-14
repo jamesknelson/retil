@@ -19,12 +19,12 @@ export interface InnerStore {
 
 export const ThrownError = Symbol('ThrownError')
 
-const DispatchedAction = Symbol('/antidux/dispatched-action')
-const Dispatch = Symbol('/antidux/dispatch')
-const Key = Symbol('/antidux/key')
-const Kind = Symbol('/antidux/kind')
-const Register = Symbol('/antidux/register')
-const Reset = Symbol('/antidux/reset')
+const DispatchedAction = Symbol('/retil/dispatched-action')
+const Dispatch = Symbol('/retil/dispatch')
+const Key = Symbol('/retil/key')
+const Kind = Symbol('/retil/kind')
+const Register = Symbol('/retil/register')
+const Reset = Symbol('/retil/reset')
 
 type DispatchedAction = typeof DispatchedAction
 type Dispatch = typeof Dispatch
@@ -42,8 +42,8 @@ export type InnerStoreAction =
       [DispatchedAction]: Action
       type: string
     }
-  | { [Kind]: Register; [Key]: string; type: '/antidux/register'; key: string }
-  | { [Kind]: Reset; [Key]?: never; type: '/antidux/reset' }
+  | { [Kind]: Register; [Key]: string; type: '/retil/register'; key: string }
+  | { [Kind]: Reset; [Key]?: never; type: '/retil/reset' }
 
 const createStoreWithDevtools: StoreCreator = (
   reducer: Reducer,
@@ -103,7 +103,7 @@ export function createInnerStore(
     reset: () => {
       reduxStore.dispatch({
         [Kind]: Reset,
-        type: '/antidux/reset',
+        type: '/retil/reset',
       })
     },
     register: (key: string, reducer: Reducer, preloadedState?: any) => {
@@ -116,7 +116,7 @@ export function createInnerStore(
       reduxStore.dispatch({
         [Kind]: Register,
         [Key]: key,
-        type: '/antidux/register',
+        type: '/retil/register',
         key: key,
       })
     },

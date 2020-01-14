@@ -49,8 +49,14 @@ export interface Outlet<T> extends OutletDescriptor<T> {
   // todo:
   // - filter
   // - flatMap
-  // - map
-  // - settledValues
+  // - map (allow to pass hasValue as second argument)
+  // - mapPending
+  // - skipPending
+
+  // map<T, U>(
+  //   outletDescriptor: OutletDescriptor<T>,
+  //   mapFn: MapCallback<T, U>,
+  // ): Outlet<U>
 }
 
 export function isOutlet(x: any): x is Outlet<any> {
@@ -58,10 +64,19 @@ export function isOutlet(x: any): x is Outlet<any> {
   throw new Error('unimplemented')
 }
 
+/**
+ * For `createOutlet`, the result of `getCurrentValue` will be passed to
+ * `hasValue` and `isPending`, simplifying the creation of suspenseful outlets.
+ */
+export type CreateOutletOptions<T> = OutletDescriptor<T> & {
+  hasValue?(currentValue: T): boolean
+  isPending?(currentValue: T): boolean
+}
+
 export function createOutlet<
   T,
-  D extends OutletDescriptor<T> = OutletDescriptor<T>
->(descriptor: D & OutletDescriptor<T>): D & Outlet<T> {
+  D extends CreateOutletOptions<T> = CreateOutletOptions<T>
+>(descriptor: D & CreateOutletOptions<T>): D & Outlet<T> {
   const getCurrentValue = () => {
     // If our descriptor says we have no value (or the descriptor throws
     // a promise for `getCurrentValue`), then throw a promise that resolves
@@ -107,10 +122,10 @@ export function createOutlet<
   }
 }
 
-const isSettled = <T>(descriptor: OutletDescriptor<T>) =>
+const isSettled = <T>(descriptor: CreateOutletOptions<T>) =>
   !getFullState(descriptor).isPending
 
-const getCoreState = <T>(descriptor: OutletDescriptor<T>) => {
+const getCoreState = <T>(descriptor: CreateOutletOptions<T>) => {
   let hasError = false
   let error: any
   let hasValue
@@ -119,7 +134,7 @@ const getCoreState = <T>(descriptor: OutletDescriptor<T>) => {
     // For deciding whether we have a value or not, we'll prioritize the
     // behavior of `getCurrentValue` over the response of `hasValue`.
     value = descriptor.getCurrentValue()
-    hasValue = !descriptor.hasValue || descriptor.hasValue()
+    hasValue = !descriptor.hasValue || descriptor.hasValue(value)
   } catch (errorOrPromise) {
     if (typeof errorOrPromise.then === 'function') {
       hasValue = false
@@ -137,11 +152,12 @@ const getCoreState = <T>(descriptor: OutletDescriptor<T>) => {
   }
 }
 
-const getFullState = <T>(descriptor: OutletDescriptor<T>) => {
+const getFullState = <T>(descriptor: CreateOutletOptions<T>) => {
   const coreState = getCoreState(descriptor)
   return {
     ...coreState,
     isPending:
-      !coreState.hasValue || (descriptor.isPending && descriptor.isPending()),
+      !coreState.hasValue ||
+      !!(descriptor.isPending && descriptor.isPending(coreState.value!)),
   }
 }

@@ -1,38 +1,23 @@
 import { Outlet } from 'outlets'
 import { Store } from 'store'
 
+import { ResourceEffectCallback } from './ResourceEffects'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
-import { ResourceState } from './ResourceState'
+import { ResourceKeyState, ResourceState } from './ResourceState'
 import {
-  ResourceExpireTask,
-  ResourceFetchTask,
-  ResourcePurgeTask,
-  ResourceSubscribeTask,
+  ResourceExpireStrategy,
+  ResourceLoadStrategy,
+  ResourcePurgeStrategy,
+  ResourceSubscribeStrategy,
 } from './ResourceTasks'
-import { ResourceUpdateCallback } from './ResourceUpdateCallback'
-import { ResourceValueChangeEffect } from './ResourceValue'
+import { ResourceUpdateCallback } from './ResourceUpdate'
 
-// TODO:
-// - function to create default strategies -- so you can pass optional:
-//   * key => URL fn (defaults to using URL as key)
-//   * fetch function
-//   * headers
-//   * response => isEmpty function (defaults to treating 404 as empty)
-//   * response => forbidden function (defaults to treating 403 as forbidden)
-//   * response => expired function (default uses stale-while-revalidate headers)
-//   * number of fetch retries
-//   * poll interval (expires after this interval)
-//   * ttl (for purge strategy)
-//   * subscribe/effect/computeHashForKey/computeHashForContext are passed through
+export type ResourceContext = {
+  fetchOptions?: RequestInit
+  store?: Store
+}
 
-export type ResourceContext = { store?: Store }
-
-export interface ResourceOptions<
-  Data,
-  Key,
-  Context extends ResourceContext,
-  DefaultSelected = Data
-> {
+export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
   /**
    * An optional function for computing string keys from model keys,
    * which is required as documents are stored with string keys internally.
@@ -49,41 +34,52 @@ export interface ResourceOptions<
    * used. Otherwise, a unique value will be computed for each new context
    * object.
    */
-  computePathForContext?: (context: Context) => string[]
+  computePathForContext?: (context: Context) => string
 
+  /**
+   * Context that will be available to all model instances.
+   */
   context?: Context
 
   /**
    * If provided, this will be called whenever the value changes. Then, if a
-   * function is returned, it will be called after the snapshot changes again,
+   * function is returned, it will be called after the value changes again,
    * or after the data is purged.
    *
    * Use this function to perform side effects based on the currently stored
-   * data.
+   * value.
    *
    * For example, if this model contains lists of foreign keys, you could create
    * an effect to `hold()` those keys within another model. Similarly, if this
    * model contains items that are indexed in another model, you could use an
    * effect to expire indexes as the indexed items change.
    */
-  effect?: ResourceValueChangeEffect<Data, Key, Context>
+  effect?: ResourceEffectCallback<Data, Key, Context>
 
   /**
    * Strategy to run when we have up to date data. Can expire the data after
-   * some amount of time to re-fetch it. By default, expires after an hour.
+   * some amount of time to re-fetch it.
+   *
+   * By default, expires after an hour on the client, and does not expire on
+   * the server.
    */
-  expire?: ResourceExpireTask<Data, Key, Context>
+  expirer?: null | number | ResourceExpireStrategy<Data, Key, Context>
 
   /**
    * Configures how to upate data once there are active subscriptions. This will
-   * be called for any keys with subscriptions, and with missing or expired data.
+   * be called for any keys with subscriptions, and with missing or stale data.
    * It will *not* be called for keys that have holds but no subscriptions.
    *
    * The strategy can also return a function that will be called should the
    * resource decide that a load is no longer needed - allowing the strategy to
    * free up any resources being used.
    */
-  fetch?: ResourceFetchTask<Data, Key, Context>
+  loader?: null | ResourceLoadStrategy<Data, Key, Context>
+
+  /**
+   * The namespace to use in the app store.
+   */
+  namespace?: string
 
   preloadedState?: ResourceState<Data, Key>
 
@@ -98,19 +94,18 @@ export interface ResourceOptions<
    * return a function which can be called to *cancel* a purge, should the
    * state change before the purge takes place -- in which case the strategy
    * function will be called again with the new state.
+   *
+   * By default, purges after a minute on the client, or does not purge on the
+   * server.
    */
-  purge?: ResourcePurgeTask<Data, Key, Context>
+  purger?: null | number | ResourcePurgeStrategy<Data, Key, Context>
 
   requestPolicy?: ResourceRequestPolicy | null
 
-  select?: ResourceKeySelector<Data, Key, DefaultSelected>
-
-  storeKey?: string
-
-  subscribe?: ResourceSubscribeTask<Data, Key, Context>
+  subscriber?: null | ResourceSubscribeStrategy<Data, Key, Context>
 }
 
-export interface Resource<Data, Key, DefaultSelected = Data> {
+export interface Resource<Data, Key> {
   dehydrate(): Promise<ResourceState<Data, Key> | undefined>
 
   /**
@@ -126,30 +121,33 @@ export interface Resource<Data, Key, DefaultSelected = Data> {
    * so that the output of getCurrentValue can be set to an error or promise as
    * necessary.
    */
-  key<Selected = DefaultSelected>(
+  key(
     query: Key,
-    options?: ResourceKeyOptions<Data, Key, Selected>,
-  ): [Outlet<Selected>, ResourceKeyController<Data, Key>]
+    options?: ResourceKeyOptions<Data, Key>,
+  ): Readonly<
+    [Outlet<ResourceKeyOutput<Data, Key>>, ResourceKeyController<Data, Key>]
+  >
 
-  /**
-   * Return a handle for an array of keys, from which you can get
-   * and subscribe to multiple values at once.
-   *
-   * An error in any key will cause an error, while pending/missing values
-   * on any key will cause a promise to be thrown.
-   */
-  keys<Selected = DefaultSelected>(
-    keys: Key[],
-    options?: ResourceKeyOptions<Data, Key, Selected>,
-  ): [Outlet<Selected[]>, ResourceKeyController<Data[], Key[]>]
+  // TODO
+  // /**
+  //  * Return a handle for an array of keys, from which you can get
+  //  * and subscribe to multiple values at once.
+  //  *
+  //  * An error in any key will cause an error, while pending/missing values
+  //  * on any key will cause a promise to be thrown.
+  //  */
+  // keys<Selected = DefaultSelected>(
+  //   keys: Key[],
+  //   options?: ResourceKeyOptions<Data, Key, Selected>,
+  // ): Readonly<[Outlet<Selected[]>, ResourceKeyController<Data[], Key[]>]>
 
   /**
    * Return a list of the keys currently stored in the model for the given
    * path.
    */
-  knownKeys(...path: string[]): Key[]
+  knownKeys(): Key[]
 
-  path(...path: string[]): Resource<Data, Key>
+  withPath(path: string): Resource<Data, Key>
 }
 
 export interface ResourceKeyController<Data, Key> {
@@ -157,14 +155,6 @@ export interface ResourceKeyController<Data, Key> {
    * Marks the key as no longer existing.
    */
   delete(): void
-
-  /**
-   * Marks this key's currently stored state as possible out of date.
-   *
-   * If there's an active subscription, a new version of the data will be
-   * fetched if possible.
-   */
-  expire(): void
 
   /**
    * Imperatively schedule a fetch, even if paused or if the data already
@@ -176,7 +166,7 @@ export interface ResourceKeyController<Data, Key> {
    *
    * Returns a function that lets you abort the fetch.
    */
-  fetch(): () => void
+  load(): () => void
 
   /**
    * Instructs the resource to keep this key's state, even when there is no
@@ -221,6 +211,14 @@ export interface ResourceKeyController<Data, Key> {
   ]
 
   /**
+   * Marks this key's currently stored state as stale.
+   *
+   * If there's an active subscription, a new version of the data will be
+   * fetched if possible.
+   */
+  revalidate(): void
+
+  /**
    * Stores the given data. If there is no subscription for it, then the data
    * will be immediately scheduled for purge.
    *
@@ -236,50 +234,55 @@ export interface ResourceKeyController<Data, Key> {
   update(dataOrUpdater: Data | ResourceUpdateCallback<Data, Key>): void
 }
 
-export interface ResourceKeyOptions<Data, Key, Selected> {
-  path?: string[]
-
+export interface ResourceKeyOptions<Data, Key> {
   /**
    * Lets you configure when a fetch strategy will be run while therer is an
    * active subscription.
    */
   requestPolicy?: ResourceRequestPolicy | null
-
-  select?: ResourceKeySelector<Data, Key, Selected>
 }
 
-export type ResourceKeySelector<Data, Key, Selected> = (parts: {
+export interface ResourceKeyOutput<Data, Key> {
   /**
-   * When the active fetch strategy gives up and there are no more strategies
-   * left in the queue, this flag will go true until another strategy is
-   * manually started, or until a manual update adds data/removes the expired
-   * flag.
+   * Returns true if there's no value, and we're no longer looking for one.
    */
   abandoned: boolean
 
   data: Data
   /**
-   * If false, indicates that the key doesn't exist; e.g. the server has
-   * replied with a 404.
+   * If true, indicates that the server returned a well formed response
+   * indicating that there's no data (at least that we can view.)
    */
-  empty?: boolean
+  inaccessible?: boolean
+  inaccessibleReason?: any
   /**
-   * Indicates that there is no value, *and* we've abandoned fetching. You can
-   * use this to avoid accessing the data property, and thus handle errors
-   * without throwing an exeption.
+   * If there's data that can be accessed, this will be true.
    */
-  error: boolean
+  hasData?: boolean
+  key: Key
+  /**
+   * If true, indicates one of:
+   *
+   * - we have an in-progress fetch
+   * - we have unresolved predictions
+   * - or we're waiting on the initial data, and still think that some data
+   *   could come back due to an active subscription, or the subscripiton
+   *   being paused.
+   */
+  pending: boolean
+  /**
+   * Indicates that the subscription is pending, *and* we haven't yet
+   * received an initial value.
+   */
+  priming: boolean
   /**
    * Indicates that the data has been marked as out of date, and we've given
    * up trying to fetch any more. This will *not* be true if `pending` is
-   * true -- even if the state is marked as `expired`.
+   * true -- even if the state is marked as `stale`.
    */
-  expired?: number
-  forbidden?: boolean
-  key: Key
+  stale?: boolean
   /**
-   * If true, indicates that we have in-progress predictions, or that the
-   * fetch strategy is currently working.
+   * Contains the raw state for this key.
    */
-  pending: boolean
-}) => Selected
+  state: ResourceKeyState<Data, Key>
+}

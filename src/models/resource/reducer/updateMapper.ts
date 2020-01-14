@@ -1,46 +1,55 @@
-import { ResourceKeyState, UpdateAction } from '../types'
+import { ResourceKeyState, ResourceUpdate, ResourceValue } from '../types'
 
 import { MapMergeCallback } from './mapMerge'
 
-export function createUpdateMapper<Data, Key>(action: UpdateAction<Data, Key>) {
+export function createUpdateMapper<Data, Key>(action: {
+  taskId: null | string
+  update: ResourceUpdate<Data, Key>
+}) {
   const updateMapper: MapMergeCallback<Data, Key> = (
     keyState: ResourceKeyState<Data, Key>,
     i: number,
   ) => {
+    const { taskId, update } = action
     const tasks = keyState.tasks
     if (
-      action.taskId !== null &&
-      action.taskId !== tasks.fetch &&
-      action.taskId !== tasks.subscribe
+      taskId !== null &&
+      taskId !== tasks.load &&
+      taskId !== tasks.forceLoad &&
+      taskId !== tasks.subscribe
     ) {
       return
     }
 
-    const data = action.updates[i].value
+    const value = update.changes[i].value
 
     return {
-      expired: !!action.updates[i].expired,
+      stale: !!update.changes[i].stale,
       tasks: {
         // Stop all tasks that take a value
         expire: null,
         purge: null,
-        // Stop the fetch if it's just given us a result, but don't stop it
-        // if the result came from a subscribe
-        fetch: action.taskId === tasks.fetch ? null : tasks.fetch,
+        // Stop the load if it's just given us a result, but don't stop it
+        // if the result came from a subscribe or manual update.
+        load: taskId === tasks.load ? null : tasks.load,
+        forceLoad: taskId === tasks.forceLoad ? null : tasks.forceLoad,
         // Subscribes can live live longer than a single update
         subscribe: tasks.subscribe,
       },
       value:
-        typeof data === 'function'
+        typeof value === 'function'
           ? {
-              data: data(
-                (keyState.value && keyState.value.data) || undefined,
+              data: value(
+                (keyState.value &&
+                  keyState.value.status === 'retrieved' &&
+                  keyState.value.data) ||
+                  undefined,
                 keyState.key,
               ),
-              status: 'data',
-              timestamp: action.timestamp,
+              status: 'retrieved',
+              timestamp: update.timestamp,
             }
-          : data,
+          : value,
     }
   }
   return updateMapper

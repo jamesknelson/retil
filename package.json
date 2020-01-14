@@ -1,6 +1,6 @@
 {
-  "name": "antidux",
-  "version": "0.1.0",
+  "name": "retil",
+  "version": "0.0.1",
   "description": "A collection of simple hooks and functions for use with React",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -12,13 +12,16 @@
     "build:commonjs": "tsc --pretty --module commonjs --outDir dist/commonjs",
     "build:es": "tsc --pretty --module es2015 --outDir dist/es",
     "build:types": "tsc --pretty --declaration --emitDeclarationOnly --outDir dist/types --isolatedModules false",
-    "build:umd": "tsc --pretty --declaration --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=development rollup -c -o dist/umd/navi.js && rimraf dist/umd-intermediate",
-    "build:umd:min": "tsc --pretty --declaration --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=production rollup -c -o dist/umd/navi.min.js && rimraf dist/umd-intermediate",
-    "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types && yarn build:umd && yarn build:umd:min",
+    "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types",
     "build:watch": "yarn run clean && yarn build:es -- --types --watch",
     "prepare": "yarn test && yarn build",
     "test": "jest",
     "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "abort-controller": "^3.0.0",
+    "memoize-one": "^5.1.1",
+    "redux": "^4.0.5"
   },
   "devDependencies": {
     "@types/jest": "^24.0.19",
@@ -38,7 +41,7 @@
     "rollup-plugin-replace": "^2.2.0",
     "rollup-plugin-terser": "^5.1.2",
     "ts-jest": "^24.1.0",
-    "typescript": "^3.6.4"
+    "typescript": "^3.7.4"
   },
   "peerDependencies": {
     "react": "^16.12.0"
@@ -48,8 +51,9 @@
   ],
   "keywords": [
     "react",
-    "zen",
-    "data"
+    "resource",
+    "cache",
+    "suspense"
   ],
   "jest": {
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|tsx?)$",
@@ -61,6 +65,7 @@
       "ts",
       "tsx"
     ],
+    "modulePaths": ["<rootDir>/src/"],
     "preset": "ts-jest",
     "testMatch": null,
     "globals": {
@@ -69,9 +74,5 @@
         "diagnostics": false
       }
     }
-  },
-  "dependencies": {
-    "abort-controller": "^3.0.0",
-    "redux": "^4.0.5"
   }
 }

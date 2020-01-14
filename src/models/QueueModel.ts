@@ -92,7 +92,7 @@ function createQueue<Value, Job, Context extends QueueContext>(
     storeAt,
   } = options
   const initialValue = hasInitialValue ? options.initialValue : undefined
-  const [store, key] = storeAt || [createStore(), 'queueService']
+  const [store, namespace] = storeAt || [createStore(), 'queueService']
 
   const initialState = {
     deferred: [],
@@ -102,7 +102,7 @@ function createQueue<Value, Job, Context extends QueueContext>(
     value: initialValue,
   }
 
-  const [outlet, storeDispatch] = store.key(key, {
+  const [outlet, storeDispatch] = store.namespace(namespace, {
     reducer: queueReducer as StoreReducer<
       QueueState<Value, Job>,
       QueueAction<Value, Job>

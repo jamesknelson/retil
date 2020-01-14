@@ -40,9 +40,9 @@ function createState<State, Value = State>(
   options: StateOptions<State, Value>,
 ): [StateOutlet<State, Value>, StateController<State>] {
   const { storeAt, ...restOptions } = options
-  const [store, key] = storeAt || [createStore(), 'reducerService']
+  const [store, namespace] = storeAt || [createStore(), 'reducerService']
 
-  const [outlet, dispatch] = store.key(key, {
+  const [outlet, dispatch] = store.namespace(namespace, {
     reducer: stateReducer as StoreReducer<State, StateAction<State>>,
     ...restOptions,
   })

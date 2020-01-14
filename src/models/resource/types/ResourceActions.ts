@@ -1,34 +1,42 @@
 import { Dispose } from 'store'
 
-import { ResourcePrediction } from './ResourcePredicton'
+import { ResourcePrediction } from './ResourcePrediction'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
-import { ResourceUpdateCallback } from './ResourceUpdateCallback'
-import { ResourceValue } from './ResourceValue'
+import { ResourceUpdate } from './ResourceUpdate'
+
+type NarrowAction<T, N> = T extends { type: N } ? T : never
+
+// Utility for getting the a specific type of action
+export type ResourceActionOfType<
+  Data,
+  Key,
+  Type extends ResourceAction<any, any>['type']
+> = NarrowAction<ResourceAction<Data, Key>, Type>
 
 export type ResourceAction<Data, Key> =
   | { type: Dispose }
-  | AbandonFetchAction<Key>
+  | AbandonLoadAction<Key>
   | AbandonSubscribeAction<Key>
+  | AbortForceLoad<Key>
   | ClearQueueAction
   | ErrorAction
   | ExpireAction<Key>
+  | ForceLoadAction<Key>
   | HoldAction<Key>
-  | HoldWithPredictionAction<Data, Key>
-  | HoldWithRequestPolicyAction<Key>
   | MarkAsEvergreenAction<Key>
-  | HoldWithPauseAction<Key>
+  | PauseAction<Key>
+  | PredictAction<Data, Key>
   | PurgeAction<Key>
   | ReleaseHoldAction<Key>
-  | ReleaseHoldWithPredictionAction<Data, Key>
-  | ReleaseHoldWithRequestPolicyAction<Key>
-  | ReleaseHoldWithPauseAction<Key>
+  | ResolvePredictionAction<Data, Key>
+  | ResumePause<Key>
   | UpdateAction<Data, Key>
 
 /**
  * Mark that a fetch task will no longer try to fetch the specified keys.
  */
-export type AbandonFetchAction<Key> = {
-  type: 'abandonFetch'
+type AbandonLoadAction<Key> = {
+  type: 'abandonLoad'
   path: string
   keys: Key[]
   taskId: string
@@ -38,8 +46,18 @@ export type AbandonFetchAction<Key> = {
  * Mark that a subscribe task will no longer receive updates for the specified
  * keys.
  */
-export type AbandonSubscribeAction<Key> = {
+type AbandonSubscribeAction<Key> = {
   type: 'abandonSubscribe'
+  path: string
+  keys: Key[]
+  taskId: string
+}
+
+/**
+ * Abort a previously started force fetch.
+ */
+type AbortForceLoad<Key> = {
+  type: 'abortForceLoad'
   path: string
   keys: Key[]
   taskId: string
@@ -48,24 +66,22 @@ export type AbandonSubscribeAction<Key> = {
 /**
  * Handle notification from the task runner that the queue has been processed.
  */
-export type ClearQueueAction = {
+type ClearQueueAction = {
   type: 'clearQueue'
 }
 
 /**
- * If any given `taskId` is still in the active task queue, this puts the entire
- * resource into error mode. *This should never happen.*
+ * Puts the entire resource into error mode. *This should never happen.*
  */
-export type ErrorAction = {
+type ErrorAction = {
   type: 'error'
   error: any
-  taskId: null | string
 }
 
 /**
  * Expire the specified keys.
  */
-export type ExpireAction<Key> = {
+type ExpireAction<Key> = {
   type: 'expire'
   context?: any
   path: string
@@ -74,55 +90,34 @@ export type ExpireAction<Key> = {
 }
 
 /**
- * Mark that the given keys should not be purged until the hold is released.
+ * Force the resource to run the given fetch, cancelling any other fetches
+ * in the process (including any previous force fetch).
  */
-export type HoldAction<Key> = {
+type ForceLoadAction<Key> = {
+  type: 'forceLoad'
+  context: any
+  path: string
+  keys: Key[]
+}
+
+/**
+ * Mark that the given keys should not be purged until the hold is released.
+ * Optionally can apply request policies, which specify the conditions under
+ * which tasks should be enqueued to request the key's data.
+ */
+type HoldAction<Key> = {
   type: 'hold'
   context: any
   path: string
   keys: Key[]
-}
-
-/**
- * Cancel all tasks for the given keys, re-scheduling them to be run again on a
- * corresponding resume action.
- */
-export type HoldWithPauseAction<Key> = {
-  type: 'holdWithPause'
-  context: any
-  path: string
-  keys: Key[]
-}
-
-/**
- * Add predictions to each key.
- */
-export type HoldWithPredictionAction<Data, Key> = {
-  type: 'holdWithPrediction'
-  context: any
-  path: string
-  keys: Key[]
-  prediction: ResourcePrediction<Data, Key>
-}
-
-/**
- * Mark that the given keys should not be purged until the hold is released, and
- * further mark that tasks should be enqueued to request the key's data on the
- * given conditions.
- */
-export type HoldWithRequestPolicyAction<Key> = {
-  type: 'holdWithRequestPolicy'
-  context: any
-  path: string
-  keys: Key[]
-  requestPolicies: ResourceRequestPolicy[]
+  requestPolicies?: ResourceRequestPolicy[]
 }
 
 /**
  * Mark that the given keys' current values will not expire (unless manually
- * expired.)
+ * stale.)
  */
-export type MarkAsEvergreenAction<Key> = {
+type MarkAsEvergreenAction<Key> = {
   type: 'markAsEvergreen'
   path: string
   keys: Key[]
@@ -130,9 +125,31 @@ export type MarkAsEvergreenAction<Key> = {
 }
 
 /**
+ * Cancel all tasks for the given keys, re-scheduling them to be run again on a
+ * corresponding resume action.
+ */
+type PauseAction<Key> = {
+  type: 'pause'
+  context: any
+  path: string
+  keys: Key[]
+}
+
+/**
+ * Add predictions to each key, applying a hold in the meantime.
+ */
+type PredictAction<Data, Key> = {
+  type: 'predict'
+  context: any
+  path: string
+  keys: Key[]
+  prediction: ResourcePrediction<Data, Key>
+}
+
+/**
  * Remove the given keys from the store, stoppping any associated tasks.
  */
-export type PurgeAction<Key> = {
+type PurgeAction<Key> = {
   type: 'purge'
   path: string
   keys: Key[]
@@ -142,64 +159,44 @@ export type PurgeAction<Key> = {
 /**
  * Negate the affects of a corresponding hold action.
  */
-export type ReleaseHoldAction<Key> = {
+type ReleaseHoldAction<Key> = {
   type: 'releaseHold'
   context: any
   path: string
   keys: Key[]
-}
-
-/**
- * Negate the effects of a corresponding pause action.
- */
-export type ReleaseHoldWithPauseAction<Key> = {
-  type: 'releaseHoldWithPause'
-  context: any
-  path: string
-  keys: Key[]
+  requestPolicies?: ResourceRequestPolicy[]
 }
 
 /**
  * Remove the specified predictions, with the option of commiting them (or some
  * other data) to the store.
  */
-export type ReleaseHoldWithPredictionAction<Data, Key> = {
-  type: 'releaseHoldWithPrediction'
+type ResolvePredictionAction<Data, Key> = {
+  type: 'resolvePrediction'
   context: any
   path: string
   keys: Key[]
   prediction: ResourcePrediction<Data, Key>
-  timestamp: number
-  updates: {
-    key: Key
-    value: ResourceValue<Data> | ResourceUpdateCallback<Data, Key>
-    expired?: boolean
-  }[]
+  update?: ResourceUpdate<Data, Key>
 }
 
 /**
- * Negate the affects of a corresponding holdWithRequestPolicy action.
+ * Negate the affects of a corresponding hold action.
  */
-export type ReleaseHoldWithRequestPolicyAction<Key> = {
-  type: 'releaseHoldWithRequestPolicy'
+type ResumePause<Key> = {
+  type: 'resumePause'
   context: any
   path: string
   keys: Key[]
-  requestPolicies: ResourceRequestPolicy[]
 }
 
 /**
  * Update cached data
  */
-export type UpdateAction<Data, Key> = {
+type UpdateAction<Data, Key> = {
   type: 'update'
   context?: any
   path: string
   taskId: string | null
-  timestamp: number
-  updates: {
-    key: Key
-    value: ResourceValue<Data> | ResourceUpdateCallback<Data, Key>
-    expired?: boolean
-  }[]
+  update: ResourceUpdate<Data, Key>
 }

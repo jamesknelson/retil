@@ -11,7 +11,7 @@ import {
 } from './KeyStoreOptions'
 import { createStoreCache, StoreCacheMap } from './StoreCache'
 
-export const Dispose = Symbol.for('/antidux/dispose')
+export const Dispose = Symbol.for('/retil/dispose')
 export type Dispose = typeof Dispose
 
 export type StoreState = { [key: string]: any }
@@ -24,7 +24,7 @@ export interface Store {
   // Throws an error if two different reducers, isPending or hasValue functions
   // are ever registered on the same key. Once a reducer has been registered,
   // there's no cleaning it up.
-  key<State, Action extends StoreAction, Value = State>(
+  namespace<State, Action extends StoreAction, Value = State>(
     key: string,
     options: KeyStoreOptions<State, Action, Value>,
   ): KeyStore<State, Action, Value>
@@ -106,7 +106,13 @@ export function createStore(
   const controller: Store = {
     dehydrate,
 
-    key: (key: string, options: KeyStoreOptions): KeyStore<any, any> => {
+    dispose: () => {
+      for (const key of keys) {
+        innerStore.dispatch(key, { type: Dispose })
+      }
+    },
+
+    namespace: (key: string, options: KeyStoreOptions): KeyStore<any, any> => {
       if (typeof key !== 'string') {
         throw new Error(`Store keys must be strings.`)
       }

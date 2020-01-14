@@ -1,9 +1,16 @@
-import { ResourcePrediction } from './ResourcePredicton'
+import { ResourceEffect } from './ResourceEffects'
+import { ResourcePrediction } from './ResourcePrediction'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
-import { ResourceKeyTasks, ResourceTask } from './ResourceTasks'
+import {
+  ResourceKeyTasks,
+  ResourceTask,
+  ResourceTaskQueueType,
+} from './ResourceTasks'
 import { ResourceValue } from './ResourceValue'
 
 export interface ResourceState<Data, Key> {
+  effects: ResourceEffect<Data, Key, any>[]
+
   error?: any
 
   records: {
@@ -36,11 +43,9 @@ export interface ResourceState<Data, Key> {
      * - `stop`: the task was removed from pending (and possibly also pausedBy)
      */
     queue: {
-      [taskId: string]: 'start' | 'pause' | 'stop'
+      [taskId: string]: ResourceTaskQueueType
     }
   }
-
-  valueChanges: Map<Key, ResourceValue<Data> | null | undefined> | null
 }
 
 export interface ResourceKeyState<Data = any, Key = any> {
@@ -49,7 +54,7 @@ export interface ResourceKeyState<Data = any, Key = any> {
    * treated as valid -- and should put the the key into error state if not
    * selected and if the strategy has given up fetching new values.
    */
-  expired?: boolean
+  stale?: boolean
 
   holdCount: number
 

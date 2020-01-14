@@ -1,11 +1,12 @@
-import { InitialKeyState } from '../constants'
 import { ResourceKeyState, ResourceState } from '../types'
 
+import { InitialKeyState } from './constants'
 import { ChangeTracker } from './changeTracker'
 
 export type MapMergeCallback<Data, Key> = (
   keyState: ResourceKeyState<Data, Key>,
   index: number,
+  tracker: ChangeTracker<Data, Key>,
 ) => undefined | false | Partial<ResourceKeyState<Data, Key>>
 
 export function mapMerge<Data, Key>(
@@ -33,7 +34,7 @@ export function mapMerge<Data, Key>(
         existingKeyState = hashKeyStates[hashIndex]
         const key = existingKeyState.key
         if (key === keys[i]) {
-          const mergeKeyState = callback(existingKeyState, i)
+          const mergeKeyState = callback(existingKeyState, i, tracker)
           if (mergeKeyState && mergeKeyState !== existingKeyState) {
             nextKeyState = {
               ...existingKeyState,
@@ -53,7 +54,7 @@ export function mapMerge<Data, Key>(
         ...InitialKeyState,
         key: keys[i],
       }
-      const mergeState = callback(initialState, i)
+      const mergeState = callback(initialState, i, tracker)
       if (
         mergeState &&
         mergeState !== initialState &&
@@ -71,7 +72,7 @@ export function mapMerge<Data, Key>(
     }
 
     const {
-      expired,
+      stale,
       key,
       holdCount,
       pauseCount,
@@ -94,7 +95,7 @@ export function mapMerge<Data, Key>(
           tracker.unpauseKeyTasks(key, tasks)
         }
 
-        if (tasks.purge && holdCount) {
+        if (tasks.purge && (holdCount || tasks.forceLoad)) {
           nextTasks.purge = null
         }
         if (tasks.subscribe && !requestPolicies.subscribe) {
@@ -102,28 +103,26 @@ export function mapMerge<Data, Key>(
         }
         if (
           tasks.expire &&
-          (expired || (requestPolicies.subscribe && tasks.subscribe !== false))
+          (stale || (requestPolicies.subscribe && tasks.subscribe !== false))
         ) {
           nextTasks.expire = null
         }
 
-        // While a `fetchExpired` or `fetchOnce` can sometimes be
+        // While a `fetchStale` or `fetchOnce` can sometimes be
         // stopped if the other type of fetch is still active, we'll
         // just leave a fetch running if either type of policy is
         // active.
         const fetchPolicyCount =
-          requestPolicies.fetchExpired +
-          requestPolicies.fetchManual +
-          requestPolicies.fetchOnce
-        if (tasks.fetch && !fetchPolicyCount) {
-          nextTasks.fetch = null
+          requestPolicies.fetchStale + requestPolicies.fetchOnce
+        if (tasks.load && !fetchPolicyCount) {
+          nextTasks.load = null
         }
       }
 
       // List any tasks which need to be started given the new key state.
       // Note that `updateMapper` will null out any tasks that need to change
       // when the value changes.
-      if (tasks.purge === null && holdCount === 0) {
+      if (tasks.purge === null && holdCount === 0 && !tasks.forceLoad) {
         nextTasks.purge = tracker.startTasks('purge', key, value)
       }
       if (tasks.subscribe === null && requestPolicies.subscribe) {
@@ -131,7 +130,7 @@ export function mapMerge<Data, Key>(
       }
       if (
         tasks.expire === null &&
-        !expired &&
+        !stale &&
         value &&
         (tasks.subscribe === false || !requestPolicies.subscribe)
       ) {
@@ -140,17 +139,13 @@ export function mapMerge<Data, Key>(
       if (
         // When a `fetchManual` policy is added, we'll trigger a new fetch
         // regardless of any existing fetches.
-        (requestPolicies.fetchManual &&
-          (!existingKeyState ||
-            existingKeyState.requestPolicies.fetchManual <
-              requestPolicies.fetchManual)) ||
-        (tasks.fetch === null &&
-          ((requestPolicies.fetchExpired && (expired || !value)) ||
-            (requestPolicies.fetchOnce &&
-              (!existingKeyState ||
-                !existingKeyState.requestPolicies.fetchOnce))))
+        tasks.load === null &&
+        tasks.forceLoad === null &&
+        ((requestPolicies.fetchStale && (stale || !value)) ||
+          (requestPolicies.fetchOnce &&
+            (!existingKeyState || !existingKeyState.requestPolicies.fetchOnce)))
       ) {
-        nextTasks.fetch = tracker.startTasks('fetch', key, value)
+        nextTasks.load = tracker.startTasks('load', key, value)
       }
 
       if (existingKeyState && existingKeyState.tasks !== nextKeyState.tasks) {
@@ -163,7 +158,7 @@ export function mapMerge<Data, Key>(
     }
 
     if (!existingKeyState || existingKeyState.value !== value) {
-      tracker.recordValueChange(key, value)
+      tracker.recordEffect(key, value)
     }
 
     // Delay cloning the state until we know we need to, as this could be a
