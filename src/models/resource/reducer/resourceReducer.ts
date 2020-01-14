@@ -216,6 +216,9 @@ export function createResourceReducer<Data, Key>(
           },
           createUpdateMapper(action),
         )
+
+      default:
+        return state
     }
   }
 

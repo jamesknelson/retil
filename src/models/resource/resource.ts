@@ -85,6 +85,7 @@ export function createResourceModel<
     }
 
     const store = context.store || createStore()
+
     const [outlet, dispatch] = store.namespace<
       ResourceState<Data, Key>,
       ResourceAction<Data, Key>

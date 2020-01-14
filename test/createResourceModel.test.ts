@@ -11,9 +11,33 @@ describe('createResourceModel()', () => {
     outlet.getCurrentValue()
   })
 
-  test('returns a model that can be instantiated with a context', () => {
-    const model = createResourceModel()
+  test('returns a model that can be instantiated with a context', async () => {
+    const model = createResourceModel({
+      loader: ({ keys, update }) => {
+        Promise.resolve().then(() => {
+          update({
+            timestamp: Date.now(),
+            changes: keys.map(key => ({
+              key,
+              value: {
+                status: 'retrieved',
+                data: key,
+                timestamp: Date.now(),
+              },
+            })),
+          })
+        })
+      },
+    })
     const [outlet] = model({}).key('test')
-    outlet.getCurrentValue()
+
+    try {
+      outlet.getCurrentValue()
+    } catch (promise) {
+      expect(outlet.getCurrentValue().hasData).toBe(false)
+      await promise
+      expect(outlet.getCurrentValue().hasData).toBe(true)
+      expect(outlet.getCurrentValue().data).toBe('test')
+    }
   })
 })

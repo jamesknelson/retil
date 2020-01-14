@@ -184,7 +184,7 @@ function createStoreReducer(
       case Register:
         return {
           ...state,
-          [namespace]: preloadedStates[namespace],
+          [namespace]: reducer(preloadedStates[namespace], action),
         }
 
       case Reset:
