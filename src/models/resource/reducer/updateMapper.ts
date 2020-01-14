@@ -1,4 +1,4 @@
-import { ResourceKeyState, ResourceUpdate, ResourceValue } from '../types'
+import { ResourceKeyState, ResourceUpdate } from '../types'
 
 import { MapMergeCallback } from './mapMerge'
 

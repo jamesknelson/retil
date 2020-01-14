@@ -42,9 +42,7 @@ export function registerKeyStore<
     innerStore.register(key, reducer, preloadedState)
     return {
       dispatch: action => innerStore.dispatch(key, action),
-      getState: () => {
-        innerStore.getState()[key]
-      },
+      getState: () => innerStore.getState()[key],
     }
   }
 
