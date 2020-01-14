@@ -41,8 +41,10 @@ describe('createResourceModel()', () => {
     const [outlet] = model({}).key('/test')
 
     try {
-      outlet.getCurrentValue()
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      outlet.getCurrentValue().data
     } catch (promise) {
+      expect(typeof promise.then).toBe('function')
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise
       expect(outlet.getCurrentValue().hasData).toBe(true)
@@ -63,8 +65,10 @@ describe('createURLLoader()', () => {
     const [outlet] = resourceModel.key('/test')
 
     try {
-      outlet.getCurrentValue()
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      outlet.getCurrentValue().data
     } catch (promise) {
+      expect(typeof promise.then).toBe('function')
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise
       expect(outlet.getCurrentValue().hasData).toBe(true)
