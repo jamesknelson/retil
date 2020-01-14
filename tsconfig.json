@@ -9,7 +9,8 @@
     "baseUrl": "src",
     "removeComments": false,
     "sourceMap": true,
-    "strictNullChecks": true,
+    "strict": true,
+    "strictPropertyInitialization": false,
     "target": "es5",
     "lib": [
       "dom",

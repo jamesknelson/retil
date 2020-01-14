@@ -12,7 +12,11 @@ export type StoreCacheMap = {
 }
 
 export interface StoreCache {
-  register(namespace: string, getState: () => any, config: NamespaceStoreConfig)
+  register(
+    namespace: string,
+    getState: () => any,
+    config: NamespaceStoreConfig,
+  ): void
   get(namespace: string): StoreCacheNamespace
   getMany(namespaces: string[]): StoreCacheMap
 }
@@ -33,7 +37,7 @@ export function createStoreCache(getThrownError: () => any): StoreCache {
   }
   const get = (namespace: string) => {
     const state = registeredGetStates[namespace]()
-    if (state !== namespaceStates[namespace]) {
+    if (state === undefined || state !== namespaceStates[namespace]) {
       namespaceStates[namespace] = state
       namespaceCaches[namespace] = compute(
         state,

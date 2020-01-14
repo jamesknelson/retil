@@ -32,7 +32,7 @@ export function createResourceModel<
   Context extends ResourceContext = any
 >(
   options: ResourceOptions<Data, Key, Context> = {},
-): Model<Resource<Data, Key>, ResourceContext> & Resource<Data, Key> {
+): Model<Resource<Data, Key>, Context> & Resource<Data, Key> {
   const {
     computeHashForKey = defaultOptions.computeHashForKey,
     computePathForContext,
@@ -52,14 +52,14 @@ export function createResourceModel<
   const tasks = {
     expire:
       typeof expirer === 'number'
-        ? createExpirer({
+        ? createExpirer<Data, Key, Context>({
             intervalFromTimestamp: expirer,
           })
         : expirer,
     load: loader,
     purge:
       typeof purger === 'number'
-        ? createPurger({
+        ? createPurger<Data, Key, Context>({
             ttl: purger,
           })
         : purger,
@@ -80,7 +80,7 @@ export function createResourceModel<
 
     if (!namespace && context.store) {
       throw new Error(
-        `Resource instances require a "storeKey" option if you pass a context with a "store".`,
+        `Resource instances require a "namespace" option if you pass a context with a "store".`,
       )
     }
 
@@ -89,8 +89,8 @@ export function createResourceModel<
       ResourceState<Data, Key>,
       ResourceAction<Data, Key>
     >(namespace || 'resource', {
-      enhancer: enhancer,
-      reducer: reducer,
+      enhancer,
+      reducer,
       initialState: preloadedState,
       selectError: state => state.error,
     })
@@ -101,7 +101,7 @@ export function createResourceModel<
 
     const resource = new ResourceImplementation(
       computeHashForKey,
-      this.context,
+      context,
       requestPolicy,
       dispatch,
       outlet,
@@ -116,5 +116,5 @@ export function createResourceModel<
     }
   })
 
-  return Object.assign(model, model(defaultContext))
+  return Object.assign(model, model({} as Context))
 }

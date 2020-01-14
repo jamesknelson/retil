@@ -4,6 +4,7 @@ import {
   ResourceAction,
   ResourceTask,
   ResourceTaskConfig,
+  ResourceTaskType,
   ResourceUpdate,
 } from '../types'
 
@@ -23,9 +24,9 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
 
   start(task: ResourceTask<Data, Key, Context>) {
     if (task.type === 'forceLoad') {
-      this.fetch(task)
+      this.load(task)
     }
-    this[task.type](task)
+    this[task.type as Exclude<ResourceTaskType, 'forceLoad'>](task)
   }
 
   stop(task: ResourceTask<Data, Key, Context>) {
@@ -86,7 +87,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     }
   }
 
-  private fetch(task: ResourceTask<Data, Key, Context>) {
+  private load(task: ResourceTask<Data, Key, Context>) {
     if (this.config.load) {
       const abandon = (keys: Key[] = task.keys) => {
         if (this.stoppers[task.id]) {

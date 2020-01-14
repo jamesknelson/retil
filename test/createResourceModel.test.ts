@@ -2,7 +2,7 @@ import { createResourceModel } from '../src/models/resource'
 
 describe('createResourceModel()', () => {
   test('works with no arguments', () => {
-    const model = createResourceModel()
+    createResourceModel()
   })
 
   test('returns a model instance with a default context', () => {

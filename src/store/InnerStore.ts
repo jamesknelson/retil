@@ -9,10 +9,14 @@ import { fromEntries } from 'utils/fromEntries'
 import { isPlainObject } from 'utils/isPlainObject'
 
 export interface InnerStore {
-  dispatch<A extends Action>(namespace: string, action: A)
+  dispatch<A extends Action>(namespace: string, action: A): void
   getState(): any
   getThrownError(): any
-  register(namespace: string, reducer: Reducer, preloadedState: any)
+  register<S, A extends Action>(
+    namespace: string,
+    reducer: Reducer<S, A>,
+    preloadedState: any,
+  ): void
   reset(): void
   subscribe(callback: () => void): () => void
 }
@@ -35,20 +39,25 @@ type Reset = typeof Reset
 
 // Use symbols so that in dev mode, we can spread the dispatched actions out
 // for better visibility of whats happening within devtools.
-export type InnerStoreAction =
-  | {
-      [Kind]: Dispatch
-      [Namespace]: string
-      [DispatchedAction]: Action
-      type: string
-    }
-  | {
-      [Kind]: Register
-      [Namespace]: string
-      type: '/retil/register'
-      namespace: string
-    }
-  | { [Kind]: Reset; [Namespace]?: never; type: '/retil/reset' }
+type DispatchAction = {
+  [Kind]: Dispatch
+  [Namespace]: string
+  [DispatchedAction]: Action
+  type: string
+}
+type RegisterAction = {
+  [Kind]: Register
+  [Namespace]: string
+  type: '/retil/register'
+  namespace: string
+}
+type ResetAction = {
+  [Kind]: Reset
+  [Namespace]?: never
+  type: '/retil/reset'
+}
+
+export type InnerStoreAction = DispatchAction | RegisterAction | ResetAction
 
 const createStoreWithDevtools: StoreCreator = (
   reducer: Reducer,
@@ -74,7 +83,7 @@ export function createInnerStore(
   selector?: (state: any) => any,
 ): InnerStore {
   const namespaceInitialStates = {} as { [namespace: string]: any }
-  const namespaceReducers = {} as { [namespace: string]: Reducer }
+  const namespaceReducers = {} as { [namespace: string]: Reducer<any, any> }
   const reducer: Reducer<any, InnerStoreAction> = createStoreReducer({}, {})
   const reduxStore = createReduxStore(reducer, preloadedState)
 
@@ -111,7 +120,11 @@ export function createInnerStore(
         type: '/retil/reset',
       })
     },
-    register: (namespace: string, reducer: Reducer, preloadedState?: any) => {
+    register: <S, A extends Action>(
+      namespace: string,
+      reducer: Reducer<S, A>,
+      preloadedState?: any,
+    ) => {
       namespaceInitialStates[namespace] = preloadedState
       namespaceReducers[namespace] = reducer
 
@@ -153,7 +166,10 @@ function createStoreReducer(
         let oldState = state[namespace]
         let newState
         try {
-          newState = reducer(oldState, action[DispatchedAction])
+          newState = reducer(
+            oldState,
+            (action as DispatchAction)[DispatchedAction],
+          )
           return oldState === newState
             ? state
             : { ...state, [namespace]: newState }

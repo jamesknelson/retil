@@ -6,7 +6,7 @@ export function exponentialBackoff({
   const execute = (options: {
     attempt: (attemptNumber: number) => Promise<boolean>
     abandon: () => void
-    error: (error) => void
+    error: (error: any) => void
   }): (() => void) => {
     let attemptNumber = 1
     let stopped = false

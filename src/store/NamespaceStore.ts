@@ -41,7 +41,7 @@ export function registerNamespaceStore<
   ) => {
     innerStore.register(namespace, reducer, preloadedState)
     return {
-      dispatch: action => innerStore.dispatch(namespace, action),
+      dispatch: (action: A) => innerStore.dispatch(namespace, action),
       getState: () => innerStore.getState()[namespace],
     }
   }

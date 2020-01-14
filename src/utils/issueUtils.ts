@@ -56,10 +56,10 @@ export function getIssueMessages<I extends Issues>(
   }
 
   for (const propName of Object.keys(issues) as PropNamesFor<I>[]) {
-    const issue = issues[propName] as string
+    const issue = issues[propName]
     if (issue) {
       messages[propName] =
-        (propMessages[propName] && propMessages[propName][issue]) ||
+        (propMessages[propName] && propMessages[propName][issue as never]) ||
         fallbackMessages[issue] ||
         defaultMessage ||
         issue

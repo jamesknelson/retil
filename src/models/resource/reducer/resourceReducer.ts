@@ -10,8 +10,9 @@ import { createUpdateMapper } from './updateMapper'
 export function createResourceReducer<Data, Key>(
   computeHashForKey: (key: Key) => string,
 ) {
+  const defaultState = reset<Data, Key>()
   const merge = (
-    state: ResourceState<Data, Key>,
+    state: ResourceState<Data, Key> = defaultState,
     action: {
       context?: any
       path: string
@@ -33,7 +34,7 @@ export function createResourceReducer<Data, Key>(
   }
 
   const resourceReducer = (
-    state: ResourceState<Data, Key>,
+    state: ResourceState<Data, Key> = defaultState,
     action: ResourceAction<Data, Key>,
   ): ResourceState<Data, Key> => {
     switch (action.type) {

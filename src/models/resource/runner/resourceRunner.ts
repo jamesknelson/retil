@@ -1,4 +1,4 @@
-import { Reducer, Store, StoreEnhancer } from 'redux'
+import { Reducer, Store, StoreEnhancer, StoreEnhancerStoreCreator } from 'redux'
 
 import {
   ResourceAction,
@@ -19,7 +19,7 @@ export interface RunnerConfig<Data, Key, Context extends object> {
 export function createResourceRunner<Data, Key, Context extends object>(
   config: RunnerConfig<Data, Key, Context>,
 ) {
-  const enhancer = createStore => (
+  const enhancer = (createStore: StoreEnhancerStoreCreator) => (
     reducer: Reducer<ResourceState<Data, Key>, ResourceAction<Data, Key>>,
     ...args: any[]
   ) => {
