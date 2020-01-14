@@ -9,10 +9,10 @@ import { fromEntries } from 'utils/fromEntries'
 import { isPlainObject } from 'utils/isPlainObject'
 
 export interface InnerStore {
-  dispatch<A extends Action>(key: string, action: A)
+  dispatch<A extends Action>(namespace: string, action: A)
   getState(): any
   getThrownError(): any
-  register(key: string, reducer: Reducer, preloadedState: any)
+  register(namespace: string, reducer: Reducer, preloadedState: any)
   reset(): void
   subscribe(callback: () => void): () => void
 }
@@ -21,15 +21,15 @@ export const ThrownError = Symbol('ThrownError')
 
 const DispatchedAction = Symbol('/retil/dispatched-action')
 const Dispatch = Symbol('/retil/dispatch')
-const Key = Symbol('/retil/key')
 const Kind = Symbol('/retil/kind')
+const Namespace = Symbol('/retil/namespace')
 const Register = Symbol('/retil/register')
 const Reset = Symbol('/retil/reset')
 
 type DispatchedAction = typeof DispatchedAction
 type Dispatch = typeof Dispatch
-type Key = typeof Key
 type Kind = typeof Kind
+type Namespace = typeof Namespace
 type Register = typeof Register
 type Reset = typeof Reset
 
@@ -38,12 +38,17 @@ type Reset = typeof Reset
 export type InnerStoreAction =
   | {
       [Kind]: Dispatch
-      [Key]: string
+      [Namespace]: string
       [DispatchedAction]: Action
       type: string
     }
-  | { [Kind]: Register; [Key]: string; type: '/retil/register'; key: string }
-  | { [Kind]: Reset; [Key]?: never; type: '/retil/reset' }
+  | {
+      [Kind]: Register
+      [Namespace]: string
+      type: '/retil/register'
+      namespace: string
+    }
+  | { [Kind]: Reset; [Namespace]?: never; type: '/retil/reset' }
 
 const createStoreWithDevtools: StoreCreator = (
   reducer: Reducer,
@@ -64,12 +69,12 @@ const createStoreWithDevtools: StoreCreator = (
 }
 
 export function createInnerStore(
-  preloadedState: { [key: string]: any } = {},
+  preloadedState: { [namespace: string]: any } = {},
   createReduxStore = createStoreWithDevtools,
   selector?: (state: any) => any,
 ): InnerStore {
-  const keyInitialStates = {} as { [key: string]: any }
-  const keyReducers = {} as { [key: string]: Reducer }
+  const namespaceInitialStates = {} as { [namespace: string]: any }
+  const namespaceReducers = {} as { [namespace: string]: Reducer }
   const reducer: Reducer<any, InnerStoreAction> = createStoreReducer({}, {})
   const reduxStore = createReduxStore(reducer, preloadedState)
 
@@ -78,7 +83,7 @@ export function createInnerStore(
     : reduxStore.getState
 
   return {
-    dispatch: (key: string, action: any) => {
+    dispatch: (namespace: string, action: any) => {
       if (!isPlainObject(action)) {
         throw new Error('Actions must be plain objects.')
       }
@@ -92,10 +97,10 @@ export function createInnerStore(
 
       reduxStore.dispatch({
         [Kind]: Dispatch,
-        [Key]: key,
+        [Namespace]: namespace,
         [DispatchedAction]: action,
         ...action,
-        type: '/' + key + '/' + action.type,
+        type: '/' + namespace + '/' + action.type,
       })
     },
     getState,
@@ -106,18 +111,18 @@ export function createInnerStore(
         type: '/retil/reset',
       })
     },
-    register: (key: string, reducer: Reducer, preloadedState?: any) => {
-      keyInitialStates[key] = preloadedState
-      keyReducers[key] = reducer
+    register: (namespace: string, reducer: Reducer, preloadedState?: any) => {
+      namespaceInitialStates[namespace] = preloadedState
+      namespaceReducers[namespace] = reducer
 
       reduxStore.replaceReducer(
-        createStoreReducer(keyReducers, keyInitialStates),
+        createStoreReducer(namespaceReducers, namespaceInitialStates),
       )
       reduxStore.dispatch({
         [Kind]: Register,
-        [Key]: key,
+        [Namespace]: namespace,
         type: '/retil/register',
-        key: key,
+        namespace,
       })
     },
     subscribe: reduxStore.subscribe,
@@ -125,17 +130,17 @@ export function createInnerStore(
 }
 
 function createStoreReducer(
-  reducers: { [key: string]: Reducer },
-  preloadedStates: { [key: string]: any },
+  reducers: { [namespace: string]: Reducer },
+  preloadedStates: { [namespace: string]: any },
 ) {
-  const keys = Object.keys(reducers)
+  const namespaces = Object.keys(reducers)
 
   return (
-    state: { [key: string]: any },
+    state: { [namespace: string]: any },
     action: InnerStoreAction,
-  ): { [key: string]: any } => {
-    const key = action[Key] || ''
-    const reducer = reducers[key]
+  ): { [namespace: string]: any } => {
+    const namespace = action[Namespace] || ''
+    const reducer = reducers[namespace]
 
     // Thrown errors are unrecoverable, but we want them to be thrown when the
     // user calls `getState` -- not in the middle of the reducer.
@@ -145,27 +150,31 @@ function createStoreReducer(
 
     switch (action[Kind]) {
       case Dispatch:
-        let oldState = state[key]
+        let oldState = state[namespace]
         let newState
         try {
           newState = reducer(oldState, action[DispatchedAction])
-          return oldState === newState ? state : { ...state, [key]: newState }
+          return oldState === newState
+            ? state
+            : { ...state, [namespace]: newState }
         } catch (error) {
           return {
             ...state,
             [ThrownError]: error,
-            [key]: ThrownError,
+            [namespace]: ThrownError,
           }
         }
 
       case Register:
         return {
           ...state,
-          [key]: preloadedStates[key],
+          [namespace]: preloadedStates[namespace],
         }
 
       case Reset:
-        return fromEntries(keys.map(key => [key, preloadedStates[key]]))
+        return fromEntries(
+          namespaces.map(namespace => [namespace, preloadedStates[namespace]]),
+        )
 
       default:
         return state

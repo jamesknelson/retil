@@ -8,41 +8,41 @@ import {
 import { InnerStore } from './InnerStore'
 import { StoreCache } from './StoreCache'
 import { Outlet, createOutlet } from '../outlets'
-import { KeyStoreConfig } from './KeyStoreOptions'
+import { NamespaceStoreConfig } from './NamespaceStoreOptions'
 
-export type KeyStore<State, Action extends StoreAction, Value = State> = [
-  KeyStoreOutlet<State, Value>,
-  KeyStoreDispatch<Action>,
+export type NamespaceStore<State, Action extends StoreAction, Value = State> = [
+  NamespaceStoreOutlet<State, Value>,
+  NamespaceStoreDispatch<Action>,
 ]
 
-export type KeyStoreDispatch<Action extends StoreAction> = (
+export type NamespaceStoreDispatch<Action extends StoreAction> = (
   action: Action,
 ) => void
 
-export interface KeyStoreOutlet<State, Value> extends Outlet<Value> {
+export interface NamespaceStoreOutlet<State, Value> extends Outlet<Value> {
   getState(): State
 }
 
-export function registerKeyStore<
+export function registerNamespaceStore<
   State,
   Action extends StoreAction,
   Value = State
 >(
   innerStore: InnerStore,
-  key: string,
+  namespace: string,
   storeCache: StoreCache,
-  config: KeyStoreConfig<State, Action, Value>,
-): KeyStore<State, Action, Value> {
+  config: NamespaceStoreConfig<State, Action, Value>,
+): NamespaceStore<State, Action, Value> {
   const { enhancer, reducer, initialState } = config
 
   let createStore: StoreCreator = <S extends State, A extends Action>(
     reducer: StoreReducer<S, A>,
     preloadedState?: PreloadedState<S>,
   ) => {
-    innerStore.register(key, reducer, preloadedState)
+    innerStore.register(namespace, reducer, preloadedState)
     return {
-      dispatch: action => innerStore.dispatch(key, action),
-      getState: () => innerStore.getState()[key],
+      dispatch: action => innerStore.dispatch(namespace, action),
+      getState: () => innerStore.getState()[namespace],
     }
   }
 
@@ -54,17 +54,17 @@ export function registerKeyStore<
   // hydrated with something else.
   const innerStoreState = innerStore.getState()
   const preloadedState =
-    key in innerStoreState ? innerStoreState[key] : initialState
+    namespace in innerStoreState ? innerStoreState[namespace] : initialState
   const { dispatch, getState } = createStore(reducer, preloadedState)
 
-  storeCache.register(key, getState, config)
+  storeCache.register(namespace, getState, config)
 
   return [
     createOutlet({
       getState,
 
       getCurrentValue: () => {
-        const cache = storeCache.get(key)
+        const cache = storeCache.get(namespace)
         if (cache.error) {
           throw cache.error
         }
@@ -72,10 +72,10 @@ export function registerKeyStore<
         return cache.value
       },
       hasValue: (): boolean => {
-        return storeCache.get(key).hasValue
+        return storeCache.get(namespace).hasValue
       },
       isPending: (): boolean => {
-        return storeCache.get(key).isPending
+        return storeCache.get(namespace).isPending
       },
 
       subscribe: (callback: () => void) => {

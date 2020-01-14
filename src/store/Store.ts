@@ -3,18 +3,18 @@ import { Action as StoreAction, StoreCreator } from 'redux'
 import { toPromise } from 'outlets'
 
 import { createInnerStore } from './InnerStore'
-import { KeyStore, registerKeyStore } from './KeyStore'
+import { NamespaceStore, registerNamespaceStore } from './NamespaceStore'
 import {
-  KeyStoreConfig,
-  KeyStoreOptions,
-  defaultKeyStoreOptions,
-} from './KeyStoreOptions'
+  NamespaceStoreConfig,
+  NamespaceStoreOptions,
+  defaultNamespaceStoreOptions,
+} from './NamespaceStoreOptions'
 import { createStoreCache, StoreCacheMap } from './StoreCache'
 
 export const Dispose = Symbol.for('/retil/dispose')
 export type Dispose = typeof Dispose
 
-export type StoreState = { [key: string]: any }
+export type StoreState = { [namespace: string]: any }
 
 export interface Store {
   dehydrate(): Promise<StoreState>
@@ -22,18 +22,18 @@ export interface Store {
   dispose(): void
 
   // Throws an error if two different reducers, isPending or hasValue functions
-  // are ever registered on the same key. Once a reducer has been registered,
+  // are ever registered on the same namespace. Once a reducer has been registered,
   // there's no cleaning it up.
   namespace<State, Action extends StoreAction, Value = State>(
-    key: string,
-    options: KeyStoreOptions<State, Action, Value>,
-  ): KeyStore<State, Action, Value>
+    namespace: string,
+    options: NamespaceStoreOptions<State, Action, Value>,
+  ): NamespaceStore<State, Action, Value>
 
   reset(): void
 }
 
 export function createStore(
-  preloadedState: { [key: string]: any } = {},
+  preloadedState: { [namespace: string]: any } = {},
   createReduxStore?: StoreCreator,
   selector?: (state: any) => any,
 ): Store {
@@ -44,9 +44,11 @@ export function createStore(
   )
   const storeCache = createStoreCache(innerStore.getThrownError)
 
-  const keys = [] as string[]
-  const keyConfigs = {} as { [key: string]: KeyStoreConfig }
-  const keyStores = {} as { [key: string]: KeyStore<any, any> }
+  const namespaces = [] as string[]
+  const namespaceConfigs = {} as { [namespace: string]: NamespaceStoreConfig }
+  const namespaceStores = {} as {
+    [namespace: string]: NamespaceStore<any, any>
+  }
 
   const dehydrate = async () => {
     const state = await toPromise(
@@ -58,12 +60,12 @@ export function createStore(
       isPending,
     )
 
-    for (const key of keys) {
-      const dehydrate = keyConfigs[key].dehydrate
+    for (const namespace of namespaces) {
+      const dehydrate = namespaceConfigs[namespace].dehydrate
       if (dehydrate) {
-        const dehydratedState = dehydrate(state[key])
+        const dehydratedState = dehydrate(state[namespace])
         if (dehydratedState !== undefined) {
-          state[key] = dehydratedState
+          state[namespace] = dehydratedState
         }
       }
     }
@@ -72,7 +74,7 @@ export function createStore(
   }
 
   const getCurrentValue = (): StoreState => {
-    const cache = storeCache.getMany(keys)
+    const cache = storeCache.getMany(namespaces)
     const error = getError(cache)
     if (error) {
       throw error
@@ -81,25 +83,27 @@ export function createStore(
   }
 
   const getError = (cache: StoreCacheMap): any => {
-    for (const key of keys) {
-      if (cache[key].error !== undefined) {
-        return cache[key].error
+    for (const namespace of namespaces) {
+      if (cache[namespace].error !== undefined) {
+        return cache[namespace].error
       }
     }
   }
 
   const hasValue = (): boolean => {
-    const cache = storeCache.getMany(keys)
+    const cache = storeCache.getMany(namespaces)
     return (
-      getError(cache) !== undefined || keys.every(key => cache[key].hasValue)
+      getError(cache) !== undefined ||
+      namespaces.every(namespace => cache[namespace].hasValue)
     )
   }
 
   const isPending = (): boolean => {
-    const cache = storeCache.getMany(keys)
+    const cache = storeCache.getMany(namespaces)
     return (
       !hasValue() ||
-      (getError(cache) === undefined && keys.some(key => cache[key].isPending))
+      (getError(cache) === undefined &&
+        namespaces.some(namespace => cache[namespace].isPending))
     )
   }
 
@@ -107,27 +111,30 @@ export function createStore(
     dehydrate,
 
     dispose: () => {
-      for (const key of keys) {
-        innerStore.dispatch(key, { type: Dispose })
+      for (const namespace of namespaces) {
+        innerStore.dispatch(namespace, { type: Dispose })
       }
     },
 
-    namespace: (key: string, options: KeyStoreOptions): KeyStore<any, any> => {
-      if (typeof key !== 'string') {
-        throw new Error(`Store keys must be strings.`)
+    namespace: (
+      namespace: string,
+      options: NamespaceStoreOptions,
+    ): NamespaceStore<any, any> => {
+      if (typeof namespace !== 'string') {
+        throw new Error(`Store namespaces must be strings.`)
       }
-      if (key.indexOf('/') !== -1) {
-        throw new Error(`Store keys must not include the "/" character.`)
+      if (namespace.indexOf('/') !== -1) {
+        throw new Error(`Store namespaces must not include the "/" character.`)
       }
 
-      const config: KeyStoreConfig<any, any> = {
-        ...defaultKeyStoreOptions,
+      const config: NamespaceStoreConfig<any, any> = {
+        ...defaultNamespaceStoreOptions,
         ...options,
       }
 
-      const oldConfig = keyConfigs[key]
+      const oldConfig = namespaceConfigs[namespace]
       if (oldConfig) {
-        const differsFromPreviousKey =
+        const differsFromPreviousConfig =
           oldConfig.initialState !== config.initialState ||
           oldConfig.reducer !== config.reducer ||
           oldConfig.enhancer !== config.enhancer ||
@@ -136,19 +143,24 @@ export function createStore(
           oldConfig.selectIsPending !== config.selectIsPending ||
           oldConfig.selectValue !== config.selectValue
 
-        if (differsFromPreviousKey) {
+        if (differsFromPreviousConfig) {
           throw new Error(
-            'Each call to storeController.key() must always use the same' +
-              `options. See key "${key}".`,
+            'Each call to storeController.namespace() must always use the same' +
+              `options. See namespace "${namespace}".`,
           )
         }
       } else {
-        keys.push(key)
-        keyConfigs[key] = config
-        keyStores[key] = registerKeyStore(innerStore, key, storeCache, config)
+        namespaces.push(namespace)
+        namespaceConfigs[namespace] = config
+        namespaceStores[namespace] = registerNamespaceStore(
+          innerStore,
+          namespace,
+          storeCache,
+          config,
+        )
       }
 
-      return keyStores[key]
+      return namespaceStores[namespace]
     },
 
     reset: innerStore.reset,

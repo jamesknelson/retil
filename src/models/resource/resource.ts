@@ -32,7 +32,7 @@ export function createResourceModel<
   Context extends ResourceContext = any
 >(
   options: ResourceOptions<Data, Key, Context> = {},
-): Model<Resource<Data, Key>, ResourceContext> {
+): Model<Resource<Data, Key>, ResourceContext> & Resource<Data, Key> {
   const {
     computeHashForKey = defaultOptions.computeHashForKey,
     computePathForContext,
@@ -99,7 +99,7 @@ export function createResourceModel<
       ? computePathForContext(context)
       : 'root'
 
-    return new ResourceImplementation(
+    const resource = new ResourceImplementation(
       computeHashForKey,
       this.context,
       requestPolicy,
@@ -107,6 +107,13 @@ export function createResourceModel<
       outlet,
       basePathPrefix,
     )
+
+    return {
+      dehydrate: resource.dehydrate.bind(resource),
+      key: resource.key.bind(resource),
+      knownKeys: resource.knownKeys.bind(resource),
+      withPath: resource.withPath.bind(resource),
+    }
   })
 
   return Object.assign(model, model(defaultContext))

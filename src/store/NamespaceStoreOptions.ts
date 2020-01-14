@@ -4,7 +4,7 @@ import {
   StoreEnhancer,
 } from 'redux'
 
-export interface KeyStoreConfig<
+export interface NamespaceStoreConfig<
   State = any,
   Action extends StoreAction = any,
   Value = State
@@ -27,7 +27,7 @@ export interface KeyStoreConfig<
   selectValue: (state: State) => Value
 }
 
-export const defaultKeyStoreOptions = {
+export const defaultNamespaceStoreOptions = {
   dehydrate: (state: any) => state,
   selectError: () => undefined,
   selectHasValue: () => true,
@@ -35,10 +35,10 @@ export const defaultKeyStoreOptions = {
   selectValue: (state: any) => state,
 }
 
-type ConfigsWithDefaults = keyof typeof defaultKeyStoreOptions
-export type KeyStoreOptions<
+type ConfigsWithDefaults = keyof typeof defaultNamespaceStoreOptions
+export type NamespaceStoreOptions<
   State = any,
   Action extends StoreAction = any,
   Value = State
-> = Omit<KeyStoreConfig<State, Action, Value>, ConfigsWithDefaults> &
-  Partial<Pick<KeyStoreConfig<State, Action, Value>, ConfigsWithDefaults>>
+> = Omit<NamespaceStoreConfig<State, Action, Value>, ConfigsWithDefaults> &
+  Partial<Pick<NamespaceStoreConfig<State, Action, Value>, ConfigsWithDefaults>>

@@ -13,6 +13,7 @@ describe('createResourceModel()', () => {
 
   test('returns a model that can be instantiated with a context', () => {
     const model = createResourceModel()
-    const resource = model({})
+    const [outlet] = model({}).key('test')
+    outlet.getCurrentValue()
   })
 })

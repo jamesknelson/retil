@@ -1,47 +1,51 @@
 import { ThrownError } from './InnerStore'
-import { KeyStoreConfig } from './KeyStoreOptions'
+import { NamespaceStoreConfig } from './NamespaceStoreOptions'
 
-export type StoreCacheKey = {
+export type StoreCacheNamespace = {
   error: any
   hasValue: boolean
   isPending: boolean
   value: any
 }
 export type StoreCacheMap = {
-  [key: string]: StoreCacheKey
+  [namespace: string]: StoreCacheNamespace
 }
 
 export interface StoreCache {
-  register(key: string, getState: () => any, config: KeyStoreConfig)
-  get(key: string): StoreCacheKey
-  getMany(keys: string[]): StoreCacheMap
+  register(namespace: string, getState: () => any, config: NamespaceStoreConfig)
+  get(namespace: string): StoreCacheNamespace
+  getMany(namespaces: string[]): StoreCacheMap
 }
 
 export function createStoreCache(getThrownError: () => any): StoreCache {
-  const keyCaches = {} as StoreCacheMap
-  const keyStates = {} as { [key: string]: any }
-  const registeredConfigs = {} as { [key: string]: KeyStoreConfig }
-  const registeredGetStates = {} as { [key: string]: () => any }
+  const namespaceCaches = {} as StoreCacheMap
+  const namespaceStates = {} as { [namespace: string]: any }
+  const registeredConfigs = {} as { [namespace: string]: NamespaceStoreConfig }
+  const registeredGetStates = {} as { [namespace: string]: () => any }
 
   const register = (
-    key: string,
+    namespace: string,
     getState: () => any,
-    config: KeyStoreConfig,
+    config: NamespaceStoreConfig,
   ) => {
-    registeredConfigs[key] = config
-    registeredGetStates[key] = getState
+    registeredConfigs[namespace] = config
+    registeredGetStates[namespace] = getState
   }
-  const get = (key: string) => {
-    const state = registeredGetStates[key]()
-    if (state !== keyStates[key]) {
-      keyStates[key] = state
-      keyCaches[key] = compute(state, registeredConfigs[key], getThrownError)
+  const get = (namespace: string) => {
+    const state = registeredGetStates[namespace]()
+    if (state !== namespaceStates[namespace]) {
+      namespaceStates[namespace] = state
+      namespaceCaches[namespace] = compute(
+        state,
+        registeredConfigs[namespace],
+        getThrownError,
+      )
     }
-    return keyCaches[key]
+    return namespaceCaches[namespace]
   }
-  const getMany = (keys: string[]) => {
-    keys.forEach(get)
-    return keyCaches
+  const getMany = (namespaces: string[]) => {
+    namespaces.forEach(get)
+    return namespaceCaches
   }
 
   return {
@@ -53,9 +57,9 @@ export function createStoreCache(getThrownError: () => any): StoreCache {
 
 function compute(
   state: any,
-  config: KeyStoreConfig,
+  config: NamespaceStoreConfig,
   getThrownError: () => any,
-): StoreCacheKey {
+): StoreCacheNamespace {
   const hasThrownError = state === ThrownError
   const error = hasThrownError ? getThrownError() : config.selectError(state)
   const hasValue = error !== undefined || config.selectHasValue(state)
