@@ -40,6 +40,11 @@ describe('createResourceModel()', () => {
 
     const [outlet] = model({}).key('/test')
 
+    expect(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      outlet.getCurrentValue().data
+    }).toThrow(Promise)
+
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       outlet.getCurrentValue().data
@@ -63,6 +68,11 @@ describe('createURLLoader()', () => {
     })
 
     const [outlet] = resourceModel.key('/test')
+
+    expect(() => {
+      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
+      outlet.getCurrentValue().data
+    }).toThrow(Promise)
 
     try {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
