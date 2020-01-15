@@ -1,5 +1,3 @@
-import { toPromise } from './toPromise'
-
 /**
  * OutletDescriptor is separate to Outlet, so that functions can accept the
  * lower number of props require to describe an outlet, while they can return
@@ -10,21 +8,19 @@ import { toPromise } from './toPromise'
  */
 export interface OutletDescriptor<T = any> {
   /**
-   * Doesn't have to throw a promise when hasValue is false.
+   * If `hasValue` is provided and returns false, then this will not be called.
+   * `createOutlet` will take care of throwing a promise instead.
    */
   getCurrentValue(): T
 
   /**
    * If not provided, its assumed that the outlet has a value unless
    * `getCurrentValue()` throws a promise.
+   *
+   * It is always safe to call `getCurrentValue` from this function, as
+   * createOutlet() will handle any thrown promises or errors.
    */
   hasValue?(): boolean
-
-  /**
-   * If not provided, its assumed that the outlet is only pending until
-   * the outlet has a value.
-   */
-  isPending?(): boolean
 
   /**
    * The callback will be called at some point in the same tick after the
@@ -40,18 +36,14 @@ export interface Outlet<T> extends OutletDescriptor<T> {
    * Will throw a promise when hasValue is false.
    */
   getCurrentValue(): T
-  getSettledValue(): Promise<T>
-  getValue(): Promise<T>
 
+  getValue(): Promise<T>
   hasValue(): boolean
-  isPending(): boolean
 
   // todo:
   // - filter
   // - flatMap
   // - map (allow to pass hasValue as second argument)
-  // - mapPending
-  // - skipPending
 
   // map<T, U>(
   //   outletDescriptor: OutletDescriptor<T>,
@@ -64,46 +56,49 @@ export function isOutlet(x: any): x is Outlet<any> {
   throw new Error('unimplemented')
 }
 
-/**
- * For `createOutlet`, the result of `getCurrentValue` will be passed to
- * `hasValue` and `isPending`, simplifying the creation of suspenseful outlets.
- */
-export type CreateOutletOptions<T> = OutletDescriptor<T> & {
-  hasValue?(currentValue: T): boolean
-  isPending?(currentValue: T): boolean
-}
-
 export function createOutlet<
   T,
-  D extends CreateOutletOptions<T> = CreateOutletOptions<T>
->(descriptor: D & CreateOutletOptions<T>): D & Outlet<T> {
+  D extends OutletDescriptor<T> = OutletDescriptor<T>
+>(descriptor: D & OutletDescriptor<T>): D & Outlet<T> {
   const getCurrentValue = () => {
     // If our descriptor says we have no value (or the descriptor throws
     // a promise for `getCurrentValue`), then throw a promise that resolves
     // once we do have a value.
-    const { error, hasError, hasValue, value } = getCoreState(descriptor)
+    const { error, hasError, hasValue, value } = getState(descriptor)
     if (!hasValue) {
-      throw getValue()
+      throw getValue().then(() => {})
     } else if (hasError) {
       throw error
     }
     return value
   }
-  const getSettledValue = () => toPromise(descriptor, isSettled)
-  const getValue = () => toPromise(descriptor, hasValue)
-  const hasValue = () => getCoreState(descriptor).hasValue
-  // If there's no value, we always consider the outlet to be pending.
-  const isPending = () => getFullState(descriptor).isPending
+  const getValue = () =>
+    hasValue()
+      ? Promise.resolve(getCurrentValue() as T)
+      : new Promise<T>((resolve, reject) => {
+          const unsubscribe = descriptor.subscribe(() => {
+            try {
+              if (hasValue()) {
+                unsubscribe()
+                resolve(getCurrentValue())
+              }
+            } catch (error) {
+              unsubscribe()
+              reject(error)
+            }
+          })
+        })
+
+  const hasValue = () => getState(descriptor).hasValue
   const subscribe = (callback: () => void): (() => void) => {
     // Outlets only notify subscribers if something has actually changed.
-    let state = getFullState(descriptor)
+    let state = getState(descriptor)
     return descriptor.subscribe(() => {
-      const nextState = getFullState(descriptor)
+      const nextState = getState(descriptor)
       const shouldNotify =
         state.hasError !== nextState.hasError ||
         state.hasValue !== nextState.hasValue ||
-        state.value !== nextState.value ||
-        state.isPending !== nextState.isPending
+        state.value !== nextState.value
       if (shouldNotify) {
         state = nextState
         callback()
@@ -114,18 +109,13 @@ export function createOutlet<
   return {
     ...descriptor,
     getCurrentValue,
-    getSettledValue,
     getValue,
     hasValue,
-    isPending,
     subscribe,
   }
 }
 
-const isSettled = <T>(descriptor: CreateOutletOptions<T>) =>
-  !getFullState(descriptor).isPending
-
-const getCoreState = <T>(descriptor: CreateOutletOptions<T>) => {
+const getState = <T>(descriptor: OutletDescriptor<T>) => {
   let hasError = false
   let error: any
   let hasValue
@@ -134,7 +124,6 @@ const getCoreState = <T>(descriptor: CreateOutletOptions<T>) => {
     // For deciding whether we have a value or not, we'll prioritize the
     // behavior of `getCurrentValue` over the response of `hasValue`.
     value = descriptor.getCurrentValue()
-    hasValue = !descriptor.hasValue || descriptor.hasValue(value)
   } catch (errorOrPromise) {
     if (typeof errorOrPromise.then === 'function') {
       hasValue = false
@@ -144,20 +133,11 @@ const getCoreState = <T>(descriptor: CreateOutletOptions<T>) => {
       error = errorOrPromise
     }
   }
+  hasValue = !descriptor.hasValue || descriptor.hasValue()
   return {
     error,
     hasError,
     hasValue,
     value: hasValue ? value : undefined,
-  }
-}
-
-const getFullState = <T>(descriptor: CreateOutletOptions<T>) => {
-  const coreState = getCoreState(descriptor)
-  return {
-    ...coreState,
-    isPending:
-      !coreState.hasValue ||
-      !!(descriptor.isPending && descriptor.isPending(coreState.value!)),
   }
 }

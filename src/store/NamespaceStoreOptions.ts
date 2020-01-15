@@ -1,44 +1,47 @@
+import { Outlet } from 'outlets'
 import {
   Action as StoreAction,
   Reducer as StoreReducer,
   StoreEnhancer,
 } from 'redux'
 
-export interface NamespaceStoreConfig<
+export interface NamespaceStoreOptions<
   State = any,
   Action extends StoreAction = any,
   Value = State
 > {
   /**
-   * A function that prepares the current state for use as the initial
-   * state in another instance of the application, e.g. after SSR.
+   * An operator that maps the reducer's state to a value that can be used as
+   * the initial state in another instance of the application, e.g. after SSR.
+   * A value of `undefined` indicates that this namespace's state should be
+   * created from scratch.
    *
-   * This function receives the state stored in the central store --
-   * without any changes applied by any store enhancers.
+   * As this is is an operator, it's possible to suspend until a dehydratable
+   * value is available.
    */
-  dehydrate?: (state: State) => State | undefined
-  // The default reducer just sets whatever was dispatched as the latest state.
-  reducer: StoreReducer<State, Action>
+  dehydrate?: (outlet: Outlet<State>) => Outlet<State | undefined>
   enhancer?: StoreEnhancer
+  reducer: StoreReducer<State, Action>
   initialState?: State
-  selectError: (state: State) => any
-  selectHasValue: (state: State) => boolean
-  selectIsPending: (state: State) => boolean
-  selectValue: (state: State) => Value
+  selectError?: (state: State) => any
+  selectHasValue?: (state: State) => boolean
+  selectValue?: (state: State) => Value
 }
 
 export const defaultNamespaceStoreOptions = {
-  dehydrate: (state: any) => state,
+  dehydrate: (outlet: Outlet<any>) => outlet,
   selectError: () => undefined,
   selectHasValue: () => true,
-  selectIsPending: (state: any) => state !== undefined,
   selectValue: (state: any) => state,
 }
 
 type ConfigsWithDefaults = keyof typeof defaultNamespaceStoreOptions
-export type NamespaceStoreOptions<
+export type NamespaceStoreConfig<
   State = any,
   Action extends StoreAction = any,
   Value = State
-> = Omit<NamespaceStoreConfig<State, Action, Value>, ConfigsWithDefaults> &
-  Partial<Pick<NamespaceStoreConfig<State, Action, Value>, ConfigsWithDefaults>>
+> = Omit<NamespaceStoreOptions<State, Action, Value>, ConfigsWithDefaults> &
+  Pick<
+    Required<NamespaceStoreOptions<State, Action, Value>>,
+    ConfigsWithDefaults
+  >

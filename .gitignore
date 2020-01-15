@@ -1,4 +1,5 @@
 *.log
+demo
 dist
 node_modules
 notes

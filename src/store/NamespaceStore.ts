@@ -8,7 +8,7 @@ import {
 import { InnerStore } from './InnerStore'
 import { StoreCache } from './StoreCache'
 import { Outlet, createOutlet } from '../outlets'
-import { NamespaceStoreConfig } from './NamespaceStoreOptions'
+import { NamespaceStoreOptions } from './NamespaceStoreOptions'
 
 export type NamespaceStore<State, Action extends StoreAction, Value = State> = [
   NamespaceStoreOutlet<State, Value>,
@@ -31,7 +31,7 @@ export function registerNamespaceStore<
   innerStore: InnerStore,
   namespace: string,
   storeCache: StoreCache,
-  config: NamespaceStoreConfig<State, Action, Value>,
+  config: NamespaceStoreOptions<State, Action, Value>,
 ): NamespaceStore<State, Action, Value> {
   const { enhancer, reducer, initialState } = config
 
@@ -71,16 +71,10 @@ export function registerNamespaceStore<
         // Let createOutlet do the work of throwing a promise
         return cache.value
       },
-      hasValue: (): boolean => {
-        return storeCache.get(namespace).hasValue
-      },
-      isPending: (): boolean => {
-        return storeCache.get(namespace).isPending
-      },
-
+      hasValue: (): boolean => storeCache.get(namespace).hasValue,
       subscribe: (callback: () => void) => {
         // Check that state has actually changed before asking the outlet to
-        // recompute hasValue, value, error and pending
+        // recompute hasValue, value and error
         let lastState = getState()
         return innerStore.subscribe(() => {
           const state = getState()

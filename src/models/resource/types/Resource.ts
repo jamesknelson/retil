@@ -106,7 +106,8 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
 }
 
 export interface Resource<Data, Key> {
-  dehydrate(): Promise<ResourceState<Data, Key> | undefined>
+  // TODO
+  // dehydrate(): Promise<ResourceState<Data, Key> | undefined>
 
   /**
    * Return an outlet and controller for the specified key, from which you can

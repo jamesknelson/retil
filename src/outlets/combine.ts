@@ -3,15 +3,15 @@ import { shallowCompareArrays } from 'utils/shallowCompareArrays'
 
 import { Outlet, createOutlet } from './Outlet'
 
-export type HandleMapObject<Values = any, Controllers = any> = {
-  [K in keyof Values & keyof Controllers]: [Outlet<Values[K]>, Controllers[K]]
+export type OutletMapObject<Values = any> = {
+  [K in keyof Values]: Outlet<Values[K]>
 }
-export function combineHandles<Values = any, Controllers = any>(
-  handles: HandleMapObject<Values, Controllers>,
-): [Outlet<Values>, Controllers]
-export function combineHandles(handleMap: HandleMapObject) {
+export function combine<Values = any>(
+  handles: OutletMapObject<Values>,
+): Outlet<Values>
+export function combine(handleMap: OutletMapObject) {
   const keys = Object.keys(handleMap)
-  const outlets = keys.map(key => handleMap[key][0])
+  const outlets = keys.map(key => handleMap[key])
 
   let last:
     | undefined
@@ -34,16 +34,11 @@ export function combineHandles(handleMap: HandleMapObject) {
       return last.combinedValue
     },
     hasValue: () => outlets.every(outlet => outlet.hasValue()),
-    isPending: () => outlets.some(outlet => outlet.isPending()),
     subscribe: callback => {
       const unsubscribes = outlets.map(outlet => outlet.subscribe(callback))
       return () => unsubscribes.forEach(unsubscribe => unsubscribe())
     },
   })
 
-  const combinedController = fromEntries(
-    keys.map(key => [key, handleMap[key][1]]),
-  )
-
-  return [combinedOutlet, combinedController]
+  return combinedOutlet
 }

@@ -1,10 +1,12 @@
 import { ThrownError } from './InnerStore'
-import { NamespaceStoreConfig } from './NamespaceStoreOptions'
+import {
+  NamespaceStoreConfig,
+  NamespaceStoreOptions,
+} from './NamespaceStoreOptions'
 
 export type StoreCacheNamespace = {
   error: any
   hasValue: boolean
-  isPending: boolean
   value: any
 }
 export type StoreCacheMap = {
@@ -15,7 +17,7 @@ export interface StoreCache {
   register(
     namespace: string,
     getState: () => any,
-    config: NamespaceStoreConfig,
+    config: NamespaceStoreOptions,
   ): void
   get(namespace: string): StoreCacheNamespace
   getMany(namespaces: string[]): StoreCacheMap
@@ -69,13 +71,10 @@ function compute(
   const hasValue = error !== undefined || config.selectHasValue(state)
   const value =
     error === undefined && hasValue ? config.selectValue(state) : undefined
-  const isPending =
-    (!hasThrownError && !hasValue) || config.selectIsPending(state)
 
   return {
     error,
     hasValue,
-    isPending,
     value,
   }
 }

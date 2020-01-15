@@ -49,6 +49,7 @@ describe('createResourceModel()', () => {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
       outlet.getCurrentValue().data
     } catch (promise) {
+      console.log(promise)
       expect(typeof promise.then).toBe('function')
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise

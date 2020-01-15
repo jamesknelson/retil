@@ -25,7 +25,6 @@ export interface ReducerOptions<
   reducer: StoreReducer<State, Action>
   selectError?: (state: State) => any
   selectHasValue?: (state: State) => boolean
-  selectIsPending?: (state: State) => boolean
   selectValue?: (state: State) => Value
   storeAt?: [Store, string]
 }

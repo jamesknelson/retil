@@ -9,10 +9,6 @@ import {
 import { TaskTypes } from './constants'
 
 export class ChangeTracker<Data, Key> {
-  private readonly prevState: Readonly<ResourceState<Data, Key>>
-  private path: string
-  private context: any
-
   private effects: ResourceEffect<Data, Key, any>[]
 
   private nextNextId: number
@@ -20,17 +16,20 @@ export class ChangeTracker<Data, Key> {
   private nextPending: ResourceState<Data, Key>['tasks']['pending'] | undefined
   private nextQueue: ResourceState<Data, Key>['tasks']['queue'] | undefined
 
-  private startedTasks: { [Type in ResourceTaskType]?: [string, Key[]] } = {}
+  private startedTasks: { [Type in ResourceTaskType]?: [string, Key[]] }
 
   // Used to record values for new task objects
-  private keyValues: Map<Key, ResourceValue<Data> | null> = new Map()
+  private keyValues: Map<Key, ResourceValue<Data> | null>
 
-  constructor(state: ResourceState<Data, Key>, path: string, context?: any) {
-    this.prevState = state
-    this.path = path
-    this.context = context
-
-    this.nextNextId = state.tasks.nextId
+  constructor(
+    private readonly prevState: ResourceState<Data, Key>,
+    private path: string,
+    private context?: any,
+  ) {
+    this.effects = []
+    this.keyValues = new Map()
+    this.nextNextId = prevState.tasks.nextId
+    this.startedTasks = {}
   }
 
   buildNextState(

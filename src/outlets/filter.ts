@@ -1,3 +1,16 @@
-// filter values; if the source goes no value, we do too.
-// if the source outputs a value after that, we need to
-// stay in no value mode until we get one.
+import { OutletDescriptor, Outlet, createOutlet } from './Outlet'
+
+export type FilterCallback<T> = (value: T) => boolean
+
+// Returns an outlet that only has a current value when the source outlet has
+// a value, *and* when the given predicate returns true.
+export function filter<T>(
+  outletDescriptor: OutletDescriptor<T>,
+  predicate: FilterCallback<T>,
+): Outlet<T> {
+  return createOutlet({
+    getCurrentValue: outletDescriptor.getCurrentValue,
+    hasValue: () => predicate(outletDescriptor.getCurrentValue()),
+    subscribe: outletDescriptor.subscribe,
+  })
+}

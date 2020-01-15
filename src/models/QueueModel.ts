@@ -34,6 +34,10 @@ export interface QueueController<Job> {
   reset: () => void
 }
 
+export interface QueueOutlet<Value> extends Outlet<Value> {
+  isPending(): boolean
+}
+
 export type QueueAbort = () => void
 
 export interface QueueOptions<Value, Job, Context extends QueueContext> {
@@ -85,7 +89,7 @@ export function createQueueModel<Value, Job, Context extends QueueContext>(
 
 function createQueue<Value, Job, Context extends QueueContext>(
   options: QueueOptions<Value, Job, Context>,
-): [Outlet<Value>, QueueController<Job>] {
+): [QueueOutlet<Value>, QueueController<Job>] {
   const {
     hasInitialValue = options.initialValue !== undefined,
     processor,
@@ -111,8 +115,6 @@ function createQueue<Value, Job, Context extends QueueContext>(
     selectValue: state => state.value as Value,
     selectError: state => state.error,
     selectHasValue: state => state.hasValue,
-    selectIsPending: state =>
-      !!(state.pending || state.deferred.length || state.queued.length),
   })
 
   const abort = (id: number, controller?: AbortController) => {
@@ -225,7 +227,15 @@ function createQueue<Value, Job, Context extends QueueContext>(
     },
   }
 
-  return [outlet, queueController]
+  return [
+    Object.assign(outlet, {
+      isPending: () => {
+        const state = outlet.getState()
+        return !!(state.pending || state.deferred.length || state.queued.length)
+      },
+    }),
+    queueController,
+  ]
 }
 
 interface QueueJobItem<Job = any> {

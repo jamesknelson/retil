@@ -1,9 +1,8 @@
 import memoizeOne from 'memoize-one'
-import { Outlet, createOutlet, map, toPromise } from 'outlets'
+import { Outlet, createOutlet, filter, map } from 'outlets'
 import { flatMap } from 'utils/flatMap'
 import { shallowCompare } from 'utils/shallowCompare'
 
-import { dehydrateResourceState } from './dehydrateResourceState'
 import { InitialKeyState } from './reducer/constants'
 import { ResourceKeyControllerImplementation } from './resourceKeyControllerImplementation'
 import {
@@ -32,10 +31,6 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     private outlet: Outlet<ResourceState<Data, Key>>,
     private path: string,
   ) {}
-
-  async dehydrate() {
-    return dehydrateResourceState(await this.outlet.getSettledValue())
-  }
 
   key(
     key: Key,
@@ -79,25 +74,9 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       )
     })
 
-    const getOutput = memoizeOne(
-      (keyState: ResourceKeyState<Data, Key>) =>
-        new ResourceKeyOutputImplementation(keyState, () =>
-          toPromise(keyStateOutlet, () =>
-            isPriming(keyStateOutlet.getCurrentValue()),
-          ),
-        ),
-    )
-
     const outlet = createOutlet<ResourceKeyOutput<Data, Key>>({
       getCurrentValue: () => {
         return getOutput(keyStateOutlet.getCurrentValue())
-      },
-      // No need for `hasValue`, as the result would change based on the
-      // `select` function. Instead, let the selectables throw a promise if
-      // the selector accessing anything which doesn't have a value yet.
-      isPending: (): boolean => {
-        // Returns whether *anything* is pending, regardless of selector.
-        return isPending(keyStateOutlet.getCurrentValue())
       },
       subscribe: (callback: () => void): (() => void) => {
         // Hold with any request policies while the subscription is active
@@ -115,6 +94,14 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
         }
       },
     })
+
+    const getOutput: any = memoizeOne(
+      (keyState: ResourceKeyState<Data, Key>) =>
+        new ResourceKeyOutputImplementation(
+          keyState,
+          filter(outlet, output => !output.priming).getValue,
+        ),
+    )
 
     const controller = new ResourceKeyControllerImplementation(
       this.dispatch,
@@ -227,9 +214,14 @@ export class ResourceKeyOutputImplementation<Data, Key>
 function isPending(state: ResourceKeyState<any, any>) {
   return !!(
     state.predictions.length ||
-    state.tasks.load ||
     state.tasks.forceLoad ||
-    (state.value === null && (state.tasks.subscribe || state.pauseCount))
+    state.tasks.load ||
+    (state.value === null &&
+      ((state.tasks.load === null &&
+        !state.requestPolicies.fetchOnce &&
+        !state.requestPolicies.fetchStale) ||
+        state.tasks.subscribe ||
+        state.pauseCount))
   )
 }
 

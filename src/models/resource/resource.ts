@@ -1,4 +1,5 @@
 import { Model, createModel } from '../../Model'
+import { filter, map } from 'outlets'
 import { createStore } from 'store'
 
 import { createResourceReducer } from './reducer'
@@ -13,6 +14,7 @@ import {
   ResourceRequestPolicy,
   ResourceState,
 } from './types'
+import { dehydrateResourceState } from './dehydrateResourceState'
 
 export const defaultOptions = {
   computeHashForKey: (key: any) =>
@@ -90,6 +92,18 @@ export function createResourceModel<
       ResourceState<Data, Key>,
       ResourceAction<Data, Key>
     >(namespace || 'resource', {
+      dehydrate: outlet => {
+        return map(
+          filter(
+            outlet,
+            value =>
+              !Object.values(value.tasks.pending).some(task =>
+                ['forceLoad', 'load'].includes(task.type),
+              ),
+          ),
+          dehydrateResourceState,
+        )
+      },
       enhancer,
       reducer,
       initialState: preloadedState,
@@ -110,7 +124,6 @@ export function createResourceModel<
     )
 
     return {
-      dehydrate: resource.dehydrate.bind(resource),
       key: resource.key.bind(resource),
       knownKeys: resource.knownKeys.bind(resource),
       withPath: resource.withPath.bind(resource),

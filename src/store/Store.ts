@@ -1,15 +1,16 @@
 import { Action as StoreAction, StoreCreator } from 'redux'
 
-import { toPromise } from 'outlets'
+import { combine } from 'outlets'
+import { fromEntries } from 'utils/fromEntries'
 
 import { createInnerStore } from './InnerStore'
 import { NamespaceStore, registerNamespaceStore } from './NamespaceStore'
 import {
-  NamespaceStoreConfig,
   NamespaceStoreOptions,
+  NamespaceStoreConfig,
   defaultNamespaceStoreOptions,
 } from './NamespaceStoreOptions'
-import { createStoreCache, StoreCacheMap } from './StoreCache'
+import { createStoreCache } from './StoreCache'
 
 export const Dispose = Symbol.for('/retil/dispose')
 export type Dispose = typeof Dispose
@@ -21,8 +22,8 @@ export interface Store {
 
   dispose(): void
 
-  // Throws an error if two different reducers, isPending or hasValue functions
-  // are ever registered on the same namespace. Once a reducer has been registered,
+  // Throws an error if two different reducers or hasValue functions are ever
+  // registered on the same namespace. Once a reducer has been registered,
   // there's no cleaning it up.
   namespace<State, Action extends StoreAction, Value = State>(
     namespace: string,
@@ -51,60 +52,14 @@ export function createStore(
   }
 
   const dehydrate = async () => {
-    const state = await toPromise(
-      {
-        getCurrentValue,
-        hasValue,
-        subscribe: innerStore.subscribe,
-      },
-      isPending,
+    const dehydrateOutlets = fromEntries(
+      Object.keys(namespaceStores).map(namespace => [
+        namespace,
+        namespaceConfigs[namespace].dehydrate(namespaceStores[namespace][0]),
+      ]),
     )
-
-    for (const namespace of namespaces) {
-      const dehydrate = namespaceConfigs[namespace].dehydrate
-      if (dehydrate) {
-        const dehydratedState = dehydrate(state[namespace])
-        if (dehydratedState !== undefined) {
-          state[namespace] = dehydratedState
-        }
-      }
-    }
-
-    return state
-  }
-
-  const getCurrentValue = (): StoreState => {
-    const cache = storeCache.getMany(namespaces)
-    const error = getError(cache)
-    if (error) {
-      throw error
-    }
-    return innerStore.getState()
-  }
-
-  const getError = (cache: StoreCacheMap): any => {
-    for (const namespace of namespaces) {
-      if (cache[namespace].error !== undefined) {
-        return cache[namespace].error
-      }
-    }
-  }
-
-  const hasValue = (): boolean => {
-    const cache = storeCache.getMany(namespaces)
-    return (
-      getError(cache) !== undefined ||
-      namespaces.every(namespace => cache[namespace].hasValue)
-    )
-  }
-
-  const isPending = (): boolean => {
-    const cache = storeCache.getMany(namespaces)
-    return (
-      !hasValue() ||
-      (getError(cache) === undefined &&
-        namespaces.some(namespace => cache[namespace].isPending))
-    )
+    const combinedOutlet = combine(dehydrateOutlets)
+    return combinedOutlet.getValue()
   }
 
   const controller: Store = {
@@ -118,7 +73,7 @@ export function createStore(
 
     namespace: (
       namespace: string,
-      options: NamespaceStoreOptions,
+      options: NamespaceStoreConfig,
     ): NamespaceStore<any, any> => {
       if (typeof namespace !== 'string') {
         throw new Error(`Store namespaces must be strings.`)
@@ -136,11 +91,11 @@ export function createStore(
       if (oldConfig) {
         const differsFromPreviousConfig =
           oldConfig.initialState !== config.initialState ||
+          oldConfig.dehydrate !== config.dehydrate ||
           oldConfig.reducer !== config.reducer ||
           oldConfig.enhancer !== config.enhancer ||
           oldConfig.selectError !== config.selectError ||
           oldConfig.selectHasValue !== config.selectHasValue ||
-          oldConfig.selectIsPending !== config.selectIsPending ||
           oldConfig.selectValue !== config.selectValue
 
         if (differsFromPreviousConfig) {
