@@ -29,7 +29,7 @@ describe('createResourceModel()', () => {
               key,
               value: {
                 status: 'retrieved',
-                data: key,
+                data: 'value for ' + key,
                 timestamp: Date.now(),
               },
             })),
@@ -40,21 +40,14 @@ describe('createResourceModel()', () => {
 
     const [outlet] = model({}).key('/test')
 
-    expect(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      outlet.getCurrentValue().data
-    }).toThrow(Promise)
-
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      outlet.getCurrentValue().data
+      expect(outlet.getCurrentValue().data).toBe({} /* never true */)
     } catch (promise) {
-      console.log(promise)
-      expect(typeof promise.then).toBe('function')
+      expect(promise).toBeInstanceOf(Promise)
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise
       expect(outlet.getCurrentValue().hasData).toBe(true)
-      expect(outlet.getCurrentValue().data).toBe('/test')
+      expect(outlet.getCurrentValue().data).toBe('value for /test')
     }
   })
 })
@@ -63,27 +56,25 @@ describe('createURLLoader()', () => {
   test('accepts custom `fetch` and `getData` functions', async () => {
     const resourceModel = createResourceModel({
       loader: createURLLoader({
-        fetch: async (url: any) => new Response(url),
+        fetch: async ({ url }: any) =>
+          ({
+            body: 'value for ' + url,
+            status: 200,
+          } as any),
         getData: response => response.body as any,
       }),
     })
 
     const [outlet] = resourceModel.key('/test')
 
-    expect(() => {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      outlet.getCurrentValue().data
-    }).toThrow(Promise)
-
     try {
-      // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      outlet.getCurrentValue().data
+      expect(outlet.getCurrentValue().data).toBe({} /* never true */)
     } catch (promise) {
-      expect(typeof promise.then).toBe('function')
+      expect(promise).toBeInstanceOf(Promise)
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise
       expect(outlet.getCurrentValue().hasData).toBe(true)
-      expect(outlet.getCurrentValue().data).toBe('/test')
+      expect(outlet.getCurrentValue().data).toBe('value for /test')
     }
   })
 })

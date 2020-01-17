@@ -29,10 +29,10 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     this[task.type as Exclude<ResourceTaskType, 'forceLoad'>](task)
   }
 
-  stop(task: ResourceTask<Data, Key, Context>) {
-    const stopper = this.stoppers[task.id]
+  stop(taskId: string) {
+    const stopper = this.stoppers[taskId]
     if (stopper) {
-      delete this.stoppers[task.id]
+      delete this.stoppers[taskId]
       try {
         stopper()
       } catch (error) {

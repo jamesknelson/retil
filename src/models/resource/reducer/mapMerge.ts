@@ -31,9 +31,9 @@ export function mapMerge<Data, Key>(
     let nextKeyState: ResourceKeyState<Data, Key> | undefined
     if (hashKeyStates) {
       for (hashIndex = 0; hashIndex < hashKeyStates.length; hashIndex++) {
-        existingKeyState = hashKeyStates[hashIndex]
-        const key = existingKeyState.key
+        const key = hashKeyStates[hashIndex].key
         if (key === keys[i]) {
+          existingKeyState = hashKeyStates[hashIndex]
           const mergeKeyState = callback(existingKeyState, i, tracker)
           if (mergeKeyState && mergeKeyState !== existingKeyState) {
             nextKeyState = {
@@ -46,7 +46,6 @@ export function mapMerge<Data, Key>(
           }
         }
       }
-      existingKeyState = undefined
     }
 
     if (!existingKeyState) {

@@ -11,10 +11,9 @@ export function createExpirer<Data, Key, Context extends object>(options: {
       const earliestTimestamp = Math.min(
         ...values.map(value => (value && value.timestamp) || now),
       )
-      intervalFromTimestampTimeout = setTimeout(
-        expire,
-        earliestTimestamp + options.intervalFromTimestamp,
-      )
+      const expireTime = earliestTimestamp + options.intervalFromTimestamp
+      const delay = Math.max(expireTime - now, 0)
+      intervalFromTimestampTimeout = setTimeout(expire, delay)
     }
 
     return () => {

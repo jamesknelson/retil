@@ -1,5 +1,5 @@
-import { Outlet } from 'outlets'
-import { StoreReducer } from 'store'
+import { Outlet } from '../outlets'
+import { StoreReducer } from '../store'
 
 import { createModel } from '../Model'
 import { Store, createStore } from '../store'

@@ -1,4 +1,4 @@
-import { Outlet } from 'outlets'
+import { Outlet } from '../outlets'
 import {
   Action as StoreAction,
   Reducer as StoreReducer,

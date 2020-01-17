@@ -2,7 +2,7 @@
  * Load individual keys separaetly, using exponential backoff.
  */
 
-import { exponentialBackoff } from 'utils/exponentialBackoff'
+import { exponentialBackoff } from '../../../utils/exponentialBackoff'
 
 import { ResourceLoadStrategy } from '../types'
 

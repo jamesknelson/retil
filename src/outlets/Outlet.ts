@@ -76,17 +76,23 @@ export function createOutlet<
     hasValue()
       ? Promise.resolve(getCurrentValue() as T)
       : new Promise<T>((resolve, reject) => {
-          const unsubscribe = descriptor.subscribe(() => {
-            try {
-              if (hasValue()) {
-                unsubscribe()
-                resolve(getCurrentValue())
+          let unsubscribe: undefined | (() => void) = descriptor.subscribe(
+            () => {
+              try {
+                if (unsubscribe && hasValue()) {
+                  unsubscribe()
+                  unsubscribe = undefined
+                  resolve(getCurrentValue())
+                }
+              } catch (error) {
+                if (unsubscribe) {
+                  unsubscribe()
+                  reject(error)
+                  unsubscribe = undefined
+                }
               }
-            } catch (error) {
-              unsubscribe()
-              reject(error)
-            }
-          })
+            },
+          )
         })
 
   const hasValue = () => getState(descriptor).hasValue

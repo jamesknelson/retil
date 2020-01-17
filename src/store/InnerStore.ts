@@ -5,8 +5,8 @@ import {
   createStore as createReduxStore,
 } from 'redux'
 
-import { fromEntries } from 'utils/fromEntries'
-import { isPlainObject } from 'utils/isPlainObject'
+import { fromEntries } from '../utils/fromEntries'
+import { isPlainObject } from '../utils/isPlainObject'
 
 export interface InnerStore {
   dispatch<A extends Action>(namespace: string, action: A): void

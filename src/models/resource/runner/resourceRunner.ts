@@ -75,11 +75,11 @@ export function createResourceRunner<Data, Key, Context extends object>(
               const task = pendingTasks[taskId]
               const queueType = taskQueue[taskId]
 
-              if (queueType === 'start') {
+              if (task && queueType === 'start') {
                 taskRunner.start(task)
               } else {
                 // Just stop paused tasks for now.
-                taskRunner.stop(task)
+                taskRunner.stop(taskId)
               }
             } else {
               // Run an effect

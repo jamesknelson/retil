@@ -1,7 +1,7 @@
 import { Action as StoreAction, StoreCreator } from 'redux'
 
-import { combine } from 'outlets'
-import { fromEntries } from 'utils/fromEntries'
+import { combine } from '../outlets'
+import { fromEntries } from '../utils/fromEntries'
 
 import { createInnerStore } from './InnerStore'
 import { NamespaceStore, registerNamespaceStore } from './NamespaceStore'

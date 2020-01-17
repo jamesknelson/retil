@@ -7,7 +7,7 @@ import {
   IssuePropMessageDefinitions,
   Issues,
   PropNamesFor,
-} from 'types'
+} from '../types'
 
 export function areIssuesEqual<I extends Issues>(
   x: IssueOptions<I>,

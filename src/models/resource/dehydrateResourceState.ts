@@ -1,7 +1,7 @@
 import { InitialKeyState } from './reducer/constants'
 import { ResourceState } from './types'
 
-import { fromEntries } from 'utils'
+import { fromEntries } from '../../utils'
 
 export function dehydrateResourceState<Data, Key>(
   state: ResourceState<Data, Key>,

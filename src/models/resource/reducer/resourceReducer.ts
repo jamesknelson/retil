@@ -1,4 +1,4 @@
-import { Dispose } from 'store'
+import { Dispose } from '../../../store'
 
 import { ResourceAction, ResourceState } from '../types'
 

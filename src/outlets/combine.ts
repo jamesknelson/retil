@@ -1,5 +1,5 @@
-import { fromEntries } from 'utils/fromEntries'
-import { shallowCompareArrays } from 'utils/shallowCompareArrays'
+import { fromEntries } from '../utils/fromEntries'
+import { shallowCompareArrays } from '../utils/shallowCompareArrays'
 
 import { Outlet, createOutlet } from './Outlet'
 

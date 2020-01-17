@@ -1,7 +1,7 @@
 import memoizeOne from 'memoize-one'
-import { Outlet, createOutlet, filter, map } from 'outlets'
-import { flatMap } from 'utils/flatMap'
-import { shallowCompare } from 'utils/shallowCompare'
+import { Outlet, createOutlet, filter, map } from '../../outlets'
+import { flatMap } from '../../utils/flatMap'
+import { shallowCompare } from '../../utils/shallowCompare'
 
 import { InitialKeyState } from './reducer/constants'
 import { ResourceKeyControllerImplementation } from './resourceKeyControllerImplementation'
@@ -85,12 +85,16 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
           ...actionOptions,
         })
         const unsubscribe = keyStateOutlet.subscribe(callback)
+        let unsubscribed = false
         return () => {
-          this.dispatch({
-            type: 'releaseHold',
-            ...actionOptions,
-          })
-          unsubscribe()
+          if (!unsubscribed) {
+            unsubscribed = true
+            this.dispatch({
+              type: 'releaseHold',
+              ...actionOptions,
+            })
+            unsubscribe()
+          }
         }
       },
     })

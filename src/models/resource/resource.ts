@@ -1,6 +1,6 @@
 import { Model, createModel } from '../../Model'
-import { filter, map } from 'outlets'
-import { createStore } from 'store'
+import { filter, map } from '../../outlets'
+import { createStore } from '../../store'
 
 import { createResourceReducer } from './reducer'
 import { ResourceImplementation } from './resourceImplementation'
