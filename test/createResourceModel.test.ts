@@ -43,7 +43,6 @@ describe('createResourceModel()', () => {
     try {
       expect(outlet.getCurrentValue().data).toBe({} /* never true */)
     } catch (promise) {
-      expect(promise).toBeInstanceOf(Promise)
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise
       expect(outlet.getCurrentValue().hasData).toBe(true)
@@ -70,7 +69,6 @@ describe('createURLLoader()', () => {
     try {
       expect(outlet.getCurrentValue().data).toBe({} /* never true */)
     } catch (promise) {
-      expect(promise).toBeInstanceOf(Promise)
       expect(outlet.getCurrentValue().hasData).toBe(false)
       await promise
       expect(outlet.getCurrentValue().hasData).toBe(true)
