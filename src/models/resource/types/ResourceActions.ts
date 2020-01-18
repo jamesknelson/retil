@@ -1,4 +1,4 @@
-import { Dispose } from 'store'
+import { Dispose } from '../../../store'
 
 import { ResourcePolicy } from './ResourcePolicies'
 import { ResourceValueUpdate } from './ResourceValue'

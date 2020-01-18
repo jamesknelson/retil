@@ -1,4 +1,4 @@
-import { createLoader, ResourceKeyLoaderRequest } from './keyLoader'
+import { createKeyLoader, ResourceKeyLoaderRequest } from './keyLoader'
 
 export interface ResourceURLLoaderContext {
   fetchOptions?: RequestInit
@@ -73,7 +73,7 @@ export function createURLLoader<
     ...optionsWithoutDefaults,
   }
 
-  return createLoader<Data, Response, Key, Context>({
+  return createKeyLoader<Data, Response, Key, Context>({
     load: request => fetch!(getRequest!(request) as RequestInfo),
     getData,
     getRejection,

@@ -174,6 +174,7 @@ function createStoreReducer(
             ? state
             : { ...state, [namespace]: newState }
         } catch (error) {
+          console.error('Store Error: exception thrown in reducer:', error)
           return {
             ...state,
             [ThrownError]: error,

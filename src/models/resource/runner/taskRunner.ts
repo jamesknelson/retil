@@ -27,8 +27,9 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
   start(task: ResourceTask<Data, Key, Context>) {
     if (task.type === 'manualLoad') {
       this.load(task)
+    } else {
+      this[task.type](task)
     }
-    this[task.type as Exclude<ResourceTaskType, 'manualLoad'>](task)
   }
 
   stop(taskId: string) {

@@ -1,5 +1,5 @@
-import { Outlet } from 'outlets'
-import { Store } from 'store'
+import { Outlet } from '../../../outlets'
+import { Store } from '../../../store'
 
 import { ResourceEffectCallback } from './ResourceEffects'
 import { ResourceRequestPolicy } from './ResourcePolicies'
@@ -37,9 +37,7 @@ export interface Resource<Data, Key> {
   key(
     query: Key,
     options?: ResourceKeyOptions<Data, Key>,
-  ): Readonly<
-    [Outlet<ResourceKey<Data, Key>>, ResourceKeyController<Data, Key>]
-  >
+  ): readonly [Outlet<ResourceKey<Data, Key>>, ResourceKeyController<Data, Key>]
 
   // TODO
   // /**

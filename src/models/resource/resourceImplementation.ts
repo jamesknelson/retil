@@ -58,8 +58,8 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       path: this.path,
       keys: [key],
       policies:
-        this.defaultRequestPolicy !== null
-          ? [this.defaultRequestPolicy]
+        options.requestPolicy !== null
+          ? [options.requestPolicy]
           : ['keep' as const],
     }
 
@@ -102,7 +102,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       (keyState: ResourceKeyState<Data, Key>) =>
         new ResourceKeyOutputImplementation(
           keyState,
-          this.defaultRequestPolicy !== null,
+          options.requestPolicy !== null,
           filter(outlet, output => output.primed).getValue,
         ),
     )
@@ -153,7 +153,7 @@ export class ResourceKeyOutputImplementation<Data, Key>
   implements ResourceKey<Data, Key> {
   constructor(
     readonly state: ResourceKeyState<Data, Key>,
-    private hasDefaultRequestPolicy: boolean,
+    private hasRequestPolicy: boolean,
     private waitForValue: () => Promise<any>,
   ) {}
 
@@ -187,11 +187,11 @@ export class ResourceKeyOutputImplementation<Data, Key>
   }
 
   get pending(): boolean {
-    return isPending(this.state, this.hasDefaultRequestPolicy)
+    return isPending(this.state, this.hasRequestPolicy)
   }
 
   get primed(): boolean {
-    return isPrimed(this.state, this.hasDefaultRequestPolicy)
+    return isPrimed(this.state, this.hasRequestPolicy)
   }
 
   get rejection(): any {
@@ -215,7 +215,7 @@ export class ResourceKeyOutputImplementation<Data, Key>
 
 function isPending(
   state: ResourceKeyState<any, any>,
-  hasDefaultRequestPolicy: boolean,
+  hasRequestPolicy: boolean,
 ) {
   return !!(
     state.tasks.manualLoad ||
@@ -223,7 +223,7 @@ function isPending(
     state.policies.expectingExternalUpdate ||
     // If there's no data but we can add a default request policy, then we'll
     // treat the resource as pending too.
-    (hasDefaultRequestPolicy &&
+    (hasRequestPolicy &&
       state.value === null &&
       state.tasks.load === null &&
       state.tasks.subscribe === null)
@@ -232,11 +232,11 @@ function isPending(
 
 function isPrimed(
   state: ResourceKeyState<any, any>,
-  hasDefaultRequestPolicy: boolean,
+  hasRequestPolicy: boolean,
 ) {
   return !(
     state.value === null &&
-    (isPending(state, hasDefaultRequestPolicy) || state.policies.pauseLoad)
+    (isPending(state, hasRequestPolicy) || state.policies.pauseLoad)
   )
 }
 

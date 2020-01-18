@@ -132,7 +132,7 @@ export class ResourceKeyControllerImplementation<Data, Key>
       type,
       context: this.context,
       path: this.path,
-      invalidateKeys: this.keys,
+      keys: this.keys,
     } as ResourceAction<Data, Key>)
   }
 }

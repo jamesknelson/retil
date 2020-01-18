@@ -1,3 +1,6 @@
+import { FilterCallback, filter } from './filter'
+import { MapCallback, map } from './map'
+
 /**
  * OutletDescriptor is separate to Outlet, so that functions can accept the
  * lower number of props require to describe an outlet, while they can return
@@ -40,15 +43,8 @@ export interface Outlet<T> extends OutletDescriptor<T> {
   getValue(): Promise<T>
   hasCurrentValue(): boolean
 
-  // todo:
-  // - filter
-  // - flatMap
-  // - map (allow to pass hasCurrentValue as second argument)
-
-  // map<T, U>(
-  //   outletDescriptor: OutletDescriptor<T>,
-  //   mapFn: MapCallback<T, U>,
-  // ): Outlet<U>
+  filter(predicate: FilterCallback<T>): Outlet<T>
+  map<U>(mapFn: MapCallback<T, U>): Outlet<U>
 }
 
 export function isOutlet(x: any): x is Outlet<any> {
@@ -73,27 +69,26 @@ export function createOutlet<
     return value
   }
   const getValue = () =>
-    hasCurrentValue()
-      ? Promise.resolve(getCurrentValue() as T)
-      : new Promise<T>((resolve, reject) => {
-          let unsubscribe: undefined | (() => void) = descriptor.subscribe(
-            () => {
-              try {
-                if (unsubscribe && hasCurrentValue()) {
-                  unsubscribe()
-                  unsubscribe = undefined
-                  resolve(getCurrentValue())
-                }
-              } catch (error) {
-                if (unsubscribe) {
-                  unsubscribe()
-                  reject(error)
-                  unsubscribe = undefined
-                }
-              }
-            },
-          )
-        })
+    new Promise<T>((resolve, reject) => {
+      if (hasCurrentValue()) {
+        return resolve(getCurrentValue())
+      }
+      let unsubscribe: undefined | (() => void) = descriptor.subscribe(() => {
+        try {
+          if (unsubscribe && hasCurrentValue()) {
+            unsubscribe()
+            unsubscribe = undefined
+            resolve(getCurrentValue())
+          }
+        } catch (error) {
+          if (unsubscribe) {
+            unsubscribe()
+            reject(error)
+            unsubscribe = undefined
+          }
+        }
+      })
+    })
 
   const hasCurrentValue = () => getState(descriptor).hasCurrentValue
   const subscribe = (callback: () => void): (() => void) => {
@@ -118,6 +113,9 @@ export function createOutlet<
     getValue,
     hasCurrentValue,
     subscribe,
+
+    map: mapThis,
+    filter: filterThis,
   }
 }
 
@@ -130,6 +128,8 @@ const getState = <T>(descriptor: OutletDescriptor<T>) => {
     // For deciding whether we have a value or not, we'll prioritize the
     // behavior of `getCurrentValue` over the response of `hasCurrentValue`.
     value = descriptor.getCurrentValue()
+    hasCurrentValue =
+      !descriptor.hasCurrentValue || descriptor.hasCurrentValue()
   } catch (errorOrPromise) {
     if (typeof errorOrPromise.then === 'function') {
       hasCurrentValue = false
@@ -139,11 +139,23 @@ const getState = <T>(descriptor: OutletDescriptor<T>) => {
       error = errorOrPromise
     }
   }
-  hasCurrentValue = !descriptor.hasCurrentValue || descriptor.hasCurrentValue()
   return {
     error,
     hasError,
     hasCurrentValue,
     value: hasCurrentValue ? value : undefined,
   }
+}
+
+function filterThis<T>(
+  this: OutletDescriptor<T>,
+  predicate: FilterCallback<T>,
+): Outlet<T> {
+  return filter(this, predicate)
+}
+function mapThis<T, U>(
+  this: OutletDescriptor<T>,
+  mapFn: MapCallback<T, U>,
+): Outlet<U> {
+  return map(this, mapFn)
 }

@@ -58,10 +58,14 @@ export const defaultKeyLoaderOptions = {
   maxRetries: 10,
 }
 
-export function createLoader<Data, Key = string, Context extends object = any>(
+export function createKeyLoader<
+  Data,
+  Key = string,
+  Context extends object = any
+>(
   loadFn: ResourceKeyLoadFunction<Data | null, Key, Context>,
 ): ResourceLoader<Data, Key, Context>
-export function createLoader<
+export function createKeyLoader<
   Data,
   Response = Data,
   Key = string,
@@ -69,7 +73,7 @@ export function createLoader<
 >(
   options: ResourceKeyLoaderOptions<Data, Response, Key>,
 ): ResourceLoader<Data, Key, Context>
-export function createLoader<
+export function createKeyLoader<
   Data,
   Response = Data,
   Key = string,
