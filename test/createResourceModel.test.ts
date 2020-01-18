@@ -102,20 +102,23 @@ describe('ResourceModel', () => {
   test('can dehydrate and hydrate from an external store', async () => {
     const model = createResourceModel<string>({
       loader: createKeyLoader({
-        load: async ({ key }) => 'value for ' + key,
+        load: async ({ key }) => 'test',
       }),
       namespace: 'test',
     })
 
     const store1 = createStore()
-    const [outlet1, controller1] = model({ store: store1 }).key('/test')
-    controller1.setData('test')
-    expect(outlet1.getCurrentValue().data).toBe('test')
+    const [outlet1] = model({ store: store1 }).key('/test')
 
+    // Trigger a fetch
+    outlet1.map(({ data }) => data).getValue()
+
+    // Dehydrate should wait for the fetch to complete.
     const dehydratedState = await store1.dehydrate()
 
     const store2 = createStore(dehydratedState)
 
+    // Data should be immediately available on this store.
     const [outlet2] = model({ store: store2 }).key('/test')
     expect(outlet2.getCurrentValue().data).toBe('test')
   })
