@@ -112,14 +112,14 @@ export function mapMerge<Data, Key>(
       }
 
       if (tasks.invalidate) {
-        if (invalidated || policies.subscribe) {
+        if (invalidated || (policies.subscribe && tasks.subscribe !== false)) {
           nextTasks.invalidate = null
         }
       } else if (
         tasks.invalidate === null &&
         value &&
         !invalidated &&
-        !policies.subscribe
+        (!policies.subscribe || tasks.subscribe === false)
       ) {
         nextTasks.invalidate = tracker.startTasks('invalidate', key, value)
       }
