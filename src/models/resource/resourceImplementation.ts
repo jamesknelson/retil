@@ -103,6 +103,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       (keyState: ResourceKeyState<Data, Key>) =>
         new ResourceKeyOutputImplementation(
           keyState,
+          this.defaultRequestPolicy !== null,
           filter(outlet, output => output.primed).getValue,
         ),
     )
@@ -147,6 +148,7 @@ export class ResourceKeyOutputImplementation<Data, Key>
   implements ResourceKey<Data, Key> {
   constructor(
     readonly state: ResourceKeyState<Data, Key>,
+    private hasDefaultRequestPolicy: boolean,
     private waitForValue: () => Promise<any>,
   ) {}
 
@@ -206,21 +208,28 @@ export class ResourceKeyOutputImplementation<Data, Key>
   }
 }
 
-function isPending(state: ResourceKeyState<any, any>) {
+function isPending(
+  state: ResourceKeyState<any, any>,
+  hasDefaultRequestPolicy?: boolean,
+) {
   return !!(
     state.tasks.manualLoad ||
     state.tasks.load ||
     state.policies.expectingExternalUpdate ||
-    (state.value === null &&
-      ((state.tasks.load === null &&
-        !state.policies.loadOnce &&
-        !state.policies.loadInvalidated) ||
-        state.tasks.subscribe))
+    // If there's no data but we can add a default request policy, then we'll
+    // treat the resource as pending too.
+    (hasDefaultRequestPolicy &&
+      state.value === null &&
+      state.tasks.load === null &&
+      state.tasks.subscribe === null)
   )
 }
 
 function isPrimed(state: ResourceKeyState<any, any>) {
-  return state.value !== null || !isPending(state)
+  return !(
+    state.value === null &&
+    (isPending(state) || state.policies.pauseLoad)
+  )
 }
 
 function joinPaths(x: string, y?: string): string {
