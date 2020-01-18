@@ -57,10 +57,10 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       context: this.context,
       path: this.path,
       keys: [key],
-      requestPolicies:
+      policies:
         this.defaultRequestPolicy !== null
           ? [this.defaultRequestPolicy]
-          : undefined,
+          : ['keep' as const],
     }
 
     const keyStateOutlet = map(this.outlet, state => {
@@ -81,7 +81,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       subscribe: (callback: () => void): (() => void) => {
         // Hold with any request policies while the subscription is active
         this.dispatch({
-          type: 'hold',
+          type: 'holdPolicies',
           ...actionOptions,
         })
         const unsubscribe = keyStateOutlet.subscribe(callback)
@@ -90,7 +90,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
           if (!unsubscribed) {
             unsubscribed = true
             this.dispatch({
-              type: 'releaseHold',
+              type: 'releasePolicies',
               ...actionOptions,
             })
             unsubscribe()
@@ -210,11 +210,11 @@ function isPending(state: ResourceKeyState<any, any>) {
   return !!(
     state.tasks.manualLoad ||
     state.tasks.load ||
-    state.pauseCount ||
+    state.policies.expectingExternalUpdate ||
     (state.value === null &&
       ((state.tasks.load === null &&
-        !state.requestPolicies.loadOnce &&
-        !state.requestPolicies.loadInvalidated) ||
+        !state.policies.loadOnce &&
+        !state.policies.loadInvalidated) ||
         state.tasks.subscribe))
   )
 }

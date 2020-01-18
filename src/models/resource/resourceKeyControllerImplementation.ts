@@ -32,34 +32,51 @@ export class ResourceKeyControllerImplementation<Data, Key>
     this.keys = keys
   }
 
-  setRejection(rejection: string) {
-    this.dispatch('updateValue', {
-      taskId: null,
-      timestamp: Date.now(),
-      updates: this.keys.map(
-        key =>
-          [
-            key,
-            {
-              type: 'setRejection',
-              rejection,
-            },
-          ] as const,
-      ),
-    })
-  }
-
   invalidate() {
     this.dispatch('invalidate', { taskId: null })
   }
 
-  hold() {
+  keep() {
     let released = false
-    this.dispatch('hold')
+    this.dispatch('holdPolicies', {
+      policies: ['keep'],
+    })
     return () => {
       if (!released) {
         released = true
-        this.dispatch('releaseHold')
+        this.dispatch('releasePolicies', {
+          policies: ['keep'],
+        })
+      }
+    }
+  }
+
+  load() {
+    // HACK ALERT. Even if multiple tasks are created, we know that task.nextId
+    // will be the id of the manualLoad task, as the manualLoad reducer will
+    // always create the manualLoad task before any other tasks.
+    const taskId = String(this.outlet.getCurrentValue().tasks.nextId)
+    let aborted = false
+    this.dispatch('manualLoad')
+    return () => {
+      if (!aborted) {
+        aborted = true
+        this.dispatch('abortManualLoad', { taskId })
+      }
+    }
+  }
+
+  pause() {
+    let released = false
+    this.dispatch('holdPolicies', {
+      policies: ['pauseLoad'],
+    })
+    return () => {
+      if (!released) {
+        released = true
+        this.dispatch('releasePolicies', {
+          policies: ['pauseLoad'],
+        })
       }
     }
   }
@@ -81,30 +98,21 @@ export class ResourceKeyControllerImplementation<Data, Key>
     })
   }
 
-  pause() {
-    let released = false
-    this.dispatch('pause')
-    return () => {
-      if (!released) {
-        released = true
-        this.dispatch('resumePause')
-      }
-    }
-  }
-
-  load() {
-    // HACK ALERT. Even if multiple tasks are created, we know that task.nextId
-    // will be the id of the manualLoad task, as the manualLoad reducer will
-    // always create the manualLoad task before any other tasks.
-    const taskId = String(this.outlet.getCurrentValue().tasks.nextId)
-    let aborted = false
-    this.dispatch('manualLoad')
-    return () => {
-      if (!aborted) {
-        aborted = true
-        this.dispatch('abortManualLoad', { taskId })
-      }
-    }
+  setRejection(rejection: string) {
+    this.dispatch('updateValue', {
+      taskId: null,
+      timestamp: Date.now(),
+      updates: this.keys.map(
+        key =>
+          [
+            key,
+            {
+              type: 'setRejection',
+              rejection,
+            },
+          ] as const,
+      ),
+    })
   }
 
   private dispatch<T extends ResourceAction<any, any>['type']>(

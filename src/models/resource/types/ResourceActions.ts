@@ -1,6 +1,6 @@
 import { Dispose } from 'store'
 
-import { ResourceRequestPolicy } from './ResourceRequestPolicy'
+import { ResourcePolicy } from './ResourcePolicies'
 import { ResourceValueUpdate } from './ResourceValue'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
@@ -20,13 +20,11 @@ export type ResourceAction<Data, Key> =
   | AbortManualLoad<Key>
   | ClearQueueAction
   | ErrorAction
-  | HoldAction<Key>
+  | HoldPoliciesAction<Key>
   | InvalidateAction<Key>
   | ManualLoadAction<Key>
-  | PauseAction<Key>
   | PurgeAction<Key>
-  | ReleaseHoldAction<Key>
-  | ResumePause<Key>
+  | ReleasePoliciesAction<Key>
   | UpdateValueAction<Data, Key>
 
 /**
@@ -87,16 +85,15 @@ type ErrorAction = {
 }
 
 /**
- * Mark that the given keys should not be purged until the hold is released.
- * Optionally can apply request policies, which specify the conditions under
- * which tasks should be enqueued to request the key's data.
+ * Tag the given keys with policies that affect the tasks that will be
+ * scheduled.
  */
-type HoldAction<Key> = {
-  type: 'hold'
+type HoldPoliciesAction<Key> = {
+  type: 'holdPolicies'
   context: any
   path: string
   keys: Key[]
-  requestPolicies?: ResourceRequestPolicy[]
+  policies: ResourcePolicy[]
 }
 
 /**
@@ -122,17 +119,6 @@ type ManualLoadAction<Key> = {
 }
 
 /**
- * Cancel all tasks for the given keys, re-scheduling them to be run again on a
- * corresponding resume action.
- */
-type PauseAction<Key> = {
-  type: 'pause'
-  context: any
-  path: string
-  keys: Key[]
-}
-
-/**
  * Remove the given keys from the store, stoppping any associated tasks.
  */
 type PurgeAction<Key> = {
@@ -145,26 +131,12 @@ type PurgeAction<Key> = {
 /**
  * Negate the affects of a corresponding hold action.
  */
-type ReleaseHoldAction<Key> = {
-  type: 'releaseHold'
+type ReleasePoliciesAction<Key> = {
+  type: 'releasePolicies'
   context: any
   path: string
   keys: Key[]
-  // extra policy types:
-  // - hold (i.e. don't purge, do invalidate unless paused)
-  // - pauseInvalidation
-  // - pauseLoad
-  requestPolicies?: ResourceRequestPolicy[]
-}
-
-/**
- * Negate the affects of a corresponding hold action.
- */
-type ResumePause<Key> = {
-  type: 'resumePause'
-  context: any
-  path: string
-  keys: Key[]
+  policies: ResourcePolicy[]
 }
 
 /**

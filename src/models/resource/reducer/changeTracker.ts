@@ -107,24 +107,18 @@ export class ChangeTracker<Data, Key> {
     return pair[0]
   }
 
-  pauseKeyTasks(key: Key, tasks: ResourceKeyTasks) {
+  pauseKeyTask(key: Key, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
     this.nextQueue = this.nextQueue || { ...this.prevState.tasks.queue }
 
-    for (let i = 0; i < TaskTypes.length; i++) {
-      const type = TaskTypes[i]
-      const taskId = tasks[type]
-      if (taskId) {
-        const keys = this.nextPausedBy[taskId]
-        if (keys) {
-          this.nextPausedBy[taskId] = keys.concat(key)
-        } else {
-          this.nextPausedBy[taskId] = [key]
-          this.nextQueue[taskId] = 'pause'
-        }
-      }
+    const keys = this.nextPausedBy[taskId]
+    if (keys) {
+      this.nextPausedBy[taskId] = keys.concat(key)
+    } else {
+      this.nextPausedBy[taskId] = [key]
+      this.nextQueue[taskId] = 'pause'
     }
   }
 
@@ -168,18 +162,12 @@ export class ChangeTracker<Data, Key> {
     }
   }
 
-  unpauseKeyTasks(key: Key, tasks: ResourceKeyTasks) {
+  unpauseKeyTask(key: Key, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
     this.nextQueue = this.nextQueue || { ...this.prevState.tasks.queue }
-
-    for (let i = 0; i < TaskTypes.length; i++) {
-      const taskId = tasks[TaskTypes[i]]
-      if (taskId) {
-        this.attemptToUnpauseTask(taskId, key)
-      }
-    }
+    this.attemptToUnpauseTask(taskId, key)
   }
 
   private attemptToUnpauseTask(taskId: string, key: Key) {

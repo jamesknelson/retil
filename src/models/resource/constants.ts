@@ -9,11 +9,12 @@ export const TaskTypes: ResourceTaskType[] = [
 ]
 
 export const InitialKeyState: Omit<ResourceKeyState<any, any>, 'key'> = {
-  holdCount: 0,
-  pauseCount: 0,
-  requestPolicies: {
+  policies: {
+    expectingExternalUpdate: 0,
+    keep: 0,
     loadInvalidated: 0,
     loadOnce: 0,
+    pauseLoad: 0,
     subscribe: 0,
   },
   tasks: {

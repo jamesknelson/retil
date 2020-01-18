@@ -1,5 +1,5 @@
 import { ResourceEffect } from './ResourceEffects'
-import { ResourceRequestPolicy } from './ResourceRequestPolicy'
+import { ResourcePolicy } from './ResourcePolicies'
 import {
   ResourceKeyTasks,
   ResourceTask,
@@ -48,8 +48,6 @@ export interface ResourceState<Data, Key> {
 }
 
 export interface ResourceKeyState<Data = any, Key = any> {
-  holdCount: number
-
   /**
    * If this is true, indicates that the current state should no longer be
    * treated as valid -- and should put the the key into error state if not
@@ -66,10 +64,8 @@ export interface ResourceKeyState<Data = any, Key = any> {
    */
   key: Key
 
-  pauseCount: number
-
-  requestPolicies: {
-    [Policy in ResourceRequestPolicy]: number
+  policies: {
+    [Policy in ResourcePolicy]: number
   }
 
   /**

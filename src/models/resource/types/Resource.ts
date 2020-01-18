@@ -2,7 +2,7 @@ import { Outlet } from 'outlets'
 import { Store } from 'store'
 
 import { ResourceEffectCallback } from './ResourceEffects'
-import { ResourceRequestPolicy } from './ResourceRequestPolicy'
+import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceKeyState, ResourceState } from './ResourceState'
 import {
   ResourceInvalidator,
@@ -110,6 +110,14 @@ export interface ResourceKey<Data, Key> {
 
 export interface ResourceKeyController<Data, Key> {
   /**
+   * Marks this key's currently stored state as stale.
+   *
+   * If there's an active subscription, a new version of the data will be
+   * fetched if possible.
+   */
+  invalidate(): void
+
+  /**
    * Instructs the resource to keep this key's state, even when there is no
    * active subscription.
    *
@@ -119,15 +127,7 @@ export interface ResourceKeyController<Data, Key> {
    *
    * Returns a function to cancel the hold.
    */
-  hold(): () => void
-
-  /**
-   * Marks this key's currently stored state as stale.
-   *
-   * If there's an active subscription, a new version of the data will be
-   * fetched if possible.
-   */
-  invalidate(): void
+  keep(): () => void
 
   /**
    * Imperatively schedule a load, even if paused or if the data already
@@ -142,8 +142,8 @@ export interface ResourceKeyController<Data, Key> {
   load(): () => void
 
   /**
-   * Pauses automatic fetches/expiries/purges until the returned unpause
-   * function is called.
+   * Pauses automatic loads until the returned resume function is called.
+   * Note: this will not pause any manually started loads.
    */
   pause(): () => void
 

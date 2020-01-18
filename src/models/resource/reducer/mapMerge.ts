@@ -57,7 +57,7 @@ export function mapMerge<Data, Key>(
       if (
         mergeState &&
         mergeState !== initialState &&
-        (mergeState.value || mergeState.holdCount || mergeState.pauseCount)
+        (mergeState.value || !canPurge(mergeState))
       ) {
         nextKeyState = {
           ...initialState,
@@ -70,93 +70,76 @@ export function mapMerge<Data, Key>(
       continue
     }
 
-    const {
-      invalidated,
-      key,
-      holdCount,
-      pauseCount,
-      requestPolicies,
-      tasks,
-      value,
-    } = nextKeyState
+    const { invalidated, key, policies, tasks, value } = nextKeyState
+    const existingPolicies = existingKeyState
+      ? existingKeyState.policies
+      : InitialKeyState.policies
+    const nextTasks = (nextKeyState.tasks = { ...tasks })
 
-    if (pauseCount > 0) {
-      if (existingKeyState && existingKeyState.pauseCount === 0) {
-        tracker.pauseKeyTasks(key, tasks)
-      }
-    } else {
-      // Don't change any tasks when paused
-      const nextTasks = (nextKeyState.tasks = { ...tasks })
-
-      // No need to check for stoppable tasks on new records
-      if (existingKeyState) {
-        if (existingKeyState.pauseCount > 0) {
-          tracker.unpauseKeyTasks(key, tasks)
-        }
-
-        if (tasks.purge && (holdCount || tasks.manualLoad)) {
-          nextTasks.purge = null
-        }
-        if (tasks.subscribe && !requestPolicies.subscribe) {
-          nextTasks.subscribe = null
-        }
-        if (
-          tasks.invalidate &&
-          (invalidated ||
-            (requestPolicies.subscribe && tasks.subscribe !== false))
-        ) {
-          nextTasks.invalidate = null
-        }
-
-        // While a `loadInvalidated` or `loadOnce` can sometimes be
-        // stopped if the other type of fetch is still active, we'll
-        // just leave a fetch running if either type of policy is
-        // active.
-        const fetchPolicyCount =
-          requestPolicies.loadInvalidated + requestPolicies.loadOnce
-        if (tasks.load && !fetchPolicyCount) {
-          nextTasks.load = null
-        }
-      }
-
-      // List any tasks which need to be started given the new key state. Note
-      // that `mutationMapper` will null out any tasks that need to change when
-      // the value changes.
-      if (tasks.purge === null && holdCount === 0 && !tasks.manualLoad) {
+    if (canPurge(nextKeyState)) {
+      if (tasks.purge === null) {
         nextTasks.purge = tracker.startTasks('purge', key, value)
       }
-      if (tasks.subscribe === null && requestPolicies.subscribe) {
-        nextTasks.subscribe = tracker.startTasks('subscribe', key, value)
+    } else {
+      if (tasks.purge) {
+        nextTasks.purge = null
       }
-      if (
-        tasks.invalidate === null &&
-        !invalidated &&
-        value &&
-        (tasks.subscribe === false || !requestPolicies.subscribe)
-      ) {
-        nextTasks.invalidate = tracker.startTasks('invalidate', key, value)
-      }
-      if (
-        // When a `fetchManual` policy is added, we'll trigger a new fetch
-        // regardless of any existing fetches.
+
+      if (tasks.load) {
+        if (policies.loadInvalidated + policies.loadOnce === 0) {
+          nextTasks.load = null
+        } else {
+          const pausePolicies =
+            policies.expectingExternalUpdate + policies.pauseLoad
+          const existingPausePolicies =
+            existingPolicies.expectingExternalUpdate +
+            existingPolicies.pauseLoad
+          if (pausePolicies && !existingPausePolicies) {
+            tracker.pauseKeyTask(key, tasks.load)
+          } else if (!pausePolicies && existingPausePolicies) {
+            tracker.unpauseKeyTask(key, tasks.load)
+          }
+        }
+      } else if (
         tasks.load === null &&
         tasks.manualLoad === null &&
-        ((requestPolicies.loadInvalidated && (invalidated || !value)) ||
-          (requestPolicies.loadOnce &&
-            (!existingKeyState || !existingKeyState.requestPolicies.loadOnce)))
+        !policies.expectingExternalUpdate &&
+        !policies.pauseLoad &&
+        ((policies.loadInvalidated && (invalidated || !value)) ||
+          (policies.loadOnce && !existingPolicies.loadOnce))
       ) {
         nextTasks.load = tracker.startTasks('load', key, value)
       }
 
-      if (existingKeyState && existingKeyState.tasks !== nextKeyState.tasks) {
-        tracker.removeKeysFromTasks(
-          key,
-          existingKeyState.tasks,
-          nextKeyState.tasks,
-        )
+      if (tasks.invalidate) {
+        if (invalidated || policies.subscribe) {
+          nextTasks.invalidate = null
+        }
+      } else if (
+        tasks.invalidate === null &&
+        value &&
+        !invalidated &&
+        !policies.subscribe
+      ) {
+        nextTasks.invalidate = tracker.startTasks('invalidate', key, value)
+      }
+
+      if (tasks.subscribe) {
+        if (!policies.subscribe) {
+          nextTasks.subscribe = null
+        }
+      } else if (tasks.subscribe === null && policies.subscribe) {
+        nextTasks.subscribe = tracker.startTasks('subscribe', key, value)
       }
     }
 
+    if (existingKeyState && existingKeyState.tasks !== nextKeyState.tasks) {
+      tracker.removeKeysFromTasks(
+        key,
+        existingKeyState.tasks,
+        nextKeyState.tasks,
+      )
+    }
     if (!existingKeyState || existingKeyState.value !== value) {
       tracker.recordEffect(key, value)
     }
@@ -181,4 +164,24 @@ export function mapMerge<Data, Key>(
     ...state.records,
     [path]: nextPathRecords,
   })
+}
+
+function canPurge({
+  policies,
+  tasks,
+}: Partial<ResourceKeyState<any, any>>): boolean {
+  return (
+    !(tasks && tasks.manualLoad) &&
+    !(
+      policies &&
+      !!(
+        policies.keep +
+        policies.expectingExternalUpdate +
+        policies.loadInvalidated +
+        policies.loadOnce +
+        policies.pauseLoad +
+        policies.subscribe
+      )
+    )
+  )
 }

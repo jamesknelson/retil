@@ -123,6 +123,17 @@ export function createResourceReducer<Data, Key>(
           }
         })
 
+      case 'holdPolicies':
+        return merge(state, action, keyState => {
+          const nextPolicies = { ...keyState.policies }
+          for (let i = 0; i < action.policies.length; i++) {
+            ++nextPolicies[action.policies[i]]
+          }
+          return {
+            policies: nextPolicies,
+          }
+        })
+
       case 'manualLoad':
         return merge(state, action, (keyState, i, tracker) => ({
           tasks: {
@@ -132,48 +143,19 @@ export function createResourceReducer<Data, Key>(
           },
         }))
 
-      case 'hold':
-        return merge(state, action, keyState => {
-          let nextRequestPolicies = keyState.requestPolicies
-          if (action.requestPolicies) {
-            nextRequestPolicies = { ...keyState.requestPolicies }
-            for (let i = 0; i < action.requestPolicies.length; i++) {
-              ++nextRequestPolicies[action.requestPolicies[i]]
-            }
-          }
-          return {
-            holdCount: keyState.holdCount + 1,
-            requestPolicies: nextRequestPolicies,
-          }
-        })
-
-      case 'pause':
-        return merge(state, action, keyState => ({
-          pauseCount: keyState.pauseCount + 1,
-        }))
-
       case 'purge':
         return purge(state, action, computeHashForKey)
 
-      case 'releaseHold':
+      case 'releasePolicies':
         return merge(state, action, keyState => {
-          let nextRequestPolicies = keyState.requestPolicies
-          if (action.requestPolicies) {
-            nextRequestPolicies = { ...keyState.requestPolicies }
-            for (let i = 0; i < action.requestPolicies.length; i++) {
-              --nextRequestPolicies[action.requestPolicies[i]]
-            }
+          const nextPolicies = { ...keyState.policies }
+          for (let i = 0; i < action.policies.length; i++) {
+            --nextPolicies[action.policies[i]]
           }
           return {
-            holdCount: keyState.holdCount - 1,
-            requestPolicies: nextRequestPolicies,
+            policies: nextPolicies,
           }
         })
-
-      case 'resumePause':
-        return merge(state, action, keyState => ({
-          pauseCount: keyState.pauseCount - 1,
-        }))
 
       case 'updateValue':
         return merge(
