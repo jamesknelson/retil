@@ -194,8 +194,8 @@ export class ResourceKeyOutputImplementation<Data, Key>
     if (!this.state.value || this.state.value.type !== 'rejection') {
       throw new Error(
         `Resource Error: no inaccessible reason is available. To prevent this ` +
-          `error, ensure that the "wasRejected" property is true before accessing ` +
-          `"rejectionReason".`,
+          `error, ensure that the "hasRejection" property is true before accessing ` +
+          `"rejection".`,
       )
     }
     return this.state.value.rejection
