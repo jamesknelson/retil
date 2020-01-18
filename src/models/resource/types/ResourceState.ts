@@ -10,6 +10,9 @@ import { ResourceValue } from './ResourceValue'
 export interface ResourceState<Data, Key> {
   effects: ResourceEffect<Data, Key, any>[]
 
+  /**
+   * If set, indicates that an unrecoverable exception has occured.
+   */
   error?: any
 
   records: {
@@ -50,17 +53,12 @@ export interface ResourceState<Data, Key> {
 export interface ResourceKeyState<Data = any, Key = any> {
   /**
    * If this is true, indicates that the current state should no longer be
-   * treated as valid -- and should put the the key into error state if not
-   * selected and if the strategy has given up fetching new values.
+   * treated as current -- and thus should be revalidated with the server.
    */
   invalidated?: boolean
 
   /**
    * The document's primary key.
-   *
-   * Only one record with a given key will ever be stored. If another record is
-   * stored with the same key, it'll cause any existing record to be removed --
-   * even if using different context keys.
    */
   key: Key
 
@@ -69,18 +67,12 @@ export interface ResourceKeyState<Data = any, Key = any> {
   }
 
   /**
-   * Tasks can be deactivated for just some of their keys, so we need to store
-   * the active status for each separate key separately to the task itself.
-   *
-   * Can point to either active *or* queued tasks -- as there should only ever
-   * be a single task for any strategy. Tasks in the stop queue should not
-   * appear here.
+   * Keeps track of any running or paused tasks for this key.
    */
   tasks: ResourceKeyTasks
 
   /**
-   * Stores any data received at the last update. Only available when status
-   * is `available`.
+   * Stores the latest data or rejection associated with this key.
    */
   value: ResourceValue<Data> | null
 }

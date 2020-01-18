@@ -5,7 +5,7 @@ import { ResourceValueUpdate } from './ResourceValue'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
 
-// Utility for getting the a specific type of action
+// Utility for getting a specific action type's object
 export type ResourceActionOfType<
   Data,
   Key,
@@ -25,8 +25,8 @@ export type ResourceAction<Data, Key> =
   | UpdateValueAction<Data, Key>
 
 /**
- * Mark that the given keys' current values will not expire (unless manually
- * stale.)
+ * Mark that the given keys no longer should be affected by the given task.
+ * If there are no more keys linked to the task, then the task will be stopped.
  */
 type AbandonTask<Key> = {
   type: 'abandonTask'
@@ -36,7 +36,7 @@ type AbandonTask<Key> = {
 }
 
 /**
- * Handle notification from the task runner that the queue has been processed.
+ * Handles notification from the task runner that the queue has been processed.
  */
 type ClearQueueAction = {
   type: 'clearQueue'
@@ -51,8 +51,7 @@ type ErrorAction = {
 }
 
 /**
- * Tag the given keys with policies that affect the tasks that will be
- * scheduled.
+ * Tag the given keys with policies that affect whcih tasks will be scheduled.
  */
 type HoldPoliciesAction<Key> = {
   type: 'holdPolicies'
@@ -63,7 +62,7 @@ type HoldPoliciesAction<Key> = {
 }
 
 /**
- * Expire the specified keys.
+ * Set the specified keys to invalidated.
  */
 type InvalidateAction<Key> = {
   type: 'invalidate'
@@ -106,7 +105,7 @@ type ReleasePoliciesAction<Key> = {
 }
 
 /**
- * Update cached data
+ * Updates stored values.
  */
 type UpdateValueAction<Data, Key> = {
   type: 'updateValue'

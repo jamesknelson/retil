@@ -7,7 +7,6 @@ import {
   ResourceDataUpdate,
   ResourceTask,
   ResourceTaskConfig,
-  ResourceTaskType,
 } from '../types'
 
 export class ResourceTaskRunner<Data, Key, Context extends object> {
@@ -77,9 +76,9 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           this.stoppers[task.id] = stopper
         } else {
           console.warn(
-            'Resource Warning: an invalidation scheduler task did not return ' +
+            'Resource Warning: an invalidator task did not return ' +
               "a cleanup function. If you don't want to invalidate your " +
-              'resources, set the invalidation scheduler to `null` instead.',
+              "resources, set your resource's `purger` to `null` instead.",
           )
         }
       } catch (error) {
@@ -138,7 +137,10 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           this.stoppers[task.id] = stopper
         } else {
           console.warn(
-            'Resource Warning: a purge task did not return a cleanup function.',
+            'Resource Warning: a purge task did not return a cleanup function. ' +
+              "If you don't want to purge your data, set your resource's " +
+              'purger task to "null" instead. But beware - this can lead to ' +
+              'memory leaks.',
           )
         }
       } catch (error) {

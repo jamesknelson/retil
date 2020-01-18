@@ -2,8 +2,15 @@ import { ResourceValue, ResourceDataUpdate } from './ResourceValue'
 
 export type ResourceInvalidator<Data, Key, Context extends object> = (options: {
   keys: Key[]
-  // defaults to expiring all keys
+  /**
+   * Indicate that the specified keys don't need to be invalidated.
+   */
   abandon: (keys?: Key[]) => void
+  /**
+   * Invalidate the specified keys. Note, this cannot be done synchronously
+   * with the function call; you'll want to wait some time before invalidating
+   * anything.
+   */
   invalidate: (keys?: Key[]) => void
   path: string
   context: Context
@@ -18,6 +25,10 @@ export type ResourceLoader<Data, Key, Context extends object> = (options: {
    * update.
    */
   abandon: (keys?: Key[]) => void
+  /**
+   * Put the resource into an unrecoverable error state. Where possible, prefer
+   * to use `setRejection` instead -- as rejections can be recovered from.
+   */
   error: (error: any) => void
   setData: (
     updates:
@@ -26,25 +37,42 @@ export type ResourceLoader<Data, Key, Context extends object> = (options: {
           [path: string]: (readonly [Key, ResourceDataUpdate<Data, Key>])[]
         },
   ) => void
+  /**
+   * Allows you to mark the reason that the server did not provide data for a
+   * requested key, e.g. it's not found (404), forbidden (403), etc.
+   */
   setRejection: (reasons: (readonly [Key, string])[]) => void
   path: string
   context: Context
   signal: AbortSignal
 }) => void | undefined | (() => void)
 
-// any keys that are unpurged once any cleanup function has been called will
-// be automatically purged.
+/**
+ * Specify when to purge keys.
+ */
 export type ResourcePurger<Data, Key, Context extends object> = (options: {
   keys: Key[]
+  /**
+   * Remove the specified keys and their data from the store.
+   */
   purge: (keys?: Key[]) => void
   context: Context
   path: string
   values: (ResourceValue<Data> | null)[]
-}) => void | undefined | (() => void)
+}) => () => void
 
 export type ResourceSubscriber<Data, Key, Context extends object> = (options: {
   keys: Key[]
+  /**
+   * Indicate that this task is no longer receiving updates for the specified
+   * keys, and they should again be invalidated as usual by the invalidator
+   * task.
+   */
   abandon: (keys?: Key[]) => void
+  /**
+   * Put the resource into an unrecoverable error state. Where possible, prefer
+   * to use `setRejection` instead -- as rejections can be recovered from.
+   */
   error: (error: any) => void
   setData: (
     updates:
@@ -53,6 +81,10 @@ export type ResourceSubscriber<Data, Key, Context extends object> = (options: {
           [path: string]: (readonly [Key, ResourceDataUpdate<Data, Key>])[]
         },
   ) => void
+  /**
+   * Allows you to mark the reason that the server did not provide data for a
+   * requested key, e.g. it's not found (404), forbidden (403), etc.
+   */
   setRejection: (reasons: (readonly [Key, string])[]) => void
   path: string
   context: Context

@@ -100,7 +100,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
 
     const getOutput: any = memoizeOne(
       (keyState: ResourceKeyState<Data, Key>) =>
-        new ResourceKeyOutputImplementation(
+        new ResourceKeyImplementation(
           keyState,
           options.requestPolicy !== null,
           filter(outlet, output => output.primed).getValue,
@@ -149,7 +149,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
   }
 }
 
-export class ResourceKeyOutputImplementation<Data, Key>
+export class ResourceKeyImplementation<Data, Key>
   implements ResourceKey<Data, Key> {
   constructor(
     readonly state: ResourceKeyState<Data, Key>,

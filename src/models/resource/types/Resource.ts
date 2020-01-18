@@ -3,7 +3,7 @@ import { Store } from '../../../store'
 
 import { ResourceEffectCallback } from './ResourceEffects'
 import { ResourceRequestPolicy } from './ResourcePolicies'
-import { ResourceKeyState, ResourceState } from './ResourceState'
+import { ResourceKeyState } from './ResourceState'
 import {
   ResourceInvalidator,
   ResourceLoader,
@@ -18,21 +18,9 @@ export type ResourceContext = {
 }
 
 export interface Resource<Data, Key> {
-  // TODO
-  // dehydrate(): Promise<ResourceState<Data, Key> | undefined>
-
   /**
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
-   *
-   * By default, the outlet will just return the data, and will end up in an
-   * error state if the data is missing and no further fetches will be made.
-   * However, you can configure the output shape by passing a `select` function
-   * object which maps available data to an output format.
-   *
-   * Internally, ES5 getters are used to detect which data has been selected --
-   * so that the output of getCurrentValue can be set to an error or promise as
-   * necessary.
    */
   key(
     query: Key,
@@ -43,9 +31,6 @@ export interface Resource<Data, Key> {
   // /**
   //  * Return a handle for an array of keys, from which you can get
   //  * and subscribe to multiple values at once.
-  //  *
-  //  * An error in any key will cause an error, while pending/missing values
-  //  * on any key will cause a promise to be thrown.
   //  */
   // keys<Selected = DefaultSelected>(
   //   keys: Key[],
@@ -68,41 +53,40 @@ export interface ResourceKey<Data, Key> {
   abandoned: boolean
 
   data: Data
+
   /**
    * If there's data that can be accessed, this will be true.
    */
   hasData?: boolean
+
   /**
    * If true, indicates that instead of the expected data, this key has been
-   * marked with some other freeform data. This can be used to indicate that
-   * resource was not found, was forbidden, etc.
+   * marked with a reason that the data wasn't erturned. This can be used to
+   * indicate that resource was not found, was forbidden, etc.
    */
   hasRejection?: boolean
+
   key: Key
+
   /**
-   * If true, indicates one of:
-   *
-   * - we have an in-progress fetch
-   * - we have unresolved predictions
-   * - or we're waiting on the initial data, and still think that some data
-   *   could come back due to an active subscription, or the subscripiton
-   *   being paused.
+   * When true, indicates that we're expecting to receive new data due to an
+   * in-progress operation.
    */
   pending: boolean
+
   /**
-   * Indicates that the subscription is pending, *and* we haven't yet
-   * received an initial value.
+   * Indicates that we're still waiting on an initial value.
    */
   primed: boolean
+
   /**
    * Indicates that the data has been marked as possibly out of date, and in
    * need of a reload.
    */
   invalidated?: boolean
+
   rejection?: string
-  /**
-   * Contains the raw state for this key.
-   */
+
   state: ResourceKeyState<Data, Key>
 }
 
@@ -110,30 +94,27 @@ export interface ResourceKeyController<Data, Key> {
   /**
    * Marks this key's currently stored state as stale.
    *
-   * If there's an active subscription, a new version of the data will be
-   * fetched if possible.
+   * If there's an active `loadInvalidated` request policy, then a new load will
+   * be automatically started. This should happen by default when a component is
+   * subscribed to this key or when an outlet is waiting on a value via
+   * `getValue()`.
+   *
    */
   invalidate(): void
 
   /**
-   * Instructs the resource to keep this key's state, even when there is no
-   * active subscription.
+   * Marks that this resource's state should not be purged.
    *
-   * Note that holding a key will not actively fetch its contents. Also, note
-   * that holds are specific to a resource instance -- they are not
-   * serializable, and thus cannot be hydrated via the network or local storage.
+   * Note that calling `keep` on a key will *not* actively fetch its contents --
+   * even if there is an active `loadInvalidated` policy.
    *
-   * Returns a function to cancel the hold.
+   * Returns a function that releases this hold on the resource.
    */
   keep(): () => void
 
   /**
-   * Imperatively schedule a load, even if paused or if the data already
-   * exists. This will cancel any running loaders/invalidators, before
-   * re-starting after the fetch. However, it will *not* cancel any running
-   * fetches, given that there's a possibility of cancelling a fetch for an
-   * unrelated id. Instead, it'll queue the fetch to be run after any existing
-   * fetches.
+   * Imperatively schedule a load, even if paused or if the data already exists.
+   * This will cancel any other running loaders.
    *
    * Returns a function that lets you abort the fetch.
    */
@@ -143,22 +124,17 @@ export interface ResourceKeyController<Data, Key> {
    * Pauses automatic loads until the returned resume function is called.
    * If `true` is passed as an argument, then the resource will be set to
    * pending for the duration of the pause.
-   * Note: this will not pause any manually started loads.
+   *
+   * Returns a function to resume automatic fetches.
    */
   pause(expectingExternalUpdate?: boolean): () => void
 
   /**
-   * Stores the given data. If there is no subscription for it, then the data
-   * will be immediately scheduled for purge.
+   * Stores the given data, or if a function is given, runs the given update
+   * on the current stored value.
    *
-   * In the case a function is given, if this key has a value, then the updater
-   * callback will be called and the returned value will be set as set as the
-   * current data. If the key is empty or does not yet have any initial data,
-   * then an error will be thrown.
-   *
-   * This will not change the `pending` status of your data, as `pending`
-   * reflects any in-progress operations -- and updates will not affect these.
-   * However, this *will* clear the `failedAttemptsSinceLastUpdate` counter.
+   * If the data is not in use, and has not had `keep()` called on it, then the
+   * resource will be immediately scheduled for purge.
    */
   setData(dataOrUpdater: ResourceDataUpdate<Data, Key>): void
 
@@ -171,8 +147,19 @@ export interface ResourceKeyController<Data, Key> {
 
 export interface ResourceKeyOptions<Data, Key> {
   /**
-   * Lets you configure when a fetch strategy will be run while therer is an
-   * active subscription.
+   * Configures which tasks will be automatically scheduled, and when. Options
+   * include:
+   *
+   * - `loadInvalidated`, which loads data marked as invalidated
+   * - `loadOnce`, which loads the first time the data is required
+   * - `subscribe`, which creates a subscribe task to receive updates over a
+   *   websocket or other communication mechanism.
+   *
+   * The default value depends on the environment in which the resource is
+   * running in:
+   *
+   * - The browser defaults to `loadInvalidated`
+   * - The server defaults to `loadOnce`
    */
   requestPolicy?: ResourceRequestPolicy | null
 }
@@ -188,11 +175,7 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
 
   /**
    * An optional function for computing a secondary key based on the context, so
-   * that different contexts will be keyed to different stores.
-   *
-   * By default, if the property `context.key` is a string, then this will be
-   * used. Otherwise, a unique value will be computed for each new context
-   * object.
+   * that different contexts will be keyed to different paths.
    */
   computePathForContext?: (context: Context) => string
 
@@ -207,56 +190,45 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
    * or after the data is purged.
    *
    * Use this function to perform side effects based on the currently stored
-   * value.
+   * value. This should feel familiar if you've used React's `useEffect` hook.
    *
    * For example, if this model contains lists of foreign keys, you could create
-   * an effect to `hold()` those keys within another model. Similarly, if this
+   * an effect to `keep()` those keys within another model. Similarly, if this
    * model contains items that are indexed in another model, you could use an
    * effect to expire indexes as the indexed items change.
    */
   effect?: ResourceEffectCallback<Data, Key, Context>
 
   /**
-   * Strategy to run when we have up to date data. Can expire the data after
-   * some amount of time to re-fetch it.
+   * The task to run to invalidate newly received records.
    *
    * By default, expires after an hour on the client, and does not expire on
    * the server.
    */
-  invalidator?: null | number | ResourceInvalidator<Data, Key, Context>
+  invalidator?: ResourceInvalidator<Data, Key, Context>
 
   /**
-   * Configures how to upate data once there are active subscriptions. This will
-   * be called for any keys with subscriptions, and with missing or stale data.
-   * It will *not* be called for keys that have holds but no subscriptions.
-   *
-   * The strategy can also return a function that will be called should the
-   * resource decide that a load is no longer needed - allowing the strategy to
-   * free up any resources being used.
+   * The task to run to load data for records.
    */
   loader?: null | ResourceLoader<Data, Key, Context>
 
   /**
-   * The namespace to use in the app store.
+   * A key unique to this resource model, allowing multiple models to be stored
+   * in the same Store.
+   *
+   * This option is required if you pass an external `store` property via
+   * context.
    */
   namespace?: string
 
-  preloadedState?: ResourceState<Data, Key>
-
   /**
-   * Configures how to purge data when there are no longer any active holds.
+   * Configures how to purge data that is no longer in use.
    *
-   * If a number is given, data will be purged that many milliseconds after
-   * the last hold is released.
+   * If a number is given, data will be purged that many milliseconds after the
+   * last hold is released.
    *
-   * If a function is given, it'll be called with a purge function that should
-   * be called once the data should be purged. This function should also
-   * return a function which can be called to *cancel* a purge, should the
-   * state change before the purge takes place -- in which case the strategy
-   * function will be called again with the new state.
-   *
-   * By default, purges after a minute on the client, or does not purge on the
-   * server.
+   * By default, data is purged after a minute in the browser, and is not purged
+   * at all on the server.
    */
   purger?: null | number | ResourcePurger<Data, Key, Context>
 

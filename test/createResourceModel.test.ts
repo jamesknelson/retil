@@ -64,6 +64,10 @@ describe('ResourceModel', () => {
     expect(
       outlet.filter(({ data }) => !data).getValue(),
     ).rejects.toBeInstanceOf(Error)
+
+    await outlet.filter(({ primed }) => primed).getValue()
+
+    expect(outlet.getCurrentValue().abandoned).toBe(true)
   })
 
   test('does not share data across stores', async () => {
@@ -170,6 +174,25 @@ describe('ResourceModel', () => {
     }).toThrow(Error)
   })
 
+  test('triggers effect functions on update and rejection', async () => {
+    const mockEffect: jest.Mock = jest.fn(() => mockEffect)
+    const model = createResourceModel<string>({
+      effect: mockEffect,
+      loader: null,
+    })
+
+    const [, controller] = model({}).key('/test', {
+      requestPolicy: 'loadInvalidated',
+    })
+
+    controller.setData('found')
+    controller.setRejection('notFound')
+
+    expect(mockEffect.mock.calls[0][0]).not.toBeUndefined()
+    expect(mockEffect.mock.calls[1][0]).not.toBeUndefined()
+    expect(mockEffect.mock.calls[2][0]).toBeUndefined()
+  })
+
   describe('invalidate()', () => {
     test("triggers a new load when there's a loadInvalidated subscription", async () => {
       let counter = 1
@@ -194,6 +217,41 @@ describe('ResourceModel', () => {
       await outlet.filter(({ invalidated }) => !invalidated).getValue()
       expect(outlet.getCurrentValue().data).toBe(2)
       expect(outlet.getCurrentValue().invalidated).toBe(false)
+    })
+  })
+
+  describe('knownKeys()', () => {
+    test('returns all currently stored keys for a path', async () => {
+      const resource = createResourceModel<number>({
+        loader: null,
+      })
+
+      resource.key('/a')[1].setData(1)
+      resource.key('/b')[1].setData(2)
+
+      expect(resource.knownKeys()).toEqual(['/a', '/b'])
+    })
+
+    test('does not return purged keys', async () => {
+      let purges = [] as Function[]
+      const resource = createResourceModel<number>({
+        loader: null,
+        purger: props => {
+          purges.push(props.purge)
+          return () => {}
+        },
+      })
+
+      resource.key('/a')[1].setData(1)
+      resource.key('/b')[1].setData(2)
+
+      expect(resource.knownKeys()).toEqual(['/a', '/b'])
+
+      // purge always runs in a timeout, so we need to wait another tick
+      purges.forEach(purge => purge())
+      await new Promise(resolve => setTimeout(resolve, 100))
+
+      expect(resource.knownKeys()).toEqual([])
     })
   })
 

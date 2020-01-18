@@ -43,7 +43,6 @@ export function createResourceModel<
     invalidator = defaultOptions.invalidator,
     loader = defaultOptions.loader,
     namespace = 'resource',
-    preloadedState,
     purger = defaultOptions.purger,
     requestPolicy = defaultOptions.requestPolicy,
 
@@ -106,7 +105,6 @@ export function createResourceModel<
       },
       enhancer,
       reducer,
-      initialState: preloadedState,
       selectError: state => state.error,
     })
 
