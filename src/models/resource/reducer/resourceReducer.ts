@@ -41,17 +41,30 @@ export function createResourceReducer<Data, Key>(
       case Dispose:
         return reset(state)
 
+      case 'abandonInvalidation':
+        return merge(state, action, keyState => {
+          if (keyState.tasks.invalidate === action.taskId) {
+            return {
+              invalidated: false,
+              tasks: {
+                ...keyState.tasks,
+                invalidate: false,
+              },
+            }
+          }
+        })
+
       case 'abandonLoad':
         return merge(state, action, keyState => {
           if (
             keyState.tasks.load === action.taskId ||
-            keyState.tasks.forceLoad === action.taskId
+            keyState.tasks.manualLoad === action.taskId
           ) {
             return {
               tasks: {
                 ...keyState.tasks,
-                load: keyState.tasks.forceLoad ? null : false,
-                forceLoad: null,
+                load: keyState.tasks.manualLoad ? null : false,
+                manualLoad: null,
               },
             }
           }
@@ -69,13 +82,13 @@ export function createResourceReducer<Data, Key>(
           }
         })
 
-      case 'abortForceLoad':
+      case 'abortManualLoad':
         return merge(state, action, keyState => {
-          if (keyState.tasks.forceLoad === action.taskId) {
+          if (keyState.tasks.manualLoad === action.taskId) {
             return {
               tasks: {
                 ...keyState.tasks,
-                forceLoad: null,
+                manualLoad: null,
               },
             }
           }
@@ -98,24 +111,24 @@ export function createResourceReducer<Data, Key>(
           error: action.error,
         }
 
-      case 'expire':
+      case 'invalidate':
         return merge(state, action, keyState => {
           if (
             action.taskId === null ||
-            keyState.tasks.expire === action.taskId
+            keyState.tasks.invalidate === action.taskId
           ) {
             return {
-              stale: true,
+              invalidated: true,
             }
           }
         })
 
-      case 'forceLoad':
+      case 'manualLoad':
         return merge(state, action, (keyState, i, tracker) => ({
           tasks: {
             ...keyState.tasks,
             load: null,
-            forceLoad: tracker.startTasks('forceLoad', keyState.key, null),
+            manualLoad: tracker.startTasks('manualLoad', keyState.key, null),
           },
         }))
 
@@ -134,30 +147,9 @@ export function createResourceReducer<Data, Key>(
           }
         })
 
-      case 'markAsEvergreen':
-        return merge(state, action, keyState => {
-          if (keyState.tasks.expire === action.taskId) {
-            return {
-              stale: false,
-              tasks: {
-                ...keyState.tasks,
-                expire: false,
-              },
-            }
-          }
-        })
-
       case 'pause':
         return merge(state, action, keyState => ({
           pauseCount: keyState.pauseCount + 1,
-        }))
-
-      case 'predict':
-        return merge(state, action, keyState => ({
-          // Add a hold with the prediction, as we don't want the record to be
-          // purged with any unresolved predictions.
-          holdCount: keyState.holdCount + 1,
-          predictions: keyState.predictions.concat(action.prediction),
         }))
 
       case 'purge':
@@ -178,41 +170,17 @@ export function createResourceReducer<Data, Key>(
           }
         })
 
-      case 'resolvePrediction': {
-        const updateMapper =
-          action.update &&
-          createUpdateMapper({
-            taskId: null,
-            update: action.update,
-          })
-        const updateIndexes =
-          action.update &&
-          new Map(action.update.changes.map((update, i) => [update.key, i]))
-        return merge(state, action, (keyState, i, tracker) => {
-          const updateIndex = updateIndexes && updateIndexes.get(keyState.key)
-          return {
-            holdCount: keyState.holdCount - 1,
-            predictions: keyState.predictions.filter(
-              prediction => prediction !== action.prediction,
-            ),
-            ...(updateIndex === undefined
-              ? undefined
-              : updateMapper!(keyState, updateIndex, tracker)),
-          }
-        })
-      }
-
       case 'resumePause':
         return merge(state, action, keyState => ({
           pauseCount: keyState.pauseCount - 1,
         }))
 
-      case 'update':
+      case 'updateValue':
         return merge(
           state,
           {
             ...action,
-            keys: action.update.changes.map(({ key }) => key),
+            keys: action.updates.map(([key]) => key),
           },
           createUpdateMapper(action),
         )

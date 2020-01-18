@@ -3,14 +3,14 @@ import { Outlet, createOutlet, filter, map } from '../../outlets'
 import { flatMap } from '../../utils/flatMap'
 import { shallowCompare } from '../../utils/shallowCompare'
 
-import { InitialKeyState } from './reducer/constants'
+import { InitialKeyState } from './constants'
 import { ResourceKeyControllerImplementation } from './resourceKeyControllerImplementation'
 import {
   Resource,
   ResourceAction,
   ResourceKeyController,
   ResourceKeyOptions,
-  ResourceKeyOutput,
+  ResourceKey,
   ResourceKeyState,
   ResourceRequestPolicy,
   ResourceState,
@@ -36,7 +36,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     key: Key,
     optionsWithoutDefaults: ResourceKeyOptions<Data, Key> = {},
   ): Readonly<
-    [Outlet<ResourceKeyOutput<Data, Key>>, ResourceKeyController<Data, Key>]
+    [Outlet<ResourceKey<Data, Key>>, ResourceKeyController<Data, Key>]
   > {
     const options = {
       requestPolicy: this.defaultRequestPolicy,
@@ -74,7 +74,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       )
     })
 
-    const outlet = createOutlet<ResourceKeyOutput<Data, Key>>({
+    const outlet = createOutlet<ResourceKey<Data, Key>>({
       getCurrentValue: () => {
         return getOutput(keyStateOutlet.getCurrentValue())
       },
@@ -103,7 +103,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       (keyState: ResourceKeyState<Data, Key>) =>
         new ResourceKeyOutputImplementation(
           keyState,
-          filter(outlet, output => !output.priming).getValue,
+          filter(outlet, output => output.primed).getValue,
         ),
     )
 
@@ -144,21 +144,21 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
 }
 
 export class ResourceKeyOutputImplementation<Data, Key>
-  implements ResourceKeyOutput<Data, Key> {
+  implements ResourceKey<Data, Key> {
   constructor(
     readonly state: ResourceKeyState<Data, Key>,
     private waitForValue: () => Promise<any>,
   ) {}
 
   get abandoned(): boolean {
-    return !this.priming && !this.state.value
+    return this.primed && !this.state.value
   }
 
   get data(): Data {
-    if (this.priming) {
+    if (!this.primed) {
       throw this.waitForValue()
     }
-    if (!this.state.value || this.state.value.status !== 'retrieved') {
+    if (!this.state.value || this.state.value.type !== 'data') {
       throw new Error(
         `Resource Error: no data is available. To prevent this error, ensure ` +
           `that the "hasData" property is true before accessing "data".`,
@@ -167,35 +167,12 @@ export class ResourceKeyOutputImplementation<Data, Key>
     return this.state.value.data
   }
 
-  get inaccessible(): boolean {
-    if (this.priming) {
-      throw this.waitForValue()
-    }
-    if (!this.state.value) {
-      throw new Error(
-        `Resource Error: no value is available, so "inaccessible" has no value. ` +
-          `To handle this error, ensure "primed" is true before accessing "inaccessible".`,
-      )
-    }
-    return this.state.value.status === 'inaccessible'
-  }
-
-  get inaccessibleReason(): any {
-    if (this.priming) {
-      throw this.waitForValue()
-    }
-    if (!this.state.value || this.state.value.status !== 'inaccessible') {
-      throw new Error(
-        `Resource Error: no inaccessible reason is available. To prevent this ` +
-          `error, ensure that the "inaccessible" property is true before accessing ` +
-          `"inaccessibleReason".`,
-      )
-    }
-    return this.state.value.reason
-  }
-
   get hasData(): boolean {
-    return !!this.state.value && this.state.value.status === 'retrieved'
+    return !!this.state.value && this.state.value.type === 'data'
+  }
+
+  get invalidated(): boolean {
+    return !!this.state.invalidated
   }
 
   get key(): Key {
@@ -206,31 +183,44 @@ export class ResourceKeyOutputImplementation<Data, Key>
     return isPending(this.state)
   }
 
-  get priming(): boolean {
-    return isPriming(this.state)
+  get primed(): boolean {
+    return isPrimed(this.state)
   }
 
-  get stale(): boolean {
-    return !this.pending && !!this.state.stale
+  get rejection(): any {
+    if (!this.primed) {
+      throw this.waitForValue()
+    }
+    if (!this.state.value || this.state.value.type !== 'rejection') {
+      throw new Error(
+        `Resource Error: no inaccessible reason is available. To prevent this ` +
+          `error, ensure that the "wasRejected" property is true before accessing ` +
+          `"rejectionReason".`,
+      )
+    }
+    return this.state.value.rejection
+  }
+
+  get hasRejection(): boolean {
+    return !!this.state.value && this.state.value.type === 'rejection'
   }
 }
 
 function isPending(state: ResourceKeyState<any, any>) {
   return !!(
-    state.predictions.length ||
-    state.tasks.forceLoad ||
+    state.tasks.manualLoad ||
     state.tasks.load ||
+    state.pauseCount ||
     (state.value === null &&
       ((state.tasks.load === null &&
-        !state.requestPolicies.fetchOnce &&
-        !state.requestPolicies.fetchStale) ||
-        state.tasks.subscribe ||
-        state.pauseCount))
+        !state.requestPolicies.loadOnce &&
+        !state.requestPolicies.loadInvalidated) ||
+        state.tasks.subscribe))
   )
 }
 
-function isPriming(state: ResourceKeyState<any, any>) {
-  return state.value === null && isPending(state)
+function isPrimed(state: ResourceKeyState<any, any>) {
+  return state.value !== null || !isPending(state)
 }
 
 function joinPaths(x: string, y?: string): string {

@@ -8,7 +8,7 @@
  */
 export interface OutletDescriptor<T = any> {
   /**
-   * If `hasValue` is provided and returns false, then this will not be called.
+   * If `hasCurrentValue` is provided and returns false, then this will not be called.
    * `createOutlet` will take care of throwing a promise instead.
    */
   getCurrentValue(): T
@@ -20,7 +20,7 @@ export interface OutletDescriptor<T = any> {
    * It is always safe to call `getCurrentValue` from this function, as
    * createOutlet() will handle any thrown promises or errors.
    */
-  hasValue?(): boolean
+  hasCurrentValue?(): boolean
 
   /**
    * The callback will be called at some point in the same tick after the
@@ -33,17 +33,17 @@ export interface OutletDescriptor<T = any> {
 
 export interface Outlet<T> extends OutletDescriptor<T> {
   /**
-   * Will throw a promise when hasValue is false.
+   * Will throw a promise when hasCurrentValue is false.
    */
   getCurrentValue(): T
 
   getValue(): Promise<T>
-  hasValue(): boolean
+  hasCurrentValue(): boolean
 
   // todo:
   // - filter
   // - flatMap
-  // - map (allow to pass hasValue as second argument)
+  // - map (allow to pass hasCurrentValue as second argument)
 
   // map<T, U>(
   //   outletDescriptor: OutletDescriptor<T>,
@@ -64,8 +64,8 @@ export function createOutlet<
     // If our descriptor says we have no value (or the descriptor throws
     // a promise for `getCurrentValue`), then throw a promise that resolves
     // once we do have a value.
-    const { error, hasError, hasValue, value } = getState(descriptor)
-    if (!hasValue) {
+    const { error, hasError, hasCurrentValue, value } = getState(descriptor)
+    if (!hasCurrentValue) {
       throw getValue().then(() => {})
     } else if (hasError) {
       throw error
@@ -73,13 +73,13 @@ export function createOutlet<
     return value
   }
   const getValue = () =>
-    hasValue()
+    hasCurrentValue()
       ? Promise.resolve(getCurrentValue() as T)
       : new Promise<T>((resolve, reject) => {
           let unsubscribe: undefined | (() => void) = descriptor.subscribe(
             () => {
               try {
-                if (unsubscribe && hasValue()) {
+                if (unsubscribe && hasCurrentValue()) {
                   unsubscribe()
                   unsubscribe = undefined
                   resolve(getCurrentValue())
@@ -95,7 +95,7 @@ export function createOutlet<
           )
         })
 
-  const hasValue = () => getState(descriptor).hasValue
+  const hasCurrentValue = () => getState(descriptor).hasCurrentValue
   const subscribe = (callback: () => void): (() => void) => {
     // Outlets only notify subscribers if something has actually changed.
     let state = getState(descriptor)
@@ -103,7 +103,7 @@ export function createOutlet<
       const nextState = getState(descriptor)
       const shouldNotify =
         state.hasError !== nextState.hasError ||
-        state.hasValue !== nextState.hasValue ||
+        state.hasCurrentValue !== nextState.hasCurrentValue ||
         state.value !== nextState.value
       if (shouldNotify) {
         state = nextState
@@ -116,7 +116,7 @@ export function createOutlet<
     ...descriptor,
     getCurrentValue,
     getValue,
-    hasValue,
+    hasCurrentValue,
     subscribe,
   }
 }
@@ -124,26 +124,26 @@ export function createOutlet<
 const getState = <T>(descriptor: OutletDescriptor<T>) => {
   let hasError = false
   let error: any
-  let hasValue
+  let hasCurrentValue
   let value: T | undefined
   try {
     // For deciding whether we have a value or not, we'll prioritize the
-    // behavior of `getCurrentValue` over the response of `hasValue`.
+    // behavior of `getCurrentValue` over the response of `hasCurrentValue`.
     value = descriptor.getCurrentValue()
   } catch (errorOrPromise) {
     if (typeof errorOrPromise.then === 'function') {
-      hasValue = false
+      hasCurrentValue = false
     } else {
-      hasValue = true
+      hasCurrentValue = true
       hasError = true
       error = errorOrPromise
     }
   }
-  hasValue = !descriptor.hasValue || descriptor.hasValue()
+  hasCurrentValue = !descriptor.hasCurrentValue || descriptor.hasCurrentValue()
   return {
     error,
     hasError,
-    hasValue,
-    value: hasValue ? value : undefined,
+    hasCurrentValue,
+    value: hasCurrentValue ? value : undefined,
   }
 }

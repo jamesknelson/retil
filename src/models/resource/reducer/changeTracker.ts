@@ -6,7 +6,7 @@ import {
   ResourceState,
 } from '../types'
 
-import { TaskTypes } from './constants'
+import { TaskTypes } from '../constants'
 
 export class ChangeTracker<Data, Key> {
   private effects: ResourceEffect<Data, Key, any>[]

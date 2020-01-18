@@ -1,18 +1,12 @@
-import { ResourceUpdate } from './ResourceUpdate'
-import { ResourceValue } from './ResourceValue'
+import { ResourceValue, ResourceDataUpdate } from './ResourceValue'
 
 // any keys that are not stale/marked as ever green once any cleanup function
 // has been called will be automatically marked as evergreen.
-export type ResourceExpireStrategy<
-  Data,
-  Key,
-  Context extends object
-> = (options: {
+export type ResourceInvalidator<Data, Key, Context extends object> = (options: {
   keys: Key[]
   // defaults to expiring all keys
-  expire: (keys?: Key[]) => void
-  // defaults to marking all keys as evergreen
-  markAsEvergreen: (keys?: Key[]) => void
+  abandon: (keys?: Key[]) => void
+  invalidate: (keys?: Key[]) => void
   path: string
   context: Context
   values: (ResourceValue<Data> | null)[]
@@ -22,15 +16,24 @@ export type ResourceExpireStrategy<
 //   will be automatically abandoned.
 // - values are *not* passed to the fetch strategy, so that there's no need to
 //   restart the strategy on a manual update
-export type ResourceLoadStrategy<
-  Data,
-  Key,
-  Context extends object
-> = (options: {
+export type ResourceLoader<Data, Key, Context extends object> = (options: {
   keys: Key[]
+  /**
+   * Abandonding a load will leave the key as-is in an expired state, and will
+   * also prevent any further loads from being scheduled without a further
+   * update.
+   */
   abandon: (keys?: Key[]) => void
   error: (error: any) => void
-  update: (update: ResourceUpdate<Data, Key>) => void
+  setData: (
+    // TODO: allow updates to multiple paths, so that a loader can store
+    // any nested data that it receives
+    // | {
+    //     [path: string]: ResourceDataUpdateList<Data, Key>
+    //   },
+    updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
+  ) => void
+  setRejection: (reasons: (readonly [Key, string])[]) => void
   path: string
   context: Context
   signal: AbortSignal
@@ -38,11 +41,7 @@ export type ResourceLoadStrategy<
 
 // any keys that are unpurged once any cleanup function has been called will
 // be automatically purged.
-export type ResourcePurgeStrategy<
-  Data,
-  Key,
-  Context extends object
-> = (options: {
+export type ResourcePurger<Data, Key, Context extends object> = (options: {
   keys: Key[]
   purge: (keys?: Key[]) => void
   context: Context
@@ -50,24 +49,31 @@ export type ResourcePurgeStrategy<
   values: (ResourceValue<Data> | null)[]
 }) => void | undefined | (() => void)
 
-export type ResourceSubscribeStrategy<
-  Data,
-  Key,
-  Context extends object
-> = (options: {
+export type ResourceSubscriber<Data, Key, Context extends object> = (options: {
   keys: Key[]
   abandon: (keys?: Key[]) => void
   error: (error: any) => void
-  update: (update: ResourceUpdate<Data, Key>) => void
+  setData: (
+    // TODO: allow updates to multiple paths, so that a subscriber can store
+    // any nested data that it receives
+    // | {
+    //     [path: string]: ResourceDataUpdateList<Data, Key>
+    //   },
+    updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
+  ) => void
+  setRejection: (reasons: (readonly [Key, string])[]) => void
   path: string
   context: Context
+  // Signal is provided so that a fetch strategy can be used in place of a
+  // subscribe strategy on the server.
+  signal: undefined
 }) => () => void
 
 export interface ResourceTaskConfig<Data, Key, Context extends object> {
-  expire: ResourceExpireStrategy<Data, Key, Context> | null
-  load: ResourceLoadStrategy<Data, Key, Context> | null
-  purge: ResourcePurgeStrategy<Data, Key, Context> | null
-  subscribe: ResourceSubscribeStrategy<Data, Key, Context> | null
+  invalidate: ResourceInvalidator<Data, Key, Context> | null
+  load: ResourceLoader<Data, Key, Context> | null
+  purge: ResourcePurger<Data, Key, Context> | null
+  subscribe: ResourceSubscriber<Data, Key, Context> | null
 }
 
 export type ResourceTaskQueueType = 'start' | 'pause' | 'stop'
@@ -82,15 +88,15 @@ export interface ResourceTask<Data, Key, Context extends object> {
 }
 
 export type ResourceTaskType =
-  | 'expire'
-  | 'forceLoad'
+  | 'invalidate'
+  | 'manualLoad'
   | 'load'
   | 'purge'
   | 'subscribe'
 
 export type ResourceKeyTasks = {
-  expire: null | string | false
-  forceLoad: null | string
+  invalidate: null | string | false
+  manualLoad: null | string
   load: null | string | false
   purge: null | string
   subscribe: null | string | false

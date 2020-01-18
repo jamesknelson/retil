@@ -1,4 +1,4 @@
-import { InitialKeyState } from './reducer/constants'
+import { InitialKeyState } from './constants'
 import { ResourceState } from './types'
 
 import { fromEntries } from '../../utils'
@@ -20,7 +20,7 @@ export function dehydrateResourceState<Data, Key>(
             hash,
             keyStates.map(keyState => ({
               ...InitialKeyState,
-              stale: keyState.stale,
+              stale: keyState.invalidated,
               key: keyState.key,
               value: keyState.value,
             })),

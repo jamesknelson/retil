@@ -10,7 +10,7 @@ export function filter<T>(
 ): Outlet<T> {
   return createOutlet({
     getCurrentValue: outletDescriptor.getCurrentValue,
-    hasValue: () => predicate(outletDescriptor.getCurrentValue()),
+    hasCurrentValue: () => predicate(outletDescriptor.getCurrentValue()),
     subscribe: outletDescriptor.subscribe,
   })
 }

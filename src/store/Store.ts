@@ -22,7 +22,7 @@ export interface Store {
 
   dispose(): void
 
-  // Throws an error if two different reducers or hasValue functions are ever
+  // Throws an error if two different reducers or hasCurrentValue functions are ever
   // registered on the same namespace. Once a reducer has been registered,
   // there's no cleaning it up.
   namespace<State, Action extends StoreAction, Value = State>(

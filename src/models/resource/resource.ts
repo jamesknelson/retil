@@ -5,7 +5,7 @@ import { createStore } from '../../store'
 import { createResourceReducer } from './reducer'
 import { ResourceImplementation } from './resourceImplementation'
 import { createResourceRunner } from './runner'
-import { createExpirer, createPurger, createURLLoader } from './strategies'
+import { createInvalidator, createPurger, createURLLoader } from './tasks'
 import {
   Resource,
   ResourceAction,
@@ -19,13 +19,13 @@ import { dehydrateResourceState } from './dehydrateResourceState'
 export const defaultOptions = {
   computeHashForKey: (key: any) =>
     typeof key === 'string' ? key : JSON.stringify(key),
-  expirer: 24 * 60 * 60 * 1000,
+  invalidator: 24 * 60 * 60 * 1000,
   loader: createURLLoader<any, any, any>(),
   purger: 60 * 1000,
   requestPolicy:
     typeof window === 'undefined'
-      ? 'fetchOnce'
-      : ('fetchStale' as ResourceRequestPolicy),
+      ? 'loadOnce'
+      : ('loadInvalidated' as ResourceRequestPolicy),
 }
 
 export function createResourceModel<
@@ -40,7 +40,7 @@ export function createResourceModel<
     computePathForContext,
     context: defaultContext = {} as Context,
     effect,
-    expirer = defaultOptions.expirer,
+    invalidator = defaultOptions.invalidator,
     loader = defaultOptions.loader,
     namespace = 'resource',
     preloadedState,
@@ -52,12 +52,12 @@ export function createResourceModel<
   } = options
 
   const tasks = {
-    expire:
-      typeof expirer === 'number'
-        ? createExpirer<Data, Key, Context>({
-            intervalFromTimestamp: expirer,
+    invalidate:
+      typeof invalidator === 'number'
+        ? createInvalidator<Data, Key, Context>({
+            intervalFromTimestamp: invalidator,
           })
-        : expirer,
+        : invalidator,
     load: loader,
     purge:
       typeof purger === 'number'
@@ -98,7 +98,7 @@ export function createResourceModel<
             outlet,
             value =>
               !Object.values(value.tasks.pending).some(task =>
-                ['forceLoad', 'load'].includes(task.type),
+                ['manualLoad', 'load'].includes(task.type),
               ),
           ),
           dehydrateResourceState,

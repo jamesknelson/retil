@@ -71,10 +71,10 @@ export function registerNamespaceStore<
         // Let createOutlet do the work of throwing a promise
         return cache.value
       },
-      hasValue: (): boolean => storeCache.get(namespace).hasValue,
+      hasCurrentValue: (): boolean => storeCache.get(namespace).hasCurrentValue,
       subscribe: (callback: () => void) => {
         // Check that state has actually changed before asking the outlet to
-        // recompute hasValue, value and error
+        // recompute hasCurrentValue, value and error
         let lastState = getState()
         return innerStore.subscribe(() => {
           const state = getState()

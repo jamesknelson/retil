@@ -3,11 +3,9 @@ import { Outlet } from '../../outlets'
 import {
   ResourceAction,
   ResourceActionOfType,
+  ResourceDataUpdate,
   ResourceKeyController,
-  ResourcePrediction,
   ResourceState,
-  ResourceUpdateCallback,
-  ResourceValue,
 } from './types'
 
 export class ResourceKeyControllerImplementation<Data, Key>
@@ -34,26 +32,25 @@ export class ResourceKeyControllerImplementation<Data, Key>
     this.keys = keys
   }
 
-  delete() {
-    const timestamp = Date.now()
-    this.dispatch('update', {
+  setRejection(rejection: string) {
+    this.dispatch('updateValue', {
       taskId: null,
-      update: {
-        timestamp,
-        changes: this.keys.map(key => ({
-          key,
-          value: {
-            status: 'inaccessible' as const,
-            reason: 'Not Found',
-            timestamp,
-          },
-        })),
-      },
+      timestamp: Date.now(),
+      updates: this.keys.map(
+        key =>
+          [
+            key,
+            {
+              type: 'setRejection',
+              rejection,
+            },
+          ] as const,
+      ),
     })
   }
 
-  revalidate() {
-    this.dispatch('expire', { taskId: null })
+  invalidate() {
+    this.dispatch('invalidate', { taskId: null })
   }
 
   hold() {
@@ -67,19 +64,21 @@ export class ResourceKeyControllerImplementation<Data, Key>
     }
   }
 
-  load() {
-    // HACK ALERT. Even if multiple tasks are created, we know that task.nextId
-    // will be the id of the forceLoad task, as the forceLoad reducer will
-    // always create the forceLoad task before any other tasks.
-    const taskId = String(this.outlet.getCurrentValue().tasks.nextId)
-    let aborted = false
-    this.dispatch('forceLoad')
-    return () => {
-      if (!aborted) {
-        aborted = true
-        this.dispatch('abortForceLoad', { taskId })
-      }
-    }
+  setData(update: ResourceDataUpdate<Data, Key>) {
+    this.dispatch('updateValue', {
+      taskId: null,
+      timestamp: Date.now(),
+      updates: this.keys.map(
+        key =>
+          [
+            key,
+            {
+              type: 'setData',
+              update,
+            },
+          ] as const,
+      ),
+    })
   }
 
   pause() {
@@ -93,70 +92,19 @@ export class ResourceKeyControllerImplementation<Data, Key>
     }
   }
 
-  predictDelete(): [() => void, () => void] {
-    const [commit, discard] = this.predict({
-      type: 'delete',
-    })
-    const commitDelete = () => {
-      const timestamp = Date.now()
-      const value = {
-        status: 'inaccessible' as const,
-        reason: 'Not Found',
-        timestamp,
+  load() {
+    // HACK ALERT. Even if multiple tasks are created, we know that task.nextId
+    // will be the id of the manualLoad task, as the manualLoad reducer will
+    // always create the manualLoad task before any other tasks.
+    const taskId = String(this.outlet.getCurrentValue().tasks.nextId)
+    let aborted = false
+    this.dispatch('manualLoad')
+    return () => {
+      if (!aborted) {
+        aborted = true
+        this.dispatch('abortManualLoad', { taskId })
       }
-      commit(timestamp, value)
     }
-    return [commitDelete, discard]
-  }
-
-  predictUpdate(
-    originalUpdater?: Data | ResourceUpdateCallback<Data, Key>,
-  ): [
-    (commitUpdater?: Data | ResourceUpdateCallback<Data, Key>) => void,
-    () => void,
-  ] {
-    const [commit, discard] = this.predict({
-      type: 'update',
-      callback: originalUpdater,
-    })
-    const commitUpdate = (
-      commitUpdater?: Data | ResourceUpdateCallback<Data, Key>,
-    ) => {
-      const timestamp = Date.now()
-      const updater = commitUpdater || originalUpdater
-      const value =
-        typeof updater === 'function'
-          ? (updater as ResourceUpdateCallback<Data, Key>)
-          : {
-              status: 'retrieved' as const,
-              data: updater!,
-              timestamp,
-            }
-      commit(timestamp, value)
-    }
-    return [commitUpdate, discard]
-  }
-
-  update(updater: Data | ResourceUpdateCallback<Data, Key>) {
-    const timestamp = Date.now()
-    const value =
-      typeof updater === 'function'
-        ? (updater as ResourceUpdateCallback<Data, Key>)
-        : {
-            status: 'retrieved' as const,
-            data: updater,
-            timestamp,
-          }
-    this.dispatch('update', {
-      taskId: null,
-      update: {
-        timestamp,
-        changes: this.keys.map(key => ({
-          key,
-          value,
-        })),
-      },
-    })
   }
 
   private dispatch<T extends ResourceAction<any, any>['type']>(
@@ -171,45 +119,7 @@ export class ResourceKeyControllerImplementation<Data, Key>
       type,
       context: this.context,
       path: this.path,
-      keys: this.keys,
+      invalidateKeys: this.keys,
     } as ResourceAction<Data, Key>)
-  }
-
-  private predict(
-    prediction: ResourcePrediction<Data, Key>,
-  ): [
-    (
-      timestamp?: number,
-      value?: ResourceValue<Data> | ResourceUpdateCallback<Data, Key>,
-    ) => void,
-    () => void,
-  ] {
-    let released = false
-
-    this.dispatch('predict', {
-      prediction,
-    })
-
-    const resolvePrediction = (
-      timestamp?: number,
-      value?: ResourceValue<Data> | ResourceUpdateCallback<Data, Key>,
-    ) => {
-      if (!released) {
-        released = true
-        this.dispatch('resolvePrediction', {
-          prediction,
-          update: value && {
-            timestamp: timestamp!,
-            changes: this.keys.map(key => ({
-              key,
-              value,
-            })),
-          },
-        })
-      }
-    }
-    const discardPrediction = () => resolvePrediction()
-
-    return [resolvePrediction, discardPrediction]
   }
 }

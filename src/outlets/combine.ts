@@ -33,7 +33,7 @@ export function combine(handleMap: OutletMapObject) {
       }
       return last.combinedValue
     },
-    hasValue: () => outlets.every(outlet => outlet.hasValue()),
+    hasCurrentValue: () => outlets.every(outlet => outlet.hasCurrentValue()),
     subscribe: callback => {
       const unsubscribes = outlets.map(outlet => outlet.subscribe(callback))
       return () => unsubscribes.forEach(unsubscribe => unsubscribe())

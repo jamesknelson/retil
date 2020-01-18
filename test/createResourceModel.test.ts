@@ -21,19 +21,9 @@ describe('createResourceModel()', () => {
 
   test('automatically retrieves accessed data', async () => {
     const model = createResourceModel({
-      loader: ({ keys, update }) => {
+      loader: ({ keys, setData }) => {
         Promise.resolve().then(() => {
-          update({
-            timestamp: Date.now(),
-            changes: keys.map(key => ({
-              key,
-              value: {
-                status: 'retrieved',
-                data: 'value for ' + key,
-                timestamp: Date.now(),
-              },
-            })),
-          })
+          setData(keys.map(key => [key, 'value for ' + key]))
         })
       },
     })

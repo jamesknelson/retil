@@ -1,8 +1,7 @@
 import { Dispose } from 'store'
 
-import { ResourcePrediction } from './ResourcePrediction'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
-import { ResourceUpdate } from './ResourceUpdate'
+import { ResourceValueUpdate } from './ResourceValue'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
 
@@ -15,25 +14,34 @@ export type ResourceActionOfType<
 
 export type ResourceAction<Data, Key> =
   | { type: Dispose }
+  | AbandonInvalidationAction<Key>
   | AbandonLoadAction<Key>
   | AbandonSubscribeAction<Key>
-  | AbortForceLoad<Key>
+  | AbortManualLoad<Key>
   | ClearQueueAction
   | ErrorAction
-  | ExpireAction<Key>
-  | ForceLoadAction<Key>
   | HoldAction<Key>
-  | MarkAsEvergreenAction<Key>
+  | InvalidateAction<Key>
+  | ManualLoadAction<Key>
   | PauseAction<Key>
-  | PredictAction<Data, Key>
   | PurgeAction<Key>
   | ReleaseHoldAction<Key>
-  | ResolvePredictionAction<Data, Key>
   | ResumePause<Key>
-  | UpdateAction<Data, Key>
+  | UpdateValueAction<Data, Key>
 
 /**
- * Mark that a fetch task will no longer try to fetch the specified keys.
+ * Mark that the given keys' current values will not expire (unless manually
+ * stale.)
+ */
+type AbandonInvalidationAction<Key> = {
+  type: 'abandonInvalidation'
+  path: string
+  keys: Key[]
+  taskId: string
+}
+
+/**
+ * Mark that a load task will no longer try to load the specified keys.
  */
 type AbandonLoadAction<Key> = {
   type: 'abandonLoad'
@@ -54,10 +62,10 @@ type AbandonSubscribeAction<Key> = {
 }
 
 /**
- * Abort a previously started force fetch.
+ * Abort a previously started manual load.
  */
-type AbortForceLoad<Key> = {
-  type: 'abortForceLoad'
+type AbortManualLoad<Key> = {
+  type: 'abortManualLoad'
   path: string
   keys: Key[]
   taskId: string
@@ -79,28 +87,6 @@ type ErrorAction = {
 }
 
 /**
- * Expire the specified keys.
- */
-type ExpireAction<Key> = {
-  type: 'expire'
-  context?: any
-  path: string
-  keys: Key[]
-  taskId: string | null
-}
-
-/**
- * Force the resource to run the given fetch, cancelling any other fetches
- * in the process (including any previous force fetch).
- */
-type ForceLoadAction<Key> = {
-  type: 'forceLoad'
-  context: any
-  path: string
-  keys: Key[]
-}
-
-/**
  * Mark that the given keys should not be purged until the hold is released.
  * Optionally can apply request policies, which specify the conditions under
  * which tasks should be enqueued to request the key's data.
@@ -114,14 +100,25 @@ type HoldAction<Key> = {
 }
 
 /**
- * Mark that the given keys' current values will not expire (unless manually
- * stale.)
+ * Expire the specified keys.
  */
-type MarkAsEvergreenAction<Key> = {
-  type: 'markAsEvergreen'
+type InvalidateAction<Key> = {
+  type: 'invalidate'
+  context?: any
   path: string
   keys: Key[]
-  taskId: string
+  taskId: string | null
+}
+
+/**
+ * Force the resource to load data, cancelling any other loads
+ * in the process (including any previous forced load).
+ */
+type ManualLoadAction<Key> = {
+  type: 'manualLoad'
+  context: any
+  path: string
+  keys: Key[]
 }
 
 /**
@@ -133,17 +130,6 @@ type PauseAction<Key> = {
   context: any
   path: string
   keys: Key[]
-}
-
-/**
- * Add predictions to each key, applying a hold in the meantime.
- */
-type PredictAction<Data, Key> = {
-  type: 'predict'
-  context: any
-  path: string
-  keys: Key[]
-  prediction: ResourcePrediction<Data, Key>
 }
 
 /**
@@ -164,20 +150,11 @@ type ReleaseHoldAction<Key> = {
   context: any
   path: string
   keys: Key[]
+  // extra policy types:
+  // - hold (i.e. don't purge, do invalidate unless paused)
+  // - pauseInvalidation
+  // - pauseLoad
   requestPolicies?: ResourceRequestPolicy[]
-}
-
-/**
- * Remove the specified predictions, with the option of commiting them (or some
- * other data) to the store.
- */
-type ResolvePredictionAction<Data, Key> = {
-  type: 'resolvePrediction'
-  context: any
-  path: string
-  keys: Key[]
-  prediction: ResourcePrediction<Data, Key>
-  update?: ResourceUpdate<Data, Key>
 }
 
 /**
@@ -193,10 +170,11 @@ type ResumePause<Key> = {
 /**
  * Update cached data
  */
-type UpdateAction<Data, Key> = {
-  type: 'update'
+type UpdateValueAction<Data, Key> = {
+  type: 'updateValue'
   context?: any
   path: string
   taskId: string | null
-  update: ResourceUpdate<Data, Key>
+  timestamp: number
+  updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[]
 }

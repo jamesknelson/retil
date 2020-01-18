@@ -1,5 +1,4 @@
 import { ResourceEffect } from './ResourceEffects'
-import { ResourcePrediction } from './ResourcePrediction'
 import { ResourceRequestPolicy } from './ResourceRequestPolicy'
 import {
   ResourceKeyTasks,
@@ -49,14 +48,14 @@ export interface ResourceState<Data, Key> {
 }
 
 export interface ResourceKeyState<Data = any, Key = any> {
+  holdCount: number
+
   /**
    * If this is true, indicates that the current state should no longer be
    * treated as valid -- and should put the the key into error state if not
    * selected and if the strategy has given up fetching new values.
    */
-  stale?: boolean
-
-  holdCount: number
+  invalidated?: boolean
 
   /**
    * The document's primary key.
@@ -68,12 +67,6 @@ export interface ResourceKeyState<Data = any, Key = any> {
   key: Key
 
   pauseCount: number
-
-  /**
-   * Holds a list of pending predictions, in the format of tokens that correspond
-   * to functions that take the current data, and return a predicted change.
-   */
-  predictions: ResourcePrediction<Data, Key>[]
 
   requestPolicies: {
     [Policy in ResourceRequestPolicy]: number

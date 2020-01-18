@@ -2,10 +2,11 @@ import AbortController from 'abort-controller'
 
 import {
   ResourceAction,
+  ResourceDataUpdate,
   ResourceTask,
   ResourceTaskConfig,
   ResourceTaskType,
-  ResourceUpdate,
+  ResourceValueUpdate,
 } from '../types'
 
 export class ResourceTaskRunner<Data, Key, Context extends object> {
@@ -23,10 +24,10 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
   }
 
   start(task: ResourceTask<Data, Key, Context>) {
-    if (task.type === 'forceLoad') {
+    if (task.type === 'manualLoad') {
       this.load(task)
     }
-    this[task.type as Exclude<ResourceTaskType, 'forceLoad'>](task)
+    this[task.type as Exclude<ResourceTaskType, 'manualLoad'>](task)
   }
 
   stop(taskId: string) {
@@ -48,37 +49,39 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     })
   }
 
-  private expire(task: ResourceTask<Data, Key, Context>) {
-    if (this.config.expire) {
-      const expire = (keys: Key[] = task.keys) => {
+  private invalidate(task: ResourceTask<Data, Key, Context>) {
+    if (this.config.invalidate) {
+      const invalidate = (keys: Key[] = task.keys) => {
         this.dispatch({
           ...task,
           keys,
-          type: 'expire',
+          type: 'invalidate',
           taskId: task.id,
         })
       }
-      const markAsEvergreen = (keys: Key[] = task.keys) => {
+      const abandon = (keys: Key[] = task.keys) => {
         this.dispatch({
           ...task,
           keys,
-          type: 'markAsEvergreen',
+          type: 'abandonInvalidation',
           taskId: task.id,
         })
       }
 
       try {
-        const stopper = this.config.expire({
+        const stopper = this.config.invalidate({
           ...task,
-          expire,
-          markAsEvergreen,
+          invalidate,
+          abandon,
         })
 
         if (stopper) {
           this.stoppers[task.id] = stopper
         } else {
           console.warn(
-            'Resource Warning: an expire task did not return a cleanup function.',
+            'Resource Warning: an invalidation scheduler task did not return ' +
+              "a cleanup function. If you don't want to invalidate your " +
+              'resources, set the invalidation scheduler to `null` instead.',
           )
         }
       } catch (error) {
@@ -99,18 +102,42 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           })
         }
       }
-      const update = (update: ResourceUpdate<Data, Key>) => {
+      const setValue = (
+        updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[],
+      ) => {
         if (this.stoppers[task.id]) {
-          if (!update.timestamp) {
-            update.timestamp = Date.now()
-          }
           this.dispatch({
             ...task,
-            type: 'update',
+            type: 'updateValue',
             taskId: task.id,
-            update,
+            updates,
+            timestamp: Date.now(),
           })
         }
+      }
+      const setData = (
+        updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
+      ) => {
+        setValue(
+          updates.map(([key, update]) => [
+            key,
+            {
+              type: 'setData',
+              update,
+            },
+          ]),
+        )
+      }
+      const setRejection = (rejections: (readonly [Key, string])[]) => {
+        setValue(
+          rejections.map(([key, rejection]) => [
+            key,
+            {
+              type: 'setRejection',
+              rejection,
+            },
+          ]),
+        )
       }
 
       const abortController = new AbortController()
@@ -120,7 +147,8 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           ...task,
           abandon,
           error: this.error,
-          update,
+          setData,
+          setRejection,
           signal: abortController.signal,
         })
 
@@ -179,24 +207,52 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           taskId: task.id,
         })
       }
-      const update = (update: ResourceUpdate<Data, Key>) => {
-        if (!update.timestamp) {
-          update.timestamp = Date.now()
+      const setValue = (
+        updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[],
+      ) => {
+        if (this.stoppers[task.id]) {
+          this.dispatch({
+            ...task,
+            type: 'updateValue',
+            taskId: task.id,
+            updates,
+            timestamp: Date.now(),
+          })
         }
-        this.dispatch({
-          ...task,
-          type: 'update',
-          taskId: task.id,
-          update,
-        })
+      }
+      const setData = (
+        updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
+      ) => {
+        setValue(
+          updates.map(([key, update]) => [
+            key,
+            {
+              type: 'setData',
+              update,
+            },
+          ]),
+        )
+      }
+      const setRejection = (rejections: (readonly [Key, string])[]) => {
+        setValue(
+          rejections.map(([key, rejection]) => [
+            key,
+            {
+              type: 'setRejection',
+              rejection,
+            },
+          ]),
+        )
       }
 
       try {
         const stopper = this.config.subscribe({
           ...task,
-          abandon,
+          abandon: abandon,
           error: this.error,
-          update,
+          setData,
+          setRejection,
+          signal: undefined,
         })
 
         if (!stopper) {

@@ -6,7 +6,7 @@ import {
 
 export type StoreCacheNamespace = {
   error: any
-  hasValue: boolean
+  hasCurrentValue: boolean
   value: any
 }
 export type StoreCacheMap = {
@@ -68,13 +68,15 @@ function compute(
 ): StoreCacheNamespace {
   const hasThrownError = state === ThrownError
   const error = hasThrownError ? getThrownError() : config.selectError(state)
-  const hasValue = error !== undefined || config.selectHasValue(state)
+  const hasCurrentValue = error !== undefined || config.selectHasValue(state)
   const value =
-    error === undefined && hasValue ? config.selectValue(state) : undefined
+    error === undefined && hasCurrentValue
+      ? config.selectValue(state)
+      : undefined
 
   return {
     error,
-    hasValue,
+    hasCurrentValue,
     value,
   }
 }

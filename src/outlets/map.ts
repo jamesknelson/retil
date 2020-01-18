@@ -24,7 +24,7 @@ export function map<T, U>(
       }
       return last.mappedValue
     },
-    hasValue: outletDescriptor.hasValue,
+    hasCurrentValue: outletDescriptor.hasCurrentValue,
     subscribe: outletDescriptor.subscribe,
   })
 }

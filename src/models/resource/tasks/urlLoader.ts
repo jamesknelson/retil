@@ -15,17 +15,13 @@ export interface ResourceURLLoaderOptions<
     response: Response,
     request: ResourceKeyLoaderRequest<Key, Context>,
   ) => Promise<Data>
-  getInaccessibleReason?: (
+  getRejection?: (
     response: Response,
     request: ResourceKeyLoaderRequest<Key, Context>,
   ) => any | Promise<any>
   getRequest?: (
     request: ResourceKeyLoaderRequest<Key, Context>,
   ) => string | ({ url: string } & Partial<RequestInit>)
-  isStale?: (
-    response: Response,
-    request: ResourceKeyLoaderRequest<Key, Context>,
-  ) => boolean | Promise<boolean>
   isValidResponse?: (
     response: Response,
     request: ResourceKeyLoaderRequest<Key, Context>,
@@ -48,7 +44,7 @@ export const defaultURLLoaderOptions: ResourceURLLoaderOptions<
     return undefined as any
   },
   getData: async (response: Response) => await response.json(),
-  getInaccessibleReason: (response: Response) =>
+  getRejection: (response: Response) =>
     response.status > 400 && response.statusText,
   getRequest: (
     request: ResourceKeyLoaderRequest<any, ResourceURLLoaderContext>,
@@ -56,7 +52,6 @@ export const defaultURLLoaderOptions: ResourceURLLoaderOptions<
     url: request.key,
     ...request.context.fetchOptions,
   }),
-  isStale: () => false,
   isValidResponse: (response: Response) =>
     response && response.status >= 200 && response.status < 500,
 }
@@ -69,9 +64,8 @@ export function createURLLoader<
   const {
     fetch,
     getData,
-    getInaccessibleReason,
+    getRejection,
     getRequest,
-    isStale,
     isValidResponse,
     maxRetries,
   } = {
@@ -82,8 +76,7 @@ export function createURLLoader<
   return createLoader<Data, Response, Key, Context>({
     load: request => fetch!(getRequest!(request) as RequestInfo),
     getData,
-    getInaccessibleReason,
-    isStale,
+    getRejection,
     isValidResponse,
     maxRetries,
   })

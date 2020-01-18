@@ -100,7 +100,7 @@ function createQueue<Value, Job, Context extends QueueContext>(
 
   const initialState = {
     deferred: [],
-    hasValue: hasInitialValue,
+    hasCurrentValue: hasInitialValue,
     queued: [],
     pending: null,
     value: initialValue,
@@ -114,7 +114,7 @@ function createQueue<Value, Job, Context extends QueueContext>(
     initialState,
     selectValue: state => state.value as Value,
     selectError: state => state.error,
-    selectHasValue: state => state.hasValue,
+    selectHasValue: state => state.hasCurrentValue,
   })
 
   const abort = (id: number, controller?: AbortController) => {
@@ -257,7 +257,7 @@ type QueueAction<Value, Job = any> =
 
 interface QueueState<Value, Job> {
   error?: any
-  hasValue: boolean
+  hasCurrentValue: boolean
   pending: null | QueueJobItem<Job>
   deferred: number[]
   queued: QueueJobItem<Job>[]

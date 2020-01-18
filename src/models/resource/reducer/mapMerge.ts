@@ -1,6 +1,6 @@
 import { ResourceKeyState, ResourceState } from '../types'
 
-import { InitialKeyState } from './constants'
+import { InitialKeyState } from '../constants'
 import { ChangeTracker } from './changeTracker'
 
 export type MapMergeCallback<Data, Key> = (
@@ -71,7 +71,7 @@ export function mapMerge<Data, Key>(
     }
 
     const {
-      stale,
+      invalidated,
       key,
       holdCount,
       pauseCount,
@@ -94,55 +94,56 @@ export function mapMerge<Data, Key>(
           tracker.unpauseKeyTasks(key, tasks)
         }
 
-        if (tasks.purge && (holdCount || tasks.forceLoad)) {
+        if (tasks.purge && (holdCount || tasks.manualLoad)) {
           nextTasks.purge = null
         }
         if (tasks.subscribe && !requestPolicies.subscribe) {
           nextTasks.subscribe = null
         }
         if (
-          tasks.expire &&
-          (stale || (requestPolicies.subscribe && tasks.subscribe !== false))
+          tasks.invalidate &&
+          (invalidated ||
+            (requestPolicies.subscribe && tasks.subscribe !== false))
         ) {
-          nextTasks.expire = null
+          nextTasks.invalidate = null
         }
 
-        // While a `fetchStale` or `fetchOnce` can sometimes be
+        // While a `loadInvalidated` or `loadOnce` can sometimes be
         // stopped if the other type of fetch is still active, we'll
         // just leave a fetch running if either type of policy is
         // active.
         const fetchPolicyCount =
-          requestPolicies.fetchStale + requestPolicies.fetchOnce
+          requestPolicies.loadInvalidated + requestPolicies.loadOnce
         if (tasks.load && !fetchPolicyCount) {
           nextTasks.load = null
         }
       }
 
-      // List any tasks which need to be started given the new key state.
-      // Note that `updateMapper` will null out any tasks that need to change
-      // when the value changes.
-      if (tasks.purge === null && holdCount === 0 && !tasks.forceLoad) {
+      // List any tasks which need to be started given the new key state. Note
+      // that `mutationMapper` will null out any tasks that need to change when
+      // the value changes.
+      if (tasks.purge === null && holdCount === 0 && !tasks.manualLoad) {
         nextTasks.purge = tracker.startTasks('purge', key, value)
       }
       if (tasks.subscribe === null && requestPolicies.subscribe) {
         nextTasks.subscribe = tracker.startTasks('subscribe', key, value)
       }
       if (
-        tasks.expire === null &&
-        !stale &&
+        tasks.invalidate === null &&
+        !invalidated &&
         value &&
         (tasks.subscribe === false || !requestPolicies.subscribe)
       ) {
-        nextTasks.expire = tracker.startTasks('expire', key, value)
+        nextTasks.invalidate = tracker.startTasks('invalidate', key, value)
       }
       if (
         // When a `fetchManual` policy is added, we'll trigger a new fetch
         // regardless of any existing fetches.
         tasks.load === null &&
-        tasks.forceLoad === null &&
-        ((requestPolicies.fetchStale && (stale || !value)) ||
-          (requestPolicies.fetchOnce &&
-            (!existingKeyState || !existingKeyState.requestPolicies.fetchOnce)))
+        tasks.manualLoad === null &&
+        ((requestPolicies.loadInvalidated && (invalidated || !value)) ||
+          (requestPolicies.loadOnce &&
+            (!existingKeyState || !existingKeyState.requestPolicies.loadOnce)))
       ) {
         nextTasks.load = tracker.startTasks('load', key, value)
       }
