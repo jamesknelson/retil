@@ -1,12 +1,13 @@
 import AbortController from 'abort-controller'
 
+import { fromEntries } from '../../../utils/fromEntries'
+
 import {
   ResourceAction,
   ResourceDataUpdate,
   ResourceTask,
   ResourceTaskConfig,
   ResourceTaskType,
-  ResourceValueUpdate,
 } from '../types'
 
 export class ResourceTaskRunner<Data, Key, Context extends object> {
@@ -37,16 +38,9 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
       try {
         stopper()
       } catch (error) {
-        this.error(error)
+        this.handleError(error)
       }
     }
-  }
-
-  private error = (error: any) => {
-    this.dispatch({
-      type: 'error',
-      error,
-    })
   }
 
   private invalidate(task: ResourceTask<Data, Key, Context>) {
@@ -59,20 +53,12 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           taskId: task.id,
         })
       }
-      const abandon = (keys: Key[] = task.keys) => {
-        this.dispatch({
-          ...task,
-          keys,
-          type: 'abandonTask',
-          taskId: task.id,
-        })
-      }
 
       try {
         const stopper = this.config.invalidate({
           ...task,
           invalidate,
-          abandon,
+          abandon: this.handleAbandon.bind(this, task),
         })
 
         if (stopper) {
@@ -85,70 +71,22 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           )
         }
       } catch (error) {
-        this.error(error)
+        this.handleError(error)
       }
     }
   }
 
   private load(task: ResourceTask<Data, Key, Context>) {
     if (this.config.load) {
-      const abandon = (keys: Key[] = task.keys) => {
-        if (this.stoppers[task.id]) {
-          this.dispatch({
-            ...task,
-            keys,
-            type: 'abandonTask',
-            taskId: task.id,
-          })
-        }
-      }
-      const setValue = (
-        updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[],
-      ) => {
-        if (this.stoppers[task.id]) {
-          this.dispatch({
-            ...task,
-            type: 'updateValue',
-            taskId: task.id,
-            updates,
-            timestamp: Date.now(),
-          })
-        }
-      }
-      const setData = (
-        updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
-      ) => {
-        setValue(
-          updates.map(([key, update]) => [
-            key,
-            {
-              type: 'setData',
-              update,
-            },
-          ]),
-        )
-      }
-      const setRejection = (rejections: (readonly [Key, string])[]) => {
-        setValue(
-          rejections.map(([key, rejection]) => [
-            key,
-            {
-              type: 'setRejection',
-              rejection,
-            },
-          ]),
-        )
-      }
-
       const abortController = new AbortController()
 
       try {
         const stopper = this.config.load({
           ...task,
-          abandon,
-          error: this.error,
-          setData,
-          setRejection,
+          abandon: this.handleAbandon.bind(this, task),
+          error: this.handleError,
+          setData: this.handleSetData.bind(this, task),
+          setRejection: this.handleSetRejection.bind(this, task),
           signal: abortController.signal,
         })
 
@@ -159,7 +97,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           abortController.abort()
         }
       } catch (error) {
-        this.error(error)
+        this.handleError(error)
       }
     }
   }
@@ -192,66 +130,20 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           )
         }
       } catch (error) {
-        this.error(error)
+        this.handleError(error)
       }
     }
   }
 
   private subscribe(task: ResourceTask<Data, Key, Context>) {
     if (this.config.subscribe) {
-      const abandon = (keys: Key[] = task.keys) => {
-        this.dispatch({
-          ...task,
-          keys,
-          type: 'abandonTask',
-          taskId: task.id,
-        })
-      }
-      const setValue = (
-        updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[],
-      ) => {
-        if (this.stoppers[task.id]) {
-          this.dispatch({
-            ...task,
-            type: 'updateValue',
-            taskId: task.id,
-            updates,
-            timestamp: Date.now(),
-          })
-        }
-      }
-      const setData = (
-        updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
-      ) => {
-        setValue(
-          updates.map(([key, update]) => [
-            key,
-            {
-              type: 'setData',
-              update,
-            },
-          ]),
-        )
-      }
-      const setRejection = (rejections: (readonly [Key, string])[]) => {
-        setValue(
-          rejections.map(([key, rejection]) => [
-            key,
-            {
-              type: 'setRejection',
-              rejection,
-            },
-          ]),
-        )
-      }
-
       try {
         const stopper = this.config.subscribe({
           ...task,
-          abandon: abandon,
-          error: this.error,
-          setData,
-          setRejection,
+          abandon: this.handleAbandon.bind(this, task),
+          error: this.handleError,
+          setData: this.handleSetData.bind(this, task),
+          setRejection: this.handleSetRejection.bind(this, task),
           signal: undefined,
         })
 
@@ -263,8 +155,81 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
 
         this.stoppers[task.id] = stopper
       } catch (error) {
-        this.error(error)
+        this.handleError(error)
       }
+    }
+  }
+
+  private handleAbandon(task: ResourceTask<Data, Key, Context>, keys?: Key[]) {
+    this.dispatch({
+      ...task,
+      keys: keys || task.keys,
+      type: 'abandonTask',
+      taskId: task.id,
+    })
+  }
+
+  private handleError = (error: any) => {
+    this.dispatch({
+      type: 'error',
+      error,
+    })
+  }
+
+  private handleSetData(
+    task: ResourceTask<Data, Key, Context>,
+    updates:
+      | (readonly [Key, ResourceDataUpdate<Data, Key>])[]
+      | {
+          [path: string]: (readonly [Key, ResourceDataUpdate<Data, Key>])[]
+        },
+  ) {
+    if (this.stoppers[task.id]) {
+      const pathUpdates = Array.isArray(updates)
+        ? { [task.path]: updates }
+        : updates
+      const paths = Object.keys(pathUpdates)
+      this.dispatch({
+        ...task,
+        type: 'updateValue',
+        taskId: task.id,
+        updates: fromEntries(
+          paths.map(path => [
+            path,
+            pathUpdates[path].map(([key, update]) => [
+              key,
+              {
+                type: 'setData',
+                update,
+              },
+            ]),
+          ]),
+        ),
+        timestamp: Date.now(),
+      })
+    }
+  }
+
+  private handleSetRejection(
+    task: ResourceTask<Data, Key, Context>,
+    rejections: (readonly [Key, string])[],
+  ) {
+    if (this.stoppers[task.id]) {
+      this.dispatch({
+        ...task,
+        type: 'updateValue',
+        taskId: task.id,
+        updates: {
+          [task.path]: rejections.map(([key, rejection]) => [
+            key,
+            {
+              type: 'setRejection',
+              rejection,
+            },
+          ]),
+        },
+        timestamp: Date.now(),
+      })
     }
   }
 }

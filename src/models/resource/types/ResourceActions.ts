@@ -111,8 +111,9 @@ type ReleasePoliciesAction<Key> = {
 type UpdateValueAction<Data, Key> = {
   type: 'updateValue'
   context?: any
-  path: string
   taskId: string | null
   timestamp: number
-  updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[]
+  updates: {
+    [path: string]: (readonly [Key, ResourceValueUpdate<Data, Key>])[]
+  }
 }

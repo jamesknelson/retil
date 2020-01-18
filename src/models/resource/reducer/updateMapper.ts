@@ -2,16 +2,15 @@ import { ResourceKeyState, ResourceValueUpdate } from '../types'
 
 import { MapMergeCallback } from './mapMerge'
 
-export function createUpdateMapper<Data, Key>(action: {
-  taskId: null | string
-  timestamp: number
-  updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[]
-}) {
+export function createUpdateMapper<Data, Key>(
+  taskId: null | string,
+  timestamp: number,
+  updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[],
+) {
   const updateMapper: MapMergeCallback<Data, Key> = (
     keyState: ResourceKeyState<Data, Key>,
     i: number,
   ) => {
-    const { taskId, timestamp, updates } = action
     const tasks = keyState.tasks
     if (
       taskId !== null &&

@@ -43,7 +43,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       ...optionsWithoutDefaults,
     }
 
-    // The most likely key to be fetched is whatever was fetched lasct time,
+    // The most likely key to be fetched is whatever was fetched last time,
     // so let's memoize that.
     if (
       this.memoizedKey &&
@@ -79,7 +79,6 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
         return getOutput(keyStateOutlet.getCurrentValue())
       },
       subscribe: (callback: () => void): (() => void) => {
-        // Hold with any request policies while the subscription is active
         this.dispatch({
           type: 'holdPolicies',
           ...actionOptions,
@@ -133,6 +132,12 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
   }
 
   withPath(path: string): Resource<Data, Key> {
+    if (path.indexOf('/') !== -1) {
+      throw new Error(
+        `Resource Error: "/" cannot be used in paths; it is a reserved character.`,
+      )
+    }
+
     return new ResourceImplementation(
       this.computeHashForKey,
       this.context,
@@ -182,11 +187,11 @@ export class ResourceKeyOutputImplementation<Data, Key>
   }
 
   get pending(): boolean {
-    return isPending(this.state)
+    return isPending(this.state, this.hasDefaultRequestPolicy)
   }
 
   get primed(): boolean {
-    return isPrimed(this.state)
+    return isPrimed(this.state, this.hasDefaultRequestPolicy)
   }
 
   get rejection(): any {
@@ -210,7 +215,7 @@ export class ResourceKeyOutputImplementation<Data, Key>
 
 function isPending(
   state: ResourceKeyState<any, any>,
-  hasDefaultRequestPolicy?: boolean,
+  hasDefaultRequestPolicy: boolean,
 ) {
   return !!(
     state.tasks.manualLoad ||
@@ -225,13 +230,16 @@ function isPending(
   )
 }
 
-function isPrimed(state: ResourceKeyState<any, any>) {
+function isPrimed(
+  state: ResourceKeyState<any, any>,
+  hasDefaultRequestPolicy: boolean,
+) {
   return !(
     state.value === null &&
-    (isPending(state) || state.policies.pauseLoad)
+    (isPending(state, hasDefaultRequestPolicy) || state.policies.pauseLoad)
   )
 }
 
 function joinPaths(x: string, y?: string): string {
-  return y ? [x, y].join('/') : x
+  return y ? [x === '/' ? '' : x, y].join('/') : x
 }

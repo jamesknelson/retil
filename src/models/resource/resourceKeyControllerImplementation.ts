@@ -86,16 +86,18 @@ export class ResourceKeyControllerImplementation<Data, Key>
     this.dispatch('updateValue', {
       taskId: null,
       timestamp: Date.now(),
-      updates: this.keys.map(
-        key =>
-          [
-            key,
-            {
-              type: 'setData',
-              update,
-            },
-          ] as const,
-      ),
+      updates: {
+        [this.path]: this.keys.map(
+          key =>
+            [
+              key,
+              {
+                type: 'setData',
+                update,
+              },
+            ] as const,
+        ),
+      },
     })
   }
 
@@ -103,16 +105,18 @@ export class ResourceKeyControllerImplementation<Data, Key>
     this.dispatch('updateValue', {
       taskId: null,
       timestamp: Date.now(),
-      updates: this.keys.map(
-        key =>
-          [
-            key,
-            {
-              type: 'setRejection',
-              rejection,
-            },
-          ] as const,
-      ),
+      updates: {
+        [this.path]: this.keys.map(
+          key =>
+            [
+              key,
+              {
+                type: 'setRejection',
+                rejection,
+              },
+            ] as const,
+        ),
+      },
     })
   }
 

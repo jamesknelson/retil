@@ -112,7 +112,7 @@ export function createResourceModel<
 
     const basePathPrefix = computePathForContext
       ? computePathForContext(context)
-      : 'root'
+      : '/'
 
     const resource = new ResourceImplementation(
       computeHashForKey,

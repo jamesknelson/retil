@@ -1,7 +1,5 @@
 import { ResourceValue, ResourceDataUpdate } from './ResourceValue'
 
-// any keys that are not stale/marked as ever green once any cleanup function
-// has been called will be automatically marked as evergreen.
 export type ResourceInvalidator<Data, Key, Context extends object> = (options: {
   keys: Key[]
   // defaults to expiring all keys
@@ -12,26 +10,21 @@ export type ResourceInvalidator<Data, Key, Context extends object> = (options: {
   values: (ResourceValue<Data> | null)[]
 }) => void | undefined | (() => void)
 
-// - any keys without a successful fetch once any cleanup function has been called
-//   will be automatically abandoned.
-// - values are *not* passed to the fetch strategy, so that there's no need to
-//   restart the strategy on a manual update
 export type ResourceLoader<Data, Key, Context extends object> = (options: {
   keys: Key[]
   /**
-   * Abandonding a load will leave the key as-is in an expired state, and will
+   * Abandoning a load will leave the key as-is in an expired state, and will
    * also prevent any further loads from being scheduled without a further
    * update.
    */
   abandon: (keys?: Key[]) => void
   error: (error: any) => void
   setData: (
-    // TODO: allow updates to multiple paths, so that a loader can store
-    // any nested data that it receives
-    // | {
-    //     [path: string]: ResourceDataUpdateList<Data, Key>
-    //   },
-    updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
+    updates:
+      | (readonly [Key, ResourceDataUpdate<Data, Key>])[]
+      | {
+          [path: string]: (readonly [Key, ResourceDataUpdate<Data, Key>])[]
+        },
   ) => void
   setRejection: (reasons: (readonly [Key, string])[]) => void
   path: string
@@ -54,12 +47,11 @@ export type ResourceSubscriber<Data, Key, Context extends object> = (options: {
   abandon: (keys?: Key[]) => void
   error: (error: any) => void
   setData: (
-    // TODO: allow updates to multiple paths, so that a subscriber can store
-    // any nested data that it receives
-    // | {
-    //     [path: string]: ResourceDataUpdateList<Data, Key>
-    //   },
-    updates: (readonly [Key, ResourceDataUpdate<Data, Key>])[],
+    updates:
+      | (readonly [Key, ResourceDataUpdate<Data, Key>])[]
+      | {
+          [path: string]: (readonly [Key, ResourceDataUpdate<Data, Key>])[]
+        },
   ) => void
   setRejection: (reasons: (readonly [Key, string])[]) => void
   path: string
@@ -96,8 +88,8 @@ export type ResourceTaskType =
 
 export type ResourceKeyTasks = {
   invalidate: null | string | false
-  manualLoad: null | string
   load: null | string | false
+  manualLoad: null | string
   purge: null | string
   subscribe: null | string | false
 }

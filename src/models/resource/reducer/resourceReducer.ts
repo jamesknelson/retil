@@ -140,15 +140,27 @@ export function createResourceReducer<Data, Key>(
           }
         })
 
-      case 'updateValue':
-        return merge(
+      case 'updateValue': {
+        const paths = Object.keys(action.updates)
+        const previousTask = action.taskId && state.tasks.pending[action.taskId]
+        const context = previousTask ? previousTask.context : action.context
+        return paths.reduce(
+          (state, path) =>
+            mapMerge(
+              state,
+              context,
+              path,
+              action.updates[path].map(([key]) => key),
+              computeHashForKey,
+              createUpdateMapper(
+                action.taskId,
+                action.timestamp,
+                action.updates[path],
+              ),
+            ),
           state,
-          {
-            ...action,
-            keys: action.updates.map(([key]) => key),
-          },
-          createUpdateMapper(action),
         )
+      }
 
       default:
         return state
