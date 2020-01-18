@@ -14,10 +14,7 @@ export type ResourceActionOfType<
 
 export type ResourceAction<Data, Key> =
   | { type: Dispose }
-  | AbandonInvalidationAction<Key>
-  | AbandonLoadAction<Key>
-  | AbandonSubscribeAction<Key>
-  | AbortManualLoad<Key>
+  | AbandonTask<Key>
   | ClearQueueAction
   | ErrorAction
   | HoldPoliciesAction<Key>
@@ -31,39 +28,8 @@ export type ResourceAction<Data, Key> =
  * Mark that the given keys' current values will not expire (unless manually
  * stale.)
  */
-type AbandonInvalidationAction<Key> = {
-  type: 'abandonInvalidation'
-  path: string
-  keys: Key[]
-  taskId: string
-}
-
-/**
- * Mark that a load task will no longer try to load the specified keys.
- */
-type AbandonLoadAction<Key> = {
-  type: 'abandonLoad'
-  path: string
-  keys: Key[]
-  taskId: string
-}
-
-/**
- * Mark that a subscribe task will no longer receive updates for the specified
- * keys.
- */
-type AbandonSubscribeAction<Key> = {
-  type: 'abandonSubscribe'
-  path: string
-  keys: Key[]
-  taskId: string
-}
-
-/**
- * Abort a previously started manual load.
- */
-type AbortManualLoad<Key> = {
-  type: 'abortManualLoad'
+type AbandonTask<Key> = {
+  type: 'abandonTask'
   path: string
   keys: Key[]
   taskId: string

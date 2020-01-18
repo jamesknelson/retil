@@ -41,56 +41,39 @@ export function createResourceReducer<Data, Key>(
       case Dispose:
         return reset(state)
 
-      case 'abandonInvalidation':
+      case 'abandonTask':
         return merge(state, action, keyState => {
-          if (keyState.tasks.invalidate === action.taskId) {
-            return {
-              invalidated: false,
-              tasks: {
-                ...keyState.tasks,
-                invalidate: false,
-              },
-            }
-          }
-        })
-
-      case 'abandonLoad':
-        return merge(state, action, keyState => {
-          if (
-            keyState.tasks.load === action.taskId ||
-            keyState.tasks.manualLoad === action.taskId
-          ) {
-            return {
-              tasks: {
-                ...keyState.tasks,
-                load: keyState.tasks.manualLoad ? null : false,
-                manualLoad: null,
-              },
-            }
-          }
-        })
-
-      case 'abandonSubscribe':
-        return merge(state, action, keyState => {
-          if (keyState.tasks.subscribe === action.taskId) {
-            return {
-              tasks: {
-                ...keyState.tasks,
-                subscribe: false,
-              },
-            }
-          }
-        })
-
-      case 'abortManualLoad':
-        return merge(state, action, keyState => {
-          if (keyState.tasks.manualLoad === action.taskId) {
-            return {
-              tasks: {
-                ...keyState.tasks,
-                manualLoad: null,
-              },
-            }
+          switch (action.taskId) {
+            // Note: purges can't be abandoned, as it'd cause a memory leak.
+            case keyState.tasks.invalidate:
+              return {
+                invalidated: false,
+                tasks: {
+                  ...keyState.tasks,
+                  invalidate: false,
+                },
+              }
+            case keyState.tasks.load:
+              return {
+                tasks: {
+                  ...keyState.tasks,
+                  load: false,
+                },
+              }
+            case keyState.tasks.manualLoad:
+              return {
+                tasks: {
+                  ...keyState.tasks,
+                  manualLoad: null,
+                },
+              }
+            case keyState.tasks.subscribe:
+              return {
+                tasks: {
+                  ...keyState.tasks,
+                  subscribe: false,
+                },
+              }
           }
         })
 

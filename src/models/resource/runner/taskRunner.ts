@@ -63,7 +63,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
         this.dispatch({
           ...task,
           keys,
-          type: 'abandonInvalidation',
+          type: 'abandonTask',
           taskId: task.id,
         })
       }
@@ -97,7 +97,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           this.dispatch({
             ...task,
             keys,
-            type: 'abandonLoad',
+            type: 'abandonTask',
             taskId: task.id,
           })
         }
@@ -203,7 +203,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
         this.dispatch({
           ...task,
           keys,
-          type: 'abandonSubscribe',
+          type: 'abandonTask',
           taskId: task.id,
         })
       }

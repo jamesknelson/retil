@@ -61,7 +61,7 @@ export class ResourceKeyControllerImplementation<Data, Key>
     return () => {
       if (!aborted) {
         aborted = true
-        this.dispatch('abortManualLoad', { taskId })
+        this.dispatch('abandonTask', { taskId })
       }
     }
   }
