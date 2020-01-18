@@ -38,11 +38,9 @@ export function App() {
   const subscriptionDataWithFallback = useMemo(() =>
     subscription
       // The subscription's `map` function understands Suspense -- even if
-      // your version of React doesn't. You can accessing suspended data
-      // with impunity!
+      // your version of React doesn't. Access suspended data with impunity!
       .map(({ data }) => data))
-      // Then just remember to set a fallback value if you don't want React
-      // to suspend.
+      // Then just set a fallback value if you don't want React to suspend.
       .fallback('default value'),
     [subscription]
   )
