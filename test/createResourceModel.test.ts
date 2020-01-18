@@ -3,6 +3,7 @@ import {
   createKeyLoader,
   createURLLoader,
 } from '../src/models/resource'
+import { createStore } from '../src/store'
 
 describe('ResourceModel', () => {
   test('automatically retrieves accessed data', async () => {
@@ -63,6 +64,110 @@ describe('ResourceModel', () => {
     expect(
       outlet.filter(({ data }) => !data).getValue(),
     ).rejects.toBeInstanceOf(Error)
+  })
+
+  test('does not share data across stores', async () => {
+    const model = createResourceModel<string>({
+      loader: createKeyLoader({
+        load: async ({ key }) => 'value for ' + key,
+      }),
+      namespace: 'test',
+    })
+
+    const [outlet1, controller1] = model({ store: createStore() }).key('/test')
+    const [outlet2] = model({ store: createStore() }).key('/test')
+
+    controller1.setData('test')
+
+    expect(outlet1.getCurrentValue().hasData).toBe(true)
+    expect(outlet2.getCurrentValue().hasData).toBe(false)
+  })
+
+  test('requires a namespace to be specified when a store is provided', async () => {
+    const model = createResourceModel<string>({
+      loader: createKeyLoader({
+        load: async ({ key }) => 'value for ' + key,
+      }),
+    })
+
+    expect(() => {
+      model({ store: createStore() }).key('/test')
+    }).toThrow(Error)
+  })
+
+  test('can dehydrate and hydrate from an external store', async () => {
+    const model = createResourceModel<string>({
+      loader: createKeyLoader({
+        load: async ({ key }) => 'value for ' + key,
+      }),
+      namespace: 'test',
+    })
+
+    const store1 = createStore()
+    const [outlet1, controller1] = model({ store: store1 }).key('/test')
+    controller1.setData('test')
+    expect(outlet1.getCurrentValue().data).toBe('test')
+
+    const dehydratedState = await store1.dehydrate()
+
+    const store2 = createStore(dehydratedState)
+
+    const [outlet2] = model({ store: store2 }).key('/test')
+    expect(outlet2.getCurrentValue().data).toBe('test')
+  })
+
+  test('can automatically trigger reloads via the invalidator', async () => {
+    let counter = 1
+    let invalidate: Function
+    const mockLoad = jest.fn(async () => counter++)
+    const model = createResourceModel<string>({
+      loader: createKeyLoader({
+        load: mockLoad,
+      }),
+      invalidator: props => {
+        invalidate = props.invalidate
+        return () => {}
+      },
+    })
+
+    const [outlet] = model({}).key('/test', {
+      requestPolicy: 'loadInvalidated',
+    })
+
+    await outlet.filter(({ primed }) => primed).getValue()
+    expect(outlet.getCurrentValue().data).toBe(1)
+    expect(outlet.getCurrentValue().invalidated).toBe(false)
+
+    invalidate!()
+    expect(outlet.getCurrentValue().invalidated).toBe(true)
+
+    await outlet.filter(({ invalidated }) => !invalidated).getValue()
+    expect(outlet.getCurrentValue().data).toBe(2)
+    expect(outlet.getCurrentValue().invalidated).toBe(false)
+  })
+
+  test('throws an exception if invalidation is triggered synchronously', async () => {
+    let counter = 1
+    const mockLoad = jest.fn(async () => counter++)
+    const model = createResourceModel<string>({
+      invalidator: props => {
+        props.invalidate()
+        return () => {}
+      },
+      loader: createKeyLoader({
+        load: mockLoad,
+      }),
+      namespace: 'test',
+    })
+
+    const store = createStore()
+    const [outlet] = model({ store }).key('/test')
+
+    await outlet.map(({ data }) => data).getValue()
+
+    expect(() => {
+      outlet.getCurrentValue()
+    }).toThrow(Error)
   })
 
   describe('invalidate()', () => {

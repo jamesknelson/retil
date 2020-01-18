@@ -8,7 +8,7 @@ export type ResourceInvalidator<Data, Key, Context extends object> = (options: {
   path: string
   context: Context
   values: (ResourceValue<Data> | null)[]
-}) => void | undefined | (() => void)
+}) => () => void
 
 export type ResourceLoader<Data, Key, Context extends object> = (options: {
   keys: Key[]

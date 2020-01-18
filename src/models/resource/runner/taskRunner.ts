@@ -46,7 +46,16 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
 
   private invalidate(task: ResourceTask<Data, Key, Context>) {
     if (this.config.invalidate) {
+      let running = false
+
       const invalidate = (keys: Key[] = task.keys) => {
+        if (running) {
+          throw new Error(
+            'Resource Error: an invalidator called its invalidate function ' +
+              "synchronously. Invalidation must happen asynchronously - you'll " +
+              'probably want some minimum time between invalidations.',
+          )
+        }
         this.dispatch({
           ...task,
           keys,
@@ -56,11 +65,13 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
       }
 
       try {
+        running = true
         const stopper = this.config.invalidate({
           ...task,
           invalidate,
           abandon: this.handleAbandon.bind(this, task),
         })
+        running = false
 
         if (stopper) {
           this.stoppers[task.id] = stopper

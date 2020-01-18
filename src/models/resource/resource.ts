@@ -80,7 +80,7 @@ export function createResourceModel<
       ...instanceContext,
     }
 
-    if (!namespace && context.store) {
+    if (!options.namespace && context.store) {
       throw new Error(
         `Resource instances require a "namespace" option if you pass a context with a "store".`,
       )

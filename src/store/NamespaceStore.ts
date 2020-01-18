@@ -60,31 +60,33 @@ export function registerNamespaceStore<
   storeCache.register(namespace, getState, config)
 
   return [
-    createOutlet({
-      getState,
-
-      getCurrentValue: () => {
-        const cache = storeCache.get(namespace)
-        if (cache.error) {
-          throw cache.error
-        }
-        // Let createOutlet do the work of throwing a promise
-        return cache.value
-      },
-      hasCurrentValue: (): boolean => storeCache.get(namespace).hasCurrentValue,
-      subscribe: (callback: () => void) => {
-        // Check that state has actually changed before asking the outlet to
-        // recompute hasCurrentValue, value and error
-        let lastState = getState()
-        return innerStore.subscribe(() => {
-          const state = getState()
-          if (lastState !== state) {
-            lastState = state
-            callback()
+    Object.assign(
+      createOutlet({
+        getCurrentValue: () => {
+          const cache = storeCache.get(namespace)
+          if (cache.error) {
+            throw cache.error
           }
-        })
-      },
-    }),
+          // Let createOutlet do the work of throwing a promise
+          return cache.value
+        },
+        hasCurrentValue: (): boolean =>
+          storeCache.get(namespace).hasCurrentValue,
+        subscribe: (callback: () => void) => {
+          // Check that state has actually changed before asking the outlet to
+          // recompute hasCurrentValue, value and error
+          let lastState = getState()
+          return innerStore.subscribe(() => {
+            const state = getState()
+            if (lastState !== state) {
+              lastState = state
+              callback()
+            }
+          })
+        },
+      }),
+      { getState },
+    ),
     dispatch,
   ]
 }

@@ -1,4 +1,6 @@
+import { fallback } from './fallback'
 import { FilterCallback, filter } from './filter'
+import { last } from './last'
 import { MapCallback, map } from './map'
 
 /**
@@ -43,7 +45,9 @@ export interface Outlet<T> extends OutletDescriptor<T> {
   getValue(): Promise<T>
   hasCurrentValue(): boolean
 
+  fallback(value: T): Outlet<T>
   filter(predicate: FilterCallback<T>): Outlet<T>
+  last(): Outlet<T>
   map<U>(mapFn: MapCallback<T, U>): Outlet<U>
 }
 
@@ -52,50 +56,57 @@ export function isOutlet(x: any): x is Outlet<any> {
   throw new Error('unimplemented')
 }
 
-export function createOutlet<
-  T,
-  D extends OutletDescriptor<T> = OutletDescriptor<T>
->(descriptor: D & OutletDescriptor<T>): D & Outlet<T> {
-  const getCurrentValue = () => {
+export function createOutlet<T>(descriptor: OutletDescriptor<T>): Outlet<T> {
+  return new OutletImplementation(descriptor)
+}
+
+class OutletImplementation<T> implements Outlet<T> {
+  constructor(private _descriptor: OutletDescriptor<T>) {}
+
+  getCurrentValue = () => {
     // If our descriptor says we have no value (or the descriptor throws
     // a promise for `getCurrentValue`), then throw a promise that resolves
     // once we do have a value.
-    const { error, hasError, hasCurrentValue, value } = getState(descriptor)
+    const { error, hasError, hasCurrentValue, value } = this._getState()
     if (!hasCurrentValue) {
-      throw getValue().then(() => {})
+      throw this.getValue().then(() => {})
     } else if (hasError) {
       throw error
     }
-    return value
+    return value!
   }
-  const getValue = () =>
+
+  getValue = () =>
     new Promise<T>((resolve, reject) => {
-      if (hasCurrentValue()) {
-        return resolve(getCurrentValue())
+      if (this.hasCurrentValue()) {
+        return resolve(this.getCurrentValue())
       }
-      let unsubscribe: undefined | (() => void) = descriptor.subscribe(() => {
-        try {
-          if (unsubscribe && hasCurrentValue()) {
-            unsubscribe()
-            unsubscribe = undefined
-            resolve(getCurrentValue())
+      let unsubscribe: undefined | (() => void) = this._descriptor.subscribe(
+        () => {
+          try {
+            if (unsubscribe && this.hasCurrentValue()) {
+              unsubscribe()
+              unsubscribe = undefined
+              resolve(this.getCurrentValue())
+            }
+          } catch (error) {
+            if (unsubscribe) {
+              unsubscribe()
+              reject(error)
+              unsubscribe = undefined
+            }
           }
-        } catch (error) {
-          if (unsubscribe) {
-            unsubscribe()
-            reject(error)
-            unsubscribe = undefined
-          }
-        }
-      })
+        },
+      )
     })
 
-  const hasCurrentValue = () => getState(descriptor).hasCurrentValue
-  const subscribe = (callback: () => void): (() => void) => {
+  hasCurrentValue = () => this._getState().hasCurrentValue
+
+  subscribe = (callback: () => void): (() => void) => {
     // Outlets only notify subscribers if something has actually changed.
-    let state = getState(descriptor)
-    return descriptor.subscribe(() => {
-      const nextState = getState(descriptor)
+    let state = this._getState()
+    return this._descriptor.subscribe(() => {
+      const nextState = this._getState()
       const shouldNotify =
         state.hasError !== nextState.hasError ||
         state.hasCurrentValue !== nextState.hasCurrentValue ||
@@ -107,55 +118,44 @@ export function createOutlet<
     })
   }
 
-  return {
-    ...descriptor,
-    getCurrentValue,
-    getValue,
-    hasCurrentValue,
-    subscribe,
-
-    map: mapThis,
-    filter: filterThis,
+  fallback(value: T) {
+    return fallback(this, value)
   }
-}
+  filter(predicate: FilterCallback<T>): Outlet<T> {
+    return filter(this, predicate)
+  }
+  last(): Outlet<T> {
+    return last(this)
+  }
+  map<U>(mapFn: MapCallback<T, U>): Outlet<U> {
+    return map(this, mapFn)
+  }
 
-const getState = <T>(descriptor: OutletDescriptor<T>) => {
-  let hasError = false
-  let error: any
-  let hasCurrentValue
-  let value: T | undefined
-  try {
-    // For deciding whether we have a value or not, we'll prioritize the
-    // behavior of `getCurrentValue` over the response of `hasCurrentValue`.
-    value = descriptor.getCurrentValue()
-    hasCurrentValue =
-      !descriptor.hasCurrentValue || descriptor.hasCurrentValue()
-  } catch (errorOrPromise) {
-    if (typeof errorOrPromise.then === 'function') {
-      hasCurrentValue = false
-    } else {
-      hasCurrentValue = true
-      hasError = true
-      error = errorOrPromise
+  private _getState() {
+    let hasError = false
+    let error: any
+    let hasCurrentValue
+    let value: T | undefined
+    try {
+      // For deciding whether we have a value or not, we'll prioritize the
+      // behavior of `getCurrentValue` over the response of `hasCurrentValue`.
+      value = this._descriptor.getCurrentValue()
+      hasCurrentValue =
+        !this._descriptor.hasCurrentValue || this._descriptor.hasCurrentValue()
+    } catch (errorOrPromise) {
+      if (typeof errorOrPromise.then === 'function') {
+        hasCurrentValue = false
+      } else {
+        hasCurrentValue = true
+        hasError = true
+        error = errorOrPromise
+      }
+    }
+    return {
+      error,
+      hasError,
+      hasCurrentValue,
+      value: hasCurrentValue ? value : undefined,
     }
   }
-  return {
-    error,
-    hasError,
-    hasCurrentValue,
-    value: hasCurrentValue ? value : undefined,
-  }
-}
-
-function filterThis<T>(
-  this: OutletDescriptor<T>,
-  predicate: FilterCallback<T>,
-): Outlet<T> {
-  return filter(this, predicate)
-}
-function mapThis<T, U>(
-  this: OutletDescriptor<T>,
-  mapFn: MapCallback<T, U>,
-): Outlet<U> {
-  return map(this, mapFn)
 }
