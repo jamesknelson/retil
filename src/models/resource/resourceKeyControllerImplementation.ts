@@ -66,17 +66,18 @@ export class ResourceKeyControllerImplementation<Data, Key>
     }
   }
 
-  pause() {
+  pause(expectingExternalUpdate = false) {
+    const policies = [
+      expectingExternalUpdate
+        ? ('expectingExternalUpdate' as const)
+        : ('pauseLoad' as const),
+    ]
     let released = false
-    this.dispatch('holdPolicies', {
-      policies: ['pauseLoad'],
-    })
+    this.dispatch('holdPolicies', { policies })
     return () => {
       if (!released) {
         released = true
-        this.dispatch('releasePolicies', {
-          policies: ['pauseLoad'],
-        })
+        this.dispatch('releasePolicies', { policies })
       }
     }
   }

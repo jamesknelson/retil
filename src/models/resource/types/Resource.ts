@@ -143,9 +143,11 @@ export interface ResourceKeyController<Data, Key> {
 
   /**
    * Pauses automatic loads until the returned resume function is called.
+   * If `true` is passed as an argument, then the resource will be set to
+   * pending for the duration of the pause.
    * Note: this will not pause any manually started loads.
    */
-  pause(): () => void
+  pause(expectingExternalUpdate?: boolean): () => void
 
   /**
    * Stores the given data. If there is no subscription for it, then the data
