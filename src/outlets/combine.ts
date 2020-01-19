@@ -22,6 +22,8 @@ export function combine(handleMap: OutletMapObject) {
 
   const combinedOutlet = createOutlet<{ [key: string]: any }>({
     getCurrentValue: () => {
+      // TODO: unless an error is thrown, call *all* `getCurrentValue` functions
+      // -- even if some of them suspend. this should allow for parallel suspense.
       const currentValues = outlets.map(outlet => outlet.getCurrentValue())
       if (!last || !shallowCompareArrays(last.values, currentValues)) {
         last = {

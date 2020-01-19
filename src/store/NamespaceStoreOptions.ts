@@ -19,17 +19,17 @@ export interface NamespaceStoreOptions<
    * As this is is an operator, it's possible to suspend until a dehydratable
    * value is available.
    */
-  dehydrate?: (outlet: Outlet<State>) => Outlet<State | undefined>
+  dehydrater?: (outlet: Outlet<State>) => Outlet<State | undefined>
   enhancer?: StoreEnhancer
+  getInitialState?: () => State
   reducer: StoreReducer<State, Action>
-  initialState?: State
   selectError?: (state: State) => any
   selectHasValue?: (state: State) => boolean
   selectValue?: (state: State) => Value
 }
 
 export const defaultNamespaceStoreOptions = {
-  dehydrate: (outlet: Outlet<any>) => outlet,
+  dehydrater: (outlet: Outlet<any>) => outlet,
   selectError: () => undefined,
   selectHasValue: () => true,
   selectValue: (state: any) => state,

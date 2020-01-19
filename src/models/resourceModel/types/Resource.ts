@@ -1,5 +1,4 @@
 import { Outlet } from '../../../outlets'
-import { Store } from '../../../store'
 
 import { ResourceEffectCallback } from './ResourceEffects'
 import { ResourceRequestPolicy } from './ResourcePolicies'
@@ -14,7 +13,6 @@ import { ResourceDataUpdate } from './ResourceValue'
 
 export type ResourceContext = {
   fetchOptions?: RequestInit
-  store?: Store
 }
 
 export interface Resource<Data, Key> {
@@ -182,7 +180,7 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
   /**
    * Context that will be available to all model instances.
    */
-  context?: Context
+  defaultContext?: Context
 
   /**
    * If provided, this will be called whenever the value changes. Then, if a

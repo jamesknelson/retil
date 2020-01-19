@@ -1,5 +1,5 @@
 import memoizeOne from 'memoize-one'
-import { Outlet, createOutlet, filter, map } from '../../outlets'
+import { Outlet, createOutlet } from '../../outlets'
 import { flatMap } from '../../utils/flatMap'
 import { shallowCompare } from '../../utils/shallowCompare'
 
@@ -63,7 +63,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
           : ['keep' as const],
     }
 
-    const keyStateOutlet = map(this.outlet, state => {
+    const keyStateOutlet = this.outlet.map(state => {
       const pathRecords = state.records[this.path] || {}
       const hashStates = pathRecords[this.computeHashForKey(key)] || []
       return (
@@ -103,7 +103,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
         new ResourceKeyImplementation(
           keyState,
           options.requestPolicy !== null,
-          filter(outlet, output => output.primed).getValue,
+          outlet.filter(output => output.primed).getValue,
         ),
     )
 

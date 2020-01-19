@@ -1,11 +1,15 @@
 import {
-  createResourceModel,
   createKeyLoader,
+  createResourceModel,
+  createStore,
   createURLLoader,
-} from '../src/models/resource'
-import { createStore } from '../src/store'
+} from '../src'
+import { internalSetDefaultStore } from '../src/models/model'
 
 describe('ResourceModel', () => {
+  // Use a new store for each model instance.
+  internalSetDefaultStore(() => createStore())
+
   test('automatically retrieves accessed data', async () => {
     const model = createResourceModel<string>({
       loader: createKeyLoader({
@@ -87,15 +91,15 @@ describe('ResourceModel', () => {
     expect(outlet2.getCurrentValue().hasData).toBe(false)
   })
 
-  test('requires a namespace to be specified when a store is provided', async () => {
-    const model = createResourceModel<string>({
-      loader: createKeyLoader({
-        load: async ({ key }) => 'value for ' + key,
-      }),
-    })
+  test('requires a namespace to be specified when two resources are instantiated with the same store', async () => {
+    const store = createStore()
+
+    const model1 = createResourceModel<string>()
+    const model2 = createResourceModel<string>()
 
     expect(() => {
-      model({ store: createStore() }).key('/test')
+      model1({ store })
+      model2({ store })
     }).toThrow(Error)
   })
 

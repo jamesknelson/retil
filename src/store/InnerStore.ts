@@ -1,9 +1,4 @@
-import {
-  Action,
-  Reducer,
-  StoreCreator,
-  createStore as createReduxStore,
-} from 'redux'
+import { Action, Reducer, StoreCreator } from 'redux'
 
 import { fromEntries } from '../utils/fromEntries'
 import { isPlainObject } from '../utils/isPlainObject'
@@ -59,27 +54,9 @@ type ResetAction = {
 
 export type InnerStoreAction = DispatchAction | RegisterAction | ResetAction
 
-const createStoreWithDevtools: StoreCreator = (
-  reducer: Reducer,
-  preloadedState: any,
-) => {
-  try {
-    return createReduxStore(
-      reducer,
-      preloadedState,
-      process.env.NODE_ENV === 'development' &&
-        typeof window !== 'undefined' &&
-        (window as any).__REDUX_DEVTOOLS_EXTENSION__ &&
-        (window as any).__REDUX_DEVTOOLS_EXTENSION__(),
-    )
-  } catch (error) {
-    return createReduxStore(reducer, preloadedState)
-  }
-}
-
 export function createInnerStore(
   preloadedState: { [namespace: string]: any } = {},
-  createReduxStore = createStoreWithDevtools,
+  createReduxStore: StoreCreator,
   selector?: (state: any) => any,
 ): InnerStore {
   const namespaceInitialStates = {} as { [namespace: string]: any }

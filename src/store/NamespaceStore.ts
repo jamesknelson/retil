@@ -33,7 +33,7 @@ export function registerNamespaceStore<
   storeCache: StoreCache,
   config: NamespaceStoreOptions<State, Action, Value>,
 ): NamespaceStore<State, Action, Value> {
-  const { enhancer, reducer, initialState } = config
+  const { enhancer, getInitialState, reducer } = config
 
   let createStore: StoreCreator = <S extends State, A extends Action>(
     reducer: StoreReducer<S, A>,
@@ -54,7 +54,9 @@ export function registerNamespaceStore<
   // hydrated with something else.
   const innerStoreState = innerStore.getState()
   const preloadedState =
-    namespace in innerStoreState ? innerStoreState[namespace] : initialState
+    namespace in innerStoreState
+      ? innerStoreState[namespace]
+      : getInitialState && getInitialState()
   const { dispatch, getState } = createStore(reducer, preloadedState)
 
   storeCache.register(namespace, getState, config)

@@ -2,8 +2,6 @@
   "compilerOptions": {
     "downlevelIteration": true,
     "esModuleInterop": true,
-    "inlineSourceMap": true,
-    "inlineSources": true,
     "module": "esnext",
     "moduleResolution": "node",
     "jsx": "react",
@@ -11,6 +9,7 @@
     "baseUrl": "src",
     "removeComments": false,
     "resolveJsonModule": true,
+    "sourceMap": true,
     "strict": true,
     "strictPropertyInitialization": false,
     "target": "es5",

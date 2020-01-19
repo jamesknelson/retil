@@ -1,62 +1,61 @@
 import { Outlet } from '../outlets'
-import { StoreReducer } from '../store'
-
-import { createModel } from '../Model'
-import { Store, createStore } from '../store'
+import { Model, createModel } from './model'
 
 export interface StateOutlet<State, Value = State> extends Outlet<Value> {
   getState(): State
 }
 
-export type StateController<State> = (
+export type StateUpdater<State> = (
   state: State | ((state: State) => State),
 ) => void
 
-export interface StateOptions<State, Value> {
-  initialState?: State
+export interface StateOptions<
+  State,
+  Context extends object = any,
+  Value = State
+> {
+  defaultContext?: Context
+  namespace?: string
+  getInitialState?: (context: Context) => State
   selectError?: (state: State) => any
   selectHasValue?: (state: State) => boolean
   selectValue?: (state: State) => Value
-  storeAt?: [Store, string]
 }
 
 export function createStateModel<
   State,
-  Value = State,
-  Context extends { store: Store } = { store: Store }
->(key: string, options: Omit<StateOptions<State, Value>, 'store'>) {
-  return createModel((context: Context) =>
-    createState({
-      ...options,
-      storeAt: [context.store, key],
-    }),
-  )
-}
-
-// Creates a service that only subscribes to the underlying service when it
-// has subscriptions itself.
-function createState<State, Value = State>(
-  options: StateOptions<State, Value>,
-): [StateOutlet<State, Value>, StateController<State>] {
-  const { storeAt, ...restOptions } = options
-  const [store, namespace] = storeAt || [createStore(), 'reducerService']
-
-  const [outlet, dispatch] = store.namespace(namespace, {
-    reducer: stateReducer as StoreReducer<State, StateAction<State>>,
-    ...restOptions,
+  Context extends object = any,
+  Value = State
+>(
+  options: StateOptions<State, Context, Value>,
+): Model<readonly [StateOutlet<State, Value>, StateUpdater<State>], Context> {
+  return createModel({
+    factory: (outlet, dispatch: (action: StateAction<State>) => void) => {
+      const setState = (updater: State | ((state: State) => State)) => {
+        dispatch({ type: 'setState', updater })
+      }
+      return [outlet, setState]
+    },
+    namespace: 'state',
+    reducer: stateReducer,
+    ...options,
   })
-  const updateState = (updater: State | ((state: State) => State)) => {
-    dispatch({ type: 'update', updater })
-  }
-  return [outlet, updateState]
 }
 
 type StateAction<State> = {
-  type: 'update'
+  type: 'setState'
   updater: State | ((state: State) => State)
 }
 
-const stateReducer = <State>(state: State, action: StateAction<State>) =>
-  typeof action.updater === 'function'
-    ? (action.updater as Function)(state)
-    : action.updater
+const stateReducer = <State>(
+  state: State | undefined,
+  action: StateAction<State>,
+) => {
+  if (action.type === 'setState') {
+    return typeof action.updater === 'function'
+      ? (action.updater as Function)(state)
+      : action.updater
+  } else {
+    return state
+  }
+}
