@@ -12,9 +12,7 @@ describe('combine()', () => {
 
   test('concurrently gets multiple suspended children', async () => {
     let loadCount = 0
-    const mockLoad = jest.fn(
-      async req => (console.log(req) as any) || ++loadCount,
-    )
+    const mockLoad = jest.fn(async req => ++loadCount)
     const resource = createResourceModel<string>({
       loader: createKeyLoader({
         load: mockLoad,

@@ -75,6 +75,8 @@ export function createResourceRunner<Data, Key, Context extends object>(
               const task = pendingTasks[taskId]
               const queueType = taskQueue[taskId]
 
+              delete taskQueue[taskId]
+
               if (task && queueType === 'start') {
                 taskRunner.start(task)
               } else {

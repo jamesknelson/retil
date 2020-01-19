@@ -202,7 +202,7 @@ describe('ResourceModel', () => {
 
   test('only loads data once over multiple calls to getValue()', async () => {
     let loadCount = 0
-    const mockLoad = jest.fn(async req => ++loadCount)
+    const mockLoad = jest.fn(async () => ++loadCount)
     const resource = createResourceModel<string>({
       loader: createKeyLoader({
         load: mockLoad,
