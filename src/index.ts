@@ -4,6 +4,7 @@ export * from 'use-subscription'
 
 export * from './hooks'
 export * from './models'
+export * from './outlets'
 export * from './store'
 export * from './types'
 export * from './utils'

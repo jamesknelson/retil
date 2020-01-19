@@ -21,7 +21,6 @@ Thanks to Suspense, Retil's resource models can transparently fetch data as requ
 
 ```js
 import { createResourceModel, useSubscription } from 'retil'
-import createResourceModel from 'use-subscription'
 
 const resource = createResourceModel()
 
@@ -128,7 +127,7 @@ export function App() {
     combine({
       account: accountSub.map(state => state.data),
       content: contentSub.map(state => state.data),
-    },
+    }),
     [accountSub, contentSub]
   )
 

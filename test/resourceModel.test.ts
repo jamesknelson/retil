@@ -200,6 +200,27 @@ describe('ResourceModel', () => {
     expect(mockEffect.mock.calls[2][0]).toBeUndefined()
   })
 
+  test('only loads data once over multiple calls to getValue()', async () => {
+    let loadCount = 0
+    const mockLoad = jest.fn(async req => ++loadCount)
+    const resource = createResourceModel<string>({
+      loader: createKeyLoader({
+        load: mockLoad,
+      }),
+    })
+
+    resource
+      .key('a')[0]
+      .map(state => state.data)
+      .getValue()
+    resource
+      .key('a')[0]
+      .map(state => state.data)
+      .getValue()
+
+    expect(loadCount).toBe(1)
+  })
+
   describe('invalidate()', () => {
     test("triggers a new load when there's a loadInvalidated subscription", async () => {
       let counter = 1
