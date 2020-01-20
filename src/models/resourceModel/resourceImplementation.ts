@@ -74,25 +74,32 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       )
     })
 
+    let subscriptionCount = 0
     const outlet = createOutlet<ResourceKey<Data, Key>>({
       getCurrentValue: () => {
         return getOutput(keyStateOutlet.getCurrentValue())
       },
       subscribe: (callback: () => void): (() => void) => {
-        this.dispatch({
-          type: 'holdPolicies',
-          ...actionOptions,
-        })
+        if (subscriptionCount === 0) {
+          subscriptionCount++
+          this.dispatch({
+            type: 'holdPolicies',
+            ...actionOptions,
+          })
+        }
         const unsubscribe = keyStateOutlet.subscribe(callback)
         let unsubscribed = false
         return () => {
           if (!unsubscribed) {
             unsubscribed = true
-            this.dispatch({
-              type: 'releasePolicies',
-              ...actionOptions,
-            })
             unsubscribe()
+            subscriptionCount--
+            if (subscriptionCount === 0) {
+              this.dispatch({
+                type: 'releasePolicies',
+                ...actionOptions,
+              })
+            }
           }
         }
       },

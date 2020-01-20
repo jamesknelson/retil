@@ -11,8 +11,11 @@ describe('combine()', () => {
   internalSetDefaultStore(() => createStore())
 
   test('concurrently gets multiple suspended children', async () => {
-    let loadCount = 0
-    const mockLoad = jest.fn(async req => ++loadCount)
+    let loadCount = {
+      a: 0,
+      b: 0,
+    }
+    const mockLoad = jest.fn(async req => ++loadCount[req.key as 'a' | 'b'])
     const resource = createResourceModel<string>({
       loader: createKeyLoader({
         load: mockLoad,
@@ -26,6 +29,7 @@ describe('combine()', () => {
 
     dataOutlet.getValue()
 
-    expect(loadCount).toBe(2)
+    expect(loadCount.a).toBe(1)
+    expect(loadCount.b).toBe(1)
   })
 })

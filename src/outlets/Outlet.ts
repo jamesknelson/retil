@@ -1,3 +1,4 @@
+import { Deferred } from '../utils/Deferred'
 import { fallback } from './fallback'
 import { FilterCallback, filter } from './filter'
 import { last } from './last'
@@ -61,6 +62,9 @@ export function createOutlet<T>(descriptor: OutletDescriptor<T>): Outlet<T> {
 }
 
 class OutletImplementation<T> implements Outlet<T> {
+  nextValue?: Deferred<T>
+  nextValueUnsubscribe?: () => void
+
   constructor(private _descriptor: OutletDescriptor<T>) {}
 
   getCurrentValue = () => {
@@ -76,35 +80,29 @@ class OutletImplementation<T> implements Outlet<T> {
     return value!
   }
 
-  getValue = () =>
-    new Promise<T>((resolve, reject) => {
-      if (this.hasCurrentValue()) {
-        return resolve(this.getCurrentValue())
+  getValue = () => {
+    if (this.nextValue) {
+      return this.nextValue.promise
+    }
+    const { error, hasError, hasCurrentValue, value } = this._getState()
+    if (hasCurrentValue) {
+      if (hasError) {
+        return Promise.reject(error)
       }
-      let unsubscribe: undefined | (() => void) = this._descriptor.subscribe(
-        () => {
-          try {
-            if (unsubscribe && this.hasCurrentValue()) {
-              unsubscribe()
-              unsubscribe = undefined
-              resolve(this.getCurrentValue())
-            }
-          } catch (error) {
-            if (unsubscribe) {
-              unsubscribe()
-              reject(error)
-              unsubscribe = undefined
-            }
-          }
-        },
-      )
-    })
+      return Promise.resolve(value!)
+    }
+    let deferred = (this.nextValue = new Deferred())
+    this.nextValueUnsubscribe = this._descriptor.subscribe(this._getState)
+    return this.nextValue ? this.nextValue.promise : deferred.promise
+  }
 
   hasCurrentValue = () => this._getState().hasCurrentValue
 
   subscribe = (callback: () => void): (() => void) => {
     // Outlets only notify subscribers if something has actually changed.
     let state = this._getState()
+    // TODO: use at max one subscription, and when we have a subscripiton,
+    // memoize the latest current state notifications
     return this._descriptor.subscribe(() => {
       const nextState = this._getState()
       const shouldNotify =
@@ -131,7 +129,7 @@ class OutletImplementation<T> implements Outlet<T> {
     return map(this, mapFn)
   }
 
-  private _getState() {
+  private _getState = () => {
     let hasError = false
     let error: any
     let hasCurrentValue
@@ -149,6 +147,22 @@ class OutletImplementation<T> implements Outlet<T> {
         hasCurrentValue = true
         hasError = true
         error = errorOrPromise
+      }
+    }
+    if (hasCurrentValue && this.nextValue) {
+      if (this.nextValueUnsubscribe) {
+        const unsubscribe = this.nextValueUnsubscribe
+        delete this.nextValueUnsubscribe
+        unsubscribe()
+      }
+      const nextValue = this.nextValue
+      delete this.nextValue
+      if (nextValue) {
+        if (hasError) {
+          nextValue.reject(error)
+        } else {
+          nextValue.resolve(value!)
+        }
       }
     }
     return {
