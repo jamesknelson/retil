@@ -3,15 +3,15 @@ import { Outlet, createOutlet } from '../../outlets'
 import { flatMap } from '../../utils/flatMap'
 import { shallowCompare } from '../../utils/shallowCompare'
 
-import { InitialKeyState } from './constants'
+import { InitialDocState } from './constants'
 import { ResourceKeyControllerImplementation } from './resourceKeyControllerImplementation'
 import {
   Resource,
   ResourceAction,
-  ResourceKeyController,
-  ResourceKeyOptions,
-  ResourceKey,
-  ResourceKeyState,
+  ResourceDocController,
+  ResourceDocOptions,
+  ResourceDoc,
+  ResourceDocState,
   ResourceRequestPolicy,
   ResourceState,
 } from './types'
@@ -19,8 +19,8 @@ import {
 export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
   private memoizedKey: {
     key: Key
-    options: ResourceKeyOptions<Data, Key>
-    pair: Readonly<[Outlet<any>, ResourceKeyController<Data, Key>]>
+    options: ResourceDocOptions<Data, Key>
+    pair: Readonly<[Outlet<any>, ResourceDocController<Data, Key>]>
   }
 
   constructor(
@@ -32,11 +32,11 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     private path: string,
   ) {}
 
-  key(
+  doc(
     key: Key,
-    optionsWithoutDefaults: ResourceKeyOptions<Data, Key> = {},
+    optionsWithoutDefaults: ResourceDocOptions<Data, Key> = {},
   ): Readonly<
-    [Outlet<ResourceKey<Data, Key>>, ResourceKeyController<Data, Key>]
+    [Outlet<ResourceDoc<Data, Key>>, ResourceDocController<Data, Key>]
   > {
     const options = {
       requestPolicy: this.defaultRequestPolicy,
@@ -67,15 +67,15 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
       const pathRecords = state.records[this.path] || {}
       const hashStates = pathRecords[this.computeHashForKey(key)] || []
       return (
-        hashStates.find(keyState => keyState.key === key) || {
-          ...InitialKeyState,
+        hashStates.find(keyState => keyState.id === key) || {
+          ...InitialDocState,
           key,
         }
       )
     })
 
     let subscriptionCount = 0
-    const outlet = createOutlet<ResourceKey<Data, Key>>({
+    const outlet = createOutlet<ResourceDoc<Data, Key>>({
       getCurrentValue: () => {
         return getOutput(keyStateOutlet.getCurrentValue())
       },
@@ -106,7 +106,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     })
 
     const getOutput: any = memoizeOne(
-      (keyState: ResourceKeyState<Data, Key>) =>
+      (keyState: ResourceDocState<Data, Key>) =>
         new ResourceKeyImplementation(
           keyState,
           options.requestPolicy !== null,
@@ -127,18 +127,18 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     return pair
   }
 
-  knownKeys(): Key[] {
+  cachedIds(): Key[] {
     const state = this.outlet.getCurrentValue()
     const pathRecords = state.records[this.path]
 
     return !pathRecords
       ? []
       : flatMap(Object.keys(pathRecords), hash =>
-          pathRecords![hash].map(keyState => keyState.key),
+          pathRecords![hash].map(keyState => keyState.id),
         )
   }
 
-  withPath(path: string): Resource<Data, Key> {
+  collection(path: string): Resource<Data, Key> {
     if (path.indexOf('/') !== -1) {
       throw new Error(
         `Resource Error: "/" cannot be used in paths; it is a reserved character.`,
@@ -157,9 +157,9 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
 }
 
 export class ResourceKeyImplementation<Data, Key>
-  implements ResourceKey<Data, Key> {
+  implements ResourceDoc<Data, Key> {
   constructor(
-    readonly state: ResourceKeyState<Data, Key>,
+    readonly state: ResourceDocState<Data, Key>,
     private hasRequestPolicy: boolean,
     private waitForValue: () => Promise<any>,
   ) {}
@@ -168,7 +168,7 @@ export class ResourceKeyImplementation<Data, Key>
     return this.primed && !this.state.value
   }
 
-  get data(): Data {
+  data(): Data {
     if (!this.primed) {
       throw this.waitForValue()
     }
@@ -189,8 +189,8 @@ export class ResourceKeyImplementation<Data, Key>
     return !!this.state.invalidated
   }
 
-  get key(): Key {
-    return this.state.key
+  get id(): Key {
+    return this.state.id
   }
 
   get pending(): boolean {
@@ -201,7 +201,7 @@ export class ResourceKeyImplementation<Data, Key>
     return isPrimed(this.state, this.hasRequestPolicy)
   }
 
-  get rejection(): any {
+  rejection(): any {
     if (!this.primed) {
       throw this.waitForValue()
     }
@@ -221,7 +221,7 @@ export class ResourceKeyImplementation<Data, Key>
 }
 
 function isPending(
-  state: ResourceKeyState<any, any>,
+  state: ResourceDocState<any, any>,
   hasRequestPolicy: boolean,
 ) {
   return !!(
@@ -238,7 +238,7 @@ function isPending(
 }
 
 function isPrimed(
-  state: ResourceKeyState<any, any>,
+  state: ResourceDocState<any, any>,
   hasRequestPolicy: boolean,
 ) {
   return !(

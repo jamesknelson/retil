@@ -1,4 +1,4 @@
-import { ResourceKeyState, ResourceTaskType } from './types'
+import { ResourceDocState, ResourceTaskType } from './types'
 
 export const TaskTypes: ResourceTaskType[] = [
   'invalidate',
@@ -8,7 +8,7 @@ export const TaskTypes: ResourceTaskType[] = [
   'subscribe',
 ]
 
-export const InitialKeyState: Omit<ResourceKeyState<any, any>, 'key'> = {
+export const InitialDocState: Omit<ResourceDocState<any, any, any>, 'id'> = {
   policies: {
     expectingExternalUpdate: 0,
     keep: 0,

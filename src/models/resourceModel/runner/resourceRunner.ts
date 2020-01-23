@@ -11,33 +11,39 @@ import {
 import { ResourceEffectRunner } from './effectRunner'
 import { ResourceTaskRunner } from './taskRunner'
 
-export interface RunnerConfig<Data, Key, Context extends object> {
-  effect?: ResourceEffectCallback<Data, Key, Context>
-  tasks: ResourceTaskConfig<Data, Key, Context>
+export interface RunnerConfig<Props extends object, Data, Rejection, Id> {
+  effect?: ResourceEffectCallback<Props, Data, Rejection, Id>
+  tasks: ResourceTaskConfig<Props, Data, Rejection, Id>
 }
 
-export function createResourceRunner<Data, Key, Context extends object>(
-  config: RunnerConfig<Data, Key, Context>,
+export function createResourceRunner<Props extends object, Data, Rejection, Id>(
+  config: RunnerConfig<Props, Data, Rejection, Id>,
 ) {
   const enhancer = (createStore: StoreEnhancerStoreCreator) => (
-    reducer: Reducer<ResourceState<Data, Key>, ResourceAction<Data, Key>>,
+    reducer: Reducer<
+      ResourceState<Data, Rejection, Id>,
+      ResourceAction<Data, Rejection, Id>
+    >,
     ...args: any[]
   ) => {
     const store = createStore(reducer, ...args) as Store<
-      ResourceState<Data, Key>,
-      ResourceAction<Data, Key>
+      ResourceState<Data, Rejection, Id>,
+      ResourceAction<Data, Rejection, Id>
     >
 
     let depth = 0
     let processing = false
 
-    let pendingTasks: ResourceState<Data, Key>['tasks']['pending']
-    let taskQueue: ResourceState<Data, Key>['tasks']['queue'] = {}
+    let pendingTasks: ResourceState<Data, Rejection, Id>['tasks']['pending']
+    let taskQueue: ResourceState<Data, Rejection, Id>['tasks']['queue'] = {}
     let taskQueueIds: string[]
 
-    let pendingEffects = new Map<Key, ResourceEffect<Data, Key, Context>>()
+    let pendingEffects = new Map<
+      Id,
+      ResourceEffect<Props, Data, Rejection, Id>
+    >()
 
-    const dispatch = (action: ResourceAction<Data, Key>) => {
+    const dispatch = (action: ResourceAction<Data, Rejection, Id>) => {
       ++depth
       store.dispatch(action)
       --depth
@@ -57,7 +63,7 @@ export function createResourceRunner<Data, Key, Context extends object>(
         if (effectRunner) {
           pendingEffects = new Map([
             ...pendingEffects,
-            ...state.effects.map(effect => [effect.key, effect] as const),
+            ...state.effects.map(effect => [effect.id, effect] as const),
           ])
         }
 

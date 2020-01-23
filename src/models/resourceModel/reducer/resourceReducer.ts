@@ -1,42 +1,49 @@
 import { Dispose } from '../../../store'
 
-import { ResourceAction, ResourceState } from '../types'
+import {
+  ResourceAction,
+  ResourceQuery,
+  ResourceRef,
+  ResourceState,
+} from '../types'
 
 import { MapMergeCallback, mapMerge } from './mapMerge'
 import { purge } from './purge'
 import { reset } from './reset'
 import { createUpdateMapper } from './updateMapper'
 
-export function createResourceReducer<Data, Key>(
-  computeHashForKey: (key: Key) => string,
+export function createResourceReducer<Data, Rejection, Id>(
+  stringifyRef: (ref: ResourceRef<Id>) => string,
 ) {
-  const defaultState = reset<Data, Key>()
+  const defaultState = reset<Id>()
   const merge = (
-    state: ResourceState<Data, Key> = defaultState,
+    state: ResourceState<Data, Rejection, Id> = defaultState,
     action: {
-      context?: any
-      path: string
-      keys: Key[]
+      props?: any
+      scope: string
+      refs: ResourceRef<Id>[]
+      query?: ResourceQuery<Id>
       taskId?: string | null
     },
-    callback: MapMergeCallback<Data, Key>,
+    callback: MapMergeCallback<Data, Rejection, Id>,
   ) => {
     const previousTask = action.taskId && state.tasks.pending[action.taskId]
-    const context = previousTask ? previousTask.context : action.context
+    const props = previousTask ? previousTask.props : action.props
     return mapMerge(
       state,
-      context,
-      action.path,
-      action.keys,
-      computeHashForKey,
+      props,
+      action.scope,
+      action.refs,
+      stringifyRef,
+      action.query || undefined,
       callback,
     )
   }
 
   const resourceReducer = (
-    state: ResourceState<Data, Key> = defaultState,
-    action: ResourceAction<Data, Key>,
-  ): ResourceState<Data, Key> => {
+    state: ResourceState<Data, Rejection, Id> = defaultState,
+    action: ResourceAction<Data, Rejection, Id>,
+  ): ResourceState<Data, Rejection, Id> => {
     switch (action.type) {
       case Dispose:
         return reset(state)
@@ -122,12 +129,12 @@ export function createResourceReducer<Data, Key>(
           tasks: {
             ...keyState.tasks,
             load: null,
-            manualLoad: tracker.startTasks('manualLoad', keyState.key, null),
+            manualLoad: tracker.startTasks('manualLoad', keyState.id),
           },
         }))
 
       case 'purge':
-        return purge(state, action, computeHashForKey)
+        return purge(state, action, stringifyRef)
 
       case 'releasePolicies':
         return merge(state, action, keyState => {
@@ -143,19 +150,19 @@ export function createResourceReducer<Data, Key>(
       case 'updateValue': {
         const paths = Object.keys(action.updates)
         const previousTask = action.taskId && state.tasks.pending[action.taskId]
-        const context = previousTask ? previousTask.context : action.context
+        const context = previousTask ? previousTask.props : action.props
         return paths.reduce(
           (state, path) =>
             mapMerge(
               state,
               context,
               path,
-              action.updates[path].map(([key]) => key),
-              computeHashForKey,
+              action.updates,
+              stringifyRef,
               createUpdateMapper(
                 action.taskId,
                 action.timestamp,
-                action.updates[path],
+                action.updates,
               ),
             ),
           state,

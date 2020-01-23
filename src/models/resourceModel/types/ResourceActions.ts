@@ -1,6 +1,8 @@
 import { Dispose } from '../../../store'
 
 import { ResourcePolicy } from './ResourcePolicies'
+import { ResourceQuery } from './ResourceQuery'
+import { ResourceRef } from './ResourceRef'
 import { ResourceValueUpdate } from './ResourceValue'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
@@ -8,30 +10,30 @@ type NarrowAction<T, N> = T extends { type: N } ? T : never
 // Utility for getting a specific action type's object
 export type ResourceActionOfType<
   Data,
-  Key,
-  Type extends ResourceAction<any, any>['type']
-> = NarrowAction<ResourceAction<Data, Key>, Type>
+  Rejection,
+  Id,
+  Type extends ResourceAction<Data, Rejection, Id>['type']
+> = NarrowAction<ResourceAction<Data, Rejection, Id>, Type>
 
-export type ResourceAction<Data, Key> =
+export type ResourceAction<Data, Rejection, Id> =
   | { type: Dispose }
-  | AbandonTask<Key>
+  | AbandonTask
   | ClearQueueAction
   | ErrorAction
-  | HoldPoliciesAction<Key>
-  | InvalidateAction<Key>
-  | ManualLoadAction<Key>
-  | PurgeAction<Key>
-  | ReleasePoliciesAction<Key>
-  | UpdateValueAction<Data, Key>
+  | HoldPoliciesAction<Id>
+  | InvalidateAction<Id>
+  | ManualLoadAction<Id>
+  | PurgeAction<Id>
+  | ReleasePoliciesAction<Id>
+  | UpdateValueAction<Data, Rejection, Id>
 
 /**
- * Mark that the given keys no longer should be affected by the given task.
- * If there are no more keys linked to the task, then the task will be stopped.
+ * Mark that the given the given task can be stopped, and should not be
+ * automatically started again for its associated docs.
  */
-type AbandonTask<Key> = {
+type AbandonTask = {
   type: 'abandonTask'
-  path: string
-  keys: Key[]
+  scope: string
   taskId: string
 }
 
@@ -53,22 +55,24 @@ type ErrorAction = {
 /**
  * Tag the given keys with policies that affect whcih tasks will be scheduled.
  */
-type HoldPoliciesAction<Key> = {
+type HoldPoliciesAction<Id> = {
   type: 'holdPolicies'
-  context: any
-  path: string
-  keys: Key[]
   policies: ResourcePolicy[]
+  props: any
+  // This will be passed through to any created load tasks, without being
+  // stored on the state.
+  query: ResourceQuery<Id>
+  scope: string
 }
 
 /**
  * Set the specified keys to invalidated.
  */
-type InvalidateAction<Key> = {
+type InvalidateAction<Id> = {
   type: 'invalidate'
-  context?: any
-  path: string
-  keys: Key[]
+  props?: any
+  scope: string
+  refs: ResourceRef<Id>[]
   taskId: string | null
 }
 
@@ -76,43 +80,46 @@ type InvalidateAction<Key> = {
  * Force the resource to load data, cancelling any other loads
  * in the process (including any previous forced load).
  */
-type ManualLoadAction<Key> = {
+type ManualLoadAction<Id> = {
   type: 'manualLoad'
-  context: any
-  path: string
-  keys: Key[]
+  props: any
+  // This will be passed through to any created load tasks, without being
+  // stored on the state.
+  query: ResourceQuery<Id>
+  scope: string
 }
 
 /**
  * Remove the given keys from the store, stoppping any associated tasks.
  */
-type PurgeAction<Key> = {
+type PurgeAction<Id> = {
   type: 'purge'
-  path: string
-  keys: Key[]
+  scope: string
+  refs: ResourceRef<Id>[]
   taskId: string
 }
 
 /**
  * Negate the affects of a corresponding hold action.
  */
-type ReleasePoliciesAction<Key> = {
+type ReleasePoliciesAction<Id> = {
   type: 'releasePolicies'
-  context: any
-  path: string
-  keys: Key[]
   policies: ResourcePolicy[]
+  props: any
+  // Nothing but the list of refs is used here, but the action accepts a query
+  // to be symmetric with HoldPoliciesAction.
+  query: ResourceQuery<Id>
+  scope: string
 }
 
 /**
  * Updates stored values.
  */
-type UpdateValueAction<Data, Key> = {
+type UpdateValueAction<Data, Rejection, Id> = {
   type: 'updateValue'
-  context?: any
   taskId: string | null
   timestamp: number
-  updates: {
-    [path: string]: (readonly [Key, ResourceValueUpdate<Data, Key>])[]
-  }
+  props?: any
+  scope: string
+  updates: (readonly [string, Id, ResourceValueUpdate<Data, Rejection, Id>])[]
 }

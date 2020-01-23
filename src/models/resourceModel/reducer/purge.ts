@@ -1,60 +1,53 @@
-import { ResourceState } from '../types'
+import { ResourceRef, ResourceState } from '../types'
 
 import { ChangeTracker } from './changeTracker'
 
-export function purge<Key, Data>(
-  state: ResourceState<Data, Key>,
-  { taskId, keys, path }: { taskId: string; keys: Key[]; path: string },
-  computeHashForKey: (key: Key) => string,
-): ResourceState<Data, Key> {
-  const pathRecords = state.records[path]
-  if (!pathRecords) {
+export function purge<Data, Rejection, Id>(
+  state: ResourceState<Data, Rejection, Id>,
+  {
+    taskId,
+    refs,
+    scope,
+  }: { taskId: string; refs: ResourceRef<Id>[]; scope: string },
+  stringifyRef: (ref: ResourceRef<Id>) => string,
+): ResourceState<Data, Rejection, Id> {
+  const scopeState = state.scopes[scope]
+  if (!scopeState) {
     return state
   }
 
-  const keyHashes = keys.map(computeHashForKey)
-  const tracker = new ChangeTracker<Data, Key>(state, path)
+  const refKeys = refs.map(stringifyRef)
+  const tracker = new ChangeTracker<Data, Rejection, Id>(state, scope)
 
-  let nextPathRecords = pathRecords
-  outer: for (let i = 0; i < keyHashes.length; i++) {
-    const hash = keyHashes[i]
-    const keyHashStates = nextPathRecords[hash]
-    if (keyHashStates) {
-      for (let j = 0; j < keyHashStates.length; j++) {
-        const { key, tasks } = keyHashStates[j]
-        if (key === keys[i]) {
-          if (tasks.purge === taskId) {
-            // Delay cloning the state until we know we need to,
-            // then use this to check if we've made any changes.
-            if (nextPathRecords === pathRecords) {
-              nextPathRecords = { ...nextPathRecords }
-            }
-
-            if (keyHashStates.length === 1) {
-              delete nextPathRecords[hash]
-            } else {
-              nextPathRecords[hash] = keyHashStates.slice()
-              nextPathRecords[hash].splice(i, 1)
-            }
-
-            tracker.recordEffect(key, undefined)
-            tracker.removeKeysFromTasks(key, tasks)
-          }
-          continue outer
+  let nextScopeState = scopeState
+  for (let i = 0; i < refKeys.length; i++) {
+    const ref = refs[i]
+    const refKey = refKeys[i]
+    if (scopeState[refKey]) {
+      const tasks = scopeState[refKey].tasks
+      if (tasks.purge === taskId) {
+        // Delay cloning the state until we know we need to,
+        // then use this to check if we've made any changes.
+        if (nextScopeState === scopeState) {
+          nextScopeState = { ...nextScopeState }
         }
+        delete nextScopeState[refKey]
+
+        tracker.recordCacheEffect(ref, undefined)
+        tracker.removeDocsFromTasks(ref, tasks)
       }
     }
   }
 
-  if (nextPathRecords === pathRecords) {
+  if (nextScopeState === scopeState) {
     return state
   }
 
-  const nextRecords = { ...state.records }
-  if (Object.keys(nextPathRecords).length === 0) {
-    delete nextRecords[path]
+  const nextRecords = { ...state.scopes }
+  if (Object.keys(nextScopeState).length === 0) {
+    delete nextRecords[scope]
   } else {
-    nextRecords[path] = nextPathRecords
+    nextRecords[scope] = nextScopeState
   }
 
   return tracker.buildNextState(nextRecords)

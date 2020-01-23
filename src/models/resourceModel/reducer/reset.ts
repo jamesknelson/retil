@@ -2,14 +2,14 @@ import { fromEntries } from '../../../utils'
 
 import { ResourceState } from '../types'
 
-export function reset<Data, Key>(
-  state?: ResourceState<Data, Key>,
-): ResourceState<Data, Key> {
+export function reset<Id>(
+  state?: ResourceState<any, any, Id>,
+): ResourceState<any, any, Id> {
   const { pending, nextId } = state ? state.tasks : { pending: {}, nextId: 1 }
 
   return {
     effects: [],
-    records: {},
+    scopes: {},
     tasks: {
       nextId,
       pending: {},

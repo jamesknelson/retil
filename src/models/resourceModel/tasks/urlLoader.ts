@@ -1,39 +1,46 @@
-import { createKeyLoader, ResourceKeyLoaderRequest } from './keyLoader'
+import { createDocLoader, ResourceDocLoaderRequest } from './docLoader'
 
-export interface ResourceURLLoaderContext {
+export interface ResourceURLLoaderProps {
   fetchOptions?: RequestInit
 }
 
 export interface ResourceURLLoaderOptions<
+  Props extends ResourceURLLoaderProps,
   Data,
-  Key = string,
-  Context extends ResourceURLLoaderContext = any
+  Rejection = string,
+  Id = string
 > {
   fetch?: typeof fetch
 
   getData?: (
     response: Response,
-    request: ResourceKeyLoaderRequest<Key, Context>,
+    request: ResourceDocLoaderRequest<Props, Id>,
   ) => Promise<Data>
   getRejection?: (
     response: Response,
-    request: ResourceKeyLoaderRequest<Key, Context>,
-  ) => any | Promise<any>
+    request: ResourceDocLoaderRequest<Props, Id>,
+  ) =>
+    | undefined
+    | null
+    | false
+    | Rejection
+    | Promise<undefined | null | false | Rejection>
   getRequest?: (
-    request: ResourceKeyLoaderRequest<Key, Context>,
+    request: ResourceDocLoaderRequest<Props, Id>,
   ) => string | ({ url: string } & Partial<RequestInit>)
   isValidResponse?: (
     response: Response,
-    request: ResourceKeyLoaderRequest<Key, Context>,
+    request: ResourceDocLoaderRequest<Props, Id>,
   ) => boolean
 
   maxRetries?: number
 }
 
 export const defaultURLLoaderOptions: ResourceURLLoaderOptions<
+  ResourceURLLoaderProps,
   any,
   any,
-  ResourceURLLoaderContext
+  any
 > = {
   fetch: async (request: RequestInfo) => {
     // Avoid errors when the user is offline by skipping the fetch, and
@@ -45,22 +52,30 @@ export const defaultURLLoaderOptions: ResourceURLLoaderOptions<
   },
   getData: async (response: Response) => await response.json(),
   getRejection: (response: Response) =>
-    response.status > 400 && response.statusText,
+    response.status > 400 && (response.statusText as any),
   getRequest: (
-    request: ResourceKeyLoaderRequest<any, ResourceURLLoaderContext>,
+    request: ResourceDocLoaderRequest<ResourceURLLoaderProps, any>,
   ) => ({
-    url: request.key,
-    ...request.context.fetchOptions,
+    url: request.id,
+    ...request.props.fetchOptions,
   }),
   isValidResponse: (response: Response) =>
     response && response.status >= 200 && response.status < 500,
 }
 
 export function createURLLoader<
+  Props extends ResourceURLLoaderProps,
   Data,
-  Key = string,
-  Context extends ResourceURLLoaderContext = any
->(optionsWithoutDefaults: ResourceURLLoaderOptions<Data, Key, Context> = {}) {
+  Rejection = string,
+  Id = string
+>(
+  optionsWithoutDefaults: ResourceURLLoaderOptions<
+    Props,
+    Data,
+    Rejection,
+    Id
+  > = {},
+) {
   const {
     fetch,
     getData,
@@ -73,7 +88,7 @@ export function createURLLoader<
     ...optionsWithoutDefaults,
   }
 
-  return createKeyLoader<Data, Response, Key, Context>({
+  return createDocLoader<Props, Data, Rejection, Response, Id>({
     load: request => fetch!(getRequest!(request) as RequestInfo),
     getData,
     getRejection,

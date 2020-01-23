@@ -4,30 +4,39 @@ import { fromEntries } from '../../../utils/fromEntries'
 
 import {
   ResourceAction,
+  ResourceCacheTask,
   ResourceDataUpdate,
+  ResourceNetworkTask,
+  ResourceRef,
   ResourceTask,
   ResourceTaskConfig,
 } from '../types'
 
-export class ResourceTaskRunner<Data, Key, Context extends object> {
-  private config: ResourceTaskConfig<Data, Key, Context>
-  private dispatch: (action: ResourceAction<Data, Key>) => void
+export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
+  private config: ResourceTaskConfig<Props, Data, Rejection, Id>
+  private dispatch: (action: ResourceAction<Data, Rejection, Id>) => void
   private stoppers: { [taskId: string]: () => void }
 
   constructor(
-    config: ResourceTaskConfig<Data, Key, Context>,
-    dispatch: (action: ResourceAction<Data, Key>) => void,
+    config: ResourceTaskConfig<Props, Data, Rejection, Id>,
+    dispatch: (action: ResourceAction<Data, Rejection, Id>) => void,
   ) {
     this.config = config
     this.dispatch = dispatch
     this.stoppers = {}
   }
 
-  start(task: ResourceTask<Data, Key, Context>) {
-    if (task.type === 'manualLoad') {
-      this.load(task)
-    } else {
-      this[task.type](task)
+  start(task: ResourceTask<Props, Data, Rejection, Id>) {
+    switch (task.type) {
+      case 'invalidate':
+        return this.invalidate(task)
+      case 'load':
+      case 'manualLoad':
+        return this.load(task)
+      case 'purge':
+        return this.purge(task)
+      case 'subscribe':
+        return this.subscribe(task)
     }
   }
 
@@ -43,11 +52,11 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     }
   }
 
-  private invalidate(task: ResourceTask<Data, Key, Context>) {
+  private invalidate(task: ResourceCacheTask<Props, Data, Rejection, Id>) {
     if (this.config.invalidate) {
       let running = false
 
-      const invalidate = (keys: Key[] = task.keys) => {
+      const invalidate = (refs: ResourceRef<Id>[] = task.refs) => {
         if (running) {
           throw new Error(
             'Resource Error: an invalidator called its invalidate function ' +
@@ -57,9 +66,9 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
         }
         this.dispatch({
           ...task,
-          keys,
+          refs,
           type: 'invalidate',
-          taskId: task.id,
+          taskId: task.taskId,
         })
       }
 
@@ -73,7 +82,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
         running = false
 
         if (stopper) {
-          this.stoppers[task.id] = stopper
+          this.stoppers[task.taskId] = stopper
         } else {
           console.warn(
             'Resource Warning: an invalidator task did not return ' +
@@ -87,7 +96,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     }
   }
 
-  private load(task: ResourceTask<Data, Key, Context>) {
+  private load(task: ResourceNetworkTask<Props, Id>) {
     if (this.config.load) {
       const abortController = new AbortController()
 
@@ -101,7 +110,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           signal: abortController.signal,
         })
 
-        this.stoppers[task.id] = () => {
+        this.stoppers[task.taskId] = () => {
           if (stopper) {
             stopper()
           }
@@ -113,16 +122,16 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     }
   }
 
-  private purge(task: ResourceTask<Data, Key, Context>) {
+  private purge(task: ResourceCacheTask<Props, Data, Rejection, Id>) {
     if (this.config.purge) {
-      const purge = (keys: Key[] = task.keys) => {
+      const purge = (refs: ResourceRef<Id>[] = task.refs) => {
         // Always purge asynchronously
         setTimeout(() => {
           this.dispatch({
             ...task,
-            keys,
+            refs,
             type: 'purge',
-            taskId: task.id,
+            taskId: task.taskId,
           })
         })
       }
@@ -134,7 +143,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
         })
 
         if (stopper) {
-          this.stoppers[task.id] = stopper
+          this.stoppers[task.taskId] = stopper
         } else {
           console.warn(
             'Resource Warning: a purge task did not return a cleanup function. ' +
@@ -149,7 +158,7 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
     }
   }
 
-  private subscribe(task: ResourceTask<Data, Key, Context>) {
+  private subscribe(task: ResourceNetworkTask<Props, Id>) {
     if (this.config.subscribe) {
       try {
         const stopper = this.config.subscribe({
@@ -167,19 +176,22 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
           )
         }
 
-        this.stoppers[task.id] = stopper
+        this.stoppers[task.taskId] = stopper
       } catch (error) {
         this.handleError(error)
       }
     }
   }
 
-  private handleAbandon(task: ResourceTask<Data, Key, Context>, keys?: Key[]) {
+  private handleAbandon(
+    task: ResourceTask<Props, Data, Rejection, Id>,
+    refs?: ResourceRef<Id>[],
+  ) {
     this.dispatch({
       ...task,
-      keys: keys || task.keys,
+      refs: refs || task.refs,
       type: 'abandonTask',
-      taskId: task.id,
+      taskId: task.taskId,
     })
   }
 
@@ -191,22 +203,20 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
   }
 
   private handleSetData(
-    task: ResourceTask<Data, Key, Context>,
+    task: ResourceNetworkTask<Props, Id>,
     updates:
-      | (readonly [Key, ResourceDataUpdate<Data, Key>])[]
-      | {
-          [path: string]: (readonly [Key, ResourceDataUpdate<Data, Key>])[]
-        },
+      | ((data: Data | undefined, id: Id, type: string) => Data)
+      | (readonly [string, Id, ResourceDataUpdate<Data, Id>])[],
   ) {
-    if (this.stoppers[task.id]) {
+    if (this.stoppers[task.taskId]) {
       const pathUpdates = Array.isArray(updates)
-        ? { [task.path]: updates }
+        ? { [task.collection]: updates }
         : updates
       const paths = Object.keys(pathUpdates)
       this.dispatch({
         ...task,
         type: 'updateValue',
-        taskId: task.id,
+        taskId: task.taskId,
         updates: fromEntries(
           paths.map(path => [
             path,
@@ -225,17 +235,19 @@ export class ResourceTaskRunner<Data, Key, Context extends object> {
   }
 
   private handleSetRejection(
-    task: ResourceTask<Data, Key, Context>,
-    rejections: (readonly [Key, string])[],
+    task: ResourceNetworkTask<Props, Id>,
+    rejections:
+      | ((id: Id, type: string) => Rejection)
+      | (readonly [string, Id, Rejection])[],
   ) {
-    if (this.stoppers[task.id]) {
+    if (this.stoppers[task.taskId]) {
       this.dispatch({
         ...task,
         type: 'updateValue',
-        taskId: task.id,
+        taskId: task.taskId,
         updates: {
-          [task.path]: rejections.map(([key, rejection]) => [
-            key,
+          [task.collection]: rejections.map(([id, rejection]) => [
+            id,
             {
               type: 'setRejection',
               rejection,

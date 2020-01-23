@@ -1,56 +1,64 @@
 import {
+  ResourceDocState,
   ResourceEffect,
-  ResourceKeyTasks,
+  ResourceQuery,
+  ResourceRef,
+  ResourceState,
   ResourceTaskType,
   ResourceValue,
-  ResourceState,
 } from '../types'
 
 import { TaskTypes } from '../constants'
 
-export class ChangeTracker<Data, Key> {
-  private effects: ResourceEffect<Data, Key, any>[]
+export class ChangeTracker<Data, Rejection, Id> {
+  private cacheEffects: ResourceEffect<any, Data, Rejection, Id>[]
 
-  private nextNextId: number
-  private nextPausedBy: { [key: string]: Key[] } | undefined
-  private nextPending: ResourceState<Data, Key>['tasks']['pending'] | undefined
-  private nextQueue: ResourceState<Data, Key>['tasks']['queue'] | undefined
+  private nextNextTaskId: number
+  private nextPausedBy: { [taskId: string]: ResourceRef<Id>[] } | undefined
+  private nextPending:
+    | ResourceState<Data, Rejection, Id>['tasks']['pending']
+    | undefined
+  private nextQueue:
+    | ResourceState<Data, Rejection, Id>['tasks']['queue']
+    | undefined
 
-  private startedTasks: { [Type in ResourceTaskType]?: [string, Key[]] }
-
-  // Used to record values for new task objects
-  private keyValues: Map<Key, ResourceValue<Data> | null>
+  private startedTasks: {
+    [Type in ResourceTaskType]?: readonly [
+      /* taskId */ string,
+      ResourceRef<Id>[],
+    ]
+  }
 
   constructor(
-    private readonly prevState: ResourceState<Data, Key>,
-    private path: string,
-    private context?: any,
+    private readonly prevState: ResourceState<Data, Rejection, Id>,
+    private scope: string,
+    private props?: any,
+    private query?: ResourceQuery<Id>,
   ) {
-    this.effects = []
-    this.keyValues = new Map()
-    this.nextNextId = prevState.tasks.nextId
+    this.cacheEffects = []
+    this.nextNextTaskId = prevState.tasks.nextId
     this.startedTasks = {}
   }
 
   buildNextState(
-    nextRecords: ResourceState<Data, Key>['records'],
-  ): ResourceState<Data, Key> {
+    nextRecords: ResourceState<Data, Rejection, Id>['scopes'],
+  ): ResourceState<Data, Rejection, Id> {
     const prevState = this.prevState
 
     let nextEffects = prevState.effects
-    if (this.effects.length) {
-      nextEffects = prevState.effects.concat(this.effects)
+    if (this.cacheEffects.length) {
+      nextEffects = prevState.effects.concat(this.cacheEffects)
     }
 
     let nextTasks = prevState.tasks
     if (
-      this.nextNextId !== prevState.tasks.nextId ||
+      this.nextNextTaskId !== prevState.tasks.nextId ||
       this.nextPausedBy ||
       this.nextPending ||
       this.nextQueue
     ) {
       nextTasks = {
-        nextId: this.nextNextId,
+        nextId: this.nextNextTaskId,
         pending: this.nextPending || { ...prevState.tasks.pending },
         pausedBy: this.nextPausedBy || { ...prevState.tasks.pausedBy },
         queue: this.nextQueue || { ...prevState.tasks.queue },
@@ -60,72 +68,81 @@ export class ChangeTracker<Data, Key> {
       const types = Object.keys(this.startedTasks) as ResourceTaskType[]
       for (let i = 0; i < types.length; i++) {
         const type = types[i]
-        const [id, keys] = this.startedTasks[type] as [string, Key[]]
-        nextTasks.queue[id] = 'start'
-        nextTasks.pending[id] = {
-          type,
-          context: this.context,
-          path: this.path,
-          keys,
-          id,
-          values: keys.map(key => this.keyValues.get(key)!),
+        const [taskId, refs] = this.startedTasks[type]!
+        const taskBase = {
+          props: this.props,
+          scope: this.scope,
+          refs,
+          taskId,
         }
+        nextTasks.queue[taskId] = 'start'
+        nextTasks.pending[taskId] =
+          type === 'invalidate' || type === 'purge'
+            ? {
+                ...taskBase,
+                type,
+                states: [],
+              }
+            : {
+                ...taskBase,
+                type,
+                query: this.query!,
+              }
       }
     }
 
     return {
       ...prevState,
       effects: nextEffects,
-      records: nextRecords,
+      scopes: nextRecords,
       tasks: nextTasks,
     }
   }
 
-  recordEffect(key: Key, value: ResourceValue<Data> | null | undefined) {
-    this.effects.push({
-      context: this.context,
-      path: this.path,
-      key,
+  recordCacheEffect(
+    [type, id]: ResourceRef<Id>,
+    value: ResourceValue<Data, Rejection> | null | undefined,
+  ) {
+    this.cacheEffects.push({
+      props: this.props,
+      scope: this.scope,
+      type,
+      id,
       value,
     })
   }
 
   /**
-   * Returns the taskId for that the key was added to
+   * Returns the taskId that the doc was added to
    */
-  startTasks(
-    type: ResourceTaskType,
-    key: Key,
-    value: ResourceValue<Data> | null,
-  ): string {
+  startTasks(type: ResourceTaskType, ref: ResourceRef<Id>): string {
     let pair = this.startedTasks[type]
     if (!pair) {
-      pair = this.startedTasks[type] = [String(this.nextNextId++), []]
+      pair = this.startedTasks[type] = [String(this.nextNextTaskId++), []]
     }
-    pair[1].push(key)
-    this.keyValues.set(key, value)
+    pair[1].push(ref)
     return pair[0]
   }
 
-  pauseKeyTask(key: Key, taskId: string) {
+  pauseDocTask(ref: ResourceRef<Id>, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
     this.nextQueue = this.nextQueue || { ...this.prevState.tasks.queue }
 
-    const keys = this.nextPausedBy[taskId]
-    if (keys) {
-      this.nextPausedBy[taskId] = keys.concat(key)
+    const docIds = this.nextPausedBy[taskId]
+    if (docIds) {
+      this.nextPausedBy[taskId] = docIds.concat(ref)
     } else {
-      this.nextPausedBy[taskId] = [key]
+      this.nextPausedBy[taskId] = [ref]
       this.nextQueue[taskId] = 'pause'
     }
   }
 
-  removeKeysFromTasks(
-    key: Key,
-    prevTasks: ResourceKeyTasks,
-    nextTasks?: ResourceKeyTasks,
+  removeDocsFromTasks(
+    ref: ResourceRef<Id>,
+    prevTasks: ResourceDocState<any, any, any>['tasks'],
+    nextTasks?: ResourceDocState<any, any, any>['tasks'],
   ) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
@@ -138,51 +155,55 @@ export class ChangeTracker<Data, Key> {
       const taskId = prevTasks[type]
       const nextTaskId = nextTasks && nextTasks[type]
       if (taskId && nextTaskId !== taskId) {
-        let keys = this.nextPending[taskId].keys
-        if (keys === this.prevState.tasks.pending[taskId].keys) {
-          keys = keys.slice()
+        let docRefs = this.nextPending[taskId].refs
+        if (docRefs === this.prevState.tasks.pending[taskId].refs) {
+          docRefs = docRefs.slice()
           this.nextPending[taskId] = {
             ...this.prevState.tasks.pending[taskId],
-            keys,
+            refs: docRefs,
           }
         }
 
-        if (keys.length === 1 && keys[0] === key) {
+        if (
+          docRefs.length === 1 &&
+          docRefs[0][0] === ref[0] &&
+          docRefs[0][1] === ref[1]
+        ) {
           delete this.nextPending[taskId]
           delete this.nextPausedBy[taskId]
           this.nextQueue[taskId] = 'stop'
         } else {
-          const index = keys.indexOf(key)
+          const index = docRefs.indexOf(docId)
           if (index !== -1) {
-            keys.splice(index, 1)
+            docRefs.splice(index, 1)
           }
-          this.attemptToUnpauseTask(taskId, key)
+          this.attemptToUnpauseTask(taskId, ref)
         }
       }
     }
   }
 
-  unpauseKeyTask(key: Key, taskId: string) {
+  unpauseDocTask(ref: ResourceRef<Id>, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
     this.nextQueue = this.nextQueue || { ...this.prevState.tasks.queue }
-    this.attemptToUnpauseTask(taskId, key)
+    this.attemptToUnpauseTask(taskId, ref)
   }
 
-  private attemptToUnpauseTask(taskId: string, key: Key) {
-    let keys = this.nextPausedBy![taskId]
-    if (keys) {
-      if (keys === this.prevState.tasks.pausedBy[taskId]) {
-        this.nextPausedBy![taskId] = keys = keys.slice()
+  private attemptToUnpauseTask(taskId: string, ref: ResourceRef<Id>) {
+    let refs = this.nextPausedBy![taskId]
+    if (refs) {
+      if (refs === this.prevState.tasks.pausedBy[taskId]) {
+        this.nextPausedBy![taskId] = refs = refs.slice()
       }
-      if (keys.length === 1 && keys[0] === key) {
+      if (refs.length === 1 && refs[0] === docId) {
         delete this.nextPausedBy![taskId]
         this.nextQueue![taskId] = 'start'
       } else {
-        const index = keys.indexOf(key)
+        const index = refs.indexOf(docId)
         if (index !== -1) {
-          keys.splice(index, 1)
+          refs.splice(index, 1)
         }
       }
     }

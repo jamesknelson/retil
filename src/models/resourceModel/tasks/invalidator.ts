@@ -1,15 +1,20 @@
 import { ResourceInvalidator } from '../types'
 
-export function createInvalidator<Data, Key, Context extends object>(options: {
+export function createInvalidator<
+  Props extends object,
+  Data,
+  Rejection = string,
+  Id = string
+>(options: {
   intervalFromTimestamp?: number
-}): ResourceInvalidator<Data, Key, Context> {
-  return ({ invalidate, values }) => {
+}): ResourceInvalidator<Props, Data, Rejection, Id> {
+  return ({ invalidate, states }) => {
     let intervalFromTimestampTimeout: any
 
     if (options.intervalFromTimestamp) {
       const now = Date.now()
       const earliestTimestamp = Math.min(
-        ...values.map(value => (value && value.timestamp) || now),
+        ...states.map(({ value }) => (value && value.timestamp) || now),
       )
       const invalidateTime = earliestTimestamp + options.intervalFromTimestamp
       const delay = Math.max(invalidateTime - now, 0)

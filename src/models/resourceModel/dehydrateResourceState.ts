@@ -1,29 +1,29 @@
-import { InitialKeyState } from './constants'
+import { InitialDocState } from './constants'
 import { ResourceState } from './types'
 
 import { fromEntries } from '../../utils'
 
-export function dehydrateResourceState<Data, Key>(
-  state: ResourceState<Data, Key>,
-): ResourceState<Data, Key> | undefined {
+export function dehydrateResourceState<Data, Rejection, Id>(
+  state: ResourceState<Data, Rejection, Id>,
+): ResourceState<Data, Rejection, Id> | undefined {
   if (state.error) {
     return
   }
 
   return {
     effects: [],
-    records: fromEntries(
-      Object.entries(state.records).map(([path, pathRecords]) => [
+    scopes: fromEntries(
+      Object.entries(state.scopes).map(([path, pathRecords]) => [
         path,
         fromEntries(
-          Object.entries(pathRecords).map(([hash, keyStates]) => [
-            hash,
-            keyStates.map(keyState => ({
-              ...InitialKeyState,
-              stale: keyState.invalidated,
-              key: keyState.key,
-              value: keyState.value,
-            })),
+          Object.entries(pathRecords).map(([id, docState]) => [
+            id,
+            {
+              ...InitialDocState,
+              invalidated: docState.invalidated,
+              id: docState.id,
+              value: docState.value,
+            },
           ]),
         ),
       ]),

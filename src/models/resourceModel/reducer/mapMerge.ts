@@ -1,38 +1,49 @@
-import { ResourceKeyState, ResourceState } from '../types'
+import {
+  ResourceDocState,
+  ResourceState,
+  ResourceRef,
+  ResourceQuery,
+} from '../types'
 
-import { InitialKeyState } from '../constants'
+import { InitialDocState } from '../constants'
 import { ChangeTracker } from './changeTracker'
 
-export type MapMergeCallback<Data, Key> = (
-  keyState: ResourceKeyState<Data, Key>,
+export type MapMergeCallback<Data, Rejection, Id> = (
+  keyState: ResourceDocState<Data, Rejection, Id>,
   index: number,
-  tracker: ChangeTracker<Data, Key>,
-) => undefined | false | Partial<ResourceKeyState<Data, Key>>
+  tracker: ChangeTracker<Data, Rejection, Id>,
+) => undefined | false | Partial<ResourceDocState<Data, Rejection, Id>>
 
-export function mapMerge<Data, Key>(
-  state: ResourceState<Data, Key>,
-  context: any,
-  path: string,
-  keys: Key[],
-  computeHashForKey: (key: Key) => string,
-  callback: MapMergeCallback<Data, Key>,
-): ResourceState<Data, Key> {
-  const tracker = new ChangeTracker<Data, Key>(state, path, context)
-  const keyHashes = keys.map(computeHashForKey)
-  const pathRecords = state.records[path] || {}
-  let nextPathRecords = pathRecords
+export function mapMerge<Data, Rejection, Id>(
+  state: ResourceState<Data, Rejection, Id>,
+  props: any,
+  scope: string,
+  refs: ResourceRef<Id>[],
+  stringifyRef: (ref: ResourceRef<Id>) => string,
+  query: ResourceQuery<Id> | undefined,
+  callback: MapMergeCallback<Data, Rejection, Id>,
+): ResourceState<Data, Rejection, Id> {
+  const tracker = new ChangeTracker<Data, Rejection, Id>(
+    state,
+    scope,
+    props,
+    query,
+  )
+  const keyHashes = refs.map(stringifyRef)
+  const scopeState = state.scopes[scope] || {}
+  let nextScopeState = scopeState
 
   let i = 0
   let hashIndex = 0
   outer: for (i = 0; i < keyHashes.length; i++) {
     const hash = keyHashes[i]
-    const hashKeyStates = pathRecords[hash]
-    let existingKeyState: ResourceKeyState<Data, Key> | undefined
-    let nextKeyState: ResourceKeyState<Data, Key> | undefined
+    const hashKeyStates = scopeState[hash]
+    let existingKeyState: ResourceDocState<Data, Rejection, Id> | undefined
+    let nextKeyState: ResourceDocState<Data, Rejection, Id> | undefined
     if (hashKeyStates) {
       for (hashIndex = 0; hashIndex < hashKeyStates.length; hashIndex++) {
-        const key = hashKeyStates[hashIndex].key
-        if (key === keys[i]) {
+        const key = hashKeyStates[hashIndex].id
+        if (key === refs[i]) {
           existingKeyState = hashKeyStates[hashIndex]
           const mergeKeyState = callback(existingKeyState, i, tracker)
           if (mergeKeyState && mergeKeyState !== existingKeyState) {
@@ -50,8 +61,8 @@ export function mapMerge<Data, Key>(
 
     if (!existingKeyState) {
       const initialState = {
-        ...InitialKeyState,
-        key: keys[i],
+        ...InitialDocState,
+        key: refs[i],
       }
       const mergeState = callback(initialState, i, tracker)
       if (
@@ -70,15 +81,15 @@ export function mapMerge<Data, Key>(
       continue
     }
 
-    const { invalidated, key, policies, tasks, value } = nextKeyState
+    const { invalidated, id: key, policies, tasks, value } = nextKeyState
     const existingPolicies = existingKeyState
       ? existingKeyState.policies
-      : InitialKeyState.policies
+      : InitialDocState.policies
     const nextTasks = (nextKeyState.tasks = { ...tasks })
 
     if (canPurge(nextKeyState)) {
       if (tasks.purge === null) {
-        nextTasks.purge = tracker.startTasks('purge', key, value)
+        nextTasks.purge = tracker.startTasks('purge', key)
       }
     } else {
       if (tasks.purge) {
@@ -95,9 +106,9 @@ export function mapMerge<Data, Key>(
             existingPolicies.expectingExternalUpdate +
             existingPolicies.pauseLoad
           if (pausePolicies && !existingPausePolicies) {
-            tracker.pauseKeyTask(key, tasks.load)
+            tracker.pauseDocTask(key, tasks.load)
           } else if (!pausePolicies && existingPausePolicies) {
-            tracker.unpauseKeyTask(key, tasks.load)
+            tracker.unpauseDocTask(key, tasks.load)
           }
         }
       } else if (
@@ -108,7 +119,7 @@ export function mapMerge<Data, Key>(
         ((policies.loadInvalidated && (invalidated || !value)) ||
           (policies.loadOnce && !existingPolicies.loadOnce))
       ) {
-        nextTasks.load = tracker.startTasks('load', key, value)
+        nextTasks.load = tracker.startTasks('load', key)
       }
 
       if (tasks.invalidate) {
@@ -121,7 +132,7 @@ export function mapMerge<Data, Key>(
         !invalidated &&
         (!policies.subscribe || tasks.subscribe === false)
       ) {
-        nextTasks.invalidate = tracker.startTasks('invalidate', key, value)
+        nextTasks.invalidate = tracker.startTasks('invalidate', key)
       }
 
       if (tasks.subscribe) {
@@ -129,47 +140,47 @@ export function mapMerge<Data, Key>(
           nextTasks.subscribe = null
         }
       } else if (tasks.subscribe === null && policies.subscribe) {
-        nextTasks.subscribe = tracker.startTasks('subscribe', key, value)
+        nextTasks.subscribe = tracker.startTasks('subscribe', key)
       }
     }
 
     if (existingKeyState && existingKeyState.tasks !== nextKeyState.tasks) {
-      tracker.removeKeysFromTasks(
+      tracker.removeDocsFromTasks(
         key,
         existingKeyState.tasks,
         nextKeyState.tasks,
       )
     }
     if (!existingKeyState || existingKeyState.value !== value) {
-      tracker.recordEffect(key, value)
+      tracker.recordCacheEffect(key, value)
     }
 
     // Delay cloning the state until we know we need to, as this could be a
     // pretty large object.
-    if (nextPathRecords === pathRecords) {
-      nextPathRecords = { ...pathRecords }
+    if (nextScopeState === scopeState) {
+      nextScopeState = { ...scopeState }
     }
-    if (nextPathRecords[hash] === pathRecords[hash]) {
-      nextPathRecords[hash] = pathRecords[hash] ? pathRecords[hash].slice() : []
+    if (nextScopeState[hash] === scopeState[hash]) {
+      nextScopeState[hash] = scopeState[hash] ? scopeState[hash].slice() : []
     }
-    nextPathRecords[hash][hashIndex] = nextKeyState
+    nextScopeState[hash][hashIndex] = nextKeyState
   }
 
-  if (nextPathRecords === pathRecords) {
+  if (nextScopeState === scopeState) {
     // No changes to records means no changes to tasks either, so bail early.
     return state
   }
 
   return tracker.buildNextState({
-    ...state.records,
-    [path]: nextPathRecords,
+    ...state.scopes,
+    [scope]: nextScopeState,
   })
 }
 
 function canPurge({
   policies,
   tasks,
-}: Partial<ResourceKeyState<any, any>>): boolean {
+}: Partial<ResourceDocState<any, any, any>>): boolean {
   return (
     !(tasks && tasks.manualLoad) &&
     !(

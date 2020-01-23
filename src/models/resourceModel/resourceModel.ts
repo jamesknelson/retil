@@ -7,7 +7,7 @@ import { createResourceRunner } from './runner'
 import { createInvalidator, createPurger, createURLLoader } from './tasks'
 import {
   Resource,
-  ResourceContext,
+  ResourceProps,
   ResourceOptions,
   ResourceRequestPolicy,
 } from './types'
@@ -28,14 +28,14 @@ export const defaultOptions = {
 export function createResourceModel<
   Data,
   Key = string,
-  Context extends ResourceContext = any
+  Context extends ResourceProps = any
 >(
   options: ResourceOptions<Data, Key, Context> = {},
 ): Model<Resource<Data, Key>, Context> & Resource<Data, Key> {
   const {
-    computeHashForKey = defaultOptions.computeHashForKey,
-    computePathForContext,
-    defaultContext,
+    stringifyId: computeHashForKey = defaultOptions.computeHashForKey,
+    getScope: computePathForContext,
+    defaultProps: defaultContext,
     effect,
     invalidator = defaultOptions.invalidator,
     loader = defaultOptions.loader,
@@ -98,9 +98,9 @@ export function createResourceModel<
       )
 
       return {
-        key: resource.key.bind(resource),
-        knownKeys: resource.knownKeys.bind(resource),
-        withPath: resource.withPath.bind(resource),
+        doc: resource.doc.bind(resource),
+        knownIds: resource.cachedIds.bind(resource),
+        collection: resource.collection.bind(resource),
       }
     },
   })

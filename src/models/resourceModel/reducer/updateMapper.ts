@@ -1,17 +1,17 @@
-import { ResourceKeyState, ResourceValueUpdate } from '../types'
+import { ResourceDocState, ResourceValueUpdate } from '../types'
 
 import { MapMergeCallback } from './mapMerge'
 
-export function createUpdateMapper<Data, Key>(
+export function createUpdateMapper<Data, Rejection, Id>(
   taskId: null | string,
   timestamp: number,
-  updates: (readonly [Key, ResourceValueUpdate<Data, Key>])[],
+  updates: (readonly [string, Id, ResourceValueUpdate<Data, Rejection, Id>])[],
 ) {
-  const updateMapper: MapMergeCallback<Data, Key> = (
-    keyState: ResourceKeyState<Data, Key>,
+  const updateMapper: MapMergeCallback<Data, Rejection, Id> = (
+    docState: ResourceDocState<Data, Rejection, Id>,
     i: number,
   ) => {
-    const tasks = keyState.tasks
+    const tasks = docState.tasks
     if (
       taskId !== null &&
       taskId !== tasks.load &&
@@ -21,7 +21,7 @@ export function createUpdateMapper<Data, Key>(
       return
     }
 
-    const [key, update] = updates[i]
+    const update = updates[i][2]
     return {
       invalidated: false,
       tasks: {
@@ -48,11 +48,12 @@ export function createUpdateMapper<Data, Key>(
                 typeof update.update !== 'function'
                   ? update.update
                   : (update.update as Function)(
-                      (keyState.value &&
-                        keyState.value.type === 'data' &&
-                        keyState.value.data) ||
+                      (docState.value &&
+                        docState.value.type === 'data' &&
+                        docState.value.data) ||
                         undefined,
-                      key,
+                      docState.id,
+                      docState.type,
                     ),
               timestamp,
             },

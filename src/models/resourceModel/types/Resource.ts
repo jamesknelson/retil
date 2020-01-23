@@ -2,7 +2,8 @@ import { Outlet } from '../../../outlets'
 
 import { ResourceEffectCallback } from './ResourceEffects'
 import { ResourceRequestPolicy } from './ResourcePolicies'
-import { ResourceKeyState } from './ResourceState'
+import { ResourceRef } from './ResourceRef'
+import { ResourceDocState } from './ResourceState'
 import {
   ResourceInvalidator,
   ResourceLoader,
@@ -11,46 +12,33 @@ import {
 } from './ResourceTasks'
 import { ResourceDataUpdate } from './ResourceValue'
 
-export type ResourceContext = {
+export type ResourceProps = {
   fetchOptions?: RequestInit
 }
 
-export interface Resource<Data, Key> {
+export interface Resource<Data, Rejection = string, Id = string> {
   /**
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
-  key(
-    query: Key,
-    options?: ResourceKeyOptions<Data, Key>,
-  ): readonly [Outlet<ResourceKey<Data, Key>>, ResourceKeyController<Data, Key>]
+  doc(
+    id: Id,
+    options?: ResourceDocOptions,
+  ): readonly [
+    Outlet<ResourceDoc<Data, Rejection, Id>>,
+    ResourceDocController<Data, Rejection, Id>,
+  ]
 
-  // TODO
-  // /**
-  //  * Return a handle for an array of keys, from which you can get
-  //  * and subscribe to multiple values at once.
-  //  */
-  // keys<Selected = DefaultSelected>(
-  //   keys: Key[],
-  //   options?: ResourceKeyOptions<Data, Key, Selected>,
-  // ): Readonly<[Outlet<Selected[]>, ResourceKeyController<Data[], Key[]>]>
-
-  /**
-   * Return a list of the keys currently stored in the model for the given
-   * path.
-   */
-  knownKeys(): Key[]
-
-  withPath(path: string): Resource<Data, Key>
+  type(name: string): Resource<Data, Id>
 }
 
-export interface ResourceKey<Data, Key> {
+export interface ResourceDoc<Data, Rejection = string, Id = string> {
   /**
    * Returns true if there's no value, and we're no longer looking for one.
    */
   abandoned: boolean
 
-  data: Data
+  data: () => Data
 
   /**
    * If there's data that can be accessed, this will be true.
@@ -64,7 +52,7 @@ export interface ResourceKey<Data, Key> {
    */
   hasRejection?: boolean
 
-  key: Key
+  id: Id
 
   /**
    * When true, indicates that we're expecting to receive new data due to an
@@ -83,12 +71,14 @@ export interface ResourceKey<Data, Key> {
    */
   invalidated?: boolean
 
-  rejection?: string
+  rejection: () => Rejection
 
-  state: ResourceKeyState<Data, Key>
+  state: ResourceDocState<Data, Rejection, Id>
+
+  type: string
 }
 
-export interface ResourceKeyController<Data, Key> {
+export interface ResourceDocController<Data, Rejection = string, Id = string> {
   /**
    * Marks this key's currently stored state as stale.
    *
@@ -134,16 +124,16 @@ export interface ResourceKeyController<Data, Key> {
    * If the data is not in use, and has not had `keep()` called on it, then the
    * resource will be immediately scheduled for purge.
    */
-  setData(dataOrUpdater: ResourceDataUpdate<Data, Key>): void
+  setData(dataOrUpdater: ResourceDataUpdate<Data, Id>): void
 
   /**
    * Marks the key as having no data for a specific reason, e.g. because it
    * was not found (404) or forbidden (403).
    */
-  setRejection(reason: string): void
+  setRejection(reason: Rejection): void
 }
 
-export interface ResourceKeyOptions<Data, Key> {
+export interface ResourceDocOptions {
   /**
    * Configures which tasks will be automatically scheduled, and when. Options
    * include:
@@ -162,25 +152,28 @@ export interface ResourceKeyOptions<Data, Key> {
   requestPolicy?: ResourceRequestPolicy | null
 }
 
-export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
+export interface ResourceOptions<
+  Props extends ResourceProps,
+  Data,
+  Rejection = string,
+  Id = string
+> {
   /**
-   * An optional function for computing string keys from model keys,
-   * which is required as documents are stored with string keys internally.
-   *
-   * By default, this uses JSON.stringify()
+   * By default, this uses JSON.stringify().
    */
-  computeHashForKey?: (key: Key) => string
+  stringifyRef?: (ref: ResourceRef<Id>) => string
 
   /**
-   * An optional function for computing a secondary key based on the context, so
-   * that different contexts will be keyed to different paths.
+   * An optional function for computing a secondary id based on props, so
+   * that different sets of data can be stored for different sets of props.
+   * This can come in handy for storing data for different user accounts.
    */
-  computePathForContext?: (context: Context) => string
+  getScope?: (props: Props) => string
 
   /**
-   * Context that will be available to all model instances.
+   * Props that will be available to all model instances.
    */
-  defaultContext?: Context
+  defaultProps?: Props
 
   /**
    * If provided, this will be called whenever the value changes. Then, if a
@@ -195,7 +188,7 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
    * model contains items that are indexed in another model, you could use an
    * effect to expire indexes as the indexed items change.
    */
-  effect?: ResourceEffectCallback<Data, Key, Context>
+  effect?: ResourceEffectCallback<Props, Data, Rejection, Id>
 
   /**
    * The task to run to invalidate newly received records.
@@ -203,12 +196,12 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
    * By default, expires after an hour on the client, and does not expire on
    * the server.
    */
-  invalidator?: ResourceInvalidator<Data, Key, Context>
+  invalidator?: ResourceInvalidator<Props, Data, Rejection, Id>
 
   /**
    * The task to run to load data for records.
    */
-  loader?: null | ResourceLoader<Data, Key, Context>
+  loader?: null | ResourceLoader<Props, Data, Rejection, Id>
 
   /**
    * A key unique to this resource model, allowing multiple models to be stored
@@ -228,9 +221,9 @@ export interface ResourceOptions<Data, Key, Context extends ResourceContext> {
    * By default, data is purged after a minute in the browser, and is not purged
    * at all on the server.
    */
-  purger?: null | number | ResourcePurger<Data, Key, Context>
+  purger?: null | number | ResourcePurger<Props, Data, Rejection, Id>
 
   requestPolicy?: ResourceRequestPolicy | null
 
-  subscriber?: null | ResourceSubscriber<Data, Key, Context>
+  subscriber?: null | ResourceSubscriber<Props, Data, Rejection, Id>
 }

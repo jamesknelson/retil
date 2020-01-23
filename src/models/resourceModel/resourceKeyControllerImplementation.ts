@@ -4,12 +4,12 @@ import {
   ResourceAction,
   ResourceActionOfType,
   ResourceDataUpdate,
-  ResourceKeyController,
+  ResourceDocController,
   ResourceState,
 } from './types'
 
 export class ResourceKeyControllerImplementation<Data, Key>
-  implements ResourceKeyController<Data, Key> {
+  implements ResourceDocController<Data, Key> {
   rawDispatch: (action: ResourceAction<Data, Key>) => void
   outlet: Outlet<ResourceState<Data, Key>>
 

@@ -26,19 +26,19 @@ const resource = createResourceModel()
 
 export function App() {
   // resource.key() returns a subscription, and a controller.
-  const [subscription, controller] = resource.key('/my/api/url')
+  const [sub, controller] = resource.doc('/my/api/url')
 
   // To get the key's latest state, just pass the subscription to
   // `useSubscription` -- a hook maintained by the React team itself.
-  const state = useSubscription(subscription)
+  const value = useSubscription(sub)
 
   // You can find out a bunch of things about the key's current state
-  const { hasData, hasRejection, invalidated, pending, primed } = state
+  const { hasData, hasRejection, invalidated, pending, primed } = value
 
-  // If you access `state.data` or `state.rejection` before the data has loaded,
-  // Retil will automatically fetch the data -- suspending the component until
-  // the data is available.
-  const data = value.data
+  // If you call `value.getData()` or `state.getRejection()` before the data
+  // has loaded, Retil will automatically fetch the data -- suspending the
+  // component until the data is available.
+  const data = value.data()
     
   // If you know the data is out of date and needs to be reloaded, you can let
   // Retil know via the key's controller

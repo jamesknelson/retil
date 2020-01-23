@@ -5,25 +5,25 @@ import {
   ResourceEffect,
 } from '../types'
 
-export class ResourceEffectRunner<Data, Key, Context extends object> {
-  private callback: ResourceEffectCallback<Data, Key, Context>
-  private dispatch: (action: ResourceAction<Data, Key>) => void
+export class ResourceEffectRunner<Props extends object, Data, Rejection, Id> {
+  private callback: ResourceEffectCallback<Props, Data, Rejection, Id>
+  private dispatch: (action: ResourceAction<Data, Rejection, Id>) => void
   private stoppers: {
-    [path: string]: Map<Key, () => void>
+    [type: string]: Map<Id, () => void>
   }
 
   constructor(
-    config: ResourceEffectCallback<Data, Key, Context>,
-    dispatch: (action: ResourceAction<Data, Key>) => void,
+    config: ResourceEffectCallback<Props, Data, Rejection, Id>,
+    dispatch: (action: ResourceAction<Data, Rejection, Id>) => void,
   ) {
     this.callback = config
     this.dispatch = dispatch
     this.stoppers = {}
   }
 
-  run(options: ResourceEffect<Data, Key, Context>) {
-    let pathStoppersMap = this.stoppers[options.path]
-    const previousStopper = pathStoppersMap && pathStoppersMap.get(options.key)
+  run(options: ResourceEffect<Props, Data, Rejection, Id>) {
+    let pathStoppersMap = this.stoppers[options.type]
+    const previousStopper = pathStoppersMap && pathStoppersMap.get(options.id)
 
     // If the data hasn't just been purged, then run the effect
     let newStopper: undefined | void | (() => void)
@@ -31,7 +31,7 @@ export class ResourceEffectRunner<Data, Key, Context extends object> {
       try {
         newStopper = this.callback(
           // options.value is undefined, so this is not a purge.
-          options as ResourceValueChangeEffect<Data, Key, Context>,
+          options as ResourceValueChangeEffect<Props, Data, Rejection, Id>,
         )
       } catch (error) {
         this.dispatch(error)
@@ -49,13 +49,13 @@ export class ResourceEffectRunner<Data, Key, Context extends object> {
 
     if (newStopper) {
       if (!pathStoppersMap) {
-        this.stoppers[options.path] = pathStoppersMap = new Map()
+        this.stoppers[options.type] = pathStoppersMap = new Map()
       }
-      pathStoppersMap.set(options.key, newStopper)
+      pathStoppersMap.set(options.id, newStopper)
     } else if (previousStopper) {
-      pathStoppersMap.delete(options.key)
+      pathStoppersMap.delete(options.id)
       if (pathStoppersMap.size === 0) {
-        delete this.stoppers[options.path]
+        delete this.stoppers[options.type]
       }
     }
   }
