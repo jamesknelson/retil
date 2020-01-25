@@ -2,10 +2,10 @@ import { Outlet } from '../../../outlets'
 
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQuery } from './ResourceQuery'
+import { ResourceRef } from './ResourceRef'
 import { ResourceRefState } from './ResourceState'
 import { ResourceInvalidator, ResourcePurger } from './ResourceTasks'
 import { ResourceDataUpdate } from './ResourceValue'
-import { ResourceRef } from './ResourceRef'
 
 export interface Resource<
   Result = any,
@@ -31,7 +31,7 @@ export interface ResourceCache<
    * get the latest value, or imperatively make changes.
    */
   query<Result, Variables>(
-    query: Resource<Result, Variables, Context, Data, Rejection>,
+    resource: Resource<Result, Variables, Context, Data, Rejection>,
     options?: ResourceQueryOptions<Variables>,
   ): ResourceQueryOutlet<Result>
 
@@ -39,7 +39,7 @@ export interface ResourceCache<
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
-  ref(ref: ResourceRef): ResourceRefOutlet<Data, Rejection>
+  refs(refs: ResourceRef[]): ResourceRefsOutlet<Data, Rejection>
 }
 
 export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
@@ -82,8 +82,8 @@ export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
   pause(expectingExternalUpdate?: boolean): () => void
 }
 
-export interface ResourceRefOutlet<Data, Rejection = string>
-  extends Outlet<ResourceRefState<Data, Rejection>> {
+export interface ResourceRefsOutlet<Data, Rejection>
+  extends Outlet<ResourceRefState<Data, Rejection>[]> {
   /**
    * Marks that this ref's state should not be purged.
    *
@@ -98,11 +98,11 @@ export interface ResourceRefOutlet<Data, Rejection = string>
    * If the data is not in use, and has not had `keep()` called on it, then the
    * resource will be immediately scheduled for purge.
    */
-  setData(dataOrUpdater: ResourceDataUpdate<Data>): void
+  setData(dataOrUpdater: ResourceDataUpdate<Data>[]): void
 
   /**
-   * Marks the ref as having no data for a specific reason, e.g. because it
-   * was not found (404) or forbidden (403).
+   * Marks the refs as having no data for a specific reason, e.g. because they
+   * were not found (404) or forbidden (403).
    */
   setRejection(reason: Rejection): void
 }

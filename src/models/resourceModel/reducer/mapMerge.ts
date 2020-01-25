@@ -1,10 +1,6 @@
 import { ResourceRefState, ResourceState, ResourceRef } from '../types'
 
-import {
-  DefaultModifierPolicies,
-  DefaultRequestPolicies,
-  InitialDocState,
-} from '../constants'
+import { DefaultRequestPolicies, InitialDocState } from '../constants'
 import { ChangeTracker } from './changeTracker'
 
 export type MapMergeCallback<Data, Rejection> = (
@@ -69,19 +65,17 @@ export function mapMerge<Data, Rejection>(
 
     const {
       invalidated,
-      modifierPolicies,
+      modifiers: { pause, pending },
       request,
       tasks,
       value,
     } = nextRefState
+    const existingPause = existingRefState.modifiers.pause
     const existingRequestPolicies =
       existingRefState && existingRefState.request
         ? existingRefState.request.policies
         : DefaultRequestPolicies
     const requestPolicies = request ? request.policies : DefaultRequestPolicies
-    const existingModifierPolicies = existingRefState
-      ? existingRefState.modifierPolicies
-      : InitialDocState.modifierPolicies
     const nextTasks = (nextRefState.tasks = { ...tasks })
 
     if (canPurge(nextRefState)) {
@@ -97,23 +91,17 @@ export function mapMerge<Data, Rejection>(
         if (requestPolicies.loadInvalidated + requestPolicies.loadOnce === 0) {
           nextTasks.load = null
         } else {
-          const pausePolicies =
-            modifierPolicies.expectingExternalUpdate +
-            modifierPolicies.pauseLoad
-          const existingPausePolicies =
-            existingModifierPolicies.expectingExternalUpdate +
-            existingModifierPolicies.pauseLoad
-          if (pausePolicies && !existingPausePolicies) {
+          if (pause && !existingPause) {
             tracker.pauseRefTask(ref, tasks.load)
-          } else if (!pausePolicies && existingPausePolicies) {
+          } else if (!pause && existingPause) {
             tracker.unpauseRefTask(ref, tasks.load)
           }
         }
       } else if (
         tasks.load === null &&
         tasks.manualLoad === null &&
-        !modifierPolicies.expectingExternalUpdate &&
-        !modifierPolicies.pauseLoad &&
+        !pause &&
+        !pending &&
         ((requestPolicies.loadInvalidated && (invalidated || !value)) ||
           (requestPolicies.loadOnce && !existingRequestPolicies.loadOnce))
       ) {
@@ -188,19 +176,19 @@ export function mapMerge<Data, Rejection>(
 }
 
 function canPurge({
-  modifierPolicies = DefaultModifierPolicies,
-  request: resource,
+  modifiers = { keep: 0, pause: 0, pending: 0 },
+  request,
   tasks,
 }: Partial<ResourceRefState<any, any>>): boolean {
-  const requestPolicies = resource ? resource.policies : DefaultRequestPolicies
+  const requestPolicies = request ? request.policies : DefaultRequestPolicies
   return (
     !(tasks && tasks.manualLoad) &&
     !(
-      modifierPolicies.keep +
-      modifierPolicies.expectingExternalUpdate +
+      modifiers.keep +
+      modifiers.pause +
+      modifiers.pending +
       requestPolicies.loadInvalidated +
       requestPolicies.loadOnce +
-      modifierPolicies.pauseLoad +
       requestPolicies.subscribe
     )
   )

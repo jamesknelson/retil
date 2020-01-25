@@ -2,15 +2,20 @@ import { Model, createModel } from '../model'
 import { filter, map } from '../../outlets'
 
 import { resourceReducer } from './reducer'
-import { ResourceImplementation as ResourceCacheImplementation } from './resourceImplementation'
+import { ResourceCacheImplementation } from './resourceCacheImplementation'
 import { createResourceRunner } from './runner'
 import { createInvalidator, createPurger } from './tasks'
-import { ResourceCache, ResourceOptions, ResourceRequestPolicy } from './types'
+import {
+  ResourceAction,
+  ResourceCache,
+  ResourceOptions,
+  ResourceRequestPolicy,
+  ResourceState,
+} from './types'
 import { dehydrateResourceState } from './dehydrateResourceState'
+import { Reducer } from 'redux'
 
 export const defaultOptions = {
-  computeHashForKey: (key: any) =>
-    typeof key === 'string' ? key : JSON.stringify(key),
   invalidator: 24 * 60 * 60 * 1000,
   purger: 60 * 1000,
   requestPolicy:
@@ -28,7 +33,7 @@ export function createResourceCacheModel<
 ): Model<ResourceCache<Context, Data, Rejection>, Context> &
   ResourceCache<Context, Data, Rejection> {
   const {
-    getScope: computePathForContext,
+    getScope,
     defaultContext,
     invalidator = defaultOptions.invalidator,
     namespace = 'resource',
@@ -37,7 +42,10 @@ export function createResourceCacheModel<
   } = options
 
   const model = createModel({
-    reducer: resourceReducer,
+    reducer: resourceReducer as Reducer<
+      ResourceState<Data, Rejection>,
+      ResourceAction<Data, Rejection>
+    >,
     defaultContext,
     dehydrater: outlet => {
       return map(
@@ -70,21 +78,18 @@ export function createResourceCacheModel<
     namespace,
     selectError: state => state.error,
     factory: (outlet, dispatch, context) => {
-      const basePathPrefix = computePathForContext
-        ? computePathForContext(context)
-        : '/'
-
+      const scope = getScope ? getScope(context) : 'default'
       const cache = new ResourceCacheImplementation(
         context,
         requestPolicy,
         dispatch,
         outlet,
-        basePathPrefix,
+        scope,
       )
 
       return {
         query: cache.query.bind(cache),
-        ref: cache.ref.bind(cache),
+        refs: cache.refs.bind(cache),
       }
     },
   })

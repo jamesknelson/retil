@@ -1,7 +1,4 @@
-import {
-  ResourceModifierPolicy,
-  ResourceRequestPolicy,
-} from './ResourcePolicies'
+import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceRef } from './ResourceRef'
 import { ResourceTask, ResourceTaskQueueType } from './ResourceTasks'
 import { ResourceValue } from './ResourceValue'
@@ -53,15 +50,32 @@ export type ResourceScopeState<Data, Rejection> = {
 }
 
 export interface ResourceRefState<Data, Rejection> {
+  modifiers: {
+    /**
+     * Specifies that the resource should be held in cache, even if there are
+     * no active requests or tasks.
+     */
+    keep: number
+
+    /**
+     * Keeps track of whether automatically scheduled load tasks are currently
+     * paused.
+     */
+    pause: number
+
+    /**
+     * Specifies that the resource should be considered to be pending. Prevents
+     * new load tasks from starting, without cancelling existing ones. Also may
+     * affect query results.
+     */
+    pending: number
+  }
+
   /**
-   * If this is true, indicates that the current state should no longer be
-   * treated as current -- and thus should be revalidated with the server.
+   * If this is true, indicates that the current state may no longer be up to
+   * date with the canonical copy.
    */
   invalidated?: boolean
-
-  modifierPolicies: {
-    [Policy in ResourceModifierPolicy]: number
-  }
 
   /**
    * The document's primary key.

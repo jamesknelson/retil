@@ -1,9 +1,6 @@
 import { Dispose } from '../../../store'
 
-import {
-  ResourceModifierPolicy,
-  ResourceRequestPolicy,
-} from './ResourcePolicies'
+import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQuery } from './ResourceQuery'
 import { ResourceRef } from './ResourceRef'
 import { ResourceValueUpdate } from './ResourceValue'
@@ -20,15 +17,14 @@ export type ResourceActionOfType<
 export type ResourceAction<Data, Rejection> =
   | { type: Dispose }
   | AbandonTask
+  | ApplyModifiersAction
   | ClearQueueAction
+  | DropQueryAction
   | ErrorAction
-  | HoldRequestPoliciesAction
-  | HoldModifierPoliciesAction
   | InvalidateAction
   | ManualLoadAction
   | PurgeAction
-  | ReleaseRequestPoliciesAction
-  | ReleaseModifierPoliciesAction
+  | RegisterQueryAction
   | UpdateValueAction<Data, Rejection>
 
 /**
@@ -41,10 +37,34 @@ type AbandonTask = {
 }
 
 /**
+ * Tag the given keys with modifiers that affect the behavior of the cache,
+ * tasks and queries.
+ */
+type ApplyModifiersAction = {
+  type: 'applyModifiers'
+  scope: string
+  refs: ResourceRef[]
+
+  keep?: number
+  pause?: number
+  pending?: number
+}
+
+/**
  * Handles notification from the task runner that the queue has been processed.
  */
 type ClearQueueAction = {
   type: 'clearQueue'
+}
+
+/**
+ * Negate the affects of a corresponding hold action.
+ */
+type DropQueryAction = {
+  type: 'dropQuery'
+  scope: string
+  requestPolicies: ResourceRequestPolicy[]
+  query: ResourceQuery
 }
 
 /**
@@ -53,26 +73,6 @@ type ClearQueueAction = {
 type ErrorAction = {
   type: 'error'
   error: any
-}
-
-/**
- * Tag the given keys with policies that affect whcih tasks will be scheduled.
- */
-type HoldRequestPoliciesAction = {
-  type: 'holdRequestPolicies'
-  scope: string
-  policies: ResourceRequestPolicy[]
-  query: ResourceQuery
-}
-
-/**
- * Tag the given keys with policies that affect whcih tasks will be scheduled.
- */
-type HoldModifierPoliciesAction = {
-  type: 'holdModifierPolicies'
-  scope: string
-  policies: ResourceModifierPolicy[]
-  refs: ResourceRef[]
 }
 
 /**
@@ -105,24 +105,22 @@ type PurgeAction = {
 }
 
 /**
- * Negate the affects of a corresponding hold action.
+ * Tag the given keys with policies that affect which tasks will be scheduled.
  */
-type ReleaseRequestPoliciesAction = {
-  type: 'releaseRequestPolicies'
+type RegisterQueryAction = {
+  type: 'registerQuery'
   scope: string
-  policies: ResourceRequestPolicy[]
-  // Nothing but the list of refs is used here, but the action accepts a query
-  // to be symmetric with HoldPoliciesAction.
+  requestPolicies: ResourceRequestPolicy[]
   query: ResourceQuery
 }
 
 /**
- * Negate the affects of a corresponding hold action.
+ * Negate the affects of a corresponding pause action.
  */
-type ReleaseModifierPoliciesAction = {
-  type: 'releaseModifierPolicies'
+type ResumePauseAction = {
+  type: 'resumePause'
   scope: string
-  policies: ResourceModifierPolicy[]
+  pending: boolean
   refs: ResourceRef[]
 }
 

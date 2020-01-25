@@ -71,6 +71,31 @@ export function resourceReducer<Data, Rejection>(
         },
       }
 
+    case 'dropQuery':
+      return mapMerge(action.scope, state, action.query.refs, refState => {
+        if (!refState.request) {
+          return refState
+        }
+        const nextRequestPolicies = { ...refState.request.policies }
+        for (let i = 0; i < action.requestPolicies.length; i++) {
+          --nextRequestPolicies[action.requestPolicies[i]]
+        }
+        const sum =
+          nextRequestPolicies.loadInvalidated +
+          nextRequestPolicies.loadOnce +
+          nextRequestPolicies.subscribe
+        return {
+          modifiers: {
+            ...refState.modifiers,
+            keep: refState.modifiers.keep - 1,
+          },
+          request:
+            sum === 0
+              ? null
+              : { query: action.query, policies: nextRequestPolicies },
+        }
+      })
+
     case 'error':
       return {
         ...reset(state),
@@ -96,35 +121,6 @@ export function resourceReducer<Data, Rejection>(
       })
     }
 
-    case 'holdModifierPolicies':
-      return mapMerge(action.scope, state, action.refs, refState => {
-        const nextModifierPolicies = { ...refState.modifierPolicies }
-        for (let i = 0; i < action.policies.length; i++) {
-          ++nextModifierPolicies[action.policies[i]]
-        }
-        return {
-          modifierPolicies: nextModifierPolicies,
-        }
-      })
-
-    case 'holdRequestPolicies':
-      return mapMerge(action.scope, state, action.query.refs, refState => {
-        const nextPolicies = {
-          ...(refState.request
-            ? refState.request.policies
-            : DefaultRequestPolicies),
-        }
-        for (let i = 0; i < action.policies.length; i++) {
-          ++nextPolicies[action.policies[i]]
-        }
-        return {
-          request: {
-            query: action.query,
-            policies: nextPolicies,
-          },
-        }
-      })
-
     case 'manualLoad':
       return mapMerge(
         action.scope,
@@ -143,6 +139,17 @@ export function resourceReducer<Data, Rejection>(
         }),
       )
 
+    case 'applyModifiers':
+      return mapMerge(action.scope, state, action.refs, refState => {
+        return {
+          modifiers: {
+            keep: refState.modifiers.keep + (action.keep || 0),
+            pause: refState.modifiers.pause + (action.pause || 0),
+            pending: refState.modifiers.pending + (action.pending || 0),
+          },
+        }
+      })
+
     case 'purge': {
       const task = state.tasks.pending[action.taskId]
       if (!task) {
@@ -151,35 +158,25 @@ export function resourceReducer<Data, Rejection>(
       return purge(task.scope, state, action.refs, action.taskId)
     }
 
-    case 'releaseModifierPolicies':
-      return mapMerge(action.scope, state, action.refs, refState => {
-        const nextModifierPolicies = { ...refState.modifierPolicies }
-        for (let i = 0; i < action.policies.length; i++) {
-          --nextModifierPolicies[action.policies[i]]
-        }
-        return {
-          modifierPolicies: nextModifierPolicies,
-        }
-      })
-
-    case 'releaseRequestPolicies':
+    case 'registerQuery':
       return mapMerge(action.scope, state, action.query.refs, refState => {
-        if (!refState.request) {
-          return refState
+        const nextPolicies = {
+          ...(refState.request
+            ? refState.request.policies
+            : DefaultRequestPolicies),
         }
-        const nextRequestPolicies = { ...refState.request.policies }
-        for (let i = 0; i < action.policies.length; i++) {
-          --nextRequestPolicies[action.policies[i]]
+        for (let i = 0; i < action.requestPolicies.length; i++) {
+          ++nextPolicies[action.requestPolicies[i]]
         }
-        const sum =
-          nextRequestPolicies.loadInvalidated +
-          nextRequestPolicies.loadOnce +
-          nextRequestPolicies.subscribe
         return {
-          request:
-            sum === 0
-              ? null
-              : { query: action.query, policies: nextRequestPolicies },
+          modifiers: {
+            ...refState.modifiers,
+            keep: refState.modifiers.keep + 1,
+          },
+          request: {
+            query: action.query,
+            policies: nextPolicies,
+          },
         }
       })
 

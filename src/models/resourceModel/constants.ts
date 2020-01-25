@@ -8,12 +8,6 @@ export const TaskTypes: ResourceTaskType[] = [
   'subscribe',
 ]
 
-export const DefaultModifierPolicies = {
-  keep: 0,
-  expectingExternalUpdate: 0,
-  pauseLoad: 0,
-}
-
 export const DefaultRequestPolicies = {
   loadInvalidated: 0,
   loadOnce: 0,
@@ -21,7 +15,11 @@ export const DefaultRequestPolicies = {
 }
 
 export const InitialDocState: Omit<ResourceRefState<any, any>, 'ref'> = {
-  modifierPolicies: DefaultModifierPolicies,
+  modifiers: {
+    keep: 0,
+    pause: 0,
+    pending: 0,
+  },
   request: null,
   tasks: {
     manualLoad: null,

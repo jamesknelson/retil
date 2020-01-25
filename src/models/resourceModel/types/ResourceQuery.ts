@@ -1,5 +1,6 @@
 import { Outlet } from '../../../outlets'
 
+import { ResourceCache } from './Resource'
 import { ResourceRef } from './ResourceRef'
 import { ResourceRefState } from './ResourceState'
 import { ResourceDataUpdate } from './ResourceValue'
@@ -15,13 +16,15 @@ export interface ResourceQuery<Result = any, Data = any, Rejection = any> {
    */
   refs: readonly ResourceRef[]
 
-  sub(
-    getRefStatesSub: (
-      refs: ResourceRef[],
-    ) => Outlet<ResourceRefState<Data, Rejection>[]>,
+  select(
+    // A sub for the state of the query's specified refs
+    subs: Outlet<ResourceRefState<Data, Rejection>[]>,
+    // The cache object from which this query was made, allowing you to make
+    // nested queries.
+    cache: ResourceCache<any, Data, Rejection>,
   ): Outlet<Result>
 
-  load?: <Data, Rejection = string>(options: {
+  load?: (options: {
     signal: AbortSignal
 
     /**
@@ -43,7 +46,7 @@ export interface ResourceQuery<Result = any, Data = any, Rejection = any> {
     setRejection: (rejections: ResourceQueryRejectionUpdates<Rejection>) => void
   }) => void | undefined | (() => void)
 
-  subscribe?: <Data, Rejection = string>(options: {
+  subscribe?: (options: {
     /**
      * Indicate that this task is no longer receiving updates for its query,
      * so it should again be invalidated as usual by the invalidator task.

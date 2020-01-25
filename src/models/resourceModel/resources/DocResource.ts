@@ -123,6 +123,16 @@ export function createDocResource<
   > => ({
     refs: [[type, id]],
 
+    select: subs => {
+      return subs.map(
+        ([refState]) =>
+          new DocResultImplementation(
+            refState,
+            subs.filter(([refState]) => isPrimed(refState)).getValue,
+          ),
+      )
+    },
+
     load: ({ abandon, error, setData, setRejection, signal }) => {
       const execute = exponentialBackoff({ maxRetries })
       const request = { context, id, type, signal }
@@ -145,17 +155,6 @@ export function createDocResource<
         },
         error,
       })
-    },
-
-    sub: getRefStatesSub => {
-      const refStatesSub = getRefStatesSub([[type, id]])
-      return refStatesSub.map(
-        ([refState]) =>
-          new DocResultImplementation(
-            refState,
-            refStatesSub.filter(([refState]) => isPrimed(refState)).getValue,
-          ),
-      )
     },
   })
 }
@@ -239,7 +238,7 @@ function isPending(state: ResourceRefState<any, any>) {
   return !!(
     state.tasks.manualLoad ||
     state.tasks.load ||
-    state.modifierPolicies.expectingExternalUpdate ||
+    state.modifiers.pending ||
     // If there's no data but we can add a default request policy, then we'll
     // treat the resource as pending too.
     (hasRequestPolicy &&
@@ -250,8 +249,5 @@ function isPending(state: ResourceRefState<any, any>) {
 }
 
 function isPrimed(state: ResourceRefState<any, any>) {
-  return !(
-    state.value === null &&
-    (isPending(state) || state.modifierPolicies.pauseLoad)
-  )
+  return !(state.value === null && (isPending(state) || state.modifiers.pause))
 }
