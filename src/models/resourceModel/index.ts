@@ -1,2 +1,2 @@
-export * from './resourceModel'
+export * from './resourceCacheModel'
 export * from './tasks'

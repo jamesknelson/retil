@@ -2,7 +2,7 @@ export type ResourceValue<Data, Rejection = string> =
   | { type: 'data'; data: Data; timestamp: number }
   | { type: 'rejection'; rejection: Rejection; timestamp: number }
 
-export type ResourceValueUpdate<Data, Rejection = string, Id = string> =
+export type ResourceValueUpdate<Data, Rejection = string> =
   | {
       /**
        * Allows you to mark the reason that the server did not provide data,
@@ -13,9 +13,9 @@ export type ResourceValueUpdate<Data, Rejection = string, Id = string> =
     }
   | {
       type: 'setData'
-      update: ResourceDataUpdate<Data, Id>
+      update: ResourceDataUpdate<Data>
     }
 
-export type ResourceDataUpdate<Data, Id = string> =
+export type ResourceDataUpdate<Data> =
   | Data
-  | ((data: Data | undefined, id: Id, type: string) => Data)
+  | ((data: Data | undefined, id: number | string, type: string) => Data)

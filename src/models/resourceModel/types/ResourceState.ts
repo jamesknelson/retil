@@ -1,35 +1,34 @@
-import { ResourceEffect } from './ResourceEffects'
-import { ResourcePolicy } from './ResourcePolicies'
+import {
+  ResourceModifierPolicy,
+  ResourceRequestPolicy,
+} from './ResourcePolicies'
 import { ResourceRef } from './ResourceRef'
 import { ResourceTask, ResourceTaskQueueType } from './ResourceTasks'
 import { ResourceValue } from './ResourceValue'
+import { ResourceQuery } from './ResourceQuery'
 
-export interface ResourceState<Data, Rejection, Id> {
-  effects: ResourceEffect<any, Data, Rejection, Id>[]
-
+export interface ResourceState<Data, Rejection> {
   /**
    * If set, indicates that an unrecoverable exception has occured.
    */
   error?: any
 
   scopes: {
-    [scope: string]: ResourceScopeState<Data, Rejection, Id>
+    [scope: string]: ResourceScopeState<Data, Rejection>
   }
 
   tasks: {
     nextId: number
 
     pausedBy: {
-      // TODO:
-      // can use string refKeys herer
-      [taskId: string]: ResourceRef<Id>[]
+      [taskId: string]: ResourceRef[]
     }
 
     /**
      * Holds all tasks that haven't yet been stopped.
      */
     pending: {
-      [taskId: string]: ResourceTask<any, Data, Rejection, Id>
+      [taskId: string]: ResourceTask<Data, Rejection>
     }
 
     /**
@@ -47,24 +46,33 @@ export interface ResourceState<Data, Rejection, Id> {
   }
 }
 
-export type ResourceScopeState<Data, Rejection, Id> = {
-  [refKey: string]: ResourceDocState<Data, Rejection, Id>
+export type ResourceScopeState<Data, Rejection> = {
+  [type: string]: {
+    [stringifiedId: string]: ResourceRefState<Data, Rejection>
+  }
 }
 
-export interface ResourceDocState<Data, Rejection, Id> {
+export interface ResourceRefState<Data, Rejection> {
   /**
    * If this is true, indicates that the current state should no longer be
    * treated as current -- and thus should be revalidated with the server.
    */
   invalidated?: boolean
 
+  modifierPolicies: {
+    [Policy in ResourceModifierPolicy]: number
+  }
+
   /**
    * The document's primary key.
    */
-  id: Id
+  ref: ResourceRef
 
-  policies: {
-    [Policy in ResourcePolicy]: number
+  request: null | {
+    query: ResourceQuery<any, Data, Rejection>
+    policies: {
+      [Policy in ResourceRequestPolicy]: number
+    }
   }
 
   /**
@@ -77,8 +85,6 @@ export interface ResourceDocState<Data, Rejection, Id> {
     purge: null | string
     subscribe: null | string | false
   }
-
-  type: string
 
   /**
    * Stores the latest data or rejection associated with this key.

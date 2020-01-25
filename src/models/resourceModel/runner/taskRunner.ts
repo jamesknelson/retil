@@ -1,32 +1,31 @@
 import AbortController from 'abort-controller'
 
-import { fromEntries } from '../../../utils/fromEntries'
-
 import {
   ResourceAction,
   ResourceCacheTask,
-  ResourceDataUpdate,
-  ResourceNetworkTask,
+  ResourceQueryDataUpdates,
+  ResourceQueryRejectionUpdates,
+  ResourceRequestTask,
   ResourceRef,
   ResourceTask,
   ResourceTaskConfig,
 } from '../types'
 
-export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
-  private config: ResourceTaskConfig<Props, Data, Rejection, Id>
-  private dispatch: (action: ResourceAction<Data, Rejection, Id>) => void
+export class ResourceTaskRunner<Data, Rejection> {
+  private config: ResourceTaskConfig<Data, Rejection>
+  private dispatch: (action: ResourceAction<Data, Rejection>) => void
   private stoppers: { [taskId: string]: () => void }
 
   constructor(
-    config: ResourceTaskConfig<Props, Data, Rejection, Id>,
-    dispatch: (action: ResourceAction<Data, Rejection, Id>) => void,
+    config: ResourceTaskConfig<Data, Rejection>,
+    dispatch: (action: ResourceAction<Data, Rejection>) => void,
   ) {
     this.config = config
     this.dispatch = dispatch
     this.stoppers = {}
   }
 
-  start(task: ResourceTask<Props, Data, Rejection, Id>) {
+  start(task: ResourceTask<Data, Rejection>) {
     switch (task.type) {
       case 'invalidate':
         return this.invalidate(task)
@@ -52,11 +51,11 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
     }
   }
 
-  private invalidate(task: ResourceCacheTask<Props, Data, Rejection, Id>) {
+  private invalidate(task: ResourceCacheTask<Data, Rejection>) {
     if (this.config.invalidate) {
       let running = false
 
-      const invalidate = (refs: ResourceRef<Id>[] = task.refs) => {
+      const invalidate = (refs: ResourceRef[] = task.refs) => {
         if (running) {
           throw new Error(
             'Resource Error: an invalidator called its invalidate function ' +
@@ -77,7 +76,6 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
         const stopper = this.config.invalidate({
           ...task,
           invalidate,
-          abandon: this.handleAbandon.bind(this, task),
         })
         running = false
 
@@ -96,12 +94,12 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
     }
   }
 
-  private load(task: ResourceNetworkTask<Props, Id>) {
-    if (this.config.load) {
+  private load(task: ResourceRequestTask<Data, Rejection>) {
+    if (task.query.load) {
       const abortController = new AbortController()
 
       try {
-        const stopper = this.config.load({
+        const stopper = task.query.load({
           ...task,
           abandon: this.handleAbandon.bind(this, task),
           error: this.handleError,
@@ -122,9 +120,9 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
     }
   }
 
-  private purge(task: ResourceCacheTask<Props, Data, Rejection, Id>) {
+  private purge(task: ResourceCacheTask<Data, Rejection>) {
     if (this.config.purge) {
-      const purge = (refs: ResourceRef<Id>[] = task.refs) => {
+      const purge = (refs: ResourceRef[] = task.refs) => {
         // Always purge asynchronously
         setTimeout(() => {
           this.dispatch({
@@ -158,16 +156,15 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
     }
   }
 
-  private subscribe(task: ResourceNetworkTask<Props, Id>) {
-    if (this.config.subscribe) {
+  private subscribe(task: ResourceRequestTask<Data, Rejection>) {
+    if (task.query.subscribe) {
       try {
-        const stopper = this.config.subscribe({
+        const stopper = task.query.subscribe({
           ...task,
           abandon: this.handleAbandon.bind(this, task),
           error: this.handleError,
           setData: this.handleSetData.bind(this, task),
           setRejection: this.handleSetRejection.bind(this, task),
-          signal: undefined,
         })
 
         if (!stopper) {
@@ -183,13 +180,9 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
     }
   }
 
-  private handleAbandon(
-    task: ResourceTask<Props, Data, Rejection, Id>,
-    refs?: ResourceRef<Id>[],
-  ) {
+  private handleAbandon(task: ResourceTask<Data, Rejection>) {
     this.dispatch({
       ...task,
-      refs: refs || task.refs,
       type: 'abandonTask',
       taskId: task.taskId,
     })
@@ -203,57 +196,44 @@ export class ResourceTaskRunner<Props extends object, Data, Rejection, Id> {
   }
 
   private handleSetData(
-    task: ResourceNetworkTask<Props, Id>,
-    updates:
-      | ((data: Data | undefined, id: Id, type: string) => Data)
-      | (readonly [string, Id, ResourceDataUpdate<Data, Id>])[],
+    task: ResourceRequestTask<Data, Rejection>,
+    updates: ResourceQueryDataUpdates<Data>,
   ) {
     if (this.stoppers[task.taskId]) {
-      const pathUpdates = Array.isArray(updates)
-        ? { [task.collection]: updates }
-        : updates
-      const paths = Object.keys(pathUpdates)
       this.dispatch({
         ...task,
         type: 'updateValue',
         taskId: task.taskId,
-        updates: fromEntries(
-          paths.map(path => [
-            path,
-            pathUpdates[path].map(([key, update]) => [
-              key,
-              {
-                type: 'setData',
-                update,
-              },
-            ]),
-          ]),
-        ),
+        updates: updates.map(([type, id, update]) => [
+          type,
+          id,
+          {
+            type: 'setData',
+            update,
+          },
+        ]),
         timestamp: Date.now(),
       })
     }
   }
 
   private handleSetRejection(
-    task: ResourceNetworkTask<Props, Id>,
-    rejections:
-      | ((id: Id, type: string) => Rejection)
-      | (readonly [string, Id, Rejection])[],
+    task: ResourceRequestTask<Data, Rejection>,
+    rejections: ResourceQueryRejectionUpdates<Rejection>,
   ) {
     if (this.stoppers[task.taskId]) {
       this.dispatch({
         ...task,
         type: 'updateValue',
         taskId: task.taskId,
-        updates: {
-          [task.collection]: rejections.map(([id, rejection]) => [
-            id,
-            {
-              type: 'setRejection',
-              rejection,
-            },
-          ]),
-        },
+        updates: rejections.map(([type, id, rejection]) => [
+          type,
+          id,
+          {
+            type: 'setRejection',
+            rejection,
+          },
+        ]),
         timestamp: Date.now(),
       })
     }

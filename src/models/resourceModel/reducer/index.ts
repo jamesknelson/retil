@@ -1,2 +1,2 @@
-export { createResourceReducer } from './resourceReducer'
+export { resourceReducer } from './resourceReducer'
 export { reset } from './reset'

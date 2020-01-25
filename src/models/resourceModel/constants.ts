@@ -1,4 +1,4 @@
-import { ResourceDocState, ResourceTaskType } from './types'
+import { ResourceRefState, ResourceTaskType } from './types'
 
 export const TaskTypes: ResourceTaskType[] = [
   'invalidate',
@@ -8,15 +8,21 @@ export const TaskTypes: ResourceTaskType[] = [
   'subscribe',
 ]
 
-export const InitialDocState: Omit<ResourceDocState<any, any, any>, 'id'> = {
-  policies: {
-    expectingExternalUpdate: 0,
-    keep: 0,
-    loadInvalidated: 0,
-    loadOnce: 0,
-    pauseLoad: 0,
-    subscribe: 0,
-  },
+export const DefaultModifierPolicies = {
+  keep: 0,
+  expectingExternalUpdate: 0,
+  pauseLoad: 0,
+}
+
+export const DefaultRequestPolicies = {
+  loadInvalidated: 0,
+  loadOnce: 0,
+  subscribe: 0,
+}
+
+export const InitialDocState: Omit<ResourceRefState<any, any>, 'ref'> = {
+  modifierPolicies: DefaultModifierPolicies,
+  request: null,
   tasks: {
     manualLoad: null,
     invalidate: null,

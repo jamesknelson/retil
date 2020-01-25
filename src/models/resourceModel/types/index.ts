@@ -1,6 +1,5 @@
 export * from './Resource'
 export * from './ResourceActions'
-export * from './ResourceEffects'
 export * from './ResourcePolicies'
 export * from './ResourceQuery'
 export * from './ResourceRef'

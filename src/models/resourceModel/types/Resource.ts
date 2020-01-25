@@ -1,84 +1,48 @@
 import { Outlet } from '../../../outlets'
 
-import { ResourceEffectCallback } from './ResourceEffects'
 import { ResourceRequestPolicy } from './ResourcePolicies'
-import { ResourceRef } from './ResourceRef'
-import { ResourceDocState } from './ResourceState'
-import {
-  ResourceInvalidator,
-  ResourceLoader,
-  ResourcePurger,
-  ResourceSubscriber,
-} from './ResourceTasks'
+import { ResourceQuery } from './ResourceQuery'
+import { ResourceRefState } from './ResourceState'
+import { ResourceInvalidator, ResourcePurger } from './ResourceTasks'
 import { ResourceDataUpdate } from './ResourceValue'
+import { ResourceRef } from './ResourceRef'
 
-export type ResourceProps = {
-  fetchOptions?: RequestInit
+export interface Resource<
+  Result = any,
+  Variables = any,
+  Context extends object = any,
+  Data = any,
+  Rejection = string
+> {
+  (variables: Variables, context: Context): ResourceQuery<
+    Result,
+    Data,
+    Rejection
+  >
 }
 
-export interface Resource<Data, Rejection = string, Id = string> {
+export interface ResourceCache<
+  Context extends object = any,
+  Data = any,
+  Rejection = any
+> {
   /**
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
-  doc(
-    id: Id,
-    options?: ResourceDocOptions,
-  ): readonly [
-    Outlet<ResourceDoc<Data, Rejection, Id>>,
-    ResourceDocController<Data, Rejection, Id>,
-  ]
+  query<Result, Variables>(
+    query: Resource<Result, Variables, Context, Data, Rejection>,
+    options?: ResourceQueryOptions<Variables>,
+  ): ResourceQueryOutlet<Result>
 
-  type(name: string): Resource<Data, Id>
+  /**
+   * Return an outlet and controller for the specified key, from which you can
+   * get the latest value, or imperatively make changes.
+   */
+  ref(ref: ResourceRef): ResourceRefOutlet<Data, Rejection>
 }
 
-export interface ResourceDoc<Data, Rejection = string, Id = string> {
-  /**
-   * Returns true if there's no value, and we're no longer looking for one.
-   */
-  abandoned: boolean
-
-  data: () => Data
-
-  /**
-   * If there's data that can be accessed, this will be true.
-   */
-  hasData?: boolean
-
-  /**
-   * If true, indicates that instead of the expected data, this key has been
-   * marked with a reason that the data wasn't erturned. This can be used to
-   * indicate that resource was not found, was forbidden, etc.
-   */
-  hasRejection?: boolean
-
-  id: Id
-
-  /**
-   * When true, indicates that we're expecting to receive new data due to an
-   * in-progress operation.
-   */
-  pending: boolean
-
-  /**
-   * Indicates that we're still waiting on an initial value.
-   */
-  primed: boolean
-
-  /**
-   * Indicates that the data has been marked as possibly out of date, and in
-   * need of a reload.
-   */
-  invalidated?: boolean
-
-  rejection: () => Rejection
-
-  state: ResourceDocState<Data, Rejection, Id>
-
-  type: string
-}
-
-export interface ResourceDocController<Data, Rejection = string, Id = string> {
+export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
   /**
    * Marks this key's currently stored state as stale.
    *
@@ -91,7 +55,7 @@ export interface ResourceDocController<Data, Rejection = string, Id = string> {
   invalidate(): void
 
   /**
-   * Marks that this resource's state should not be purged.
+   * Marks that this query's state should not be purged.
    *
    * Note that calling `keep` on a key will *not* actively fetch its contents --
    * even if there is an active `loadInvalidated` policy.
@@ -116,6 +80,16 @@ export interface ResourceDocController<Data, Rejection = string, Id = string> {
    * Returns a function to resume automatic fetches.
    */
   pause(expectingExternalUpdate?: boolean): () => void
+}
+
+export interface ResourceRefOutlet<Data, Rejection = string>
+  extends Outlet<ResourceRefState<Data, Rejection>> {
+  /**
+   * Marks that this ref's state should not be purged.
+   *
+   * Returns a function that releases this hold on the resource.
+   */
+  keep(): () => void
 
   /**
    * Stores the given data, or if a function is given, runs the given update
@@ -124,16 +98,16 @@ export interface ResourceDocController<Data, Rejection = string, Id = string> {
    * If the data is not in use, and has not had `keep()` called on it, then the
    * resource will be immediately scheduled for purge.
    */
-  setData(dataOrUpdater: ResourceDataUpdate<Data, Id>): void
+  setData(dataOrUpdater: ResourceDataUpdate<Data>): void
 
   /**
-   * Marks the key as having no data for a specific reason, e.g. because it
+   * Marks the ref as having no data for a specific reason, e.g. because it
    * was not found (404) or forbidden (403).
    */
   setRejection(reason: Rejection): void
 }
 
-export interface ResourceDocOptions {
+export interface ResourceQueryOptions<Variables> {
   /**
    * Configures which tasks will be automatically scheduled, and when. Options
    * include:
@@ -150,45 +124,26 @@ export interface ResourceDocOptions {
    * - The server defaults to `loadOnce`
    */
   requestPolicy?: ResourceRequestPolicy | null
+
+  variables?: Variables
 }
 
 export interface ResourceOptions<
-  Props extends ResourceProps,
+  Context extends object,
   Data,
-  Rejection = string,
-  Id = string
+  Rejection = string
 > {
-  /**
-   * By default, this uses JSON.stringify().
-   */
-  stringifyRef?: (ref: ResourceRef<Id>) => string
-
   /**
    * An optional function for computing a secondary id based on props, so
    * that different sets of data can be stored for different sets of props.
    * This can come in handy for storing data for different user accounts.
    */
-  getScope?: (props: Props) => string
+  getScope?: (context: Context) => string
 
   /**
-   * Props that will be available to all model instances.
+   * Context that will be available to all model instances.
    */
-  defaultProps?: Props
-
-  /**
-   * If provided, this will be called whenever the value changes. Then, if a
-   * function is returned, it will be called after the value changes again,
-   * or after the data is purged.
-   *
-   * Use this function to perform side effects based on the currently stored
-   * value. This should feel familiar if you've used React's `useEffect` hook.
-   *
-   * For example, if this model contains lists of foreign keys, you could create
-   * an effect to `keep()` those keys within another model. Similarly, if this
-   * model contains items that are indexed in another model, you could use an
-   * effect to expire indexes as the indexed items change.
-   */
-  effect?: ResourceEffectCallback<Props, Data, Rejection, Id>
+  defaultContext?: Context
 
   /**
    * The task to run to invalidate newly received records.
@@ -196,12 +151,7 @@ export interface ResourceOptions<
    * By default, expires after an hour on the client, and does not expire on
    * the server.
    */
-  invalidator?: ResourceInvalidator<Props, Data, Rejection, Id>
-
-  /**
-   * The task to run to load data for records.
-   */
-  loader?: null | ResourceLoader<Props, Data, Rejection, Id>
+  invalidator?: ResourceInvalidator<Data, Rejection>
 
   /**
    * A key unique to this resource model, allowing multiple models to be stored
@@ -221,9 +171,55 @@ export interface ResourceOptions<
    * By default, data is purged after a minute in the browser, and is not purged
    * at all on the server.
    */
-  purger?: null | number | ResourcePurger<Props, Data, Rejection, Id>
+  purger?: null | number | ResourcePurger<Data, Rejection>
 
   requestPolicy?: ResourceRequestPolicy | null
+}
 
-  subscriber?: null | ResourceSubscriber<Props, Data, Rejection, Id>
+// ---
+
+export interface ResourceDoc<Data, Rejection = string> {
+  /**
+   * Returns true if there's no value, and we're no longer looking for one.
+   */
+  abandoned: boolean
+
+  data: () => Data
+
+  /**
+   * If there's data that can be accessed, this will be true.
+   */
+  hasData?: boolean
+
+  /**
+   * If true, indicates that instead of the expected data, this key has been
+   * marked with a reason that the data wasn't erturned. This can be used to
+   * indicate that resource was not found, was forbidden, etc.
+   */
+  hasRejection?: boolean
+
+  id: string | number
+
+  /**
+   * When true, indicates that we're expecting to receive new data due to an
+   * in-progress operation.
+   */
+  pending: boolean
+
+  /**
+   * Indicates that we're still waiting on an initial value.
+   */
+  primed: boolean
+
+  /**
+   * Indicates that the data has been marked as possibly out of date, and in
+   * need of a reload.
+   */
+  invalidated?: boolean
+
+  rejection: () => Rejection
+
+  state: ResourceRefState<Data, Rejection>
+
+  type: string
 }

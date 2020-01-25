@@ -1,5 +1,4 @@
-export type ResourcePolicy =
-  | ResourceRequestPolicy
+export type ResourceModifierPolicy =
   // Indicates that a new value is expected. Has the same affect as `pauseLoad`,
   // but also specifies that the resource should be treated as pending.
   | 'expectingExternalUpdate'

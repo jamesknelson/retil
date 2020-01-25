@@ -3,27 +3,31 @@ import { ResourceState } from './types'
 
 import { fromEntries } from '../../utils'
 
-export function dehydrateResourceState<Data, Rejection, Id>(
-  state: ResourceState<Data, Rejection, Id>,
-): ResourceState<Data, Rejection, Id> | undefined {
+export function dehydrateResourceState<Data, Rejection>(
+  state: ResourceState<Data, Rejection>,
+): ResourceState<Data, Rejection> | undefined {
   if (state.error) {
     return
   }
 
   return {
-    effects: [],
     scopes: fromEntries(
-      Object.entries(state.scopes).map(([path, pathRecords]) => [
-        path,
+      Object.entries(state.scopes).map(([scope, types]) => [
+        scope,
         fromEntries(
-          Object.entries(pathRecords).map(([id, docState]) => [
-            id,
-            {
-              ...InitialDocState,
-              invalidated: docState.invalidated,
-              id: docState.id,
-              value: docState.value,
-            },
+          Object.entries(types).map(([type, ids]) => [
+            type,
+            fromEntries(
+              Object.entries(ids).map(([id, state]) => [
+                id,
+                {
+                  ...InitialDocState,
+                  invalidated: state.invalidated,
+                  ref: state.ref,
+                  value: state.value,
+                },
+              ]),
+            ),
           ]),
         ),
       ]),

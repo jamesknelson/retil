@@ -1,5 +1,5 @@
-export type ResourceRef<Id = string> = readonly [
+export type ResourceRef = readonly [
   string /* type */,
-  Id,
+  string | number /* id */,
   any? /* helps typescript when mapping to 3-tuples, e.g. in tasks */,
 ]

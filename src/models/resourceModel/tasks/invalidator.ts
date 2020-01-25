@@ -1,13 +1,8 @@
 import { ResourceInvalidator } from '../types'
 
-export function createInvalidator<
-  Props extends object,
-  Data,
-  Rejection = string,
-  Id = string
->(options: {
+export function createInvalidator<Data, Rejection = string>(options: {
   intervalFromTimestamp?: number
-}): ResourceInvalidator<Props, Data, Rejection, Id> {
+}): ResourceInvalidator<Data, Rejection> {
   return ({ invalidate, states }) => {
     let intervalFromTimestampTimeout: any
 

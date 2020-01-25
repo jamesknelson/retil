@@ -1,6 +1,9 @@
 import { Dispose } from '../../../store'
 
-import { ResourcePolicy } from './ResourcePolicies'
+import {
+  ResourceModifierPolicy,
+  ResourceRequestPolicy,
+} from './ResourcePolicies'
 import { ResourceQuery } from './ResourceQuery'
 import { ResourceRef } from './ResourceRef'
 import { ResourceValueUpdate } from './ResourceValue'
@@ -11,21 +14,22 @@ type NarrowAction<T, N> = T extends { type: N } ? T : never
 export type ResourceActionOfType<
   Data,
   Rejection,
-  Id,
-  Type extends ResourceAction<Data, Rejection, Id>['type']
-> = NarrowAction<ResourceAction<Data, Rejection, Id>, Type>
+  Type extends ResourceAction<Data, Rejection>['type']
+> = NarrowAction<ResourceAction<Data, Rejection>, Type>
 
-export type ResourceAction<Data, Rejection, Id> =
+export type ResourceAction<Data, Rejection> =
   | { type: Dispose }
   | AbandonTask
   | ClearQueueAction
   | ErrorAction
-  | HoldPoliciesAction<Id>
-  | InvalidateAction<Id>
-  | ManualLoadAction<Id>
-  | PurgeAction<Id>
-  | ReleasePoliciesAction<Id>
-  | UpdateValueAction<Data, Rejection, Id>
+  | HoldRequestPoliciesAction
+  | HoldModifierPoliciesAction
+  | InvalidateAction
+  | ManualLoadAction
+  | PurgeAction
+  | ReleaseRequestPoliciesAction
+  | ReleaseModifierPoliciesAction
+  | UpdateValueAction<Data, Rejection>
 
 /**
  * Mark that the given the given task can be stopped, and should not be
@@ -33,7 +37,6 @@ export type ResourceAction<Data, Rejection, Id> =
  */
 type AbandonTask = {
   type: 'abandonTask'
-  scope: string
   taskId: string
 }
 
@@ -55,24 +58,30 @@ type ErrorAction = {
 /**
  * Tag the given keys with policies that affect whcih tasks will be scheduled.
  */
-type HoldPoliciesAction<Id> = {
-  type: 'holdPolicies'
-  policies: ResourcePolicy[]
-  props: any
-  // This will be passed through to any created load tasks, without being
-  // stored on the state.
-  query: ResourceQuery<Id>
+type HoldRequestPoliciesAction = {
+  type: 'holdRequestPolicies'
   scope: string
+  policies: ResourceRequestPolicy[]
+  query: ResourceQuery
+}
+
+/**
+ * Tag the given keys with policies that affect whcih tasks will be scheduled.
+ */
+type HoldModifierPoliciesAction = {
+  type: 'holdModifierPolicies'
+  scope: string
+  policies: ResourceModifierPolicy[]
+  refs: ResourceRef[]
 }
 
 /**
  * Set the specified keys to invalidated.
  */
-type InvalidateAction<Id> = {
+type InvalidateAction = {
   type: 'invalidate'
-  props?: any
-  scope: string
-  refs: ResourceRef<Id>[]
+  scope?: string
+  refs: ResourceRef[]
   taskId: string | null
 }
 
@@ -80,46 +89,54 @@ type InvalidateAction<Id> = {
  * Force the resource to load data, cancelling any other loads
  * in the process (including any previous forced load).
  */
-type ManualLoadAction<Id> = {
+type ManualLoadAction = {
   type: 'manualLoad'
-  props: any
-  // This will be passed through to any created load tasks, without being
-  // stored on the state.
-  query: ResourceQuery<Id>
   scope: string
+  query: ResourceQuery
 }
 
 /**
  * Remove the given keys from the store, stoppping any associated tasks.
  */
-type PurgeAction<Id> = {
+type PurgeAction = {
   type: 'purge'
-  scope: string
-  refs: ResourceRef<Id>[]
+  refs: ResourceRef[]
   taskId: string
 }
 
 /**
  * Negate the affects of a corresponding hold action.
  */
-type ReleasePoliciesAction<Id> = {
-  type: 'releasePolicies'
-  policies: ResourcePolicy[]
-  props: any
+type ReleaseRequestPoliciesAction = {
+  type: 'releaseRequestPolicies'
+  scope: string
+  policies: ResourceRequestPolicy[]
   // Nothing but the list of refs is used here, but the action accepts a query
   // to be symmetric with HoldPoliciesAction.
-  query: ResourceQuery<Id>
+  query: ResourceQuery
+}
+
+/**
+ * Negate the affects of a corresponding hold action.
+ */
+type ReleaseModifierPoliciesAction = {
+  type: 'releaseModifierPolicies'
   scope: string
+  policies: ResourceModifierPolicy[]
+  refs: ResourceRef[]
 }
 
 /**
  * Updates stored values.
  */
-type UpdateValueAction<Data, Rejection, Id> = {
+type UpdateValueAction<Data, Rejection> = {
   type: 'updateValue'
+  scope?: string
   taskId: string | null
   timestamp: number
-  props?: any
-  scope: string
-  updates: (readonly [string, Id, ResourceValueUpdate<Data, Rejection, Id>])[]
+  updates: (readonly [
+    string,
+    string | number,
+    ResourceValueUpdate<Data, Rejection>,
+  ])[]
 }

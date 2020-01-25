@@ -1,54 +1,58 @@
 import {
-  ResourceDocState,
-  ResourceEffect,
+  ResourceCacheTask,
   ResourceQuery,
   ResourceRef,
+  ResourceRefState,
+  ResourceRequestTask,
   ResourceState,
-  ResourceTaskType,
-  ResourceValue,
 } from '../types'
 
 import { TaskTypes } from '../constants'
 
-export class ChangeTracker<Data, Rejection, Id> {
-  private cacheEffects: ResourceEffect<any, Data, Rejection, Id>[]
-
+export class ChangeTracker<Data, Rejection> {
   private nextNextTaskId: number
-  private nextPausedBy: { [taskId: string]: ResourceRef<Id>[] } | undefined
+  private nextPausedBy: { [taskId: string]: ResourceRef[] } | undefined
   private nextPending:
-    | ResourceState<Data, Rejection, Id>['tasks']['pending']
+    | ResourceState<Data, Rejection>['tasks']['pending']
     | undefined
   private nextQueue:
-    | ResourceState<Data, Rejection, Id>['tasks']['queue']
+    | ResourceState<Data, Rejection>['tasks']['queue']
     | undefined
 
-  private startedTasks: {
-    [Type in ResourceTaskType]?: readonly [
+  private startedCacheTasks: {
+    invalidate?: readonly [
       /* taskId */ string,
-      ResourceRef<Id>[],
+      ResourceRef[],
+      ResourceRefState<Data, Rejection>[],
+    ]
+    purge?: readonly [
+      /* taskId */ string,
+      ResourceRef[],
+      ResourceRefState<Data, Rejection>[],
     ]
   }
+  private startedRequestTasks: Map<
+    ResourceQuery<any, Data, Rejection>,
+    {
+      load?: [/* taskId */ string, ResourceRef[]]
+      manualLoad?: [/* taskId */ string, ResourceRef[]]
+      subscribe?: [/* taskId */ string, ResourceRef[]]
+    }
+  >
 
   constructor(
-    private readonly prevState: ResourceState<Data, Rejection, Id>,
+    private readonly prevState: ResourceState<Data, Rejection>,
     private scope: string,
-    private props?: any,
-    private query?: ResourceQuery<Id>,
   ) {
-    this.cacheEffects = []
     this.nextNextTaskId = prevState.tasks.nextId
-    this.startedTasks = {}
+    this.startedCacheTasks = {}
+    this.startedRequestTasks = new Map()
   }
 
   buildNextState(
-    nextRecords: ResourceState<Data, Rejection, Id>['scopes'],
-  ): ResourceState<Data, Rejection, Id> {
+    nextRecords: ResourceState<Data, Rejection>['scopes'],
+  ): ResourceState<Data, Rejection> {
     const prevState = this.prevState
-
-    let nextEffects = prevState.effects
-    if (this.cacheEffects.length) {
-      nextEffects = prevState.effects.concat(this.cacheEffects)
-    }
 
     let nextTasks = prevState.tasks
     if (
@@ -65,84 +69,106 @@ export class ChangeTracker<Data, Rejection, Id> {
       }
 
       // Add newly started tasks
-      const types = Object.keys(this.startedTasks) as ResourceTaskType[]
-      for (let i = 0; i < types.length; i++) {
-        const type = types[i]
-        const [taskId, refs] = this.startedTasks[type]!
-        const taskBase = {
-          props: this.props,
+      const startedCacheTaskTypes = Object.keys(this.startedCacheTasks) as (
+        | 'invalidate'
+        | 'purge'
+      )[]
+      for (const type of startedCacheTaskTypes) {
+        const [taskId, refs, states] = this.startedCacheTasks[type]!
+        nextTasks.pending[taskId] = {
+          type,
           scope: this.scope,
           refs,
           taskId,
+          states,
         }
-        nextTasks.queue[taskId] = 'start'
-        nextTasks.pending[taskId] =
-          type === 'invalidate' || type === 'purge'
-            ? {
-                ...taskBase,
-                type,
-                states: [],
-              }
-            : {
-                ...taskBase,
-                type,
-                query: this.query!,
-              }
+      }
+      for (let [query, started] of this.startedRequestTasks.entries()) {
+        const startedTypes = Object.keys(started) as (
+          | 'load'
+          | 'manualLoad'
+          | 'subscribe'
+        )[]
+        for (const type of startedTypes) {
+          const [taskId, refs] = started[type]!
+          nextTasks.pending[taskId] = {
+            type,
+            scope: this.scope,
+            refs,
+            taskId,
+            query,
+          }
+        }
       }
     }
 
     return {
       ...prevState,
-      effects: nextEffects,
       scopes: nextRecords,
       tasks: nextTasks,
     }
   }
 
-  recordCacheEffect(
-    [type, id]: ResourceRef<Id>,
-    value: ResourceValue<Data, Rejection> | null | undefined,
-  ) {
-    this.cacheEffects.push({
-      props: this.props,
-      scope: this.scope,
-      type,
-      id,
-      value,
-    })
+  /**
+   * Returns the taskId that the doc was added to
+   */
+  startCacheTask(
+    type: ResourceCacheTask<any, any>['type'],
+    ref: ResourceRef,
+    state: ResourceRefState<Data, Rejection>,
+  ): string {
+    let tuple = this.startedCacheTasks[type]
+    if (!tuple) {
+      tuple = this.startedCacheTasks[type] = [
+        String(this.nextNextTaskId++),
+        [],
+        [],
+      ]
+    }
+    tuple[1].push(ref)
+    tuple[2].push(state)
+    return tuple[0]
   }
 
   /**
    * Returns the taskId that the doc was added to
    */
-  startTasks(type: ResourceTaskType, ref: ResourceRef<Id>): string {
-    let pair = this.startedTasks[type]
-    if (!pair) {
-      pair = this.startedTasks[type] = [String(this.nextNextTaskId++), []]
+  startRequestTasks(
+    type: ResourceRequestTask<any, any>['type'],
+    ref: ResourceRef,
+    query: ResourceQuery<any, Data, Rejection>,
+  ): string {
+    let queryStartedTasks = this.startedRequestTasks.get(query)
+    if (!queryStartedTasks) {
+      this.startedRequestTasks.set(query, (queryStartedTasks = {}))
     }
-    pair[1].push(ref)
-    return pair[0]
+    let tuple = queryStartedTasks[type]
+    if (!tuple) {
+      tuple = queryStartedTasks[type] = [String(this.nextNextTaskId++), []]
+    }
+    tuple[1].push(ref)
+    return tuple[0]
   }
 
-  pauseDocTask(ref: ResourceRef<Id>, taskId: string) {
+  pauseRefTask(ref: ResourceRef, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
     this.nextQueue = this.nextQueue || { ...this.prevState.tasks.queue }
 
-    const docIds = this.nextPausedBy[taskId]
-    if (docIds) {
-      this.nextPausedBy[taskId] = docIds.concat(ref)
+    const refKeys = this.nextPausedBy[taskId]
+    if (refKeys) {
+      this.nextPausedBy[taskId] = refKeys.concat(ref)
     } else {
       this.nextPausedBy[taskId] = [ref]
       this.nextQueue[taskId] = 'pause'
     }
   }
 
-  removeDocsFromTasks(
-    ref: ResourceRef<Id>,
-    prevTasks: ResourceDocState<any, any, any>['tasks'],
-    nextTasks?: ResourceDocState<any, any, any>['tasks'],
+  removeRefsFromTasks(
+    ref: ResourceRef,
+    prevTasks: ResourceRefState<any, any>['tasks'],
+    nextTasks?: ResourceRefState<any, any>['tasks'],
   ) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
@@ -155,35 +181,27 @@ export class ChangeTracker<Data, Rejection, Id> {
       const taskId = prevTasks[type]
       const nextTaskId = nextTasks && nextTasks[type]
       if (taskId && nextTaskId !== taskId) {
-        let docRefs = this.nextPending[taskId].refs
-        if (docRefs === this.prevState.tasks.pending[taskId].refs) {
-          docRefs = docRefs.slice()
+        const taskRefs = this.nextPending[taskId].refs
+        const nextTaskRefs = removeRef(taskRefs, ref)
+        if (nextTaskRefs !== taskRefs) {
           this.nextPending[taskId] = {
             ...this.prevState.tasks.pending[taskId],
-            refs: docRefs,
+            refs: nextTaskRefs,
           }
-        }
 
-        if (
-          docRefs.length === 1 &&
-          docRefs[0][0] === ref[0] &&
-          docRefs[0][1] === ref[1]
-        ) {
-          delete this.nextPending[taskId]
-          delete this.nextPausedBy[taskId]
-          this.nextQueue[taskId] = 'stop'
-        } else {
-          const index = docRefs.indexOf(docId)
-          if (index !== -1) {
-            docRefs.splice(index, 1)
+          if (nextTaskRefs.length === 0) {
+            delete this.nextPending[taskId]
+            delete this.nextPausedBy[taskId]
+            this.nextQueue[taskId] = 'stop'
+          } else {
+            this.attemptToUnpauseTask(taskId, ref)
           }
-          this.attemptToUnpauseTask(taskId, ref)
         }
       }
     }
   }
 
-  unpauseDocTask(ref: ResourceRef<Id>, taskId: string) {
+  unpauseRefTask(ref: ResourceRef, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
@@ -191,21 +209,41 @@ export class ChangeTracker<Data, Rejection, Id> {
     this.attemptToUnpauseTask(taskId, ref)
   }
 
-  private attemptToUnpauseTask(taskId: string, ref: ResourceRef<Id>) {
-    let refs = this.nextPausedBy![taskId]
-    if (refs) {
-      if (refs === this.prevState.tasks.pausedBy[taskId]) {
-        this.nextPausedBy![taskId] = refs = refs.slice()
+  private attemptToUnpauseTask(taskId: string, ref: ResourceRef) {
+    let pausedRefs = this.nextPausedBy![taskId]
+    if (pausedRefs) {
+      if (pausedRefs === this.prevState.tasks.pausedBy[taskId]) {
+        this.nextPausedBy![taskId] = pausedRefs = pausedRefs.slice()
       }
-      if (refs.length === 1 && refs[0] === docId) {
+      const nextPausedRefs = removeRef(pausedRefs, ref)
+      if (nextPausedRefs.length === 0) {
         delete this.nextPausedBy![taskId]
         this.nextQueue![taskId] = 'start'
       } else {
-        const index = refs.indexOf(docId)
-        if (index !== -1) {
-          refs.splice(index, 1)
-        }
+        this.nextPausedBy![taskId] = nextPausedRefs
       }
     }
   }
+}
+
+function removeRef(
+  refs: ResourceRef[],
+  refToRemove: ResourceRef,
+): ResourceRef[] {
+  if (refs.length === 1) {
+    if (refs[0][0] === refToRemove[0] && refs[0][1] === refToRemove[1]) {
+      return []
+    }
+  } else {
+    const index = refs.findIndex(
+      pausedRef =>
+        pausedRef[0] === refToRemove[0] && pausedRef[1] === refToRemove[1],
+    )
+    if (index !== -1) {
+      const result = refs.slice()
+      result.splice(index, 1)
+      return result
+    }
+  }
+  return refs
 }

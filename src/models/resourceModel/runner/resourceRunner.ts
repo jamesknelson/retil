@@ -1,49 +1,36 @@
 import { Reducer, Store, StoreEnhancer, StoreEnhancerStoreCreator } from 'redux'
 
-import {
-  ResourceAction,
-  ResourceEffect,
-  ResourceEffectCallback,
-  ResourceState,
-  ResourceTaskConfig,
-} from '../types'
+import { ResourceAction, ResourceState, ResourceTaskConfig } from '../types'
 
-import { ResourceEffectRunner } from './effectRunner'
 import { ResourceTaskRunner } from './taskRunner'
 
-export interface RunnerConfig<Props extends object, Data, Rejection, Id> {
-  effect?: ResourceEffectCallback<Props, Data, Rejection, Id>
-  tasks: ResourceTaskConfig<Props, Data, Rejection, Id>
+export interface RunnerConfig<Data, Rejection> {
+  tasks: ResourceTaskConfig<Data, Rejection>
 }
 
-export function createResourceRunner<Props extends object, Data, Rejection, Id>(
-  config: RunnerConfig<Props, Data, Rejection, Id>,
+export function createResourceRunner<Data, Rejection>(
+  config: RunnerConfig<Data, Rejection>,
 ) {
   const enhancer = (createStore: StoreEnhancerStoreCreator) => (
     reducer: Reducer<
-      ResourceState<Data, Rejection, Id>,
-      ResourceAction<Data, Rejection, Id>
+      ResourceState<Data, Rejection>,
+      ResourceAction<Data, Rejection>
     >,
     ...args: any[]
   ) => {
     const store = createStore(reducer, ...args) as Store<
-      ResourceState<Data, Rejection, Id>,
-      ResourceAction<Data, Rejection, Id>
+      ResourceState<Data, Rejection>,
+      ResourceAction<Data, Rejection>
     >
 
     let depth = 0
     let processing = false
 
-    let pendingTasks: ResourceState<Data, Rejection, Id>['tasks']['pending']
-    let taskQueue: ResourceState<Data, Rejection, Id>['tasks']['queue'] = {}
+    let pendingTasks: ResourceState<Data, Rejection>['tasks']['pending']
+    let taskQueue: ResourceState<Data, Rejection>['tasks']['queue'] = {}
     let taskQueueIds: string[]
 
-    let pendingEffects = new Map<
-      Id,
-      ResourceEffect<Props, Data, Rejection, Id>
-    >()
-
-    const dispatch = (action: ResourceAction<Data, Rejection, Id>) => {
+    const dispatch = (action: ResourceAction<Data, Rejection>) => {
       ++depth
       store.dispatch(action)
       --depth
@@ -60,12 +47,6 @@ export function createResourceRunner<Props extends object, Data, Rejection, Id>(
           ...state.tasks.queue,
         }
         taskQueueIds = Object.keys(taskQueue)
-        if (effectRunner) {
-          pendingEffects = new Map([
-            ...pendingEffects,
-            ...state.effects.map(effect => [effect.id, effect] as const),
-          ])
-        }
 
         store.dispatch({ type: 'clearQueue' })
 
@@ -74,29 +55,19 @@ export function createResourceRunner<Props extends object, Data, Rejection, Id>(
         if (!processing) {
           processing = true
 
-          while (taskQueueIds.length || pendingEffects.size) {
-            if (taskQueueIds.length) {
-              // Run a task
-              const taskId = taskQueueIds.shift()!
-              const task = pendingTasks[taskId]
-              const queueType = taskQueue[taskId]
+          while (taskQueueIds.length) {
+            // Run a task
+            const taskId = taskQueueIds.shift()!
+            const task = pendingTasks[taskId]
+            const queueType = taskQueue[taskId]
 
-              delete taskQueue[taskId]
+            delete taskQueue[taskId]
 
-              if (task && queueType === 'start') {
-                taskRunner.start(task)
-              } else {
-                // Just stop paused tasks for now.
-                taskRunner.stop(taskId)
-              }
+            if (task && queueType === 'start') {
+              taskRunner.start(task)
             } else {
-              // Run an effect
-              const key = pendingEffects.keys().next().value!
-              const effect = pendingEffects.get(key)!
-              pendingEffects.delete(key)
-              if (effectRunner) {
-                effectRunner.run(effect)
-              }
+              // Just stop paused tasks for now.
+              taskRunner.stop(taskId)
             }
           }
 
@@ -105,8 +76,6 @@ export function createResourceRunner<Props extends object, Data, Rejection, Id>(
       }
     }
 
-    const effectRunner =
-      config.effect && new ResourceEffectRunner(config.effect, dispatch)
     const taskRunner = new ResourceTaskRunner(config.tasks, dispatch)
 
     return {

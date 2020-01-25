@@ -1,54 +1,66 @@
-import { ResourceRef, ResourceState } from '../types'
+import { ResourceRef, ResourceState, ResourceRefState } from '../types'
 
 import { ChangeTracker } from './changeTracker'
 
-export function purge<Data, Rejection, Id>(
-  state: ResourceState<Data, Rejection, Id>,
-  {
-    taskId,
-    refs,
-    scope,
-  }: { taskId: string; refs: ResourceRef<Id>[]; scope: string },
-  stringifyRef: (ref: ResourceRef<Id>) => string,
-): ResourceState<Data, Rejection, Id> {
+export function purge<Data, Rejection>(
+  scope: string,
+  state: ResourceState<Data, Rejection>,
+  refs: ResourceRef[],
+  taskId: string,
+): ResourceState<Data, Rejection> {
   const scopeState = state.scopes[scope]
   if (!scopeState) {
     return state
   }
 
-  const refKeys = refs.map(stringifyRef)
-  const tracker = new ChangeTracker<Data, Rejection, Id>(state, scope)
+  const purgedTypes = new Set<string>()
+  const purgedStates = {} as {
+    [type: string]: {
+      [id: string]: ResourceRefState<Data, Rejection>
+    }
+  }
+  const tracker = new ChangeTracker<Data, Rejection>(state, scope)
 
-  let nextScopeState = scopeState
-  for (let i = 0; i < refKeys.length; i++) {
+  for (let i = 0; i < refs.length; i++) {
     const ref = refs[i]
-    const refKey = refKeys[i]
-    if (scopeState[refKey]) {
-      const tasks = scopeState[refKey].tasks
+    const [type, id] = ref
+    const refState = scopeState[type] && scopeState[type][id]
+    if (refState) {
+      const tasks = refState.tasks
       if (tasks.purge === taskId) {
         // Delay cloning the state until we know we need to,
         // then use this to check if we've made any changes.
-        if (nextScopeState === scopeState) {
-          nextScopeState = { ...nextScopeState }
+        if (!purgedTypes.has(type)) {
+          purgedStates[type] = { ...scopeState[type] }
+          purgedTypes.add(type)
         }
-        delete nextScopeState[refKey]
 
-        tracker.recordCacheEffect(ref, undefined)
-        tracker.removeDocsFromTasks(ref, tasks)
+        delete purgedStates[type][id]
+
+        tracker.removeRefsFromTasks(ref, tasks)
       }
     }
   }
 
-  if (nextScopeState === scopeState) {
+  if (purgedTypes.size === 0) {
     return state
   }
 
-  const nextRecords = { ...state.scopes }
-  if (Object.keys(nextScopeState).length === 0) {
-    delete nextRecords[scope]
-  } else {
-    nextRecords[scope] = nextScopeState
+  const nextScopeState = { ...scopeState }
+  for (let type of purgedTypes.values()) {
+    if (Object.keys(purgedStates[type]).length === 0) {
+      delete nextScopeState[type]
+    } else {
+      nextScopeState[type] = purgedStates[type]
+    }
   }
 
-  return tracker.buildNextState(nextRecords)
+  const nextScopeStates = { ...state.scopes }
+  if (Object.keys(nextScopeState).length === 0) {
+    delete nextScopeStates[scope]
+  } else {
+    nextScopeStates[scope] = nextScopeState
+  }
+
+  return tracker.buildNextState(nextScopeStates)
 }

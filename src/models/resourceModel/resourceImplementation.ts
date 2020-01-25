@@ -6,25 +6,25 @@ import { shallowCompare } from '../../utils/shallowCompare'
 import { InitialDocState } from './constants'
 import { ResourceKeyControllerImplementation } from './resourceKeyControllerImplementation'
 import {
-  Resource,
+  ResourceCache,
   ResourceAction,
-  ResourceDocController,
-  ResourceDocOptions,
+  ResourceRefsOutlet,
+  ResourceQueryOptions,
   ResourceDoc,
-  ResourceDocState,
+  ResourceRefState,
   ResourceRequestPolicy,
   ResourceState,
 } from './types'
 
-export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
+export class ResourceImplementation<Data, Key>
+  implements ResourceCache<Data, Key> {
   private memoizedKey: {
     key: Key
-    options: ResourceDocOptions<Data, Key>
-    pair: Readonly<[Outlet<any>, ResourceDocController<Data, Key>]>
+    options: ResourceQueryOptions<Data, Key>
+    pair: Readonly<[Outlet<any>, ResourceRefsOutlet<Data, Key>]>
   }
 
   constructor(
-    private computeHashForKey: (key: Key) => string,
     private context: any,
     private defaultRequestPolicy: ResourceRequestPolicy | null,
     private dispatch: (action: ResourceAction<Data, Key>) => void,
@@ -32,12 +32,10 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     private path: string,
   ) {}
 
-  doc(
+  query(
     key: Key,
-    optionsWithoutDefaults: ResourceDocOptions<Data, Key> = {},
-  ): Readonly<
-    [Outlet<ResourceDoc<Data, Key>>, ResourceDocController<Data, Key>]
-  > {
+    optionsWithoutDefaults: ResourceQueryOptions<Data, Key> = {},
+  ): Readonly<[Outlet<ResourceDoc<Data, Key>>, ResourceRefsOutlet<Data, Key>]> {
     const options = {
       requestPolicy: this.defaultRequestPolicy,
       ...optionsWithoutDefaults,
@@ -106,7 +104,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
     })
 
     const getOutput: any = memoizeOne(
-      (keyState: ResourceDocState<Data, Key>) =>
+      (keyState: ResourceRefState<Data, Key>) =>
         new ResourceKeyImplementation(
           keyState,
           options.requestPolicy !== null,
@@ -138,7 +136,7 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
         )
   }
 
-  collection(path: string): Resource<Data, Key> {
+  collection(path: string): ResourceCache<Data, Key> {
     if (path.indexOf('/') !== -1) {
       throw new Error(
         `Resource Error: "/" cannot be used in paths; it is a reserved character.`,
@@ -156,72 +154,8 @@ export class ResourceImplementation<Data, Key> implements Resource<Data, Key> {
   }
 }
 
-export class ResourceKeyImplementation<Data, Key>
-  implements ResourceDoc<Data, Key> {
-  constructor(
-    readonly state: ResourceDocState<Data, Key>,
-    private hasRequestPolicy: boolean,
-    private waitForValue: () => Promise<any>,
-  ) {}
-
-  get abandoned(): boolean {
-    return this.primed && !this.state.value
-  }
-
-  data(): Data {
-    if (!this.primed) {
-      throw this.waitForValue()
-    }
-    if (!this.state.value || this.state.value.type !== 'data') {
-      throw new Error(
-        `Resource Error: no data is available. To prevent this error, ensure ` +
-          `that the "hasData" property is true before accessing "data".`,
-      )
-    }
-    return this.state.value.data
-  }
-
-  get hasData(): boolean {
-    return !!this.state.value && this.state.value.type === 'data'
-  }
-
-  get invalidated(): boolean {
-    return !!this.state.invalidated
-  }
-
-  get id(): Key {
-    return this.state.id
-  }
-
-  get pending(): boolean {
-    return isPending(this.state, this.hasRequestPolicy)
-  }
-
-  get primed(): boolean {
-    return isPrimed(this.state, this.hasRequestPolicy)
-  }
-
-  rejection(): any {
-    if (!this.primed) {
-      throw this.waitForValue()
-    }
-    if (!this.state.value || this.state.value.type !== 'rejection') {
-      throw new Error(
-        `Resource Error: no inaccessible reason is available. To prevent this ` +
-          `error, ensure that the "hasRejection" property is true before accessing ` +
-          `"rejection".`,
-      )
-    }
-    return this.state.value.rejection
-  }
-
-  get hasRejection(): boolean {
-    return !!this.state.value && this.state.value.type === 'rejection'
-  }
-}
-
 function isPending(
-  state: ResourceDocState<any, any>,
+  state: ResourceRefState<any, any>,
   hasRequestPolicy: boolean,
 ) {
   return !!(
@@ -238,7 +172,7 @@ function isPending(
 }
 
 function isPrimed(
-  state: ResourceDocState<any, any>,
+  state: ResourceRefState<any, any>,
   hasRequestPolicy: boolean,
 ) {
   return !(

@@ -1,68 +1,54 @@
-import {
-  ResourceDocState,
-  ResourceState,
-  ResourceRef,
-  ResourceQuery,
-} from '../types'
+import { ResourceRefState, ResourceState, ResourceRef } from '../types'
 
-import { InitialDocState } from '../constants'
+import {
+  DefaultModifierPolicies,
+  DefaultRequestPolicies,
+  InitialDocState,
+} from '../constants'
 import { ChangeTracker } from './changeTracker'
 
-export type MapMergeCallback<Data, Rejection, Id> = (
-  keyState: ResourceDocState<Data, Rejection, Id>,
+export type MapMergeCallback<Data, Rejection> = (
+  recordState: ResourceRefState<Data, Rejection>,
   index: number,
-  tracker: ChangeTracker<Data, Rejection, Id>,
-) => undefined | false | Partial<ResourceDocState<Data, Rejection, Id>>
+  tracker: ChangeTracker<Data, Rejection>,
+) => undefined | false | Partial<ResourceRefState<Data, Rejection>>
 
-export function mapMerge<Data, Rejection, Id>(
-  state: ResourceState<Data, Rejection, Id>,
-  props: any,
+export function mapMerge<Data, Rejection>(
   scope: string,
-  refs: ResourceRef<Id>[],
-  stringifyRef: (ref: ResourceRef<Id>) => string,
-  query: ResourceQuery<Id> | undefined,
-  callback: MapMergeCallback<Data, Rejection, Id>,
-): ResourceState<Data, Rejection, Id> {
-  const tracker = new ChangeTracker<Data, Rejection, Id>(
-    state,
-    scope,
-    props,
-    query,
-  )
-  const keyHashes = refs.map(stringifyRef)
+  state: ResourceState<Data, Rejection>,
+  refs: readonly ResourceRef[],
+  callback: MapMergeCallback<Data, Rejection>,
+): ResourceState<Data, Rejection> {
+  const tracker = new ChangeTracker<Data, Rejection>(state, scope)
   const scopeState = state.scopes[scope] || {}
-  let nextScopeState = scopeState
+
+  let updatedTypes = new Set<string>()
+  let updates = {} as {
+    [type: string]: {
+      [stringifiedId: string]: ResourceRefState<Data, Rejection>
+    }
+  }
 
   let i = 0
-  let hashIndex = 0
-  outer: for (i = 0; i < keyHashes.length; i++) {
-    const hash = keyHashes[i]
-    const hashKeyStates = scopeState[hash]
-    let existingKeyState: ResourceDocState<Data, Rejection, Id> | undefined
-    let nextKeyState: ResourceDocState<Data, Rejection, Id> | undefined
-    if (hashKeyStates) {
-      for (hashIndex = 0; hashIndex < hashKeyStates.length; hashIndex++) {
-        const key = hashKeyStates[hashIndex].id
-        if (key === refs[i]) {
-          existingKeyState = hashKeyStates[hashIndex]
-          const mergeKeyState = callback(existingKeyState, i, tracker)
-          if (mergeKeyState && mergeKeyState !== existingKeyState) {
-            nextKeyState = {
-              ...existingKeyState,
-              ...mergeKeyState,
-            }
-            break
-          } else {
-            continue outer
-          }
+  for (i = 0; i < refs.length; i++) {
+    const ref = refs[i]
+    const [type, id] = ref
+    const stringifiedId = String(id)
+    let existingRefState: ResourceRefState<Data, Rejection> | undefined =
+      scopeState[type] && scopeState[type][id]
+    let nextRefState: ResourceRefState<Data, Rejection> | undefined
+    if (existingRefState) {
+      const mergeRefState = callback(existingRefState, i, tracker)
+      if (mergeRefState && mergeRefState !== existingRefState) {
+        nextRefState = {
+          ...existingRefState,
+          ...mergeRefState,
         }
       }
-    }
-
-    if (!existingKeyState) {
+    } else {
       const initialState = {
         ...InitialDocState,
-        key: refs[i],
+        ref: refs[i],
       }
       const mergeState = callback(initialState, i, tracker)
       if (
@@ -70,26 +56,37 @@ export function mapMerge<Data, Rejection, Id>(
         mergeState !== initialState &&
         (mergeState.value || !canPurge(mergeState))
       ) {
-        nextKeyState = {
+        nextRefState = {
           ...initialState,
           ...mergeState,
         }
       }
     }
 
-    if (!nextKeyState) {
+    if (!nextRefState) {
       continue
     }
 
-    const { invalidated, id: key, policies, tasks, value } = nextKeyState
-    const existingPolicies = existingKeyState
-      ? existingKeyState.policies
-      : InitialDocState.policies
-    const nextTasks = (nextKeyState.tasks = { ...tasks })
+    const {
+      invalidated,
+      modifierPolicies,
+      request,
+      tasks,
+      value,
+    } = nextRefState
+    const existingRequestPolicies =
+      existingRefState && existingRefState.request
+        ? existingRefState.request.policies
+        : DefaultRequestPolicies
+    const requestPolicies = request ? request.policies : DefaultRequestPolicies
+    const existingModifierPolicies = existingRefState
+      ? existingRefState.modifierPolicies
+      : InitialDocState.modifierPolicies
+    const nextTasks = (nextRefState.tasks = { ...tasks })
 
-    if (canPurge(nextKeyState)) {
+    if (canPurge(nextRefState)) {
       if (tasks.purge === null) {
-        nextTasks.purge = tracker.startTasks('purge', key)
+        nextTasks.purge = tracker.startCacheTask('purge', ref, nextRefState)
       }
     } else {
       if (tasks.purge) {
@@ -97,78 +94,91 @@ export function mapMerge<Data, Rejection, Id>(
       }
 
       if (tasks.load) {
-        if (policies.loadInvalidated + policies.loadOnce === 0) {
+        if (requestPolicies.loadInvalidated + requestPolicies.loadOnce === 0) {
           nextTasks.load = null
         } else {
           const pausePolicies =
-            policies.expectingExternalUpdate + policies.pauseLoad
+            modifierPolicies.expectingExternalUpdate +
+            modifierPolicies.pauseLoad
           const existingPausePolicies =
-            existingPolicies.expectingExternalUpdate +
-            existingPolicies.pauseLoad
+            existingModifierPolicies.expectingExternalUpdate +
+            existingModifierPolicies.pauseLoad
           if (pausePolicies && !existingPausePolicies) {
-            tracker.pauseDocTask(key, tasks.load)
+            tracker.pauseRefTask(ref, tasks.load)
           } else if (!pausePolicies && existingPausePolicies) {
-            tracker.unpauseDocTask(key, tasks.load)
+            tracker.unpauseRefTask(ref, tasks.load)
           }
         }
       } else if (
         tasks.load === null &&
         tasks.manualLoad === null &&
-        !policies.expectingExternalUpdate &&
-        !policies.pauseLoad &&
-        ((policies.loadInvalidated && (invalidated || !value)) ||
-          (policies.loadOnce && !existingPolicies.loadOnce))
+        !modifierPolicies.expectingExternalUpdate &&
+        !modifierPolicies.pauseLoad &&
+        ((requestPolicies.loadInvalidated && (invalidated || !value)) ||
+          (requestPolicies.loadOnce && !existingRequestPolicies.loadOnce))
       ) {
-        nextTasks.load = tracker.startTasks('load', key)
+        nextTasks.load = tracker.startRequestTasks('load', ref, request!.query)
       }
 
       if (tasks.invalidate) {
-        if (invalidated || (policies.subscribe && tasks.subscribe !== false)) {
+        if (
+          invalidated ||
+          (requestPolicies.subscribe && tasks.subscribe !== false)
+        ) {
           nextTasks.invalidate = null
         }
       } else if (
         tasks.invalidate === null &&
         value &&
         !invalidated &&
-        (!policies.subscribe || tasks.subscribe === false)
+        (!requestPolicies.subscribe || tasks.subscribe === false)
       ) {
-        nextTasks.invalidate = tracker.startTasks('invalidate', key)
+        nextTasks.invalidate = tracker.startCacheTask(
+          'invalidate',
+          ref,
+          nextRefState,
+        )
       }
 
       if (tasks.subscribe) {
-        if (!policies.subscribe) {
+        if (!requestPolicies.subscribe) {
           nextTasks.subscribe = null
         }
-      } else if (tasks.subscribe === null && policies.subscribe) {
-        nextTasks.subscribe = tracker.startTasks('subscribe', key)
+      } else if (tasks.subscribe === null && requestPolicies.subscribe) {
+        nextTasks.subscribe = tracker.startRequestTasks(
+          'subscribe',
+          ref,
+          request!.query,
+        )
       }
     }
 
-    if (existingKeyState && existingKeyState.tasks !== nextKeyState.tasks) {
-      tracker.removeDocsFromTasks(
-        key,
-        existingKeyState.tasks,
-        nextKeyState.tasks,
+    if (existingRefState && existingRefState.tasks !== nextRefState.tasks) {
+      tracker.removeRefsFromTasks(
+        ref,
+        existingRefState.tasks,
+        nextRefState.tasks,
       )
     }
-    if (!existingKeyState || existingKeyState.value !== value) {
-      tracker.recordCacheEffect(key, value)
-    }
 
-    // Delay cloning the state until we know we need to, as this could be a
-    // pretty large object.
-    if (nextScopeState === scopeState) {
-      nextScopeState = { ...scopeState }
+    updatedTypes.add(type)
+    if (!updates[type]) {
+      updates[type] = {}
     }
-    if (nextScopeState[hash] === scopeState[hash]) {
-      nextScopeState[hash] = scopeState[hash] ? scopeState[hash].slice() : []
-    }
-    nextScopeState[hash][hashIndex] = nextKeyState
+    updates[type][stringifiedId] = nextRefState
   }
 
-  if (nextScopeState === scopeState) {
+  if (updatedTypes.size === 0) {
     // No changes to records means no changes to tasks either, so bail early.
     return state
+  }
+
+  const nextScopeState = { ...scopeState }
+  for (let type of updatedTypes.values()) {
+    nextScopeState[type] = {
+      ...scopeState[type],
+      ...updates[type],
+    }
   }
 
   return tracker.buildNextState({
@@ -178,21 +188,20 @@ export function mapMerge<Data, Rejection, Id>(
 }
 
 function canPurge({
-  policies,
+  modifierPolicies = DefaultModifierPolicies,
+  request: resource,
   tasks,
-}: Partial<ResourceDocState<any, any, any>>): boolean {
+}: Partial<ResourceRefState<any, any>>): boolean {
+  const requestPolicies = resource ? resource.policies : DefaultRequestPolicies
   return (
     !(tasks && tasks.manualLoad) &&
     !(
-      policies &&
-      !!(
-        policies.keep +
-        policies.expectingExternalUpdate +
-        policies.loadInvalidated +
-        policies.loadOnce +
-        policies.pauseLoad +
-        policies.subscribe
-      )
+      modifierPolicies.keep +
+      modifierPolicies.expectingExternalUpdate +
+      requestPolicies.loadInvalidated +
+      requestPolicies.loadOnce +
+      modifierPolicies.pauseLoad +
+      requestPolicies.subscribe
     )
   )
 }
