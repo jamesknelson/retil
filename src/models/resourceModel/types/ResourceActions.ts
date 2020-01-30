@@ -3,18 +3,18 @@ import { Dispose } from '../../../store'
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQuery } from './ResourceQuery'
 import { ResourceRef } from './ResourceRef'
-import { ResourceValueUpdate } from './ResourceValue'
+import { ResourceSchema } from './ResourceSchema'
+import { ResourceUpdate } from './ResourceUpdates'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
 
 // Utility for getting a specific action type's object
 export type ResourceActionOfType<
-  Data,
-  Rejection,
-  Type extends ResourceAction<Data, Rejection>['type']
-> = NarrowAction<ResourceAction<Data, Rejection>, Type>
+  Schema extends ResourceSchema,
+  Type extends ResourceAction<Schema>['type']
+> = NarrowAction<ResourceAction<Schema>, Type>
 
-export type ResourceAction<Data, Rejection> =
+export type ResourceAction<Schema extends ResourceSchema> =
   | { type: Dispose }
   | AbandonTask
   | ApplyModifiersAction
@@ -25,7 +25,7 @@ export type ResourceAction<Data, Rejection> =
   | ManualLoadAction
   | PurgeAction
   | RegisterQueryAction
-  | UpdateValueAction<Data, Rejection>
+  | UpdateValueAction<Schema>
 
 /**
  * Mark that the given the given task can be stopped, and should not be
@@ -43,7 +43,7 @@ type AbandonTask = {
 type ApplyModifiersAction = {
   type: 'applyModifiers'
   scope: string
-  refs: ResourceRef[]
+  refs: ResourceRef<any>[]
 
   keep?: number
   pause?: number
@@ -81,7 +81,7 @@ type ErrorAction = {
 type InvalidateAction = {
   type: 'invalidate'
   scope?: string
-  refs: ResourceRef[]
+  refs: ResourceRef<any>[]
   taskId: string | null
 }
 
@@ -100,7 +100,7 @@ type ManualLoadAction = {
  */
 type PurgeAction = {
   type: 'purge'
-  refs: ResourceRef[]
+  refs: ResourceRef<any>[]
   taskId: string
 }
 
@@ -115,26 +115,12 @@ type RegisterQueryAction = {
 }
 
 /**
- * Negate the affects of a corresponding pause action.
- */
-type ResumePauseAction = {
-  type: 'resumePause'
-  scope: string
-  pending: boolean
-  refs: ResourceRef[]
-}
-
-/**
  * Updates stored values.
  */
-type UpdateValueAction<Data, Rejection> = {
+type UpdateValueAction<Schema extends ResourceSchema> = {
   type: 'updateValue'
   scope?: string
   taskId: string | null
   timestamp: number
-  updates: (readonly [
-    string,
-    string | number,
-    ResourceValueUpdate<Data, Rejection>,
-  ])[]
+  updates: ResourceUpdate<Schema, keyof Schema>[]
 }

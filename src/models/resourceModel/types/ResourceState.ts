@@ -1,31 +1,31 @@
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceRef } from './ResourceRef'
+import { ResourceSchema } from './ResourceSchema'
 import { ResourceTask, ResourceTaskQueueType } from './ResourceTasks'
-import { ResourceValue } from './ResourceValue'
 import { ResourceQuery } from './ResourceQuery'
 
-export interface ResourceState<Data, Rejection> {
+export interface ResourceState<Schema extends ResourceSchema> {
   /**
    * If set, indicates that an unrecoverable exception has occured.
    */
   error?: any
 
   scopes: {
-    [scope: string]: ResourceScopeState<Data, Rejection>
+    [scope: string]: ResourceScopeState<Schema>
   }
 
   tasks: {
     nextId: number
 
     pausedBy: {
-      [taskId: string]: ResourceRef[]
+      [taskId: string]: ResourceRef<Schema>[]
     }
 
     /**
      * Holds all tasks that haven't yet been stopped.
      */
     pending: {
-      [taskId: string]: ResourceTask<Data, Rejection>
+      [taskId: string]: ResourceTask<Schema>
     }
 
     /**
@@ -43,13 +43,16 @@ export interface ResourceState<Data, Rejection> {
   }
 }
 
-export type ResourceScopeState<Data, Rejection> = {
-  [type: string]: {
-    [stringifiedId: string]: ResourceRefState<Data, Rejection>
+export type ResourceScopeState<Schema extends ResourceSchema> = {
+  [Type in keyof Schema]: {
+    [stringifiedId: string]: ResourceRefState<Schema, Type>
   }
 }
 
-export interface ResourceRefState<Data, Rejection> {
+export interface ResourceRefState<
+  Schema extends ResourceSchema,
+  Type extends keyof Schema = keyof Schema
+> {
   modifiers: {
     /**
      * Specifies that the resource should be held in cache, even if there are
@@ -80,10 +83,10 @@ export interface ResourceRefState<Data, Rejection> {
   /**
    * The document's primary key.
    */
-  ref: ResourceRef
+  ref: ResourceRef<Schema, Type>
 
   request: null | {
-    query: ResourceQuery<any, Data, Rejection>
+    query: ResourceQuery<any, Schema>
     policies: {
       [Policy in ResourceRequestPolicy]: number
     }
@@ -103,5 +106,12 @@ export interface ResourceRefState<Data, Rejection> {
   /**
    * Stores the latest data or rejection associated with this key.
    */
-  value: ResourceValue<Data, Rejection> | null
+  value: ResourceRefValue<Schema, Type>
 }
+
+export type ResourceRefValue<
+  Schema extends ResourceSchema,
+  Type extends keyof Schema
+> =
+  | { type: 'data'; data: Schema[Type][0]; timestamp: number }
+  | { type: 'rejection'; rejection: Schema[Type][1]; timestamp: number }

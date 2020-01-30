@@ -1,36 +1,38 @@
 import { Reducer, Store, StoreEnhancer, StoreEnhancerStoreCreator } from 'redux'
 
-import { ResourceAction, ResourceState, ResourceTaskConfig } from '../types'
+import {
+  ResourceAction,
+  ResourceSchema,
+  ResourceState,
+  ResourceTaskConfig,
+} from '../types'
 
 import { ResourceTaskRunner } from './taskRunner'
 
-export interface RunnerConfig<Data, Rejection> {
-  tasks: ResourceTaskConfig<Data, Rejection>
+export interface RunnerConfig<Schema extends ResourceSchema> {
+  tasks: ResourceTaskConfig<Schema>
 }
 
-export function createResourceRunner<Data, Rejection>(
-  config: RunnerConfig<Data, Rejection>,
+export function createResourceRunner<Schema extends ResourceSchema>(
+  config: RunnerConfig<Schema>,
 ) {
   const enhancer = (createStore: StoreEnhancerStoreCreator) => (
-    reducer: Reducer<
-      ResourceState<Data, Rejection>,
-      ResourceAction<Data, Rejection>
-    >,
+    reducer: Reducer<ResourceState<Schema>, ResourceAction<Schema>>,
     ...args: any[]
   ) => {
     const store = createStore(reducer, ...args) as Store<
-      ResourceState<Data, Rejection>,
-      ResourceAction<Data, Rejection>
+      ResourceState<Schema>,
+      ResourceAction<Schema>
     >
 
     let depth = 0
     let processing = false
 
-    let pendingTasks: ResourceState<Data, Rejection>['tasks']['pending']
-    let taskQueue: ResourceState<Data, Rejection>['tasks']['queue'] = {}
+    let pendingTasks: ResourceState<Schema>['tasks']['pending']
+    let taskQueue: ResourceState<Schema>['tasks']['queue'] = {}
     let taskQueueIds: string[]
 
-    const dispatch = (action: ResourceAction<Data, Rejection>) => {
+    const dispatch = (action: ResourceAction<Schema>) => {
       ++depth
       store.dispatch(action)
       --depth

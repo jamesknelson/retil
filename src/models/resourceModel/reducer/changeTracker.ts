@@ -75,6 +75,7 @@ export class ChangeTracker<Data, Rejection> {
       )[]
       for (const type of startedCacheTaskTypes) {
         const [taskId, refs, states] = this.startedCacheTasks[type]!
+        nextTasks.queue[taskId] = 'start'
         nextTasks.pending[taskId] = {
           type,
           scope: this.scope,
@@ -91,6 +92,7 @@ export class ChangeTracker<Data, Rejection> {
         )[]
         for (const type of startedTypes) {
           const [taskId, refs] = started[type]!
+          nextTasks.queue[taskId] = 'start'
           nextTasks.pending[taskId] = {
             type,
             scope: this.scope,

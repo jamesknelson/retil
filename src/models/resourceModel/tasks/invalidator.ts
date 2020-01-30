@@ -1,8 +1,8 @@
-import { ResourceInvalidator } from '../types'
+import { ResourceInvalidator, ResourceSchema } from '../types'
 
-export function createInvalidator<Data, Rejection = string>(options: {
+export function createInvalidator<Schema extends ResourceSchema>(options: {
   intervalFromTimestamp?: number
-}): ResourceInvalidator<Data, Rejection> {
+}): ResourceInvalidator<Schema> {
   return ({ invalidate, states }) => {
     let intervalFromTimestampTimeout: any
 

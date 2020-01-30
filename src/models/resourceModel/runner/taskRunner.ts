@@ -3,29 +3,30 @@ import AbortController from 'abort-controller'
 import {
   ResourceAction,
   ResourceCacheTask,
-  ResourceQueryDataUpdates,
-  ResourceQueryRejectionUpdates,
+  ResourceDataUpdate,
+  ResourceRejectionUpdate,
   ResourceRequestTask,
   ResourceRef,
+  ResourceSchema,
   ResourceTask,
   ResourceTaskConfig,
 } from '../types'
 
-export class ResourceTaskRunner<Data, Rejection> {
-  private config: ResourceTaskConfig<Data, Rejection>
-  private dispatch: (action: ResourceAction<Data, Rejection>) => void
+export class ResourceTaskRunner<Schema extends ResourceSchema> {
+  private config: ResourceTaskConfig<Schema>
+  private dispatch: (action: ResourceAction<Schema>) => void
   private stoppers: { [taskId: string]: () => void }
 
   constructor(
-    config: ResourceTaskConfig<Data, Rejection>,
-    dispatch: (action: ResourceAction<Data, Rejection>) => void,
+    config: ResourceTaskConfig<Schema>,
+    dispatch: (action: ResourceAction<Schema>) => void,
   ) {
     this.config = config
     this.dispatch = dispatch
     this.stoppers = {}
   }
 
-  start(task: ResourceTask<Data, Rejection>) {
+  start(task: ResourceTask<Schema>) {
     switch (task.type) {
       case 'invalidate':
         return this.invalidate(task)
@@ -51,11 +52,11 @@ export class ResourceTaskRunner<Data, Rejection> {
     }
   }
 
-  private invalidate(task: ResourceCacheTask<Data, Rejection>) {
+  private invalidate(task: ResourceCacheTask<Schema>) {
     if (this.config.invalidate) {
       let running = false
 
-      const invalidate = (refs: ResourceRef[] = task.refs) => {
+      const invalidate = (refs: ResourceRef<Schema>[] = task.refs) => {
         if (running) {
           throw new Error(
             'Resource Error: an invalidator called its invalidate function ' +
@@ -94,7 +95,7 @@ export class ResourceTaskRunner<Data, Rejection> {
     }
   }
 
-  private load(task: ResourceRequestTask<Data, Rejection>) {
+  private load(task: ResourceRequestTask<Schema>) {
     if (task.query.load) {
       const abortController = new AbortController()
 
@@ -120,9 +121,9 @@ export class ResourceTaskRunner<Data, Rejection> {
     }
   }
 
-  private purge(task: ResourceCacheTask<Data, Rejection>) {
+  private purge(task: ResourceCacheTask<Schema>) {
     if (this.config.purge) {
-      const purge = (refs: ResourceRef[] = task.refs) => {
+      const purge = (refs: ResourceRef<Schema>[] = task.refs) => {
         // Always purge asynchronously
         setTimeout(() => {
           this.dispatch({
@@ -156,7 +157,7 @@ export class ResourceTaskRunner<Data, Rejection> {
     }
   }
 
-  private subscribe(task: ResourceRequestTask<Data, Rejection>) {
+  private subscribe(task: ResourceRequestTask<Schema>) {
     if (task.query.subscribe) {
       try {
         const stopper = task.query.subscribe({
@@ -180,7 +181,7 @@ export class ResourceTaskRunner<Data, Rejection> {
     }
   }
 
-  private handleAbandon(task: ResourceTask<Data, Rejection>) {
+  private handleAbandon(task: ResourceTask<Schema>) {
     this.dispatch({
       ...task,
       type: 'abandonTask',
@@ -196,8 +197,8 @@ export class ResourceTaskRunner<Data, Rejection> {
   }
 
   private handleSetData(
-    task: ResourceRequestTask<Data, Rejection>,
-    updates: ResourceQueryDataUpdates<Data>,
+    task: ResourceRequestTask<Schema>,
+    updates: ResourceDataUpdate<Schema, keyof Schema>[],
   ) {
     if (this.stoppers[task.taskId]) {
       this.dispatch({
@@ -218,8 +219,8 @@ export class ResourceTaskRunner<Data, Rejection> {
   }
 
   private handleSetRejection(
-    task: ResourceRequestTask<Data, Rejection>,
-    rejections: ResourceQueryRejectionUpdates<Rejection>,
+    task: ResourceRequestTask<Schema>,
+    rejections: ResourceRejectionUpdate<Schema, keyof Schema>[],
   ) {
     if (this.stoppers[task.taskId]) {
       this.dispatch({

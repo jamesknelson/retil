@@ -2,10 +2,24 @@ import { Outlet } from '../../../outlets'
 
 import { ResourceCache } from './Resource'
 import { ResourceRef } from './ResourceRef'
+import { ResourceSchema } from './ResourceSchema'
 import { ResourceRefState } from './ResourceState'
-import { ResourceDataUpdate } from './ResourceValue'
+import { ResourceDataUpdate, ResourceRejectionUpdate } from './ResourceUpdates'
 
-export interface ResourceQuery<Result = any, Data = any, Rejection = any> {
+export interface ResourceQueryType<
+  Result = any,
+  Variables = any,
+  Context extends object = any,
+  Schema extends ResourceSchema = any
+> {
+  (variables: Variables, context: Context): ResourceQuery<Result, Schema>
+}
+
+export interface ResourceQuery<
+  Result = any,
+  Schema extends ResourceSchema = any,
+  RefTypes extends (keyof Schema)[] = any
+> {
   /**
    * Specifies all data required by the query that isn't loaded by subscribing
    * to another query within `mapStateToResult`. Note that this data *may not*
@@ -14,14 +28,20 @@ export interface ResourceQuery<Result = any, Data = any, Rejection = any> {
    * returned. This way, there only needs to be *one* network task active for
    * these refs, even if there are multiple queries.
    */
-  refs: readonly ResourceRef[]
+  readonly refs: readonly ResourceRef<Schema>[]
 
   select(
     // A sub for the state of the query's specified refs
-    subs: Outlet<ResourceRefState<Data, Rejection>[]>,
+    subs: {
+      [Index in Extract<keyof RefTypes, number>]: Outlet<{
+        state: ResourceRefState<Schema, RefTypes[Index]>
+        pending: boolean
+        primed: boolean
+      }>
+    },
     // The cache object from which this query was made, allowing you to make
     // nested queries.
-    cache: ResourceCache<any, Data, Rejection>,
+    cache: ResourceCache<any, Schema>,
   ): Outlet<Result>
 
   load?: (options: {
@@ -38,12 +58,16 @@ export interface ResourceQuery<Result = any, Data = any, Rejection = any> {
      * to use `setRejection` instead -- as rejections can be recovered from.
      */
     error: (error: any) => void
-    setData: (updates: ResourceQueryDataUpdates<Data>) => void
+    setData: <Types extends keyof Schema>(
+      updates: ResourceDataUpdate<Schema, Types>[],
+    ) => void
     /**
      * Allows you to mark the reason that the server did not provide data for a
      * requested key, e.g. it's not found (404), forbidden (403), etc.
      */
-    setRejection: (rejections: ResourceQueryRejectionUpdates<Rejection>) => void
+    setRejection: <Types extends keyof Schema>(
+      rejections: ResourceRejectionUpdate<Schema, Types>[],
+    ) => void
   }) => void | undefined | (() => void)
 
   subscribe?: (options: {
@@ -59,23 +83,15 @@ export interface ResourceQuery<Result = any, Data = any, Rejection = any> {
      */
     error: (error: any) => void
 
-    setData: (updates: ResourceQueryDataUpdates<Data>) => void
+    setData: <Types extends keyof Schema>(
+      updates: ResourceDataUpdate<Schema, Types>[],
+    ) => void
     /**
      * Allows you to mark the reason that the server did not provide data for a
      * requested key, e.g. it's not found (404), forbidden (403), etc.
      */
-    setRejection: (rejections: ResourceQueryRejectionUpdates<Rejection>) => void
+    setRejection: <Types extends keyof Schema>(
+      rejections: ResourceRejectionUpdate<Schema, Types>[],
+    ) => void
   }) => () => void
 }
-
-export type ResourceQueryDataUpdates<Data> = (readonly [
-  /* type */ string,
-  /* id */ string | number,
-  ResourceDataUpdate<Data>,
-])[]
-
-export type ResourceQueryRejectionUpdates<Rejection> = (readonly [
-  /* type */ string,
-  /* id */ string | number,
-  Rejection,
-])[]

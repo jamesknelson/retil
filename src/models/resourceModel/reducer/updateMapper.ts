@@ -1,4 +1,8 @@
-import { ResourceRefState, ResourceValueUpdate } from '../types'
+import {
+  ResourceRefState,
+  ResourceSchema,
+  ResourceValueUpdater,
+} from '../types'
 
 import { MapMergeCallback } from './mapMerge'
 
@@ -8,7 +12,7 @@ export function createUpdateMapper<Data, Rejection>(
   updates: (readonly [
     string,
     string | number,
-    ResourceValueUpdate<Data, Rejection>,
+    ResourceValueUpdater<Data, Rejection>,
   ])[],
 ) {
   const updateMapper: MapMergeCallback<Data, Rejection> = (

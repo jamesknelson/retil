@@ -3,14 +3,15 @@ import { Outlet, createOutlet } from '../../outlets'
 import { stringifyVariables } from '../../utils/stringifyVariables'
 
 import { InitialDocState } from './constants'
-import { ResourceSubActions } from './resourceDispatchers'
+import { ResourceCacheActions } from './resourceCacheActions'
 import {
-  Resource,
+  ResourceQueryType,
   ResourceCache,
   ResourceAction,
   ResourceQueryOptions,
   ResourceQueryOutlet,
   ResourceRef,
+  ResourceRefState,
   ResourceRefsOutlet,
   ResourceRequestPolicy,
   ResourceState,
@@ -22,7 +23,7 @@ export class ResourceCacheImplementation<
   Rejection
 > implements ResourceCache<Context, Data, Rejection> {
   private memoizedQueries: Map<
-    Resource<any, any, Context, Data, Rejection>,
+    ResourceQueryType<any, any, Context, Data, Rejection>,
     LRU<
       string,
       {
@@ -43,7 +44,7 @@ export class ResourceCacheImplementation<
   }
 
   query<Result, Variables>(
-    resource: Resource<Result, Variables, Context, Data, Rejection>,
+    type: ResourceQueryType<Result, Variables, Context, Data, Rejection>,
     optionsWithoutDefaults: ResourceQueryOptions<Variables> = {},
   ): ResourceQueryOutlet<Result> {
     const options = {
@@ -55,9 +56,9 @@ export class ResourceCacheImplementation<
     // If we've recently created a sub for this resource and variables,
     // then re-use it instead of creating a new one from scratch.
     const stringifiedVariables = stringifyVariables(variables)
-    let resourceMemos = this.memoizedQueries.get(resource)
+    let resourceMemos = this.memoizedQueries.get(type)
     if (!resourceMemos) {
-      this.memoizedQueries.set(resource, (resourceMemos = new LRU(100)))
+      this.memoizedQueries.set(type, (resourceMemos = new LRU(100)))
     }
     const memoizedQuery = resourceMemos.get(stringifiedVariables)
     if (
@@ -67,7 +68,7 @@ export class ResourceCacheImplementation<
       return memoizedQuery.sub
     }
 
-    const query = resource(variables!, this.context)
+    const query = type(variables!, this.context)
 
     const actionOptions = {
       scope: this.scope,
@@ -77,13 +78,17 @@ export class ResourceCacheImplementation<
 
     const refStatesSub = this.outlet.map(state => {
       const scope = state.scopes[this.scope] || {}
-      return query.refs.map(
-        ref =>
-          (scope[ref[0]] && scope[ref[0]][String(ref[1])]) || {
-            ...InitialDocState,
-            ref,
-          },
-      )
+      return query.refs.map(ref => {
+        const state = (scope[ref[0]] && scope[ref[0]][String(ref[1])]) || {
+          ...InitialDocState,
+          ref,
+        }
+        return {
+          primed: isPrimed(state, requestPolicy !== null),
+          pending: isPending(state, requestPolicy !== null),
+          state,
+        }
+      })
     })
 
     let subscriptionCount = 0
@@ -118,7 +123,7 @@ export class ResourceCacheImplementation<
 
     const resultSub = query.select(refStatesSubWithRequestPolicies, this)
 
-    const controller = new ResourceSubActions(
+    const controller = new ResourceCacheActions(
       this.dispatch,
       this.scope,
       query.refs,
@@ -189,7 +194,7 @@ export class ResourceCacheImplementation<
       },
     })
 
-    const controller = new ResourceSubActions(
+    const controller = new ResourceCacheActions(
       this.dispatch,
       this.scope,
       refs,
@@ -202,4 +207,31 @@ export class ResourceCacheImplementation<
       setRejection: controller.setRejection.bind(controller),
     })
   }
+}
+
+function isPending(
+  state: ResourceRefState<any, any>,
+  hasRequestPolicy: boolean,
+) {
+  return !!(
+    state.tasks.manualLoad ||
+    state.tasks.load ||
+    state.modifiers.pending ||
+    // If there's no data but we can add a default request policy, then we'll
+    // treat the resource as pending too.
+    (hasRequestPolicy &&
+      state.value === null &&
+      state.tasks.load === null &&
+      state.tasks.subscribe === null)
+  )
+}
+
+function isPrimed(
+  state: ResourceRefState<any, any>,
+  hasRequestPolicy: boolean,
+) {
+  return !(
+    state.value === null &&
+    (isPending(state, hasRequestPolicy) || state.modifiers.pause)
+  )
 }

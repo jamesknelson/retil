@@ -70,7 +70,7 @@ export function mapMerge<Data, Rejection>(
       tasks,
       value,
     } = nextRefState
-    const existingPause = existingRefState.modifiers.pause
+    const existingPause = existingRefState && existingRefState.modifiers.pause
     const existingRequestPolicies =
       existingRefState && existingRefState.request
         ? existingRefState.request.policies

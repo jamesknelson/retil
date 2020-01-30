@@ -1,37 +1,26 @@
 import { Outlet } from '../../../outlets'
 
 import { ResourceRequestPolicy } from './ResourcePolicies'
-import { ResourceQuery } from './ResourceQuery'
+import { ResourceQueryType } from './ResourceQuery'
 import { ResourceRef } from './ResourceRef'
+import { ResourceSchema } from './ResourceSchema'
 import { ResourceRefState } from './ResourceState'
 import { ResourceInvalidator, ResourcePurger } from './ResourceTasks'
-import { ResourceDataUpdate } from './ResourceValue'
-
-export interface Resource<
-  Result = any,
-  Variables = any,
-  Context extends object = any,
-  Data = any,
-  Rejection = string
-> {
-  (variables: Variables, context: Context): ResourceQuery<
-    Result,
-    Data,
-    Rejection
-  >
-}
+import {
+  ResourceDataUpdater,
+  ResourceRejectionUpdater,
+} from './ResourceUpdates'
 
 export interface ResourceCache<
   Context extends object = any,
-  Data = any,
-  Rejection = any
+  Schema extends ResourceSchema = any
 > {
   /**
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
   query<Result, Variables>(
-    resource: Resource<Result, Variables, Context, Data, Rejection>,
+    type: ResourceQueryType<Result, Variables, Context, Schema>,
     options?: ResourceQueryOptions<Variables>,
   ): ResourceQueryOutlet<Result>
 
@@ -39,7 +28,9 @@ export interface ResourceCache<
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
-  refs(refs: ResourceRef[]): ResourceRefsOutlet<Data, Rejection>
+  refs<Refs extends ResourceRef<Schema>[]>(
+    refs: Refs,
+  ): ResourceRefsOutlet<Schema, Refs>
 }
 
 export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
@@ -82,8 +73,18 @@ export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
   pause(expectingExternalUpdate?: boolean): () => void
 }
 
-export interface ResourceRefsOutlet<Data, Rejection>
-  extends Outlet<ResourceRefState<Data, Rejection>[]> {
+export interface ResourceRefsOutlet<
+  Schema extends ResourceSchema,
+  Refs extends ResourceRef<Schema>[]
+>
+  extends Outlet<
+    {
+      [Index in Extract<keyof Refs, number>]: ResourceRefState<
+        Schema,
+        Refs[Index][0]
+      >
+    }
+  > {
   /**
    * Marks that this ref's state should not be purged.
    *
@@ -98,13 +99,13 @@ export interface ResourceRefsOutlet<Data, Rejection>
    * If the data is not in use, and has not had `keep()` called on it, then the
    * resource will be immediately scheduled for purge.
    */
-  setData(dataOrUpdater: ResourceDataUpdate<Data>[]): void
+  setData(dataOrUpdater: ResourceDataUpdater<Schema, keyof Schema>[]): void
 
   /**
    * Marks the refs as having no data for a specific reason, e.g. because they
    * were not found (404) or forbidden (403).
    */
-  setRejection(reason: Rejection): void
+  setRejection(reason: ResourceRejectionUpdater<Schema, keyof Schema>[]): void
 }
 
 export interface ResourceQueryOptions<Variables> {
@@ -130,8 +131,7 @@ export interface ResourceQueryOptions<Variables> {
 
 export interface ResourceOptions<
   Context extends object,
-  Data,
-  Rejection = string
+  Schema extends ResourceSchema
 > {
   /**
    * An optional function for computing a secondary id based on props, so
@@ -151,7 +151,7 @@ export interface ResourceOptions<
    * By default, expires after an hour on the client, and does not expire on
    * the server.
    */
-  invalidator?: ResourceInvalidator<Data, Rejection>
+  invalidator?: ResourceInvalidator<Schema>
 
   /**
    * A key unique to this resource model, allowing multiple models to be stored
@@ -171,55 +171,7 @@ export interface ResourceOptions<
    * By default, data is purged after a minute in the browser, and is not purged
    * at all on the server.
    */
-  purger?: null | number | ResourcePurger<Data, Rejection>
+  purger?: null | number | ResourcePurger<Schema>
 
   requestPolicy?: ResourceRequestPolicy | null
-}
-
-// ---
-
-export interface ResourceDoc<Data, Rejection = string> {
-  /**
-   * Returns true if there's no value, and we're no longer looking for one.
-   */
-  abandoned: boolean
-
-  data: () => Data
-
-  /**
-   * If there's data that can be accessed, this will be true.
-   */
-  hasData?: boolean
-
-  /**
-   * If true, indicates that instead of the expected data, this key has been
-   * marked with a reason that the data wasn't erturned. This can be used to
-   * indicate that resource was not found, was forbidden, etc.
-   */
-  hasRejection?: boolean
-
-  id: string | number
-
-  /**
-   * When true, indicates that we're expecting to receive new data due to an
-   * in-progress operation.
-   */
-  pending: boolean
-
-  /**
-   * Indicates that we're still waiting on an initial value.
-   */
-  primed: boolean
-
-  /**
-   * Indicates that the data has been marked as possibly out of date, and in
-   * need of a reload.
-   */
-  invalidated?: boolean
-
-  rejection: () => Rejection
-
-  state: ResourceRefState<Data, Rejection>
-
-  type: string
 }
