@@ -68,7 +68,7 @@ export class ResourceCacheImplementation<
       return memoizedQuery.sub
     }
 
-    const query = type(variables!, this.context)
+    const query = type(this.context, variables!)
 
     const actionOptions = {
       scope: this.scope,

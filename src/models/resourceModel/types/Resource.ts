@@ -3,13 +3,13 @@ import { Outlet } from '../../../outlets'
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQueryType } from './ResourceQuery'
 import { ResourceRef } from './ResourceRef'
-import { ResourceSchema } from './ResourceSchema'
+import {
+  ResourceSchema,
+  SchemaDataUpdater,
+  SchemaRejectionUpdater,
+} from './ResourceSchema'
 import { ResourceRefState } from './ResourceState'
 import { ResourceInvalidator, ResourcePurger } from './ResourceTasks'
-import {
-  ResourceDataUpdater,
-  ResourceRejectionUpdater,
-} from './ResourceUpdates'
 
 export interface ResourceCache<
   Context extends object = any,
@@ -19,6 +19,7 @@ export interface ResourceCache<
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
+  // rename -> request
   query<Result, Variables>(
     type: ResourceQueryType<Result, Variables, Context, Schema>,
     options?: ResourceQueryOptions<Variables>,
@@ -28,7 +29,8 @@ export interface ResourceCache<
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
-  refs<Refs extends ResourceRef<Schema>[]>(
+  // rename -> pointer
+  refs<Refs extends ResourceRef<keyof Schema>[]>(
     refs: Refs,
   ): ResourceRefsOutlet<Schema, Refs>
 }
@@ -75,7 +77,7 @@ export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
 
 export interface ResourceRefsOutlet<
   Schema extends ResourceSchema,
-  Refs extends ResourceRef<Schema>[]
+  Refs extends ResourceRef<keyof Schema>[]
 >
   extends Outlet<
     {
@@ -99,13 +101,13 @@ export interface ResourceRefsOutlet<
    * If the data is not in use, and has not had `keep()` called on it, then the
    * resource will be immediately scheduled for purge.
    */
-  setData(dataOrUpdater: ResourceDataUpdater<Schema, keyof Schema>[]): void
+  setData(dataOrUpdater: SchemaDataUpdater<Schema, keyof Schema>[]): void
 
   /**
    * Marks the refs as having no data for a specific reason, e.g. because they
    * were not found (404) or forbidden (403).
    */
-  setRejection(reason: ResourceRejectionUpdater<Schema, keyof Schema>[]): void
+  setRejection(reason: SchemaRejectionUpdater<Schema, keyof Schema>[]): void
 }
 
 export interface ResourceQueryOptions<Variables> {

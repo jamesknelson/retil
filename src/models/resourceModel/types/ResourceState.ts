@@ -18,7 +18,7 @@ export interface ResourceState<Schema extends ResourceSchema> {
     nextId: number
 
     pausedBy: {
-      [taskId: string]: ResourceRef<Schema>[]
+      [taskId: string]: ResourceRef<Extract<keyof Schema, string>>[]
     }
 
     /**
@@ -44,14 +44,19 @@ export interface ResourceState<Schema extends ResourceSchema> {
 }
 
 export type ResourceScopeState<Schema extends ResourceSchema> = {
-  [Type in keyof Schema]: {
-    [stringifiedId: string]: ResourceRefState<Schema, Type>
+  [Type in Extract<keyof Schema, string>]: {
+    [stringifiedId: string]: ResourceRefState<
+      Schema[Type][0],
+      Schema[Type][1],
+      Type
+    >
   }
 }
 
 export interface ResourceRefState<
-  Schema extends ResourceSchema,
-  Type extends keyof Schema = keyof Schema
+  Data = any,
+  Rejection = any,
+  Type extends string = any
 > {
   modifiers: {
     /**
@@ -83,10 +88,10 @@ export interface ResourceRefState<
   /**
    * The document's primary key.
    */
-  ref: ResourceRef<Schema, Type>
+  ref: ResourceRef<Type>
 
   request: null | {
-    query: ResourceQuery<any, Schema>
+    query: ResourceQuery<any, any>
     policies: {
       [Policy in ResourceRequestPolicy]: number
     }
@@ -106,12 +111,9 @@ export interface ResourceRefState<
   /**
    * Stores the latest data or rejection associated with this key.
    */
-  value: ResourceRefValue<Schema, Type>
+  value: ResourceRefValue<Data, Rejection>
 }
 
-export type ResourceRefValue<
-  Schema extends ResourceSchema,
-  Type extends keyof Schema
-> =
-  | { type: 'data'; data: Schema[Type][0]; timestamp: number }
-  | { type: 'rejection'; rejection: Schema[Type][1]; timestamp: number }
+export type ResourceRefValue<Data, Rejection> =
+  | { type: 'data'; data: Data; timestamp: number }
+  | { type: 'rejection'; rejection: Rejection; timestamp: number }

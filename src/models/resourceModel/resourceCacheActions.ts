@@ -3,7 +3,7 @@ import { Outlet } from '../../outlets'
 import {
   ResourceAction,
   ResourceActionOfType,
-  ResourceDataUpdate,
+  ResourceDataUpdater,
   ResourceQuery,
   ResourceRef,
   ResourceState,
@@ -51,7 +51,7 @@ export class ResourceCacheActions<Data, Rejection> {
     }
   }
 
-  setData(updates: ResourceDataUpdate<Data>[]) {
+  setData(updates: Data | ResourceDataUpdater<Data>[]) {
     this.dispatch('updateValue', {
       taskId: null,
       timestamp: Date.now(),

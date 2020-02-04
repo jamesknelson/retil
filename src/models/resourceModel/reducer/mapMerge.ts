@@ -12,7 +12,7 @@ export type MapMergeCallback<Data, Rejection> = (
 export function mapMerge<Data, Rejection>(
   scope: string,
   state: ResourceState<Data, Rejection>,
-  refs: readonly ResourceRef[],
+  refs: readonly ResourceRef<any>[],
   callback: MapMergeCallback<Data, Rejection>,
 ): ResourceState<Data, Rejection> {
   const tracker = new ChangeTracker<Data, Rejection>(state, scope)

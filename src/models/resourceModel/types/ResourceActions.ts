@@ -3,8 +3,7 @@ import { Dispose } from '../../../store'
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQuery } from './ResourceQuery'
 import { ResourceRef } from './ResourceRef'
-import { ResourceSchema } from './ResourceSchema'
-import { ResourceUpdate } from './ResourceUpdates'
+import { ResourceSchema, SchemaUpdate } from './ResourceSchema'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
 
@@ -43,7 +42,7 @@ type AbandonTask = {
 type ApplyModifiersAction = {
   type: 'applyModifiers'
   scope: string
-  refs: ResourceRef<any>[]
+  refs: ResourceRef[]
 
   keep?: number
   pause?: number
@@ -81,7 +80,7 @@ type ErrorAction = {
 type InvalidateAction = {
   type: 'invalidate'
   scope?: string
-  refs: ResourceRef<any>[]
+  refs: ResourceRef[]
   taskId: string | null
 }
 
@@ -100,7 +99,7 @@ type ManualLoadAction = {
  */
 type PurgeAction = {
   type: 'purge'
-  refs: ResourceRef<any>[]
+  refs: ResourceRef[]
   taskId: string
 }
 
@@ -122,5 +121,5 @@ type UpdateValueAction<Schema extends ResourceSchema> = {
   scope?: string
   taskId: string | null
   timestamp: number
-  updates: ResourceUpdate<Schema, keyof Schema>[]
+  updates: SchemaUpdate<Schema, keyof Schema>[]
 }

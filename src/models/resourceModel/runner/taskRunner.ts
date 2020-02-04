@@ -1,15 +1,12 @@
-import AbortController from 'abort-controller'
-
 import {
   ResourceAction,
   ResourceCacheTask,
-  ResourceDataUpdate,
-  ResourceRejectionUpdate,
   ResourceRequestTask,
   ResourceRef,
   ResourceSchema,
   ResourceTask,
   ResourceTaskConfig,
+  ResourceUpdate,
 } from '../types'
 
 export class ResourceTaskRunner<Schema extends ResourceSchema> {
@@ -56,7 +53,7 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
     if (this.config.invalidate) {
       let running = false
 
-      const invalidate = (refs: ResourceRef<Schema>[] = task.refs) => {
+      const invalidate = (refs: ResourceRef<keyof Schema>[] = task.refs) => {
         if (running) {
           throw new Error(
             'Resource Error: an invalidator called its invalidate function ' +
@@ -97,23 +94,18 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
 
   private load(task: ResourceRequestTask<Schema>) {
     if (task.query.load) {
-      const abortController = new AbortController()
-
       try {
         const stopper = task.query.load({
           ...task,
           abandon: this.handleAbandon.bind(this, task),
           error: this.handleError,
-          setData: this.handleSetData.bind(this, task),
-          setRejection: this.handleSetRejection.bind(this, task),
-          signal: abortController.signal,
+          update: this.handleUpdate.bind(this, task),
         })
 
         this.stoppers[task.taskId] = () => {
           if (stopper) {
             stopper()
           }
-          abortController.abort()
         }
       } catch (error) {
         this.handleError(error)
@@ -123,7 +115,7 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
 
   private purge(task: ResourceCacheTask<Schema>) {
     if (this.config.purge) {
-      const purge = (refs: ResourceRef<Schema>[] = task.refs) => {
+      const purge = (refs: ResourceRef<keyof Schema>[] = task.refs) => {
         // Always purge asynchronously
         setTimeout(() => {
           this.dispatch({
@@ -164,8 +156,7 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
           ...task,
           abandon: this.handleAbandon.bind(this, task),
           error: this.handleError,
-          setData: this.handleSetData.bind(this, task),
-          setRejection: this.handleSetRejection.bind(this, task),
+          update: this.handleUpdate.bind(this, task),
         })
 
         if (!stopper) {
@@ -196,45 +187,16 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
     })
   }
 
-  private handleSetData(
+  private handleUpdate(
     task: ResourceRequestTask<Schema>,
-    updates: ResourceDataUpdate<Schema, keyof Schema>[],
+    updates: ResourceUpdate<Schema, keyof Schema>[],
   ) {
     if (this.stoppers[task.taskId]) {
       this.dispatch({
         ...task,
         type: 'updateValue',
         taskId: task.taskId,
-        updates: updates.map(([type, id, update]) => [
-          type,
-          id,
-          {
-            type: 'setData',
-            update,
-          },
-        ]),
-        timestamp: Date.now(),
-      })
-    }
-  }
-
-  private handleSetRejection(
-    task: ResourceRequestTask<Schema>,
-    rejections: ResourceRejectionUpdate<Schema, keyof Schema>[],
-  ) {
-    if (this.stoppers[task.taskId]) {
-      this.dispatch({
-        ...task,
-        type: 'updateValue',
-        taskId: task.taskId,
-        updates: rejections.map(([type, id, rejection]) => [
-          type,
-          id,
-          {
-            type: 'setRejection',
-            rejection,
-          },
-        ]),
+        updates,
         timestamp: Date.now(),
       })
     }
