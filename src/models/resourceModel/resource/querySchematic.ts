@@ -16,6 +16,7 @@ export interface QueryOptions<
   ChildRoot extends ResourcePointer = any,
   ChildChunk extends NormalizedChunk = any
 > {
+  bucket?: Bucket
   for: (
     parentData: Input,
     parentProps: Vars,
@@ -26,13 +27,19 @@ export interface QueryOptions<
   ) => undefined | string | number | ResourceRef<Bucket>
 }
 
-export type QuerySchematic<
-  Result,
-  Vars,
-  Input,
+export type QueryChunk<
   Bucket extends string,
-  ChildRoot extends ResourcePointer,
-  ChildChunk extends NormalizedChunk
+  ChildRoot extends ResourcePointer = any,
+  ChildChunk extends NormalizedChunk = any
+> = readonly [Bucket, string | number, ChildRoot] | ChildChunk
+
+export type QuerySchematic<
+  Result = any,
+  Vars = any,
+  Input = any,
+  Bucket extends string = any,
+  ChildRoot extends ResourcePointer = any,
+  ChildChunk extends NormalizedChunk = any
 > = RequestableSchematic<
   Result,
   Vars,
@@ -44,40 +51,10 @@ export type QuerySchematic<
 
 // ---
 
-export function query<
-  Result,
-  Vars,
-  Input,
-  Bucket extends string,
-  ChildRoot extends ResourcePointer,
-  ChildChunk extends NormalizedChunk
->(
-  options: QueryOptions<Result, Vars, Input, Bucket, ChildRoot, ChildChunk>,
-): QuerySchematic<Result, Vars, Input, Bucket, ChildRoot, ChildChunk>
-
-export function query<
-  Result,
-  Vars,
-  Input,
-  Bucket extends string,
-  ChildRoot extends ResourcePointer,
-  ChildChunk extends NormalizedChunk
->(
-  bucket: Bucket,
-  options: QueryOptions<Result, Vars, Input, any, ChildRoot, ChildChunk>,
-): QuerySchematic<Result, Vars, Input, Bucket, ChildRoot, ChildChunk>
-
-export function query<
-  Result,
-  Vars,
-  Input,
-  Bucket extends string,
-  ChildRoot extends ResourcePointer,
-  ChildChunk extends NormalizedChunk
->(
+export function querySchematic(
   bucketOrOptions: string | QueryOptions,
   options?: QueryOptions,
-): QuerySchematic<Result, Vars, Input, Bucket, ChildRoot, ChildChunk> {
+): QuerySchematic {
   const {
     mapVarsToKey: identify = stringifyVariables,
     result: normalizeResult,

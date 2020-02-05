@@ -1,6 +1,11 @@
 import { Outlet } from '../../../outlets'
 
-import { ResourceCache, ResourcePointer, ResourceRefState } from '../types'
+import {
+  ResourceCache,
+  ResourcePointer,
+  ResourceRefState,
+  ResourceRecordPointer,
+} from '../types'
 
 export interface Schematic<
   Result = any,
@@ -29,6 +34,12 @@ export interface SchematicInstance<
   ) => Outlet<Result>
 }
 
+export type SchematicResult<S extends Schematic> = S extends Schematic<
+  infer Result
+>
+  ? Result
+  : never
+
 // ---
 
 // Vars are used when building a request from scratch.
@@ -48,6 +59,22 @@ export interface RequestableSchematic<
     root: Root
   }
 }
+
+export type RequestableRecordSchematic<
+  Result = any,
+  Vars = any,
+  Props = any,
+  Input = any,
+  Bucket extends string = any,
+  Chunk extends NormalizedChunk<any> = any
+> = RequestableSchematic<
+  Result,
+  Vars,
+  Props,
+  Input,
+  ResourceRecordPointer<Bucket>,
+  Chunk
+>
 
 // ---
 

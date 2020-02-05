@@ -2,7 +2,7 @@ import { ResourceListPointer, ResourceRecordPointer } from '../types'
 
 import { NormalizedChunk, Schematic } from './schematic'
 
-export function list<
+export function listSchematic<
   ChildResult,
   Props,
   ChildInput,

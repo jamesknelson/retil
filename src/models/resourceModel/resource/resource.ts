@@ -3,12 +3,6 @@ import { AbortController } from 'abort-controller'
 import { Outlet } from '../../../outlets'
 
 import {
-  NormalizedChunk,
-  RequestableSchematic,
-  Schematic,
-  record,
-} from '../schematic'
-import {
   ResourceCache,
   ResourceQueryType,
   ResourceRecordPointer,
@@ -16,6 +10,7 @@ import {
 } from '../types'
 
 import { createLoader } from './loader'
+import { NormalizedChunk, RequestableSchematic, Schematic } from './schematic'
 
 export const defaultResourceOptions = {
   maxRetries: 10,
@@ -74,19 +69,31 @@ export interface ResourceRequest<Vars, Context> {
 // the idea is if you have a graphql query/schema/endpoint url, then you can
 // map it to a resource -- type, embed, etc. will be generated automatically.
 // you'll need to supply your own TypeScript types, though.
-export interface ResourceOptions<
-  Vars = string,
-  Context = any,
-  Input = any,
-  S extends RequestableSchematic = any
-> {
-  load: (request: ResourceRequest<Vars, Context>) => Promise<Input>
-
-  composing?: S
+export interface ResourceOptions<Vars = string, Context = any, Input = any> {
+  load?: (vars: Vars, context: Context, signal: AbortSignal) => Promise<Input>
 
   delayInterval?: number
   exponent?: number
   maxRetries?: number
+}
+
+export interface ComposingResourceOptions<
+  Result = any,
+  Vars = string,
+  Context = any,
+  Props = any,
+  Input = any,
+  Bucket extends string = any,
+  Chunk extends NormalizedChunk<any> = any
+> extends ResourceOptions<Vars, Context, Input> {
+  composing: RequestableSchematic<
+    Result,
+    Vars,
+    Props,
+    Input,
+    ResourceRecordPointer<Bucket>,
+    Chunk
+  >
 }
 
 export interface Resource<
@@ -96,31 +103,45 @@ export interface Resource<
   Context extends object = any,
   Props = any,
   Input = any,
-  Root extends ResourceRecordPointer = any,
+  Bucket extends string = any,
   Chunk extends NormalizedChunk<any> = any
 >
-  extends Schematic<Result, Props, Input, Root, Chunk>,
+  extends Schematic<Result, Props, Input, ResourceRecordPointer<Bucket>, Chunk>,
     ResourceQueryType<ResourceResult<Result, Rejection, Vars>, Vars, Context> {}
 
-export function createResource<
+export function extractResourceOptions<Options extends ResourceOptions>(
+  options: Options,
+): [ResourceOptions, Omit<Options, keyof ResourceOptions>] {
+  const { load, delayInterval, exponent, maxRetries, ...rest } = options
+  return [{ load, delayInterval, exponent, maxRetries }, rest]
+}
+
+export function resource<
   Result = unknown,
   Rejection = string,
   Vars extends Props = any,
   Context extends object = any,
   Props = any,
   Input = any,
-  Root extends ResourceRecordPointer = any,
-  Chunk extends NormalizedChunk<any> = any,
-  S extends RequestableSchematic<Result, Vars, Props, Input, Root, Chunk> = any
+  Bucket extends string = any,
+  Chunk extends NormalizedChunk<any> = any
 >(
-  options: ResourceOptions<Vars, Context, Input, S>,
-): Resource<Result, Rejection, Vars, Context, Props, Input, Root, Chunk> {
+  options: ComposingResourceOptions<
+    Result,
+    Vars,
+    Context,
+    Props,
+    Input,
+    Bucket,
+    Chunk
+  >,
+): Resource<Result, Rejection, Vars, Context, Props, Input, Bucket, Chunk> {
   const { load, delayInterval, exponent, maxRetries } = {
     ...defaultResourceOptions,
     ...options,
   }
 
-  const composing: S = options.composing || (record() as S)
+  const composing = options.composing
 
   const request: ResourceQueryType['request'] = (
     vars: Vars,
@@ -129,15 +150,12 @@ export function createResource<
     const { build, split } = composing(vars)
     const root = composing.request(vars, context).root
     const abortController = new AbortController()
-    const request: ResourceRequest<Vars, Context> = {
-      context,
-      signal: abortController.signal,
-      vars,
-    }
+
+    // todo: handle load not being supplied
 
     const loader = createLoader({
       load: async () => {
-        const input = await load(request)
+        const input = await load!(vars, context, abortController.signal)
         const { chunks } = split(input)
         return chunks
       },
@@ -159,7 +177,13 @@ export function createResource<
         }>,
         cache: ResourceCache<any, any>,
       ): Outlet<ResourceResult<Result, Rejection, Vars>> => {
-        return source.map(
+        return build(source, cache)
+
+        // TODO:
+        // - i'm not sure how to make it so that the child `build` only gets
+        //   computed after `data` is called, while still making sure it
+        //   holds any children. tricky.
+        source.map(
           ({ pending, primed, state }) =>
             new ResourceResultImplementation(
               primed,
@@ -174,6 +198,7 @@ export function createResource<
       load: request => {
         const cancel = loader(request)
         return () => {
+          // Cancel before abort, as abort may cause a fetch to throw an error.
           cancel()
           abortController.abort()
         }
