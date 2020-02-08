@@ -10,9 +10,9 @@ import {
   ResourceAction,
   ResourceQueryOptions,
   ResourceQueryOutlet,
-  ResourceRef,
+  CacheKey,
   ResourceRefState,
-  ResourceRefsOutlet,
+  ResourcePointerOutlet,
   ResourceRequestPolicy,
   ResourceState,
 } from './types'
@@ -146,7 +146,7 @@ export class ResourceCacheImplementation<
     return extendedSub
   }
 
-  refs(refs: ResourceRef[]): ResourceRefsOutlet<Data, Rejection> {
+  refs(refs: CacheKey[]): ResourcePointerOutlet<Data, Rejection> {
     const actionOptions = {
       type: 'applyModifiers' as const,
       scope: this.scope,

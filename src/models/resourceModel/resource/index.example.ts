@@ -1,4 +1,9 @@
-import { documentResource, list, queryResource } from './index'
+import {
+  collectionResource,
+  documentResource,
+  list,
+  queryResource,
+} from './index'
 
 interface VideoData {
   id: string
@@ -50,18 +55,23 @@ const newsletter = documentResource('newsletter', {
       id: '1',
       date: 'test',
       description: 'test',
-      videos: [],
+      videos: [] as any[],
     }
   },
 
   // transformInput: data => data,
 })
 
-const newsletterList = queryResource('newsletterList', {
-  for: list(newsletter),
+const newsletterList = collectionResource('newsletterList', {
+  of: newsletter,
 
   load: async (vars: { page: number }) => {
-    return []
+    return [] as {
+      id: string
+      date: string
+      description: string
+      videos: any[]
+    }[]
   },
 })
 
@@ -80,37 +90,35 @@ const latestNewsletter = queryResource('latestNewsletter', {
 
 const instance = latestNewsletter({})
 const { chunks } = instance.split({} as any)
-const source = instance.build({} as any, {} as any)
 
 const data0 = localVideo
   .request({} as any, {} as any)
-  .select({} as any, {} as any)
-  .getCurrentValue()
+  .select({} as any)
+  .getCurrentValue()[0]
   .data()
 
 const data1 = localNewsletter
   .request({} as any, {} as any)
-  .select({} as any, {} as any)
-  .getCurrentValue()
+  .select({} as any)
+  .getCurrentValue()[0]
   .data()
 
 const data2 = newsletter
   .request({} as any, {} as any)
-  .select({} as any, {} as any)
-  .getCurrentValue()
+  .select({} as any)
+  .getCurrentValue()[0]
   .data()
+
+const value1 = instance.build({} as any, {} as any)
+const value2 = newsletterList({ page: 0 }).build({} as any, {} as any)
 
 const chunkData = newsletter({} as any).split({} as any).chunks[0][2]
 
-console.log(data1, data2, chunkData)
+console.log(data0, data1, data2, chunkData)
 
-console.log(source.getCurrentValue().videos[0].subtitles[0].translations)
+console.log(value1.hasData && value1.data.videos[0].subtitles[0].translations)
 
-console.log(
-  newsletterList({ page: 0 })
-    .build({} as any, {} as any)
-    .getCurrentValue()[0].description,
-)
+console.log(value2.hasData && value2.data)
 
 chunks.forEach(item => {
   switch (item[0]) {

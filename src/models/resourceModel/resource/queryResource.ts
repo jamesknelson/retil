@@ -1,5 +1,3 @@
-import { ResourcePointer } from '../types'
-
 import { QueryChunk, QueryOptions, querySchematic } from './querySchematic'
 import {
   Resource,
@@ -7,7 +5,7 @@ import {
   extractResourceOptions,
   resource,
 } from './resource'
-import { NormalizedChunk } from './schematic'
+import { SchematicChunk, SchematicPointer } from './schematic'
 
 export interface QueryResourceOptions<
   Result = any,
@@ -15,8 +13,8 @@ export interface QueryResourceOptions<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 >
   extends QueryOptions<Result, Vars, Input, Bucket, ChildRoot, ChildChunk>,
     ResourceOptions<Vars, Context, Input> {}
@@ -28,8 +26,8 @@ export type QueryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 > = Resource<
   Result,
   Rejection,
@@ -50,8 +48,8 @@ export function queryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 >(
   options: QueryResourceOptions<
     Result,
@@ -80,8 +78,8 @@ export function queryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 >(
   bucket: Bucket,
   options: QueryResourceOptions<
@@ -119,7 +117,7 @@ export function queryResource(
   const [resourceOptions, schematicOptions] = extractResourceOptions(options)
 
   return resource({
-    composing: querySchematic({ bucket, ...schematicOptions }),
+    schematic: querySchematic({ bucket, ...schematicOptions }),
     ...resourceOptions,
   })
 }

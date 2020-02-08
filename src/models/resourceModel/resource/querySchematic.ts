@@ -1,11 +1,18 @@
 import { stringifyVariables } from '../../../utils/stringifyVariables'
 
-import { ResourcePointer, ResourceRecordPointer, ResourceRef } from '../types'
+import { CacheKey, ResourceScopeState } from '../types'
 
 import {
-  NormalizedChunk,
   RequestableSchematic,
+  SchematicChunk,
   SchematicInstance,
+  SchematicPointer,
+  SchematicRecordPointer,
+  SchematicSplitResult,
+  SchematicBuildResult,
+  ensureTypedKey,
+  getNextDefaultBucket,
+  getPointer,
 } from './schematic'
 
 export interface QueryOptions<
@@ -13,24 +20,20 @@ export interface QueryOptions<
   Vars = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 > {
   bucket?: Bucket
   for: (
-    parentData: Input,
     parentProps: Vars,
   ) => SchematicInstance<Result, Input, ChildRoot, ChildChunk>
-  mapVarsToKey?: (
-    vars: Vars,
-    context: any,
-  ) => undefined | string | number | ResourceRef<Bucket>
+  mapVarsToKey?: (vars: Vars) => string | number | CacheKey<Bucket>
 }
 
 export type QueryChunk<
   Bucket extends string,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 > = readonly [Bucket, string | number, ChildRoot] | ChildChunk
 
 export type QuerySchematic<
@@ -38,60 +41,80 @@ export type QuerySchematic<
   Vars = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends ResourcePointer = any,
-  ChildChunk extends NormalizedChunk = any
+  ChildRoot extends SchematicPointer = any,
+  ChildChunk extends SchematicChunk = any
 > = RequestableSchematic<
   Result,
   Vars,
   Vars,
   Input,
-  ResourceRecordPointer<Bucket>,
+  SchematicRecordPointer<Bucket>,
   readonly [Bucket, string | number, ChildRoot] | ChildChunk
 >
 
 // ---
 
-export function querySchematic(
+export function querySchematic<Result, Vars, Input>(
   bucketOrOptions: string | QueryOptions,
   options?: QueryOptions,
-): QuerySchematic {
-  const {
-    mapVarsToKey: identify = stringifyVariables,
-    result: normalizeResult,
-  } = options
+): QuerySchematic<Result, Vars, Input> {
+  let bucket: string
+  if (!options) {
+    options = bucketOrOptions as QueryOptions
+    bucket = options.bucket || getNextDefaultBucket()
+  } else {
+    bucket = bucketOrOptions as string
+  }
 
-  let type = options.bucket
+  const { for: child, mapVarsToKey = stringifyVariables } = options
 
-  return vars => (context, input) => {
-    const data = transform
-      ? transform(input as Input, vars, context)
-      : (input as Data)
+  const request = (vars: Vars) => ({
+    rootPointer: { __key__: ensureTypedKey(bucket, mapVarsToKey(vars)) },
+  })
 
-    let id: string | number
-    const identifyResult = identify(vars, context, data)
-    if (typeof identifyResult === 'string') {
-      id = identifyResult
-    } else if (Array.isArray(identifyResult)) {
-      type = identifyResult[0]
-      id = identifyResult[1]
-    } else {
-      throw new Error('Missing id during normalization')
-    }
-    if (!type) {
-      throw new Error('Missing type during normalization')
-    }
+  return Object.assign(
+    (vars: Vars) =>
+      new QuerySchematicImplementation<Result, Input>(
+        child(vars),
+        ensureTypedKey(bucket, mapVarsToKey(vars)),
+      ),
+    { request },
+  )
+}
 
-    const child = normalizeResult(input as Input, vars)(context, data)
-    const pointer = Array.isArray(child.root)
-      ? { __keyList: child.root }
-      : { __key: child.root }
-    const chunks = ([[type, id, pointer] as const] as const).concat(
-      child.chunks,
-    )
+class QuerySchematicImplementation<Result, Input>
+  implements SchematicInstance<Result, Input, SchematicRecordPointer> {
+  constructor(
+    private child: SchematicInstance<Result, Input>,
+    private key: CacheKey,
+  ) {}
 
+  split(input: Input): SchematicSplitResult<SchematicRecordPointer, any> {
+    const { chunks, rootPointer } = this.child.split(input)
     return {
-      chunks,
-      root: [type, id],
+      chunks: chunks.concat([this.key[0], this.key[1], rootPointer]),
+      rootPointer: { __key__: this.key },
     }
+  }
+
+  build(
+    state: ResourceScopeState<any>,
+    pointer: SchematicRecordPointer,
+  ): SchematicBuildResult {
+    const queryResult = getPointer(state, pointer)
+    const childResult =
+      queryResult.hasData && this.child.build(state, queryResult.data)
+    return {
+      data: childResult ? childResult.data : undefined,
+      hasData: childResult && childResult.hasData,
+      hasRejection:
+        (childResult && childResult.hasRejection) || queryResult.hasRejection,
+      invalidated:
+        queryResult.invalidated || (childResult && childResult.invalidated),
+      keys: [pointer.__key__].concat(childResult ? childResult.keys : []),
+      rejection: childResult ? childResult.rejection : queryResult.rejection,
+      pending: queryResult.pending || !!(childResult && childResult.pending),
+      primed: queryResult.primed && (!childResult || childResult.primed),
+    } as SchematicBuildResult
   }
 }

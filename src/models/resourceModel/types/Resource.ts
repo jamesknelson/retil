@@ -2,37 +2,26 @@ import { Outlet } from '../../../outlets'
 
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQueryType } from './ResourceQuery'
-import { ResourceRef } from './ResourceRef'
-import {
-  ResourceSchema,
-  SchemaDataUpdater,
-  SchemaRejectionUpdater,
-} from './ResourceSchema'
+import { CacheKey } from './ResourceRef'
 import { ResourceRefState } from './ResourceState'
 import { ResourceInvalidator, ResourcePurger } from './ResourceTasks'
+import { ResourceDataUpdater } from './ResourceUpdates'
 
-export interface ResourceCache<
-  Context extends object = any,
-  Schema extends ResourceSchema = any
-> {
+export interface ResourceCache<Context extends object = any> {
   /**
    * Return an outlet and controller for the specified key, from which you can
    * get the latest value, or imperatively make changes.
    */
-  // rename -> request
-  query<Result, Variables>(
-    type: ResourceQueryType<Result, Variables, Context, Schema>,
-    options?: ResourceQueryOptions<Variables>,
+  keys(keys: CacheKey[]): ResourceKeysOutlet
+
+  /**
+   * Return an outlet and controller for the specified key, from which you can
+   * get the latest value, or imperatively make changes.
+   */
+  resource<Result, Vars>(
+    type: ResourceQueryType<Result, Vars, Context>,
+    options?: ResourceQueryOptions<Vars>,
   ): ResourceQueryOutlet<Result>
-
-  /**
-   * Return an outlet and controller for the specified key, from which you can
-   * get the latest value, or imperatively make changes.
-   */
-  // rename -> pointer
-  refs<Refs extends ResourceRef<keyof Schema>[]>(
-    refs: Refs,
-  ): ResourceRefsOutlet<Schema, Refs>
 }
 
 export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
@@ -73,19 +62,41 @@ export interface ResourceQueryOutlet<Result> extends Outlet<Result> {
    * Returns a function to resume automatic fetches.
    */
   pause(expectingExternalUpdate?: boolean): () => void
+
+  /**
+   * Marks that this ref's state should not be purged.
+   *
+   * Returns a function that releases this hold on the resource.
+   */
+  keep(): () => void
+
+  /**
+   * Stores the given data, or if a function is given, runs the given update
+   * on the current stored value.
+   *
+   * If the data is not in use, and has not had `keep()` called on it, then the
+   * resource will be immediately scheduled for purge.
+   */
+  setData(
+    input: Input /* todo: infer from resource, only available if resource has a schematic */,
+  ): void
+
+  /**
+   * Marks the root ref as having no data for a specific reason, e.g. because they
+   * were not found (404) or forbidden (403).
+   */
+  setRejection(reason: Rejection /* todo: infer from resource */): void
 }
 
-export interface ResourceRefsOutlet<
-  Schema extends ResourceSchema,
-  Refs extends ResourceRef<keyof Schema>[]
->
+export interface ResourceKeysOutlet
   extends Outlet<
     {
-      [Index in Extract<keyof Refs, number>]: ResourceRefState<
-        Schema,
-        Refs[Index][0]
-      >
-    }
+      pending: boolean
+      primed: boolean
+      // The actual type could be figured out using a conditional type based
+      // on `root`, but it's not really necessary.
+      state: ResourceRefState
+    }[]
   > {
   /**
    * Marks that this ref's state should not be purged.
@@ -101,13 +112,13 @@ export interface ResourceRefsOutlet<
    * If the data is not in use, and has not had `keep()` called on it, then the
    * resource will be immediately scheduled for purge.
    */
-  setData(dataOrUpdater: SchemaDataUpdater<Schema, keyof Schema>[]): void
+  setData(dataOrUpdater: any | ResourceDataUpdater<any, any>): void
 
   /**
    * Marks the refs as having no data for a specific reason, e.g. because they
    * were not found (404) or forbidden (403).
    */
-  setRejection(reason: SchemaRejectionUpdater<Schema, keyof Schema>[]): void
+  setRejection(reason: any): void
 }
 
 export interface ResourceQueryOptions<Variables> {
@@ -131,10 +142,7 @@ export interface ResourceQueryOptions<Variables> {
   variables?: Variables
 }
 
-export interface ResourceOptions<
-  Context extends object,
-  Schema extends ResourceSchema
-> {
+export interface ResourceOptions<Context extends object> {
   /**
    * An optional function for computing a secondary id based on props, so
    * that different sets of data can be stored for different sets of props.

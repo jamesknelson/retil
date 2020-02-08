@@ -1,5 +1,5 @@
 import { ResourceQuery } from './ResourceQuery'
-import { ResourceRef } from './ResourceRef'
+import { CacheKey } from './ResourceRef'
 import { ResourceSchema } from './ResourceSchema'
 import { ResourceRefState } from './ResourceState'
 
@@ -10,7 +10,7 @@ export type ResourceInvalidator<Schema extends ResourceSchema> = (options: {
    * with the function call; you'll want to wait some time before invalidating
    * anything.
    */
-  invalidate: (ref?: ResourceRef<keyof Schema>[]) => void
+  invalidate: (ref?: CacheKey<keyof Schema>[]) => void
 }) => () => void
 
 /**
@@ -21,7 +21,7 @@ export type ResourcePurger<Schema extends ResourceSchema> = (options: {
   /**
    * Remove the specified keys and their data from the store.
    */
-  purge: (refs?: ResourceRef<keyof Schema>[]) => void
+  purge: (refs?: CacheKey<keyof Schema>[]) => void
 }) => () => void
 
 export interface ResourceTaskConfig<Schema extends ResourceSchema> {
@@ -33,7 +33,7 @@ export type ResourceTaskQueueType = 'start' | 'pause' | 'stop'
 
 export interface ResourceCacheTask<Schema extends ResourceSchema> {
   type: 'invalidate' | 'purge'
-  refs: ResourceRef<keyof Schema>[]
+  refs: CacheKey<keyof Schema>[]
   scope: string
   states: ResourceRefState<Schema>[]
   taskId: string
@@ -41,7 +41,7 @@ export interface ResourceCacheTask<Schema extends ResourceSchema> {
 
 export interface ResourceRequestTask<Schema extends ResourceSchema> {
   type: 'load' | 'manualLoad' | 'subscribe'
-  refs: ResourceRef<keyof Schema>[]
+  refs: CacheKey<keyof Schema>[]
   query: ResourceQuery<any, Schema>
   scope: string
   taskId: string

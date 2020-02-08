@@ -16,7 +16,7 @@ import {
   extractResourceOptions,
   resource,
 } from './resource'
-import { NormalizedChunk } from './schematic'
+import { SchematicChunk } from './schematic'
 
 export interface FlatDocumentResourceOptions<
   Vars extends Props = any,
@@ -38,7 +38,7 @@ export interface DocumentResourceOptions<
   Bucket extends string = any,
   Embeds extends DocEmbeds<Data, Props, EmbedAttrs, EmbedChunk> = any,
   EmbedAttrs extends StringKeys<Embeds> = any,
-  EmbedChunk extends NormalizedChunk<any> = any
+  EmbedChunk extends SchematicChunk<any> = any
 >
   extends FlatDocumentResourceOptions<
       Vars,
@@ -81,7 +81,7 @@ export type EmbeddingDocumentResource<
   Bucket extends string = any,
   Embeds extends DocEmbeds<Data, Props, EmbedAttrs, EmbedChunk> = any,
   EmbedAttrs extends StringKeys<Embeds> = StringKeys<Embeds>,
-  EmbedChunk extends NormalizedChunk<any> = any
+  EmbedChunk extends SchematicChunk<any> = any
 > = Resource<
   EmbeddingDocResult<
     Fallback<Fallback<Result, Data>, Input>,
@@ -169,7 +169,7 @@ export function documentResource<
   Bucket extends string = any,
   E extends DocEmbeds<Data, Props, EA, EC> = any,
   EA extends StringKeys<E> = StringKeys<E>,
-  EC extends NormalizedChunk<any> = any
+  EC extends SchematicChunk<any> = any
 >(
   options?: DocumentResourceOptions<
     Vars,
@@ -208,7 +208,7 @@ export function documentResource<
   Bucket extends string = string,
   E extends DocEmbeds<Data, Props, EA, EC> = any,
   EA extends StringKeys<E> = StringKeys<E>,
-  EC extends NormalizedChunk<any> = any
+  EC extends SchematicChunk<any> = any
 >(
   bucket: Bucket,
   options?: DocumentResourceOptions<
@@ -252,7 +252,7 @@ export function documentResource(
   const [resourceOptions, schematicOptions] = extractResourceOptions(options)
 
   return resource({
-    composing: documentSchematic({ bucket, ...schematicOptions }),
+    schematic: documentSchematic({ bucket, ...schematicOptions }),
     ...resourceOptions,
   })
 }

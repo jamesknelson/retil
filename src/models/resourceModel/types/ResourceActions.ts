@@ -2,7 +2,7 @@ import { Dispose } from '../../../store'
 
 import { ResourceRequestPolicy } from './ResourcePolicies'
 import { ResourceQuery } from './ResourceQuery'
-import { ResourceRef } from './ResourceRef'
+import { CacheKey } from './ResourceRef'
 import { ResourceSchema, SchemaUpdate } from './ResourceSchema'
 
 type NarrowAction<T, N> = T extends { type: N } ? T : never
@@ -42,7 +42,7 @@ type AbandonTask = {
 type ApplyModifiersAction = {
   type: 'applyModifiers'
   scope: string
-  refs: ResourceRef[]
+  refs: CacheKey[]
 
   keep?: number
   pause?: number
@@ -80,7 +80,7 @@ type ErrorAction = {
 type InvalidateAction = {
   type: 'invalidate'
   scope?: string
-  refs: ResourceRef[]
+  refs: CacheKey[]
   taskId: string | null
 }
 
@@ -99,7 +99,7 @@ type ManualLoadAction = {
  */
 type PurgeAction = {
   type: 'purge'
-  refs: ResourceRef[]
+  refs: CacheKey[]
   taskId: string
 }
 

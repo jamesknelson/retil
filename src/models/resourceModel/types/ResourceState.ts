@@ -1,5 +1,5 @@
 import { ResourceRequestPolicy } from './ResourcePolicies'
-import { ResourceRef } from './ResourceRef'
+import { CacheKey } from './ResourceRef'
 import { ResourceSchema } from './ResourceSchema'
 import { ResourceTask, ResourceTaskQueueType } from './ResourceTasks'
 import { ResourceQuery } from './ResourceQuery'
@@ -18,7 +18,7 @@ export interface ResourceState<Schema extends ResourceSchema> {
     nextId: number
 
     pausedBy: {
-      [taskId: string]: ResourceRef<Extract<keyof Schema, string>>[]
+      [taskId: string]: CacheKey<Extract<keyof Schema, string>>[]
     }
 
     /**
@@ -88,7 +88,7 @@ export interface ResourceRefState<
   /**
    * The document's primary key.
    */
-  ref: ResourceRef<Type>
+  ref: CacheKey<Type>
 
   request: null | {
     query: ResourceQuery<any, any>

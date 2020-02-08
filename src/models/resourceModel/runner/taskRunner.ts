@@ -2,7 +2,7 @@ import {
   ResourceAction,
   ResourceCacheTask,
   ResourceRequestTask,
-  ResourceRef,
+  CacheKey,
   ResourceSchema,
   ResourceTask,
   ResourceTaskConfig,
@@ -53,7 +53,7 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
     if (this.config.invalidate) {
       let running = false
 
-      const invalidate = (refs: ResourceRef<keyof Schema>[] = task.refs) => {
+      const invalidate = (refs: CacheKey<keyof Schema>[] = task.refs) => {
         if (running) {
           throw new Error(
             'Resource Error: an invalidator called its invalidate function ' +
@@ -115,7 +115,7 @@ export class ResourceTaskRunner<Schema extends ResourceSchema> {
 
   private purge(task: ResourceCacheTask<Schema>) {
     if (this.config.purge) {
-      const purge = (refs: ResourceRef<keyof Schema>[] = task.refs) => {
+      const purge = (refs: CacheKey<keyof Schema>[] = task.refs) => {
         // Always purge asynchronously
         setTimeout(() => {
           this.dispatch({

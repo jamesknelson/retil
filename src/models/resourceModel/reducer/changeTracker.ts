@@ -1,7 +1,7 @@
 import {
   ResourceCacheTask,
   ResourceQuery,
-  ResourceRef,
+  CacheKey,
   ResourceRefState,
   ResourceRequestTask,
   ResourceState,
@@ -11,7 +11,7 @@ import { TaskTypes } from '../constants'
 
 export class ChangeTracker<Data, Rejection> {
   private nextNextTaskId: number
-  private nextPausedBy: { [taskId: string]: ResourceRef[] } | undefined
+  private nextPausedBy: { [taskId: string]: CacheKey[] } | undefined
   private nextPending:
     | ResourceState<Data, Rejection>['tasks']['pending']
     | undefined
@@ -22,21 +22,21 @@ export class ChangeTracker<Data, Rejection> {
   private startedCacheTasks: {
     invalidate?: readonly [
       /* taskId */ string,
-      ResourceRef[],
+      CacheKey[],
       ResourceRefState<Data, Rejection>[],
     ]
     purge?: readonly [
       /* taskId */ string,
-      ResourceRef[],
+      CacheKey[],
       ResourceRefState<Data, Rejection>[],
     ]
   }
   private startedRequestTasks: Map<
     ResourceQuery<any, Data, Rejection>,
     {
-      load?: [/* taskId */ string, ResourceRef[]]
-      manualLoad?: [/* taskId */ string, ResourceRef[]]
-      subscribe?: [/* taskId */ string, ResourceRef[]]
+      load?: [/* taskId */ string, CacheKey[]]
+      manualLoad?: [/* taskId */ string, CacheKey[]]
+      subscribe?: [/* taskId */ string, CacheKey[]]
     }
   >
 
@@ -116,7 +116,7 @@ export class ChangeTracker<Data, Rejection> {
    */
   startCacheTask(
     type: ResourceCacheTask<any, any>['type'],
-    ref: ResourceRef,
+    ref: CacheKey,
     state: ResourceRefState<Data, Rejection>,
   ): string {
     let tuple = this.startedCacheTasks[type]
@@ -137,7 +137,7 @@ export class ChangeTracker<Data, Rejection> {
    */
   startRequestTasks(
     type: ResourceRequestTask<any, any>['type'],
-    ref: ResourceRef,
+    ref: CacheKey,
     query: ResourceQuery<any, Data, Rejection>,
   ): string {
     let queryStartedTasks = this.startedRequestTasks.get(query)
@@ -152,7 +152,7 @@ export class ChangeTracker<Data, Rejection> {
     return tuple[0]
   }
 
-  pauseRefTask(ref: ResourceRef, taskId: string) {
+  pauseRefTask(ref: CacheKey, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
@@ -168,7 +168,7 @@ export class ChangeTracker<Data, Rejection> {
   }
 
   removeRefsFromTasks(
-    ref: ResourceRef,
+    ref: CacheKey,
     prevTasks: ResourceRefState<any, any>['tasks'],
     nextTasks?: ResourceRefState<any, any>['tasks'],
   ) {
@@ -203,7 +203,7 @@ export class ChangeTracker<Data, Rejection> {
     }
   }
 
-  unpauseRefTask(ref: ResourceRef, taskId: string) {
+  unpauseRefTask(ref: CacheKey, taskId: string) {
     this.nextPausedBy = this.nextPausedBy || {
       ...this.prevState.tasks.pausedBy,
     }
@@ -211,7 +211,7 @@ export class ChangeTracker<Data, Rejection> {
     this.attemptToUnpauseTask(taskId, ref)
   }
 
-  private attemptToUnpauseTask(taskId: string, ref: ResourceRef) {
+  private attemptToUnpauseTask(taskId: string, ref: CacheKey) {
     let pausedRefs = this.nextPausedBy![taskId]
     if (pausedRefs) {
       if (pausedRefs === this.prevState.tasks.pausedBy[taskId]) {
@@ -228,10 +228,7 @@ export class ChangeTracker<Data, Rejection> {
   }
 }
 
-function removeRef(
-  refs: ResourceRef[],
-  refToRemove: ResourceRef,
-): ResourceRef[] {
+function removeRef(refs: CacheKey[], refToRemove: CacheKey): CacheKey[] {
   if (refs.length === 1) {
     if (refs[0][0] === refToRemove[0] && refs[0][1] === refToRemove[1]) {
       return []

@@ -5,7 +5,7 @@ import {
   ResourceActionOfType,
   ResourceDataUpdater,
   ResourceQuery,
-  ResourceRef,
+  CacheKey,
   ResourceState,
 } from './types'
 
@@ -13,7 +13,7 @@ export class ResourceCacheActions<Data, Rejection> {
   constructor(
     private rawDispatch: (action: ResourceAction<Data, Rejection>) => void,
     private scope: string,
-    private refs: readonly ResourceRef[],
+    private refs: readonly CacheKey[],
     private outlet: Outlet<ResourceState<Data, Rejection>>,
   ) {}
 

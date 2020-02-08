@@ -1,4 +1,4 @@
-import { ResourceRefState, ResourceState, ResourceRef } from '../types'
+import { ResourceRefState, ResourceState, CacheKey } from '../types'
 
 import { DefaultRequestPolicies, InitialDocState } from '../constants'
 import { ChangeTracker } from './changeTracker'
@@ -12,7 +12,7 @@ export type MapMergeCallback<Data, Rejection> = (
 export function mapMerge<Data, Rejection>(
   scope: string,
   state: ResourceState<Data, Rejection>,
-  refs: readonly ResourceRef<any>[],
+  refs: readonly CacheKey<any>[],
   callback: MapMergeCallback<Data, Rejection>,
 ): ResourceState<Data, Rejection> {
   const tracker = new ChangeTracker<Data, Rejection>(state, scope)

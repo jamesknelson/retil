@@ -1,11 +1,11 @@
-import { ResourceRef, ResourceState, ResourceRefState } from '../types'
+import { CacheKey, ResourceState, ResourceRefState } from '../types'
 
 import { ChangeTracker } from './changeTracker'
 
 export function purge<Data, Rejection>(
   scope: string,
   state: ResourceState<Data, Rejection>,
-  refs: ResourceRef[],
+  refs: CacheKey[],
   taskId: string,
 ): ResourceState<Data, Rejection> {
   const scopeState = state.scopes[scope]

@@ -2,15 +2,16 @@ import { AbortController } from 'abort-controller'
 
 import { Outlet } from '../../../outlets'
 
-import {
-  ResourceCache,
-  ResourceQueryType,
-  ResourceRecordPointer,
-  ResourceRefState,
-} from '../types'
+import { CacheKey, ResourceQueryType, ResourceScopeState } from '../types'
 
 import { createLoader } from './loader'
-import { NormalizedChunk, RequestableSchematic, Schematic } from './schematic'
+import {
+  RequestableSchematic,
+  Schematic,
+  SchematicBuildResult,
+  SchematicChunk,
+  SchematicRecordPointer,
+} from './schematic'
 
 export const defaultResourceOptions = {
   maxRetries: 10,
@@ -37,6 +38,19 @@ export interface ResourceResult<Data, Rejection, Vars> {
   hasRejection?: boolean
 
   /**
+   * Indicates that some of the data has been marked as possibly out of date,
+   * and in need of a reload.
+   */
+  invalidated?: boolean
+
+  id: string | number
+
+  /**
+   * Contains all keys used to build this result.
+   */
+  keys: CacheKey[]
+
+  /**
    * When true, indicates that we're expecting to receive new data due to an
    * in-progress operation.
    */
@@ -46,12 +60,6 @@ export interface ResourceResult<Data, Rejection, Vars> {
    * Indicates that we're still waiting on an initial value.
    */
   primed: boolean
-
-  /**
-   * Indicates that the data has been marked as possibly out of date, and in
-   * need of a reload.
-   */
-  invalidated?: boolean
 
   rejection: () => Rejection
 
@@ -77,21 +85,21 @@ export interface ResourceOptions<Vars = string, Context = any, Input = any> {
   maxRetries?: number
 }
 
-export interface ComposingResourceOptions<
+export interface StandaloneResourceOptions<
   Result = any,
   Vars = string,
   Context = any,
   Props = any,
   Input = any,
   Bucket extends string = any,
-  Chunk extends NormalizedChunk<any> = any
+  Chunk extends SchematicChunk<any> = any
 > extends ResourceOptions<Vars, Context, Input> {
-  composing: RequestableSchematic<
+  schematic: RequestableSchematic<
     Result,
     Vars,
     Props,
     Input,
-    ResourceRecordPointer<Bucket>,
+    SchematicRecordPointer<Bucket>,
     Chunk
   >
 }
@@ -104,9 +112,15 @@ export interface Resource<
   Props = any,
   Input = any,
   Bucket extends string = any,
-  Chunk extends NormalizedChunk<any> = any
+  Chunk extends SchematicChunk<any> = any
 >
-  extends Schematic<Result, Props, Input, ResourceRecordPointer<Bucket>, Chunk>,
+  extends Schematic<
+      Result,
+      Props,
+      Input,
+      SchematicRecordPointer<Bucket>,
+      Chunk
+    >,
     ResourceQueryType<ResourceResult<Result, Rejection, Vars>, Vars, Context> {}
 
 export function extractResourceOptions<Options extends ResourceOptions>(
@@ -124,9 +138,9 @@ export function resource<
   Props = any,
   Input = any,
   Bucket extends string = any,
-  Chunk extends NormalizedChunk<any> = any
+  Chunk extends SchematicChunk<any> = any
 >(
-  options: ComposingResourceOptions<
+  options: StandaloneResourceOptions<
     Result,
     Vars,
     Context,
@@ -136,69 +150,67 @@ export function resource<
     Chunk
   >,
 ): Resource<Result, Rejection, Vars, Context, Props, Input, Bucket, Chunk> {
-  const { load, delayInterval, exponent, maxRetries } = {
+  const { load, delayInterval, exponent, maxRetries, schematic } = {
     ...defaultResourceOptions,
     ...options,
   }
-
-  const composing = options.composing
 
   const request: ResourceQueryType['request'] = (
     vars: Vars,
     context: Context,
   ) => {
-    const { build, split } = composing(vars)
-    const root = composing.request(vars, context).root
+    const { build, split } = schematic(vars)
+    const rootPointer = schematic.request(vars, context).rootPointer
     const abortController = new AbortController()
+    const loader =
+      load &&
+      createLoader({
+        load: async () => {
+          const input = await load(vars, context, abortController.signal)
+          const { chunks } = split(input)
+          return chunks
+        },
 
-    // todo: handle load not being supplied
+        rootPointer,
 
-    const loader = createLoader({
-      load: async () => {
-        const input = await load!(vars, context, abortController.signal)
-        const { chunks } = split(input)
-        return chunks
-      },
-      root,
-
-      delayInterval,
-      exponent,
-      maxRetries,
-    })
+        delayInterval,
+        exponent,
+        maxRetries,
+      })
 
     return {
-      root,
+      rootPointer: rootPointer,
 
       select: (
-        source: Outlet<{
-          pending: boolean
-          primed: boolean
-          state: ResourceRefState
-        }>,
-        cache: ResourceCache<any, any>,
-      ): Outlet<ResourceResult<Result, Rejection, Vars>> => {
-        return build(source, cache)
-
-        // TODO:
-        // - i'm not sure how to make it so that the child `build` only gets
-        //   computed after `data` is called, while still making sure it
-        //   holds any children. tricky.
-        source.map(
-          ({ pending, primed, state }) =>
-            new ResourceResultImplementation(
-              primed,
-              pending,
-              state,
-              vars,
-              source.filter(({ primed }) => primed).getValue,
-            ),
+        stateSource: Outlet<ResourceScopeState<any>>,
+      ): Outlet<[ResourceResult<Result, Rejection, Vars>, CacheKey[]]> => {
+        const schematicSource = stateSource.map(state =>
+          build(state, rootPointer),
         )
+        return schematicSource.map(result => [
+          new ResourceResultImplementation(
+            rootPointer.__key__,
+            vars,
+            result,
+
+            // If `data()` or `rejection()` are called while there's no
+            // subscription, then they need to request the data and throw
+            // a promise to the result -- this function facilitates that.
+            schematicSource.filter(result => result.primed).getValue,
+          ),
+          result.keys,
+        ])
       },
 
       load: request => {
+        if (!loader) {
+          return request.abandon()
+        }
+
         const cancel = loader(request)
         return () => {
-          // Cancel before abort, as abort may cause a fetch to throw an error.
+          // Cancel before abort, as abort may cause a fetch to throw an error,
+          // and cancelling first will ensure that error is ignored.
           cancel()
           abortController.abort()
         }
@@ -206,68 +218,84 @@ export function resource<
     }
   }
 
-  const schematic: Resource = Object.assign(
-    (props: unknown extends Props ? any : Props) => composing(props),
-    { request },
-  )
-
-  return schematic
+  const resourceSchematic = (props: any) => schematic(props)
+  const resource: Resource = Object.assign(resourceSchematic, {
+    request,
+  })
+  return resource
 }
 
 class ResourceResultImplementation<Data, Rejection, Variables>
   implements ResourceResult<Data, Rejection, Variables> {
   constructor(
-    readonly primed: boolean,
-    readonly pending: boolean,
-    readonly state: ResourceRefState<Data, Rejection>,
+    readonly key: CacheKey,
     readonly vars: Variables,
+    private result: SchematicBuildResult<Data>,
     private waitForValue: () => Promise<any>,
   ) {}
 
   get abandoned(): boolean {
-    return this.primed && !this.state.value
+    return (
+      this.result.primed && !this.result.hasData && !this.result.hasRejection
+    )
   }
 
   data(): Data {
-    if (!this.primed) {
+    if (!this.result.primed) {
       throw this.waitForValue()
     }
-    if (!this.state.value || this.state.value.type !== 'data') {
+    if (!this.result.hasData) {
       throw new Error(
         `Resource Error: no data is available. To prevent this error, ensure ` +
           `that the "hasData" property is true before accessing "data".`,
       )
     }
-    return this.state.value.data
+    return this.result.data
   }
 
   get hasData(): boolean {
-    return !!this.state.value && this.state.value.type === 'data'
+    return this.result.type === 'data'
   }
 
   get hasRejection(): boolean {
-    return !!this.state.value && this.state.value.type === 'rejection'
+    return this.result.type === 'rejection'
   }
 
-  get invalidated(): boolean {
-    return !!this.state.invalidated
+  get invalidated(): boolean | undefined {
+    return this.result.invalidated
+  }
+
+  get id(): string | number {
+    return this.key[1]
+  }
+
+  get keys(): CacheKey[] {
+    return this.result.keys
+  }
+
+  get pending(): boolean {
+    return this.result.pending
+  }
+
+  get primed(): boolean {
+    return this.result.type !== 'priming'
   }
 
   rejection(): any {
-    if (!this.primed) {
+    if (this.result.type === 'priming') {
       throw this.waitForValue()
     }
-    if (!this.state.value || this.state.value.type !== 'rejection') {
+    if (this.result.type !== 'rejection') {
       throw new Error(
         `Resource Error: no inaccessible reason is available. To prevent this ` +
           `error, ensure that the "hasRejection" property is true before accessing ` +
           `"rejection".`,
       )
     }
-    return this.state.value.rejection
+    return this.result.rejection
   }
 
   get type(): string {
-    return this.state.ref[0]
+    return this.key[0]
   }
 }

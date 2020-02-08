@@ -1,6 +1,8 @@
 import { exponentialBackoff } from '../../../utils/exponentialBackoff'
 
-import { ResourceRecordPointer, ResourceUpdate } from '../types'
+import { ResourceUpdate } from '../types'
+
+import { SchematicRecordPointer } from './schematic'
 
 // Can be thrown to indicate that the request was valid, but the server has
 // decided not to fulfill it. Typical rejection reasons include Not Found,
@@ -25,7 +27,7 @@ export interface LoaderOptions<
 
   // Used for generating rejection updates in the case a Rejection object is
   // thrown.
-  root: ResourceRecordPointer
+  rootPointer: SchematicRecordPointer
 
   delayInterval?: number
   exponent?: number
@@ -56,7 +58,7 @@ export type Loader<Data, Rejection = any, Type extends string = any> = (
 export function createLoader<Data, Rejection = any, Type extends string = any>(
   options: LoaderOptions<Data, Rejection, Type>,
 ): Loader<Data, Rejection, Type> {
-  const { delayInterval, exponent, load, maxRetries, root } = options
+  const { delayInterval, exponent, load, maxRetries, rootPointer } = options
 
   return (task: LoaderTask<Data, Rejection, Type>): (() => void) => {
     const { cancel, result } = exponentialBackoff<
@@ -71,7 +73,7 @@ export function createLoader<Data, Rejection = any, Type extends string = any>(
         } catch (something) {
           if (something instanceof Rejection) {
             const rejection = something.rejection
-            const [type, id] = root.__key__
+            const [type, id] = rootPointer.__key__
             complete([type, id, { type: 'setRejection', rejection }])
           } else if (something instanceof Retry) {
             retry(something.noEarlierThan)

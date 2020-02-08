@@ -1,3 +1,4 @@
+export * from './collectionResource'
 export * from './documentResource'
 export * from './listSchematic'
 export {

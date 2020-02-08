@@ -1,9 +1,8 @@
 import { Outlet } from '../../../outlets'
 
-import { ResourceCache } from './Resource'
-import { ResourceRecordPointer } from './ResourceRef'
+import { CacheKey } from './ResourceRef'
+import { ResourceScopeState } from './ResourceState'
 import { ResourceUpdate } from './ResourceUpdates'
-import { ResourceRefState } from './ResourceState'
 
 export interface ResourceQueryType<
   Result = any,
@@ -13,31 +12,14 @@ export interface ResourceQueryType<
   request(variables: Vars, context: Context): ResourceQuery<Result>
 }
 
-export interface ResourceQuery<
-  Result = any,
-  Root extends ResourceRecordPointer = any
-> {
-  /**
-   * Specifies all data required by the query that isn't loaded by subscribing
-   * to another query within `mapStateToResult`. Note that this data *may not*
-   * all be stored directly on the ref states, but when a task exists to
-   * load or subscribe to these refs, all data required by the query should be
-   * returned. This way, there only needs to be *one* network task active for
-   * these refs, even if there are multiple queries.
-   */
-  readonly root: Root
-
+export interface ResourceQuery<Result = any> {
+  // The cache keys in the output source will be kept in cache while there's an
+  // active subscription.
   select(
-    // A sub for the state of the query's specified refs
-    source: Outlet<{
-      pending: boolean
-      primed: boolean
-      state: ResourceRefState
-    }>,
-    // The cache object from which this query was made, allowing you to make
-    // nested queries.
-    cache: ResourceCache<any, any>,
-  ): Outlet<Result>
+    // A source for the current cache state, which will cause this resource to
+    // be registered on the cache when there's an active subscription.
+    source: Outlet<ResourceScopeState<any>>,
+  ): Outlet<[Result, CacheKey[]]>
 
   load?: (options: {
     /**

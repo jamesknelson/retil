@@ -1,18 +1,11 @@
-import { Outlet } from '../../../outlets'
-
-import {
-  ResourceCache,
-  ResourcePointer,
-  ResourceRefState,
-  ResourceRecordPointer,
-} from '../types'
+import { CacheKey, ResourceScopeState } from '../types'
 
 export interface Schematic<
   Result = any,
   Props = any,
   Input = any,
-  Root extends ResourcePointer = any,
-  Chunk extends NormalizedChunk<any> = any
+  Root extends SchematicPointer = any,
+  Chunk extends SchematicChunk<any> = any
 > {
   (props: Props): SchematicInstance<Result, Input, Root, Chunk>
 }
@@ -20,25 +13,109 @@ export interface Schematic<
 export interface SchematicInstance<
   Result = any,
   Input = any,
-  Root extends ResourcePointer = any,
-  Chunk extends NormalizedChunk<any> = any
+  Root extends SchematicPointer = any,
+  Chunk extends SchematicChunk<any> = any
 > {
-  split: (input: Input) => NormalizeResult<Root, Chunk>
-  build: (
-    source: Outlet<
-      // The actual type could be figured out using a conditional type based
-      // on `root`, but it's not really necessary.
-      ResourceRefState<any, any, any> | ResourceRefState<any, any, any>[]
-    >,
-    cache: ResourceCache<any, any>,
-  ) => Outlet<Result>
+  split(input: Input): SchematicSplitResult<Root, Chunk>
+  build(
+    state: ResourceScopeState<any>,
+    rootPointer: Root,
+  ): SchematicBuildResult<Result>
 }
 
-export type SchematicResult<S extends Schematic> = S extends Schematic<
-  infer Result
->
-  ? Result
-  : never
+export type SchematicSplitResult<
+  Root extends SchematicPointer,
+  Chunk extends SchematicChunk
+> = {
+  chunks: readonly Chunk[]
+  rootPointer: Root
+}
+
+export type SchematicChunk<Type extends string = any, Data = any> = readonly [
+  Type,
+  string | number,
+  Data,
+]
+
+export type SchematicBuildResult<Data = any, Rejection = any> =
+  // Priming; still waiting for initial response
+  | {
+      data?: undefined
+      hasData?: false
+      hasRejection?: false
+      invalidated?: boolean
+      keys: readonly CacheKey[]
+      pending: true
+      primed: false
+      rejection?: undefined
+    }
+  // Abandoned; no longer waiting for initial response
+  | {
+      data?: undefined
+      hasData: false
+      hasRejection: false
+      keys: readonly CacheKey[]
+      invalidated: false
+      pending: false
+      primed: true
+      rejection?: undefined
+    }
+  // Data; we received the data we requested
+  | {
+      data: Data
+      hasData: true
+      hasRejection?: false
+      keys: readonly CacheKey[]
+      invalidated: boolean
+      pending: boolean
+      primed: true
+      rejection?: undefined
+    }
+  // Rejection; we received a well-formed response telling us "no can do".
+  | {
+      data?: undefined
+      hasData?: false
+      hasRejection: true
+      keys: readonly CacheKey[]
+      invalidated: boolean
+      pending: boolean
+      primed: true
+      rejection?: Rejection
+    }
+
+export type SchematicListPointer<Type extends string = any> = {
+  __keys__: readonly CacheKey<Type>[]
+}
+
+export type SchematicRecordPointer<Type extends string = any> = {
+  __key__: CacheKey<Type>
+}
+
+export type SchematicPointer<Type extends string = any> =
+  | SchematicListPointer<Type>
+  | SchematicRecordPointer<Type>
+
+export function getPointer<P extends SchematicPointer>(
+  state: ResourceScopeState<any>,
+  pointer: P,
+): P extends SchematicRecordPointer
+  ? SchematicBuildResult
+  : SchematicBuildResult[] {
+  throw new Error('unimplemented')
+}
+
+export function getNextDefaultBucket(): string {
+  throw new Error('unimplemented')
+}
+
+export function ensureTypedKey<Bucket extends string>(
+  bucket: Bucket,
+  key: string | number | CacheKey<Bucket>,
+): CacheKey<Bucket> {
+  return Array.isArray(key)
+    ? (key as CacheKey<Bucket>)
+    : [bucket, key as string | number]
+}
 
 // ---
 
@@ -49,45 +126,13 @@ export interface RequestableSchematic<
   Vars = any,
   Props = any,
   Input = any,
-  Root extends ResourcePointer = any,
-  Chunk extends NormalizedChunk<any> = any
+  Root extends SchematicPointer = any,
+  Chunk extends SchematicChunk<any> = any
 > extends Schematic<Result, Props, Input, Root, Chunk> {
   request: (
     vars: Vars,
     context?: any,
   ) => {
-    root: Root
+    rootPointer: Root
   }
 }
-
-export type RequestableRecordSchematic<
-  Result = any,
-  Vars = any,
-  Props = any,
-  Input = any,
-  Bucket extends string = any,
-  Chunk extends NormalizedChunk<any> = any
-> = RequestableSchematic<
-  Result,
-  Vars,
-  Props,
-  Input,
-  ResourceRecordPointer<Bucket>,
-  Chunk
->
-
-// ---
-
-export type NormalizeResult<
-  Root extends ResourcePointer,
-  Chunk extends NormalizedChunk
-> = {
-  chunks: readonly Chunk[]
-  root: Root
-}
-
-export type NormalizedChunk<Type extends string = any, Data = any> = readonly [
-  Type,
-  string | number,
-  Data,
-]
