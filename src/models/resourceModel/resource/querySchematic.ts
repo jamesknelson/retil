@@ -1,18 +1,18 @@
 import { stringifyVariables } from '../../../utils/stringifyVariables'
 
-import { CacheKey, ResourceScopeState } from '../types'
+import { CacheKey } from '../types'
 
 import {
-  RequestableSchematic,
+  Schematic,
+  SchematicBuildResult,
   SchematicChunk,
   SchematicInstance,
+  SchematicPickFunction,
   SchematicPointer,
   SchematicRecordPointer,
   SchematicSplitResult,
-  SchematicBuildResult,
   ensureTypedKey,
   getNextDefaultBucket,
-  getPointer,
 } from './schematic'
 
 export interface QueryOptions<
@@ -43,9 +43,8 @@ export type QuerySchematic<
   Bucket extends string = any,
   ChildRoot extends SchematicPointer = any,
   ChildChunk extends SchematicChunk = any
-> = RequestableSchematic<
+> = Schematic<
   Result,
-  Vars,
   Vars,
   Input,
   SchematicRecordPointer<Bucket>,
@@ -68,42 +67,40 @@ export function querySchematic<Result, Vars, Input>(
 
   const { for: child, mapVarsToKey = stringifyVariables } = options
 
-  const request = (vars: Vars) => ({
-    rootPointer: { __key__: ensureTypedKey(bucket, mapVarsToKey(vars)) },
-  })
-
-  return Object.assign(
-    (vars: Vars) =>
-      new QuerySchematicImplementation<Result, Input>(
-        child(vars),
-        ensureTypedKey(bucket, mapVarsToKey(vars)),
-      ),
-    { request },
-  )
+  return (vars: Vars) => {
+    const rootPointer = {
+      __key__: ensureTypedKey(bucket, mapVarsToKey(vars)),
+    }
+    return new QuerySchematicImplementation<Result, Input>(
+      rootPointer,
+      child(vars),
+    )
+  }
 }
 
 class QuerySchematicImplementation<Result, Input>
   implements SchematicInstance<Result, Input, SchematicRecordPointer> {
   constructor(
+    readonly rootPointer: SchematicRecordPointer,
     private child: SchematicInstance<Result, Input>,
-    private key: CacheKey,
   ) {}
 
   split(input: Input): SchematicSplitResult<SchematicRecordPointer, any> {
-    const { chunks, rootPointer } = this.child.split(input)
+    const child = this.child.split(input)
+    const key = this.rootPointer.__key__
     return {
-      chunks: chunks.concat([this.key[0], this.key[1], rootPointer]),
-      rootPointer: { __key__: this.key },
+      chunks: child.chunks.concat([key[0], key[1], child.rootPointer]),
+      rootPointer: this.rootPointer,
     }
   }
 
   build(
-    state: ResourceScopeState<any>,
     pointer: SchematicRecordPointer,
+    pick: SchematicPickFunction,
   ): SchematicBuildResult {
-    const queryResult = getPointer(state, pointer)
+    const queryResult = pick(pointer)
     const childResult =
-      queryResult.hasData && this.child.build(state, queryResult.data)
+      queryResult.hasData && this.child.build(queryResult.data, pick)
     return {
       data: childResult ? childResult.data : undefined,
       hasData: childResult && childResult.hasData,
@@ -111,7 +108,6 @@ class QuerySchematicImplementation<Result, Input>
         (childResult && childResult.hasRejection) || queryResult.hasRejection,
       invalidated:
         queryResult.invalidated || (childResult && childResult.invalidated),
-      keys: [pointer.__key__].concat(childResult ? childResult.keys : []),
       rejection: childResult ? childResult.rejection : queryResult.rejection,
       pending: queryResult.pending || !!(childResult && childResult.pending),
       primed: queryResult.primed && (!childResult || childResult.primed),

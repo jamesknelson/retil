@@ -1,13 +1,13 @@
-import { CacheKey, ResourceScopeState } from '../types'
+import { CacheKey } from '../types'
 
 export interface Schematic<
   Result = any,
-  Props = any,
+  Vars = any,
   Input = any,
   Root extends SchematicPointer = any,
   Chunk extends SchematicChunk<any> = any
 > {
-  (props: Props): SchematicInstance<Result, Input, Root, Chunk>
+  (vars: Vars): SchematicInstance<Result, Input, Root, Chunk>
 }
 
 export interface SchematicInstance<
@@ -16,12 +16,22 @@ export interface SchematicInstance<
   Root extends SchematicPointer = any,
   Chunk extends SchematicChunk<any> = any
 > {
+  // For schematics with no parents or no split data, a pointer to the relevant
+  // state needs to be provided -- as it can't be inferred.
+  rootPointer?: Root
+
   split(input: Input): SchematicSplitResult<Root, Chunk>
   build(
-    state: ResourceScopeState<any>,
-    rootPointer: Root,
+    pointer: Root,
+    pick: SchematicPickFunction,
   ): SchematicBuildResult<Result>
 }
+
+export type SchematicPickFunction = <P extends SchematicPointer>(
+  pointer: P,
+) => P extends SchematicRecordPointer
+  ? SchematicBuildResult
+  : SchematicBuildResult[]
 
 export type SchematicSplitResult<
   Root extends SchematicPointer,
@@ -31,12 +41,6 @@ export type SchematicSplitResult<
   rootPointer: Root
 }
 
-export type SchematicChunk<Type extends string = any, Data = any> = readonly [
-  Type,
-  string | number,
-  Data,
-]
-
 export type SchematicBuildResult<Data = any, Rejection = any> =
   // Priming; still waiting for initial response
   | {
@@ -44,7 +48,6 @@ export type SchematicBuildResult<Data = any, Rejection = any> =
       hasData?: false
       hasRejection?: false
       invalidated?: boolean
-      keys: readonly CacheKey[]
       pending: true
       primed: false
       rejection?: undefined
@@ -54,7 +57,6 @@ export type SchematicBuildResult<Data = any, Rejection = any> =
       data?: undefined
       hasData: false
       hasRejection: false
-      keys: readonly CacheKey[]
       invalidated: false
       pending: false
       primed: true
@@ -65,7 +67,6 @@ export type SchematicBuildResult<Data = any, Rejection = any> =
       data: Data
       hasData: true
       hasRejection?: false
-      keys: readonly CacheKey[]
       invalidated: boolean
       pending: boolean
       primed: true
@@ -76,7 +77,6 @@ export type SchematicBuildResult<Data = any, Rejection = any> =
       data?: undefined
       hasData?: false
       hasRejection: true
-      keys: readonly CacheKey[]
       invalidated: boolean
       pending: boolean
       primed: true
@@ -95,13 +95,18 @@ export type SchematicPointer<Type extends string = any> =
   | SchematicListPointer<Type>
   | SchematicRecordPointer<Type>
 
-export function getPointer<P extends SchematicPointer>(
-  state: ResourceScopeState<any>,
-  pointer: P,
-): P extends SchematicRecordPointer
-  ? SchematicBuildResult
-  : SchematicBuildResult[] {
-  throw new Error('unimplemented')
+export type SchematicChunk<Type extends string = any, Data = any> = readonly [
+  Type,
+  string | number,
+  Data,
+]
+
+export type SchematicSchema<Chunk extends SchematicChunk<any> = any> = {
+  [Bucket in Extract<Chunk[0], string>]: {
+    [stringifiedId: string]: (Chunk extends SchematicChunk<Bucket>
+      ? Chunk
+      : never)[2]
+  }
 }
 
 export function getNextDefaultBucket(): string {
@@ -115,24 +120,4 @@ export function ensureTypedKey<Bucket extends string>(
   return Array.isArray(key)
     ? (key as CacheKey<Bucket>)
     : [bucket, key as string | number]
-}
-
-// ---
-
-// Vars are used when building a request from scratch.
-// Props may be used when extracting information from received data.
-export interface RequestableSchematic<
-  Result = any,
-  Vars = any,
-  Props = any,
-  Input = any,
-  Root extends SchematicPointer = any,
-  Chunk extends SchematicChunk<any> = any
-> extends Schematic<Result, Props, Input, Root, Chunk> {
-  request: (
-    vars: Vars,
-    context?: any,
-  ) => {
-    rootPointer: Root
-  }
 }

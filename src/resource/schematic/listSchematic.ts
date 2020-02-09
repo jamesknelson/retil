@@ -1,80 +1,98 @@
-import { CacheKey } from '../types'
+import { Chunk } from '../structures/chunk'
+import {
+  ListPointer,
+  RecordPointer,
+  PointerPicker,
+  PointerState,
+} from '../structures/pointer'
 
 import {
   Schematic,
-  SchematicBuildResult,
-  SchematicChunk,
   SchematicInstance,
-  SchematicListPointer,
-  SchematicPickFunction,
-  SchematicRecordPointer,
-  SchematicSplitResult,
+  SchematicChunkedInput,
 } from './schematic'
 
 export function listSchematic<
-  ChildResult,
-  Props,
+  ChildResultData,
+  ChildResultRejection,
+  Vars,
   ChildInput,
   Child extends Schematic<
-    ChildResult,
-    Props,
+    ChildResultData,
+    ChildResultRejection,
+    Vars,
     ChildInput,
-    SchematicRecordPointer<ChildBucket>,
+    RecordPointer<ChildBucket>,
     ChildChunk
   >,
   ChildBucket extends string,
-  ChildChunk extends SchematicChunk
+  ChildChunk extends Chunk
 >(
   child: Child &
     Schematic<
-      ChildResult,
-      Props,
+      ChildResultData,
+      ChildResultRejection,
+      Vars,
       ChildInput,
-      SchematicRecordPointer<ChildBucket>,
+      RecordPointer<ChildBucket>,
       ChildChunk
     >,
 ): Schematic<
-  ChildResult[],
-  Props,
+  ChildResultData[],
+  ChildResultRejection,
+  Vars,
   ChildInput[],
-  SchematicListPointer<ChildBucket>,
+  ListPointer<ChildBucket>,
   ChildChunk
 > {
-  return (props: Props) =>
-    new ListSchematicImplementation<ChildResult, ChildInput>(child(props))
+  return (vars: Vars) =>
+    new ListSchematicImplementation<
+      ChildResultData,
+      ChildResultRejection,
+      ChildInput,
+      ChildBucket,
+      ChildChunk
+    >(child(vars))
 }
 
-class ListSchematicImplementation<ChildResult, ChildInput>
+class ListSchematicImplementation<
+  ChildResultData,
+  ChildResultRejection,
+  ChildInput,
+  ChildBucket extends string,
+  ChildChunk extends Chunk
+>
   implements
-    SchematicInstance<ChildResult[], ChildInput[], SchematicListPointer> {
+    SchematicInstance<ChildResultData[], ChildResultRejection, ChildInput[]> {
   constructor(
     private child: SchematicInstance<
-      ChildResult,
+      ChildResultData,
+      ChildResultRejection,
       ChildInput,
-      SchematicRecordPointer
+      RecordPointer<ChildBucket>,
+      ChildChunk
     >,
   ) {}
 
-  split(input: ChildInput[]): SchematicSplitResult<SchematicListPointer, any> {
-    const [chunks, rootKeys] = input
-      .map(inputItem => this.child.split(inputItem))
+  chunk(
+    input: ChildInput[],
+  ): SchematicChunkedInput<ListPointer<ChildBucket>, ChildChunk> {
+    const [chunks, root] = input
+      .map(inputItem => this.child.chunk(inputItem))
       .reduce(
         ([chunks, rootKeys], item) => [
           chunks.concat(item.chunks),
-          rootKeys.concat(item.rootPointer.__key__),
+          rootKeys.concat(item.root),
         ],
-        [[] as SchematicChunk[], [] as CacheKey[]],
+        [[] as ChildChunk[], [] as ListPointer<ChildBucket>],
       )
     return {
       chunks,
-      rootPointer: { __keys__: rootKeys },
+      root,
     }
   }
 
-  build(
-    pointer: SchematicListPointer,
-    pick: SchematicPickFunction,
-  ): SchematicBuildResult {
+  build(pointer: ListPointer, pick: PointerPicker): PointerState {
     const results = pick(pointer)
     const primed = results.every(result => result.primed)
     if (!primed) {

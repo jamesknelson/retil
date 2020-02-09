@@ -19,42 +19,32 @@ import {
 import { SchematicChunk } from './schematic'
 
 export interface FlatDocumentResourceOptions<
-  Vars extends Props = any,
-  Props = any,
+  Vars = any,
   Context extends object = any,
   Data = any,
   Input = any,
   Bucket extends string = any
 >
-  extends FlatDocOptions<Vars, Props, Data, Input, Bucket>,
+  extends FlatDocOptions<Vars, Data, Input, Bucket>,
     ResourceOptions<Vars, Context, Input> {}
 
 export interface DocumentResourceOptions<
-  Vars extends Props = any,
-  Props = any,
+  Vars = any,
   Context extends object = any,
   Data extends { [Attr in EmbedAttrs]?: any } = any,
   Input = any,
   Bucket extends string = any,
-  Embeds extends DocEmbeds<Data, Props, EmbedAttrs, EmbedChunk> = any,
+  Embeds extends DocEmbeds<Data, Vars, EmbedAttrs, EmbedChunk> = any,
   EmbedAttrs extends StringKeys<Embeds> = any,
   EmbedChunk extends SchematicChunk<any> = any
 >
-  extends FlatDocumentResourceOptions<
-      Vars,
-      Props,
-      Context,
-      Data,
-      Input,
-      Bucket
-    >,
-    EmbeddingDocumentOptions<Props, Data, Embeds, EmbedAttrs, EmbedChunk> {}
+  extends FlatDocumentResourceOptions<Vars, Context, Data, Input, Bucket>,
+    EmbeddingDocumentOptions<Vars, Data, Embeds, EmbedAttrs, EmbedChunk> {}
 
 export type FlatDocumentResource<
   Result extends FlatDocResult<Data, Input>,
   Rejection = any,
-  Vars extends Props = any,
-  Props = unknown,
+  Vars = any,
   Context extends object = any,
   Data = unknown,
   Input = Data,
@@ -64,7 +54,7 @@ export type FlatDocumentResource<
   Rejection,
   Vars,
   Context,
-  Props,
+  Vars,
   Fallback<Data, Input>,
   Bucket,
   FlatDocChunk<Data, Input, Bucket>
@@ -73,13 +63,12 @@ export type FlatDocumentResource<
 export type EmbeddingDocumentResource<
   Result,
   Rejection = any,
-  Vars extends Props = any,
-  Props = unknown,
+  Vars = any,
   Context extends object = any,
   Data = unknown,
   Input = Data,
   Bucket extends string = any,
-  Embeds extends DocEmbeds<Data, Props, EmbedAttrs, EmbedChunk> = any,
+  Embeds extends DocEmbeds<Data, Vars, EmbedAttrs, EmbedChunk> = any,
   EmbedAttrs extends StringKeys<Embeds> = StringKeys<Embeds>,
   EmbedChunk extends SchematicChunk<any> = any
 > = Resource<
@@ -91,7 +80,7 @@ export type EmbeddingDocumentResource<
   Rejection,
   Vars,
   Context,
-  Props,
+  Vars,
   Fallback<Data, Input>,
   Bucket,
   EmbeddingDocChunk<
@@ -108,72 +97,43 @@ export type EmbeddingDocumentResource<
 export function documentResource<
   Result extends FlatDocResult<Data, Input>,
   Rejection = any,
-  Vars extends Props = any,
-  Props = unknown,
+  Vars = any,
   Context extends object = any,
   Data = unknown,
   Input = Data,
   Bucket extends string = any
 >(
-  options?: FlatDocOptions<Vars, Props, Data, Input, Bucket> &
+  options?: FlatDocOptions<Vars, Data, Input, Bucket> &
     ResourceOptions<Vars, Context, Input>,
-): FlatDocumentResource<
-  Result,
-  Rejection,
-  Vars,
-  Props,
-  Context,
-  Data,
-  Input,
-  Bucket
->
+): FlatDocumentResource<Result, Rejection, Vars, Context, Data, Input, Bucket>
 
 export function documentResource<
   Result extends FlatDocResult<Data, Input>,
   Rejection = any,
-  Vars extends Props = any,
-  Props = unknown,
+  Vars = any,
   Context extends object = any,
   Data = unknown,
   Input = Data,
   Bucket extends string = any
 >(
   bucket: Bucket,
-  options?: FlatDocumentResourceOptions<
-    Vars,
-    Props,
-    Context,
-    Data,
-    Input,
-    Bucket
-  >,
-): FlatDocumentResource<
-  Result,
-  Rejection,
-  Vars,
-  Props,
-  Context,
-  Data,
-  Input,
-  Bucket
->
+  options?: FlatDocumentResourceOptions<Vars, Context, Data, Input, Bucket>,
+): FlatDocumentResource<Result, Rejection, Vars, Context, Data, Input, Bucket>
 
 export function documentResource<
   Result,
   Rejection = any,
-  Vars extends Props = any,
-  Props = unknown,
+  Vars = any,
   Context extends object = any,
   Data = any,
   Input = Data,
   Bucket extends string = any,
-  E extends DocEmbeds<Data, Props, EA, EC> = any,
+  E extends DocEmbeds<Data, Vars, EA, EC> = any,
   EA extends StringKeys<E> = StringKeys<E>,
   EC extends SchematicChunk<any> = any
 >(
   options?: DocumentResourceOptions<
     Vars,
-    Props,
     Context,
     Data,
     Input,
@@ -187,7 +147,6 @@ export function documentResource<
   Result,
   Rejection,
   Vars,
-  Props,
   Context,
   Data,
   Input,
@@ -200,20 +159,18 @@ export function documentResource<
 export function documentResource<
   Result,
   Rejection = any,
-  Vars extends Props = any,
-  Props = unknown,
+  Vars = any,
   Context extends object = any,
   Data = any,
   Input = Data,
   Bucket extends string = string,
-  E extends DocEmbeds<Data, Props, EA, EC> = any,
+  E extends DocEmbeds<Data, Vars, EA, EC> = any,
   EA extends StringKeys<E> = StringKeys<E>,
   EC extends SchematicChunk<any> = any
 >(
   bucket: Bucket,
   options?: DocumentResourceOptions<
     Vars,
-    Props,
     Context,
     Data,
     Input,
@@ -227,7 +184,6 @@ export function documentResource<
   Result,
   Rejection,
   Vars,
-  Props,
   Context,
   Data,
   Input,

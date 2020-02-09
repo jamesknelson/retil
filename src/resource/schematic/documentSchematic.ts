@@ -1,17 +1,18 @@
-import { stringifyVariables } from '../../../utils/stringifyVariables'
+import { stringifyVariables } from '../../utils/stringifyVariables'
+import { StringKeys } from '../../utils/types'
 
-import { Fallback, CacheKey, StringKeys } from '../types'
-
+import { Chunk } from '../structures/chunk'
+import {
+  PointerPicker,
+  PointerState,
+  RecordPointer,
+  addBucketIfRequired,
+  getNextDefaultBucket,
+} from '../structures/pointer'
 import {
   Schematic,
-  SchematicBuildResult,
-  SchematicChunk,
   SchematicInstance,
-  SchematicPickFunction,
-  SchematicRecordPointer,
-  SchematicSplitResult,
-  ensureTypedKey,
-  getNextDefaultBucket,
+  SchematicChunkedInput,
 } from './schematic'
 
 export const defaultDocumentOptions = {
@@ -35,95 +36,103 @@ export const defaultDocumentOptions = {
   },
 }
 
-export type DocumentOptions = FlatDocumentOptions & DocumentEmbeddingOptions
-
-export type DocumentIdentifiedBy<Data, Props, Input, Bucket extends string> = (
-  data: Data,
-  props: Props,
+export type DocumentIdentifiedBy<
+  Vars,
+  DataWithEmbedInputs,
+  Input,
+  Bucket extends string
+> = (
+  data: DataWithEmbedInputs,
+  vars: Vars,
   input: Input,
-) => string | number | CacheKey<Bucket>
+) => string | number | RecordPointer<Bucket>
 
-export interface FlatDocumentOptions<
+export interface BaseDocumentOptions<
   Vars = any,
-  Data = any,
+  DataWithEmbedInputs = any,
   Input = any,
   Bucket extends string = any
 > {
   bucket?: Bucket
 
-  identifiedBy?: DocumentIdentifiedBy<Data, Vars, Input, Bucket>
+  identifiedBy?: DocumentIdentifiedBy<Vars, DataWithEmbedInputs, Input, Bucket>
 
-  mapVarsToKey?: (vars: Vars) => undefined | string | number | CacheKey<Bucket>
+  mapVarsToId?: (
+    vars: Vars,
+  ) => undefined | string | number | RecordPointer<Bucket>
 
-  transformInput?: (input: Input, vars: Vars) => Data
+  transformInput?: (input: Input, vars: Vars) => DataWithEmbedInputs
 }
 
-export interface DocumentEmbeddingOptions<
+export interface DocumentOptions<
   Vars = any,
-  Data extends { [Attr in EmbedAttrs]?: any } = any,
-  Embeds extends DocEmbeds<Data, Vars, EmbedAttrs, EmbedChunk> = any,
+  DataWithEmbedInputs extends { [Attr in EmbedAttrs]?: any } = any,
+  Input = any,
+  Bucket extends string = any,
+  Embeds extends DocEmbeds<
+    Vars,
+    DataWithEmbedInputs,
+    EmbedAttrs,
+    EmbedChunk
+  > = any,
   EmbedAttrs extends StringKeys<Embeds> = any,
-  EmbedChunk extends SchematicChunk<any> = any
-> {
-  embedding?: Embeds & DocEmbeds<Data, Vars, any, EmbedChunk>
+  EmbedChunk extends Chunk<any> = any
+> extends BaseDocumentOptions<Vars, DataWithEmbedInputs, Input, Bucket> {
+  embedding?: Embeds & DocEmbeds<Vars, DataWithEmbedInputs, any, EmbedChunk>
 }
-
-// ---
-
-export type FlatDocResult<Data, Input> = Fallback<Data, Input>
-
-export type FlatDocChunk<Data, Input, Bucket extends string> = SchematicChunk<
-  Bucket,
-  Fallback<Data, Input>
->
 
 // ---
 
 export type DocEmbeds<
-  ParentData extends { [Attr in Attrs]?: any },
   ParentVars,
-  Attrs extends string,
-  Chunk extends SchematicChunk<any>
+  ParentDataWithEmbedInputs extends { [Attr in EmbedAttrs]?: any },
+  EmbedAttrs extends string,
+  ChildChunk extends Chunk<any>
 > = {
-  [Attr in Attrs]: (
+  [Attr in EmbedAttrs]: (
     parentVars: ParentVars,
-    parentData: ParentData,
+    parentData: ParentDataWithEmbedInputs,
   ) => SchematicInstance<
     any,
-    unknown extends ParentData ? any : ParentData[Attr],
     any,
-    Chunk
+    unknown extends ParentDataWithEmbedInputs
+      ? any
+      : ParentDataWithEmbedInputs[Attr],
+    any,
+    ChildChunk
   >
 }
 
-export type EmbeddingDocResult<
-  Result = any,
-  Embeds extends DocEmbeds<Result, any, EmbedAttrs, any> = any,
+export type EmbeddingDocResponseData<
+  ResponseDataTemplate = any,
+  Embeds extends DocEmbeds<any, ResponseDataTemplate, EmbedAttrs, any> = any,
   EmbedAttrs extends StringKeys<Embeds> = any
 > = string extends EmbedAttrs
-  ? Result
-  : Omit<Result, EmbedAttrs> &
+  ? ResponseDataTemplate
+  : Omit<ResponseDataTemplate, EmbedAttrs> &
       {
-        [Prop in EmbedAttrs]: Embeds[Prop] extends Schematic<infer Result>
-          ? Result
+        [Prop in EmbedAttrs]: Embeds[Prop] extends Schematic<
+          infer ChildResultData
+        >
+          ? ChildResultData
           : never
       }
 
 export type EmbeddingDocChunk<
-  Data,
+  ResponseDataTemplate,
   Bucket extends string,
-  Embeds extends DocEmbeds<Data, any, EmbedAttrs, any>,
+  Embeds extends DocEmbeds<any, ResponseDataTemplate, EmbedAttrs, any>,
   EmbedAttrs extends StringKeys<Embeds>,
-  EmbedChunk extends SchematicChunk<any>
+  EmbedChunk extends Chunk<any>
 > =
-  | SchematicChunk<
+  | Chunk<
       Bucket,
-      Omit<Data, EmbedAttrs> &
+      Omit<ResponseDataTemplate, EmbedAttrs> &
         {
           [Prop in EmbedAttrs]?: ReturnType<
             Embeds[Prop]
-          > extends SchematicInstance<any, any, infer Root>
-            ? Root
+          > extends SchematicInstance<any, any, any, infer P>
+            ? P
             : never
         }
     >
@@ -131,10 +140,16 @@ export type EmbeddingDocChunk<
 
 // ---
 
-export function documentSchematic<Result, Vars, Data, Input>(
+export function documentSchematic<
+  ResultData,
+  ResultRejection,
+  Vars,
+  DataWithEmbedInputs,
+  Input
+>(
   bucketOrOptions: string | DocumentOptions = {},
   options?: DocumentOptions,
-): Schematic<Result, Vars, Input, SchematicRecordPointer, any> {
+): Schematic<ResultData, ResultRejection, Vars, Input, RecordPointer, any> {
   let bucket: string
   if (!options) {
     options = bucketOrOptions as DocumentOptions
@@ -146,43 +161,54 @@ export function documentSchematic<Result, Vars, Data, Input>(
   const {
     embedding,
     identifiedBy = defaultDocumentOptions.identifiedBy,
-    mapVarsToKey = defaultDocumentOptions.mapVarsToKey,
+    mapVarsToId: mapVarsToKey = defaultDocumentOptions.mapVarsToKey,
     transformInput,
   } = options
 
   return (vars: Vars) => {
-    let rootPointer: SchematicRecordPointer | undefined
+    let rootPointer: RecordPointer | undefined
 
     if (mapVarsToKey) {
       const key = mapVarsToKey(vars)
       if (key) {
-        rootPointer = { __key__: ensureTypedKey(bucket, key) }
+        rootPointer = addBucketIfRequired(bucket, key)
       }
     }
 
-    return new DocumentSchematicImplementation<Result, Vars, Data, Input>(
-      rootPointer,
-      vars,
-      embedding,
-      identifiedBy,
-      bucket,
-      transformInput,
-    )
+    return new DocumentSchematicImplementation<
+      ResultData,
+      ResultRejection,
+      Vars,
+      DataWithEmbedInputs,
+      Input
+    >(rootPointer, vars, embedding, identifiedBy, bucket, transformInput)
   }
 }
 
-class DocumentSchematicImplementation<Result, Vars, Data, Input>
-  implements SchematicInstance<Result, Input, SchematicRecordPointer> {
+class DocumentSchematicImplementation<
+  ResultData,
+  ResultRejection,
+  Vars,
+  DataWithEmbedInputs,
+  Input
+>
+  implements
+    SchematicInstance<ResultData, ResultRejection, Input, RecordPointer> {
   constructor(
-    readonly rootPointer: SchematicRecordPointer | undefined,
+    readonly defaultPointer: RecordPointer | undefined,
     private vars: Vars,
-    private embedding: DocEmbeds<Data, Vars, any, any>,
-    private identifiedBy: DocumentIdentifiedBy<Data, Vars, Input, any>,
+    private embedding: DocEmbeds<Vars, DataWithEmbedInputs, any, any>,
+    private identifiedBy: DocumentIdentifiedBy<
+      Vars,
+      DataWithEmbedInputs,
+      Input,
+      any
+    >,
     private bucket: string,
-    private transformInput?: (input: Input, props: Vars) => Data,
+    private transformInput?: (input: Input, props: Vars) => DataWithEmbedInputs,
   ) {}
 
-  split(input: Input): SchematicSplitResult<SchematicRecordPointer, any> {
+  chunk(input: Input): SchematicChunkedInput<RecordPointer, any> {
     const data: any = this.transformInput
       ? this.transformInput(input, this.vars)
       : input
@@ -191,11 +217,11 @@ class DocumentSchematicImplementation<Result, Vars, Data, Input>
     if (!id) {
       throw new Error("Resource Error: couldn't identify resource")
     }
-    const key = this.rootPointer
-      ? this.rootPointer.__key__
-      : ensureTypedKey(this.bucket, id)
+    const root = this.defaultPointer
+      ? this.defaultPointer
+      : addBucketIfRequired(this.bucket, id)
 
-    let chunks = [] as SchematicChunk[]
+    let chunks = [] as Chunk[]
     let chunkData = data
     const embeddedAttrs = Object.keys(this.embedding)
     if (embeddedAttrs.length) {
@@ -203,26 +229,23 @@ class DocumentSchematicImplementation<Result, Vars, Data, Input>
       for (const key of embeddedAttrs) {
         const embeddedInput = data[key]
         if (embeddedInput !== undefined) {
-          const embed = this.embedding[key](this.vars, data).split(
+          const embed = this.embedding[key](this.vars, data).chunk(
             embeddedInput,
           )
           chunks.push(...embed.chunks)
-          chunkData[key] = embed.rootPointer
+          chunkData[key] = embed.root
         }
       }
     }
 
-    chunks.push([key[0], key[1], chunkData])
+    chunks.push([root, chunkData])
 
-    return { chunks, rootPointer: this.rootPointer || { __key__: key } }
+    return { chunks, root }
   }
 
-  build(
-    pointer: SchematicRecordPointer,
-    pick: SchematicPickFunction,
-  ): SchematicBuildResult {
+  build(pointer: RecordPointer, pick: PointerPicker): PointerState {
     const result = pick(pointer)
-    const unprimedResult: SchematicBuildResult = {
+    const unprimedResult: PointerState = {
       pending: true,
       primed: false,
     }

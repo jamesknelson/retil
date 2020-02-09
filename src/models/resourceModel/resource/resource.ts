@@ -2,15 +2,14 @@ import { AbortController } from 'abort-controller'
 
 import { Outlet } from '../../../outlets'
 
-import { CacheKey, ResourceQueryType, ResourceScopeState } from '../types'
+import { ResourceQueryType } from '../types'
 
 import { createLoader } from './loader'
 import {
-  RequestableSchematic,
   Schematic,
-  SchematicBuildResult,
   SchematicChunk,
   SchematicRecordPointer,
+  SchematicPickFunction,
 } from './schematic'
 
 export const defaultResourceOptions = {
@@ -23,7 +22,10 @@ export interface ResourceResult<Data, Rejection, Vars> {
    */
   abandoned: boolean
 
-  data: () => Data
+  data?: Data
+
+  getData(): Data
+  getRejection(): Rejection
 
   /**
    * If there's data that can be accessed, this will be true.
@@ -46,11 +48,6 @@ export interface ResourceResult<Data, Rejection, Vars> {
   id: string | number
 
   /**
-   * Contains all keys used to build this result.
-   */
-  keys: CacheKey[]
-
-  /**
    * When true, indicates that we're expecting to receive new data due to an
    * in-progress operation.
    */
@@ -61,7 +58,7 @@ export interface ResourceResult<Data, Rejection, Vars> {
    */
   primed: boolean
 
-  rejection: () => Rejection
+  rejection?: Rejection
 
   type: string
 
@@ -89,15 +86,13 @@ export interface StandaloneResourceOptions<
   Result = any,
   Vars = string,
   Context = any,
-  Props = any,
   Input = any,
   Bucket extends string = any,
   Chunk extends SchematicChunk<any> = any
 > extends ResourceOptions<Vars, Context, Input> {
-  schematic: RequestableSchematic<
+  schematic: Schematic<
     Result,
     Vars,
-    Props,
     Input,
     SchematicRecordPointer<Bucket>,
     Chunk
@@ -133,9 +128,8 @@ export function extractResourceOptions<Options extends ResourceOptions>(
 export function resource<
   Result = unknown,
   Rejection = string,
-  Vars extends Props = any,
+  Vars = any,
   Context extends object = any,
-  Props = any,
   Input = any,
   Bucket extends string = any,
   Chunk extends SchematicChunk<any> = any
@@ -144,12 +138,11 @@ export function resource<
     Result,
     Vars,
     Context,
-    Props,
     Input,
     Bucket,
     Chunk
   >,
-): Resource<Result, Rejection, Vars, Context, Props, Input, Bucket, Chunk> {
+): Resource<Result, Rejection, Vars, Context, Vars, Input, Bucket, Chunk> {
   const { load, delayInterval, exponent, maxRetries, schematic } = {
     ...defaultResourceOptions,
     ...options,
@@ -159,9 +152,13 @@ export function resource<
     vars: Vars,
     context: Context,
   ) => {
-    const { build, split } = schematic(vars)
-    const rootPointer = schematic.request(vars, context).rootPointer
+    const { build, rootPointer, split } = schematic(vars)
     const abortController = new AbortController()
+
+    if (!rootPointer) {
+      throw new Error('Resource Error: Could not compute id from vars.')
+    }
+
     const loader =
       load &&
       createLoader({
@@ -179,27 +176,51 @@ export function resource<
       })
 
     return {
-      rootPointer: rootPointer,
-
       select: (
-        stateSource: Outlet<ResourceScopeState<any>>,
-      ): Outlet<[ResourceResult<Result, Rejection, Vars>, CacheKey[]]> => {
-        const schematicSource = stateSource.map(state =>
-          build(state, rootPointer),
+        stateSource: Outlet<SchematicPickFunction>,
+      ): Outlet<ResourceResult<Result, Rejection, Vars>> => {
+        const schematicSource = stateSource.map(pick =>
+          build(rootPointer, pick),
         )
-        return schematicSource.map(result => [
-          new ResourceResultImplementation(
-            rootPointer.__key__,
-            vars,
-            result,
 
-            // If `data()` or `rejection()` are called while there's no
-            // subscription, then they need to request the data and throw
-            // a promise to the result -- this function facilitates that.
-            schematicSource.filter(result => result.primed).getValue,
-          ),
-          result.keys,
-        ])
+        // If `getData()` or `getRejection()` are called while there's no
+        // subscription, then they need to request the data and throw
+        // a promise to the result -- this function facilitates that.
+        const waitForValue = schematicSource.filter(result => result.primed)
+          .getValue
+
+        return schematicSource.map(result => ({
+          ...result,
+          abandoned: result.primed && !result.hasData && !result.hasRejection,
+          getData(): Result {
+            if (!result.primed) {
+              throw waitForValue()
+            }
+            if (!result.hasData) {
+              throw new Error(
+                `Resource Error: no data is available. To prevent this error, ensure ` +
+                  `that the "hasData" property is true before accessing "data".`,
+              )
+            }
+            return result.data
+          },
+          getRejection(): Rejection {
+            if (!result.primed) {
+              throw waitForValue()
+            }
+            if (!result.hasRejection) {
+              throw new Error(
+                `Resource Error: no rejection is available. To prevent this error, ` +
+                  `ensure that the "hasRejection" property is true before accessing ` +
+                  `"rejection".`,
+              )
+            }
+            return result.rejection
+          },
+          id: rootPointer.__key__[1],
+          type: rootPointer.__key__[0],
+          vars,
+        }))
       },
 
       load: request => {
@@ -218,84 +239,9 @@ export function resource<
     }
   }
 
-  const resourceSchematic = (props: any) => schematic(props)
+  const resourceSchematic = (vars: any) => schematic(vars)
   const resource: Resource = Object.assign(resourceSchematic, {
     request,
   })
   return resource
-}
-
-class ResourceResultImplementation<Data, Rejection, Variables>
-  implements ResourceResult<Data, Rejection, Variables> {
-  constructor(
-    readonly key: CacheKey,
-    readonly vars: Variables,
-    private result: SchematicBuildResult<Data>,
-    private waitForValue: () => Promise<any>,
-  ) {}
-
-  get abandoned(): boolean {
-    return (
-      this.result.primed && !this.result.hasData && !this.result.hasRejection
-    )
-  }
-
-  data(): Data {
-    if (!this.result.primed) {
-      throw this.waitForValue()
-    }
-    if (!this.result.hasData) {
-      throw new Error(
-        `Resource Error: no data is available. To prevent this error, ensure ` +
-          `that the "hasData" property is true before accessing "data".`,
-      )
-    }
-    return this.result.data
-  }
-
-  get hasData(): boolean {
-    return this.result.type === 'data'
-  }
-
-  get hasRejection(): boolean {
-    return this.result.type === 'rejection'
-  }
-
-  get invalidated(): boolean | undefined {
-    return this.result.invalidated
-  }
-
-  get id(): string | number {
-    return this.key[1]
-  }
-
-  get keys(): CacheKey[] {
-    return this.result.keys
-  }
-
-  get pending(): boolean {
-    return this.result.pending
-  }
-
-  get primed(): boolean {
-    return this.result.type !== 'priming'
-  }
-
-  rejection(): any {
-    if (this.result.type === 'priming') {
-      throw this.waitForValue()
-    }
-    if (this.result.type !== 'rejection') {
-      throw new Error(
-        `Resource Error: no inaccessible reason is available. To prevent this ` +
-          `error, ensure that the "hasRejection" property is true before accessing ` +
-          `"rejection".`,
-      )
-    }
-    return this.result.rejection
-  }
-
-  get type(): string {
-    return this.key[0]
-  }
 }

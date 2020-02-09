@@ -3,8 +3,8 @@ import {
   documentResource,
   list,
   queryResource,
-} from './index'
-import { SchematicSchema } from './schematic'
+} from '../index'
+import { ChunkSchema } from '../structures/chunk'
 
 interface VideoData {
   id: string
@@ -90,9 +90,9 @@ const latestNewsletter = queryResource('latestNewsletter', {
 })
 
 const instance = latestNewsletter({})
-const { chunks } = instance.split({} as any)
+const { chunks } = instance.chunk({} as any)
 
-export type Schema = SchematicSchema<typeof chunks[number]>
+export type Schema = ChunkSchema<typeof chunks[number]['id']>
 
 const data0 = localVideo
   .request({} as any, {} as any)
@@ -115,7 +115,7 @@ const data2 = newsletter
 const value1 = instance.build({} as any, {} as any)
 const value2 = newsletterList({ page: 0 }).build({} as any, {} as any)
 
-const chunkData = newsletter({} as any).split({} as any).chunks[0][2]
+const chunkData = newsletter({} as any).chunk({} as any).chunks[0][1]
 
 console.log(data0, data1, data2, chunkData)
 
@@ -124,14 +124,14 @@ console.log(value1.hasData && value1.data.videos[0].subtitles[0].translations)
 console.log(value2.hasData && value2.data)
 
 chunks.forEach(item => {
-  switch (item[0]) {
+  switch (item[0].bucket) {
     case 'latestNewsletter':
-      return item[2]
+      return item[1]
 
     case 'newsletter':
-      return item[2].description
+      return item[1].description
 
     case 'video':
-      return item[2].subtitles[0].english
+      return item[1].subtitles[0].english
   }
 })

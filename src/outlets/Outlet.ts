@@ -1,7 +1,6 @@
 import { Deferred } from '../utils/Deferred'
 import { fallback } from './fallback'
 import { FilterCallback, filter } from './filter'
-import { SwitchMapCallback, switchMap } from './switchMap'
 import { last } from './last'
 import { MapCallback, map } from './map'
 
@@ -49,7 +48,6 @@ export interface Outlet<T> extends OutletDescriptor<T> {
 
   fallback(value: T): Outlet<T>
   filter(predicate: FilterCallback<T>): Outlet<T>
-  switchMap<U>(mapFn: SwitchMapCallback<T, U>): Outlet<U>
   last(): Outlet<T>
   map<U>(mapFn: MapCallback<T, U>): Outlet<U>
 }
@@ -123,9 +121,6 @@ class OutletImplementation<T> implements Outlet<T> {
   }
   filter(predicate: FilterCallback<T>): Outlet<T> {
     return filter(this, predicate)
-  }
-  switchMap<U>(mapFn: SwitchMapCallback<T, U>): Outlet<U> {
-    return switchMap(this, mapFn)
   }
   last(): Outlet<T> {
     return last(this)

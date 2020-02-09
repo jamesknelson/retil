@@ -1,8 +1,7 @@
 import { Outlet } from '../../../outlets'
 
-import { CacheKey } from './ResourceRef'
-import { ResourceScopeState } from './ResourceState'
 import { ResourceUpdate } from './ResourceUpdates'
+import { SchematicPickFunction } from '../resource'
 
 export interface ResourceQueryType<
   Result = any,
@@ -13,13 +12,11 @@ export interface ResourceQueryType<
 }
 
 export interface ResourceQuery<Result = any> {
-  // The cache keys in the output source will be kept in cache while there's an
-  // active subscription.
-  select(
-    // A source for the current cache state, which will cause this resource to
-    // be registered on the cache when there's an active subscription.
-    source: Outlet<ResourceScopeState<any>>,
-  ): Outlet<[Result, CacheKey[]]>
+  // Each new pick function will record all picked ids, keeping them in the
+  // cache until the next pick function is output. These keys can also be used
+  // to decide whether to re-build a specific query when a new state is
+  // received.
+  select(source: Outlet<SchematicPickFunction>): Outlet<Result>
 
   load?: (options: {
     /**
