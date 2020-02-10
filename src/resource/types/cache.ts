@@ -46,14 +46,14 @@ export interface ResourceResult<Data, Rejection, Vars> {
   /**
    * If there's data that can be accessed, this will be true.
    */
-  hasData?: boolean
+  hasData: boolean
 
   /**
    * If true, indicates that instead of the expected data, this key has been
    * marked with a reason that the data wasn't erturned. This can be used to
    * indicate that resource was not found, was forbidden, etc.
    */
-  hasRejection?: boolean
+  hasRejection: boolean
 
   /**
    * Indicates that some of the data has been marked as possibly out of date,

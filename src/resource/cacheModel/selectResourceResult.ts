@@ -40,6 +40,8 @@ export function selectResourceResult<Result, Rejection, Vars>(
       }
       return result.rejection
     },
+    hasData: !!result.hasData,
+    hasRejection: !!result.hasRejection,
     id: root.id,
     bucket: root.bucket,
     vars,

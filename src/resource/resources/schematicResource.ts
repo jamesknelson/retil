@@ -95,7 +95,10 @@ export function extractSchematicResourceOptions<
   SchematicResourceBaseOptions,
   Omit<Options, keyof SchematicResourceBaseOptions>,
 ] {
-  const { load, loadScheduler, ...rest } = options
+  const { load, loadScheduler, ...rest } = {
+    ...options,
+    ...defaultResourceOptions,
+  }
   return [{ load, loadScheduler }, rest]
 }
 
@@ -135,7 +138,8 @@ export function createSchematicResource<
     vars: Vars,
     context: Context,
   ): ResourceRequest<ResultData, ResultRejection> => {
-    const { build, chunk, root } = schematic(vars)
+    const schematicInstance = schematic(vars)
+    const root = schematicInstance.root
     const abortController = new AbortController()
 
     if (!root) {
@@ -150,7 +154,7 @@ export function createSchematicResource<
       select: (
         pickerSource: Outlet<Picker>,
       ): Outlet<PickerResult<ResultData, ResultRejection>> => {
-        return pickerSource.map(pick => build(root, pick))
+        return pickerSource.map(pick => schematicInstance.build(root, pick))
       },
 
       load: (actions: ResourceRequestActions) => {
@@ -161,7 +165,7 @@ export function createSchematicResource<
         const handle = loadScheduler(async (complete, retry) => {
           try {
             const input = await load(vars, context, abortController.signal)
-            actions.update(chunk(input).chunks)
+            actions.update(schematicInstance.chunk(input).chunks)
             complete()
           } catch (something) {
             if (something instanceof Rejection) {

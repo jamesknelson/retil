@@ -191,7 +191,9 @@ class DocumentSchematicImplementation<
   constructor(
     readonly root: Pointer | undefined,
     private vars: Vars,
-    private embedding: DocEmbeds<Vars, DataWithEmbedInputs, any, any>,
+    private embedding:
+      | undefined
+      | DocEmbeds<Vars, DataWithEmbedInputs, any, any>,
     private identifiedBy: DocumentIdentifiedBy<
       Vars,
       DataWithEmbedInputs,
@@ -207,25 +209,28 @@ class DocumentSchematicImplementation<
       ? this.transformInput(input, this.vars)
       : input
 
-    const id = this.identifiedBy(data, this.vars, input)
+    const id = this.root ? this.root : this.identifiedBy(data, this.vars, input)
     if (!id) {
       throw new Error("Resource Error: couldn't identify resource")
     }
-    const root = this.root ? this.root : addBucketIfRequired(this.bucket, id)
+    const root = addBucketIfRequired(this.bucket, id)
 
     let chunks = [] as Chunk[]
     let chunkData = data
-    const embeddedAttrs = Object.keys(this.embedding)
-    if (embeddedAttrs.length) {
-      chunkData = { ...data }
-      for (const key of embeddedAttrs) {
-        const embeddedInput = data[key]
-        if (embeddedInput !== undefined) {
-          const embed = this.embedding[key](this.vars, data).chunk(
-            embeddedInput,
-          )
-          chunks.push(...embed.chunks)
-          chunkData[key] = embed.root
+
+    if (this.embedding) {
+      const embeddedAttrs = Object.keys(this.embedding)
+      if (embeddedAttrs.length) {
+        chunkData = { ...data }
+        for (const key of embeddedAttrs) {
+          const embeddedInput = data[key]
+          if (embeddedInput !== undefined) {
+            const embed = this.embedding[key](this.vars, data).chunk(
+              embeddedInput,
+            )
+            chunks.push(...embed.chunks)
+            chunkData[key] = embed.root
+          }
         }
       }
     }
@@ -274,42 +279,50 @@ class DocumentSchematicImplementation<
       }
     }
 
-    const embeddedAttrs = Object.keys(this.embedding)
-    const embeddedResults = embeddedAttrs.map(
-      attr =>
-        result.data[attr] &&
-        this.embedding[attr](this.vars, result.data).build(
-          result.data[attr],
-          pick,
-        ),
-    )
-    const data = { ...result.data }
-    for (let i = 0; i < embeddedAttrs.length; i++) {
-      const attr = embeddedAttrs[i]
-      const result = embeddedResults[i]
-      if (result) {
-        if (!result.primed) {
-          return unprimedResult
-        } else if (result.hasRejection) {
-          return {
-            hasRejection: true,
-            invalidated,
-            pending,
-            primed: true,
-            rejection: result.rejection,
+    let data = result.data
+    if (this.embedding) {
+      // Don't make a copy unless we're doing embedding, so that primitive
+      // values can also be stored.
+      data = { ...result.data }
+
+      const embeddedAttrs = Object.keys(this.embedding)
+      const embeddedResults =
+        embeddedAttrs &&
+        embeddedAttrs.map(
+          attr =>
+            result.data[attr] &&
+            this.embedding![attr](this.vars, result.data).build(
+              result.data[attr],
+              pick,
+            ),
+        )
+      for (let i = 0; i < embeddedAttrs.length; i++) {
+        const attr = embeddedAttrs[i]
+        const result = embeddedResults[i]
+        if (result) {
+          if (!result.primed) {
+            return unprimedResult
+          } else if (result.hasRejection) {
+            return {
+              hasRejection: true,
+              invalidated,
+              pending,
+              primed: true,
+              rejection: result.rejection,
+            }
+          } else if (!result.hasData) {
+            return {
+              hasData: false,
+              hasRejection: false,
+              invalidated: false,
+              pending: false,
+              primed: true,
+            }
           }
-        } else if (!result.hasData) {
-          return {
-            hasData: false,
-            hasRejection: false,
-            invalidated: false,
-            pending: false,
-            primed: true,
-          }
+          data[attr] = result.data
+          invalidated = invalidated || result.invalidated
+          pending = pending || result.pending
         }
-        data[attr] = result.data
-        invalidated = invalidated || result.invalidated
-        pending = pending || result.pending
       }
     }
     return {

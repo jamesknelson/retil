@@ -7,8 +7,8 @@ describe('ResourceModel', () => {
   internalSetDefaultStore(() => createStore())
 
   test.only('automatically retrieves accessed data', async () => {
-    const resource = createDocumentResource({
-      load: async ({ vars }) => 'value for ' + vars,
+    const resource = createDocumentResource('test', {
+      load: async (vars: string) => 'value for ' + vars,
     })
 
     const [source] = requestResource(resource, {

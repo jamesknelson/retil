@@ -92,7 +92,7 @@ const latestNewsletter = createQueryResource('latestNewsletter', {
 const instance = latestNewsletter({})
 const { chunks } = instance.chunk({} as any)
 
-export type Schema = ChunkSchema<typeof chunks[number]>
+type Schema = ChunkSchema<typeof chunks[number]>
 
 const data0 = localVideo
   .request({} as any, {} as any)
