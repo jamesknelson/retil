@@ -43,7 +43,7 @@ export class ResourceCacheImplementation<Context extends object>
 
   constructor(
     private context: Context,
-    private defaultRequestPolicy: ResourceRequestPolicy | null,
+    private defaultRequestPolicy: ResourceRequestPolicy,
     private dispatch: (action: CacheReducerAction) => void,
     private outlet: Outlet<CacheReducerState>,
     private scope: string,
@@ -82,7 +82,7 @@ export class ResourceCacheImplementation<Context extends object>
     const actionOptions = {
       scope: this.scope,
       request,
-      policies: policy !== null ? [policy] : [],
+      policies: policy !== 'cacheOnly' ? [policy] : [],
     }
 
     let subscriptionCount = 0
@@ -164,8 +164,8 @@ export class ResourceCacheImplementation<Context extends object>
             hasData: !!(value && value.type === 'data'),
             hasRejection: !!(value && value.type === 'rejection'),
             invalidated: !!state.invalidated,
-            pending: isPending(state, policy !== null),
-            primed: isPrimed(state, policy !== null),
+            pending: isPending(state, policy !== 'cacheOnly'),
+            primed: isPrimed(state, policy !== 'cacheOnly'),
             rejection:
               value && value.type === 'rejection' ? value.rejection : undefined,
           } as PickerResult<Pointer>
@@ -185,8 +185,8 @@ export class ResourceCacheImplementation<Context extends object>
       },
       hasCurrentValue: this.outlet.hasCurrentValue,
       subscribe: (callback: () => void): (() => void) => {
-        if (subscriptionCount === 0) {
-          subscriptionCount++
+        subscriptionCount++
+        if (subscriptionCount === 1) {
           this.dispatch({
             type: 'registerRequest',
             ...actionOptions,
@@ -245,6 +245,10 @@ export class ResourceCacheImplementation<Context extends object>
       }
     }
 
+    const source = Object.assign(resultSource, {
+      getData: () => resultSource.map(({ getData }) => getData()).getValue(),
+    })
+
     const controller = new ResourceRequestControllerImplementation(
       this.dispatch,
       this.scope,
@@ -255,11 +259,11 @@ export class ResourceCacheImplementation<Context extends object>
 
     resourceMemos.set(stringifiedVariables, {
       options,
-      source: resultSource,
+      source,
       controller,
     })
 
-    return [resultSource, controller]
+    return [source, controller]
   }
 }
 

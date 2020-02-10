@@ -1,6 +1,6 @@
 import {
   Retry,
-  requestResource,
+  getResourceService,
   createDocumentResource,
   createResourceCacheModel,
 } from '../src/resource'
@@ -8,7 +8,7 @@ import { createStore } from '../src/store'
 import { exponentialBackoffScheduler } from '../src/utils/asyncTaskSchedulers'
 import { internalSetDefaultStore } from '../src/store/defaults'
 
-describe('requestResource()', () => {
+describe('getResourceService()', () => {
   // Use a new store for each model instance.
   internalSetDefaultStore(() => createStore())
 
@@ -17,7 +17,7 @@ describe('requestResource()', () => {
       async (vars: string) => 'value for ' + vars,
     )
 
-    const [source] = requestResource(resource, {
+    const [source] = getResourceService(resource, {
       vars: 'hello',
     })
 
@@ -32,19 +32,17 @@ describe('requestResource()', () => {
     }
   })
 
-  test("doesn't automatically retrieve data when request policy is set to null", async () => {
+  test("doesn't automatically retrieve data when request policy is set to cacheOnly", async () => {
     const resource = createDocumentResource(
       async (vars: string) => 'value for ' + vars,
     )
 
-    const [source] = requestResource(resource, {
-      policy: null,
+    const [source] = getResourceService(resource, {
+      policy: 'cacheOnly',
       vars: '/test',
     })
 
-    await expect(
-      source.map(({ getData }) => getData()).getValue(),
-    ).rejects.toBeInstanceOf(Error)
+    await expect(source.getData()).rejects.toBeInstanceOf(Error)
   })
 
   test("doesn't automatically load after an abandoned load", async () => {
@@ -56,7 +54,7 @@ describe('requestResource()', () => {
       loadScheduler: exponentialBackoffScheduler({ maxRetries: 0 }),
     })
 
-    const [source] = requestResource(resource, {
+    const [source] = getResourceService(resource, {
       vars: '/test',
       policy: 'loadInvalidated',
     })
@@ -65,9 +63,7 @@ describe('requestResource()', () => {
       source.getCurrentValue().getData()
     }).toThrow(Promise)
 
-    await expect(
-      source.map(({ getData }) => getData()).getValue(),
-    ).rejects.toBeInstanceOf(Error)
+    await expect(source.getData()).rejects.toBeInstanceOf(Error)
 
     expect(source.getCurrentValue().abandoned).toBe(true)
   })
@@ -77,11 +73,11 @@ describe('requestResource()', () => {
       async (vars: string) => 'value for ' + vars,
     )
 
-    const [source1, controller1] = requestResource(resource, {
+    const [source1, controller1] = getResourceService(resource, {
       vars: '/test',
       store: createStore(),
     })
-    const [source2] = requestResource(resource, {
+    const [source2] = getResourceService(resource, {
       vars: '/test',
       store: createStore(),
     })
@@ -96,7 +92,7 @@ describe('requestResource()', () => {
     const resource = createDocumentResource(async (vars: string) => 'test')
 
     const store1 = createStore()
-    const [source1] = requestResource(resource, {
+    const [source1] = getResourceService(resource, {
       vars: '/test',
       store: store1,
     })
@@ -109,7 +105,7 @@ describe('requestResource()', () => {
 
     // Data should be immediately available on this store.
     const store2 = createStore(dehydratedState)
-    const [source2] = requestResource(resource, {
+    const [source2] = getResourceService(resource, {
       vars: '/test',
       store: store2,
     })
@@ -124,27 +120,28 @@ describe('requestResource()', () => {
       },
     })
 
-    let counter = 1
+    let counter = 0
     let invalidate: Function
-    const mockLoad = jest.fn(async () => counter++)
+    const mockLoad = jest.fn(async () => ++counter)
     const resource = createDocumentResource(mockLoad)
 
-    const [outlet] = requestResource(resource, {
+    const [source] = getResourceService(resource, {
       vars: '/test',
       policy: 'loadInvalidated',
       cacheModel,
     })
 
-    await outlet.filter(({ primed }) => primed).getValue()
-    expect(outlet.getCurrentValue().data).toBe(1)
-    expect(outlet.getCurrentValue().invalidated).toBe(false)
+    await source.getData()
+
+    expect(source.getCurrentValue().data).toBe(1)
+    expect(source.getCurrentValue().invalidated).toBe(false)
 
     invalidate!()
-    expect(outlet.getCurrentValue().invalidated).toBe(true)
+    expect(source.getCurrentValue().invalidated).toBe(true)
 
-    await outlet.filter(({ invalidated }) => !invalidated).getValue()
-    expect(outlet.getCurrentValue().data).toBe(2)
-    expect(outlet.getCurrentValue().invalidated).toBe(false)
+    await source.filter(({ invalidated }) => !invalidated).getValue()
+    expect(source.getCurrentValue().data).toBe(2)
+    expect(source.getCurrentValue().invalidated).toBe(false)
   })
 
   test('only loads data once over multiple calls to getValue()', async () => {
@@ -153,13 +150,13 @@ describe('requestResource()', () => {
     const resource = createDocumentResource(mockLoad)
 
     const store = createStore()
-    const [source1] = requestResource(resource, { vars: 'test', store })
-    const [source2] = requestResource(resource, { vars: 'test', store })
+    const [source1] = getResourceService(resource, { vars: 'test', store })
+    const [source2] = getResourceService(resource, { vars: 'test', store })
 
-    await source1.filter(({ primed }) => primed).getValue()
-    await source1.filter(({ primed }) => primed).getValue()
-    await source2.filter(({ primed }) => primed).getValue()
-    await source2.filter(({ primed }) => primed).getValue()
+    await source1.getData()
+    await source1.getData()
+    await source2.getData()
+    await source2.getData()
 
     expect(loadCount).toBe(1)
   })
@@ -167,16 +164,17 @@ describe('requestResource()', () => {
   describe('controller', () => {
     describe('invalidate()', () => {
       test("triggers a new load when there's a loadInvalidated subscription", async () => {
-        let counter = 1
-        const mockLoad = jest.fn(async () => counter++)
+        let counter = 0
+        const mockLoad = jest.fn(async () => ++counter)
         const resource = createDocumentResource(mockLoad)
 
-        const [source, controller] = requestResource(resource, {
+        const [source, controller] = getResourceService(resource, {
           vars: '/test',
           policy: 'loadInvalidated',
         })
 
-        await source.filter(({ primed }) => primed).getValue()
+        await source.getData()
+
         expect(source.getCurrentValue().data).toBe(1)
         expect(source.getCurrentValue().invalidated).toBe(false)
 
@@ -184,6 +182,7 @@ describe('requestResource()', () => {
         expect(source.getCurrentValue().invalidated).toBe(true)
 
         await source.filter(({ invalidated }) => !invalidated).getValue()
+
         expect(source.getCurrentValue().data).toBe(2)
         expect(source.getCurrentValue().invalidated).toBe(false)
       })
@@ -192,7 +191,7 @@ describe('requestResource()', () => {
     describe('forceLoad()', () => {
       test('starts a load, cancelling any existing one', async () => {
         let aborted = false
-        let counter = 1
+        let counter = 0
         const resource = createDocumentResource({
           load: async (vars: string, context: any, signal: AbortSignal) => {
             counter++
@@ -203,68 +202,18 @@ describe('requestResource()', () => {
           },
         })
 
-        const [source, controller] = requestResource(resource, {
+        const [source, controller] = getResourceService(resource, {
           vars: '/test',
           policy: 'loadInvalidated',
         })
 
+        source.getData()
         controller.forceLoad()
 
-        const data = await source.map(({ getData }) => getData()).getValue()
+        const data = await source.getData()
         expect(aborted).toBe(true)
         expect(counter).toBe(2)
         expect(data).toBe('result')
-      })
-    })
-
-    describe('receive()', () => {
-      test('immediately updates data', async () => {
-        const resource = createDocumentResource()
-
-        const [source, controller] = requestResource(resource, {
-          vars: {
-            id: 'test',
-          },
-        })
-
-        controller.receive(1)
-        expect(source.getCurrentValue().data).toBe(1)
-        controller.receive(2)
-        expect(source.getCurrentValue().data).toBe(2)
-      })
-
-      test("uses the resource's transformInput function, if applicable", async () => {
-        const resource = createDocumentResource({
-          transformInput: (x: number) => x * 2,
-        })
-
-        const [source, controller] = requestResource(resource, {
-          vars: {
-            id: 'test',
-          },
-        })
-
-        controller.receive(1)
-        expect(source.getCurrentValue().data).toBe(2)
-        controller.receive(2)
-        expect(source.getCurrentValue().data).toBe(4)
-      })
-    })
-
-    describe('receiveRejection()', () => {
-      test('immediately updates data', async () => {
-        const resource = createDocumentResource()
-
-        const [source, controller] = requestResource(resource, {
-          vars: {
-            id: 'test',
-          },
-          policy: null,
-        })
-
-        controller.receiveRejection('notFound')
-        expect(source.getCurrentValue().rejection).toBe('notFound')
-        expect(() => source.getCurrentValue().getData()).toThrow(Error)
       })
     })
   })

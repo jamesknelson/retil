@@ -113,8 +113,7 @@ export function createDocumentResource<
   ResultRejection = any,
   Vars = any,
   Context extends object = any,
-  DataWithEmbedInputs = any,
-  Input = DataWithEmbedInputs,
+  Input = ResultData,
   Bucket extends string = any
 >(
   load?: SchematicResourceLoadFunction<Vars, Context, Input>,
@@ -132,8 +131,7 @@ export function createDocumentResource<
   ResultRejection = any,
   Vars = any,
   Context extends object = any,
-  DataWithEmbedInputs = any,
-  Input = DataWithEmbedInputs,
+  Input = ResultData,
   Bucket extends string = any
 >(
   bucket: Bucket,
@@ -153,7 +151,7 @@ export function createDocumentResource<
   Vars = any,
   Context extends object = any,
   DataWithEmbedInputs = any,
-  Input = DataWithEmbedInputs,
+  Input = Fallback<DataWithEmbedInputs, ResultData>,
   Bucket extends string = any
 >(
   options?: BaseDocumentOptions<Vars, DataWithEmbedInputs, Input, Bucket> &
@@ -173,7 +171,7 @@ export function createDocumentResource<
   Vars = any,
   Context extends object = any,
   DataWithEmbedInputs = any,
-  Input = DataWithEmbedInputs,
+  Input = Fallback<DataWithEmbedInputs, ResultData>,
   Bucket extends string = any
 >(
   bucket: Bucket,

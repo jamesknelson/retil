@@ -85,7 +85,9 @@ export type ResourceRequestSource<
   Data = any,
   Rejection = any,
   Vars = any
-> = Outlet<ResourceResult<Data, Rejection, Vars>>
+> = Outlet<ResourceResult<Data, Rejection, Vars>> & {
+  getData: () => Promise<Data>
+}
 
 export interface ResourceRequestController<Rejection = any, Input = any> {
   /**
@@ -158,7 +160,7 @@ export interface ResourceRequestOptions<Vars = any> {
    * - The browser defaults to `loadInvalidated`
    * - The server defaults to `loadOnce`
    */
-  policy?: ResourceRequestPolicy | null
+  policy?: ResourceRequestPolicy | 'cacheOnly'
 
   vars?: Vars
 }
@@ -195,7 +197,7 @@ export interface CacheModelOptions<Context extends object> {
    */
   defaultPurger?: null | number | ResourcePurger
 
-  defaultRequestPolicy?: ResourceRequestPolicy | null
+  defaultRequestPolicy?: ResourceRequestPolicy
 
   /**
    * A key unique to this resource model, allowing multiple models to be stored
