@@ -18,21 +18,17 @@ interface VideoData {
 
 const localVideo = createDocumentResource<VideoData>('newsletter')
 
-const video = createDocumentResource('video', {
-  load: async () => {
-    return {
-      id: '1',
-      youtubeId: 'test',
-      title: 'test',
-      subtitles: [
-        {
-          english: 'test',
-          translations: [] as any[],
-        },
-      ],
-    }
-  },
-})
+const video = createDocumentResource('video', async () => ({
+  id: '1',
+  youtubeId: 'test',
+  title: 'test',
+  subtitles: [
+    {
+      english: 'test',
+      translations: [] as any[],
+    },
+  ],
+}))
 
 interface NewsletterData {
   id: string

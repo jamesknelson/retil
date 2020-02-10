@@ -1,6 +1,7 @@
 import { stringifyVariables } from '../../utils/stringifyVariables'
 import { StringKeys } from '../../utils/types'
 
+import { getNextDefaultBucket } from '../defaults'
 import {
   Chunk,
   Picker,
@@ -10,7 +11,6 @@ import {
   SchematicInstance,
   SchematicChunkedInput,
   addBucketIfRequired,
-  getNextDefaultBucket,
 } from '../types'
 
 export const defaultDocumentOptions = {

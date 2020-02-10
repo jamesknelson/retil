@@ -37,6 +37,12 @@ export const defaultResourceOptions = {
   }),
 }
 
+export type SchematicResourceLoadFunction<
+  Vars = any,
+  Context = any,
+  Input = any
+> = (vars: Vars, context: Context, signal: AbortSignal) => Promise<Input>
+
 // the idea is if you have a graphql query/schema/endpoint url, then you can
 // map it to a resource -- type, embed, etc. will be generated automatically.
 // you'll need to supply your own TypeScript types, though.
@@ -45,7 +51,7 @@ export interface SchematicResourceBaseOptions<
   Context = any,
   Input = any
 > {
-  load?: (vars: Vars, context: Context, signal: AbortSignal) => Promise<Input>
+  load?: SchematicResourceLoadFunction<Vars, Context, Input>
   loadScheduler?: AsyncTaskScheduler
 }
 
@@ -96,8 +102,8 @@ export function extractSchematicResourceOptions<
   Omit<Options, keyof SchematicResourceBaseOptions>,
 ] {
   const { load, loadScheduler, ...rest } = {
-    ...options,
     ...defaultResourceOptions,
+    ...options,
   }
   return [{ load, loadScheduler }, rest]
 }

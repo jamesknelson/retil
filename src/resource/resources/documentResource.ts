@@ -11,6 +11,7 @@ import {
 import {
   SchematicResource,
   SchematicResourceBaseOptions,
+  SchematicResourceLoadFunction,
   extractSchematicResourceOptions,
   createSchematicResource,
 } from './schematicResource'
@@ -106,6 +107,45 @@ export type EmbeddingDocumentResource<
 >
 
 // ---
+
+export function createDocumentResource<
+  ResultData extends Fallback<unknown, Input>,
+  ResultRejection = any,
+  Vars = any,
+  Context extends object = any,
+  DataWithEmbedInputs = any,
+  Input = DataWithEmbedInputs,
+  Bucket extends string = any
+>(
+  load?: SchematicResourceLoadFunction<Vars, Context, Input>,
+): FlatDocumentResource<
+  ResultData,
+  ResultRejection,
+  Vars,
+  Context,
+  Input,
+  Bucket
+>
+
+export function createDocumentResource<
+  ResultData extends Fallback<unknown, Input>,
+  ResultRejection = any,
+  Vars = any,
+  Context extends object = any,
+  DataWithEmbedInputs = any,
+  Input = DataWithEmbedInputs,
+  Bucket extends string = any
+>(
+  bucket: Bucket,
+  load?: SchematicResourceLoadFunction<Vars, Context, Input>,
+): FlatDocumentResource<
+  ResultData,
+  ResultRejection,
+  Vars,
+  Context,
+  Input,
+  Bucket
+>
 
 export function createDocumentResource<
   ResultData extends Fallback<DataWithEmbedInputs, Input>,
@@ -222,9 +262,18 @@ export function createDocumentResource<
 >
 
 export function createDocumentResource(
-  bucketOrOptions: string | DocumentResourceOptions = {},
-  options?: DocumentResourceOptions,
+  bucketOrOptions:
+    | string
+    | SchematicResourceLoadFunction
+    | DocumentResourceOptions = {},
+  options?: SchematicResourceLoadFunction | DocumentResourceOptions,
 ): SchematicResource {
+  if (typeof bucketOrOptions === 'function') {
+    bucketOrOptions = { load: bucketOrOptions }
+  } else if (typeof options === 'function') {
+    options = { load: options }
+  }
+
   let bucket: string | undefined
   if (!options) {
     options = bucketOrOptions as DocumentResourceOptions
@@ -234,7 +283,7 @@ export function createDocumentResource(
   }
 
   const [resourceOptions, schematicOptions] = extractSchematicResourceOptions(
-    options,
+    options as DocumentResourceOptions,
   )
 
   return createSchematicResource({

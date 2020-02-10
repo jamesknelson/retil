@@ -60,10 +60,10 @@ export class ResourceCacheImplementation<Context extends object>
     ResourceRequestController<Rejection, any>,
   ] {
     const options = {
-      requestPolicy: this.defaultRequestPolicy,
+      policy: this.defaultRequestPolicy,
       ...optionsWithoutDefaults,
     }
-    const { requestPolicy, vars } = options
+    const { policy, vars } = options
 
     // If we've recently created a request w/ these variables,
     // then re-use it instead of creating a new one from scratch.
@@ -73,7 +73,7 @@ export class ResourceCacheImplementation<Context extends object>
       this.memoizedQueries.set(resource, (resourceMemos = new LRU(100)))
     }
     const memoizedQuery = resourceMemos.get(stringifiedVariables)
-    if (memoizedQuery && memoizedQuery.options.policy === requestPolicy) {
+    if (memoizedQuery && memoizedQuery.options.policy === policy) {
       return [memoizedQuery.source, memoizedQuery.controller]
     }
 
@@ -82,7 +82,7 @@ export class ResourceCacheImplementation<Context extends object>
     const actionOptions = {
       scope: this.scope,
       request,
-      policies: requestPolicy !== null ? [requestPolicy] : [],
+      policies: policy !== null ? [policy] : [],
     }
 
     let subscriptionCount = 0
@@ -164,8 +164,8 @@ export class ResourceCacheImplementation<Context extends object>
             hasData: !!(value && value.type === 'data'),
             hasRejection: !!(value && value.type === 'rejection'),
             invalidated: !!state.invalidated,
-            pending: isPending(state, requestPolicy !== null),
-            primed: isPrimed(state, requestPolicy !== null),
+            pending: isPending(state, policy !== null),
+            primed: isPrimed(state, policy !== null),
             rejection:
               value && value.type === 'rejection' ? value.rejection : undefined,
           } as PickerResult<Pointer>

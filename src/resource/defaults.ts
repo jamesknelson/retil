@@ -9,6 +9,11 @@ export const defaultCacheModelOptions = {
     : 'loadInvalidated') as ResourceRequestPolicy,
 }
 
+let defaultTypesCounter = 0
+export function getNextDefaultBucket(): string {
+  return `_anonymous_resource_${++defaultTypesCounter}_`
+}
+
 let defaultCacheModel: CacheModel<any> | undefined
 
 export function getDefaultCacheModel(): CacheModel<any> {

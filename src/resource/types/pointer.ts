@@ -15,7 +15,3 @@ export function addBucketIfRequired<Bucket extends string>(
     ? (id as Pointer<Bucket>)
     : { bucket: defaultBucket, id: id as string | number }
 }
-
-export function getNextDefaultBucket(): string {
-  throw new Error('unimplemented')
-}
