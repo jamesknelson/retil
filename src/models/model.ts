@@ -5,30 +5,30 @@ import {
   StoreAction,
   StoreEnhancer,
   StoreReducer,
-  createStore,
+  getDefaultStore,
 } from '../store'
 import { isPlainObject } from '../utils'
 
-export type Model<Instance, Context extends object> = (
-  context?: Partial<Context> & { store?: Store },
+export type Model<Instance, Props extends object> = (
+  props?: Partial<Props> & { store?: Store },
 ) => Instance
 
 export interface ModelOptions<
   State = any,
   Action extends StoreAction = any,
-  Context extends object = any,
+  Props extends object = any,
   Value = State,
   Instance = any
 > {
-  defaultContext?: Context
+  defaultProps?: Props
   dehydrater?: (outlet: Outlet<State>) => Outlet<State | undefined>
   enhancer?: StoreEnhancer
   factory: (
     outlet: NamespaceStoreOutlet<State, Value>,
     dispatch: (action: Action) => void,
-    context: Context,
+    props: Props,
   ) => Instance
-  getInitialState?: (context: Context) => State
+  getInitialState?: (props: Props) => State
   namespace: string
   reducer: StoreReducer<State, Action>
   selectError?: (state: State) => any
@@ -39,14 +39,14 @@ export interface ModelOptions<
 export function createModel<
   State = any,
   Action extends StoreAction = any,
-  Context extends object = any,
+  Props extends object = any,
   Value = State,
   Instance = any
 >(
-  options: ModelOptions<State, Action, Context, Value, Instance>,
-): Model<Instance, Context> {
+  options: ModelOptions<State, Action, Props, Value, Instance>,
+): Model<Instance, Props> {
   const {
-    defaultContext = {} as Context,
+    defaultProps = {} as Props,
     factory,
     getInitialState,
     namespace,
@@ -66,39 +66,37 @@ export function createModel<
   // The same `getStoreInitialState` function must be used across all instances,
   // or the store will complain about different arguments for the same
   // namespace.
-  let latestContextWithDefaults: Context
+  let latestPropsWithDefaults: Props
   const getStoreInitialState = !getInitialState
     ? undefined
-    : () => getInitialState(latestContextWithDefaults)
+    : () => getInitialState(latestPropsWithDefaults)
 
   const namespaceStoreOptions = {
     ...namespaceStoreOptionsWithoutInitialState,
     getInitialState: getStoreInitialState,
   }
 
-  const model = (
-    instanceContext: Partial<Context> & { store?: Store } = {},
-  ) => {
-    if (!isPlainObject(instanceContext)) {
+  const model = (instanceProps: Partial<Props> & { store?: Store } = {}) => {
+    if (!isPlainObject(instanceProps)) {
       throw new Error(
         'Error instantiating model: when calling a model, you must pass a ' +
-          `context object. Instead, a "${typeof instanceContext}" was received.`,
+          `props object. Instead, a "${typeof instanceProps}" was received.`,
       )
     }
 
-    const exists = cache.has(instanceContext)
+    const exists = cache.has(instanceProps)
     if (exists) {
-      return cache.get(instanceContext)!
+      return cache.get(instanceProps)!
     } else {
-      const contextWithDefaults = {
-        ...defaultContext,
-        ...instanceContext,
+      const propsWithDefaults = {
+        ...defaultProps,
+        ...instanceProps,
       }
 
-      latestContextWithDefaults = contextWithDefaults
+      latestPropsWithDefaults = propsWithDefaults
 
       // Only instantiate the default store if it is required
-      const store = contextWithDefaults.store || getDefaultStore()
+      const store = propsWithDefaults.store || getDefaultStore()
       if (!store.canGetNamespaceStore(namespace, namespaceStoreOptions)) {
         throw new Error(
           `Error creating model: two models of the same type were created, without ` +
@@ -112,36 +110,11 @@ export function createModel<
         namespace,
         namespaceStoreOptions,
       )
-      const instance = factory(outlet, dispatch, contextWithDefaults)
-      cache.set(instanceContext, instance)
+      const instance = factory(outlet, dispatch, propsWithDefaults)
+      cache.set(instanceProps, instance)
       return instance
     }
   }
 
   return model
-}
-
-let defaultStore: Store | (() => Store) | undefined
-
-function getDefaultStore(): Store {
-  if (!defaultStore) {
-    if (typeof window === 'undefined') {
-      throw new Error(
-        'Store Error: in non-browser environments, Retil does not provide a ' +
-          "default store. Instead, you'll need to manually pass a store when " +
-          "instantiating your models, ensuring that state won't be shared " +
-          'by multiple concurrent requests.',
-      )
-    } else {
-      defaultStore = createStore()
-    }
-  } else if (typeof defaultStore === 'function') {
-    return defaultStore()
-  }
-  return defaultStore
-}
-
-// This is exported for use in tests
-export function internalSetDefaultStore(store: Store | (() => Store)): void {
-  defaultStore = store
 }

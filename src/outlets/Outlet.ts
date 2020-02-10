@@ -1,4 +1,4 @@
-import { Deferred } from '../utils/Deferred'
+import { Deferred } from '../utils/deferred'
 import { fallback } from './fallback'
 import { FilterCallback, filter } from './filter'
 import { last } from './last'

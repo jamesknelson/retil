@@ -1,10 +1,10 @@
 import {
-  collectionResource,
-  documentResource,
+  createCollectionResource,
+  createDocumentResource,
   list,
-  queryResource,
+  createQueryResource,
 } from '../index'
-import { ChunkSchema } from '../structures/chunk'
+import { ChunkSchema } from '../types'
 
 interface VideoData {
   id: string
@@ -16,9 +16,9 @@ interface VideoData {
   }[]
 }
 
-const localVideo = documentResource<VideoData>('newsletter')
+const localVideo = createDocumentResource<VideoData>('newsletter')
 
-const video = documentResource('video', {
+const video = createDocumentResource('video', {
   load: async () => {
     return {
       id: '1',
@@ -40,13 +40,13 @@ interface NewsletterData {
   videos: any[]
 }
 
-const localNewsletter = documentResource<NewsletterData>('newsletter', {
+const localNewsletter = createDocumentResource<NewsletterData>('newsletter', {
   embedding: {
     videos: list(video),
   },
 })
 
-const newsletter = documentResource('newsletter', {
+const newsletter = createDocumentResource('newsletter', {
   embedding: {
     videos: list(video),
   },
@@ -63,7 +63,7 @@ const newsletter = documentResource('newsletter', {
   // transformInput: data => data,
 })
 
-const newsletterList = collectionResource('newsletterList', {
+const newsletterList = createCollectionResource('newsletterList', {
   of: newsletter,
 
   load: async (vars: { page: number }) => {
@@ -76,7 +76,7 @@ const newsletterList = collectionResource('newsletterList', {
   },
 })
 
-const latestNewsletter = queryResource('latestNewsletter', {
+const latestNewsletter = createQueryResource('latestNewsletter', {
   for: newsletter,
 
   load: async () => {
@@ -92,30 +92,27 @@ const latestNewsletter = queryResource('latestNewsletter', {
 const instance = latestNewsletter({})
 const { chunks } = instance.chunk({} as any)
 
-export type Schema = ChunkSchema<typeof chunks[number]['id']>
+export type Schema = ChunkSchema<typeof chunks[number]>
 
 const data0 = localVideo
   .request({} as any, {} as any)
   .select({} as any)
-  .getCurrentValue()
-  .getData()
+  .getCurrentValue().data
 
 const data1 = localNewsletter
   .request({} as any, {} as any)
   .select({} as any)
-  .getCurrentValue()
-  .getData()
+  .getCurrentValue().data
 
 const data2 = newsletter
   .request({} as any, {} as any)
   .select({} as any)
-  .getCurrentValue()
-  .getData()
+  .getCurrentValue().data
 
 const value1 = instance.build({} as any, {} as any)
 const value2 = newsletterList({ page: 0 }).build({} as any, {} as any)
 
-const chunkData = newsletter({} as any).chunk({} as any).chunks[0][1]
+const chunkData = newsletter({} as any).chunk({} as any).chunks[0]
 
 console.log(data0, data1, data2, chunkData)
 
@@ -124,14 +121,16 @@ console.log(value1.hasData && value1.data.videos[0].subtitles[0].translations)
 console.log(value2.hasData && value2.data)
 
 chunks.forEach(item => {
-  switch (item[0].bucket) {
+  switch (item.bucket) {
     case 'latestNewsletter':
-      return item[1]
+      return item.payload.type === 'data' && item.payload.data
 
     case 'newsletter':
-      return item[1].description
+      return item.payload.type === 'data' && item.payload.data.description
 
     case 'video':
-      return item[1].subtitles[0].english
+      return (
+        item.payload.type === 'data' && item.payload.data.subtitles[0].english
+      )
   }
 })

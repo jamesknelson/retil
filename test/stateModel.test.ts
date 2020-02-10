@@ -1,5 +1,5 @@
 import { createStateModel, createStore } from '../src'
-import { internalSetDefaultStore } from '../src/models/model'
+import { internalSetDefaultStore } from '../src/store/defaults'
 
 describe('StateModel', () => {
   // Use a new store for each model instance.

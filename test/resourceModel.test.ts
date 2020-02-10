@@ -1,28 +1,28 @@
-import { createResource, createResourceCacheModel, createStore } from '../src'
-import { internalSetDefaultStore } from '../src/models/model'
+import { requestResource, createDocumentResource } from '../src/resource'
+import { createStore } from '../src/store'
+import { internalSetDefaultStore } from '../src/store/defaults'
 
 describe('ResourceModel', () => {
   // Use a new store for each model instance.
   internalSetDefaultStore(() => createStore())
 
   test.only('automatically retrieves accessed data', async () => {
-    const cacheModel = createResourceCacheModel()
-    const resource = createResource(
-      async ({ variables }) => 'value for ' + variables,
-    )
+    const resource = createDocumentResource({
+      load: async ({ vars }) => 'value for ' + vars,
+    })
 
-    const sub = cacheModel({}).query(resource, {
-      variables: 'hello',
+    const [source] = requestResource(resource, {
+      vars: 'hello',
     })
 
     try {
-      expect(sub.getCurrentValue().data()).toBe({} /* never true */)
+      expect(source.getCurrentValue().getData()).toBe({} /* never true */)
     } catch (promise) {
       expect(promise).toBeInstanceOf(Promise)
-      expect(sub.getCurrentValue().hasData).toBe(false)
+      expect(source.getCurrentValue().hasData).toBe(false)
       await promise
-      expect(sub.getCurrentValue().hasData).toBe(true)
-      expect(sub.getCurrentValue().data()).toBe('value for hello')
+      expect(source.getCurrentValue().hasData).toBe(true)
+      expect(source.getCurrentValue().getData()).toBe('value for hello')
     }
   })
 })
