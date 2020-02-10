@@ -32,11 +32,11 @@ export function mapMerge(
     const stringifiedId = String(id)
     let existingRefState: CachePointerState | undefined =
       scopeState[bucket] && scopeState[bucket][id]
-    let nextRefState: CachePointerState | undefined
+    let nextPointerState: CachePointerState | undefined
     if (existingRefState) {
       const mergeRefState = callback(existingRefState, i, tracker)
       if (mergeRefState && mergeRefState !== existingRefState) {
-        nextRefState = {
+        nextPointerState = {
           ...existingRefState,
           ...mergeRefState,
         }
@@ -52,14 +52,14 @@ export function mapMerge(
         mergeState !== initialState &&
         (mergeState.value || !canPurge(mergeState))
       ) {
-        nextRefState = {
+        nextPointerState = {
           ...initialState,
           ...mergeState,
         }
       }
     }
 
-    if (!nextRefState) {
+    if (!nextPointerState) {
       continue
     }
 
@@ -69,18 +69,22 @@ export function mapMerge(
       request,
       tasks,
       value,
-    } = nextRefState
+    } = nextPointerState
     const existingPause = existingRefState && existingRefState.modifiers.pause
     const existingRequestPolicies =
       existingRefState && existingRefState.request
         ? existingRefState.request.policies
         : DefaultRequestPolicies
     const requestPolicies = request ? request.policies : DefaultRequestPolicies
-    const nextTasks = (nextRefState.tasks = { ...tasks })
+    const nextTasks = (nextPointerState.tasks = { ...tasks })
 
-    if (canPurge(nextRefState)) {
+    if (canPurge(nextPointerState)) {
       if (tasks.purge === null) {
-        nextTasks.purge = tracker.startCacheTask('purge', pointer, nextRefState)
+        nextTasks.purge = tracker.startCacheTask(
+          'purge',
+          pointer,
+          nextPointerState,
+        )
       }
     } else {
       if (tasks.purge) {
@@ -128,7 +132,7 @@ export function mapMerge(
         nextTasks.invalidate = tracker.startCacheTask(
           'invalidate',
           pointer,
-          nextRefState,
+          nextPointerState,
         )
       }
 
@@ -145,11 +149,11 @@ export function mapMerge(
       }
     }
 
-    if (existingRefState && existingRefState.tasks !== nextRefState.tasks) {
+    if (existingRefState && existingRefState.tasks !== nextPointerState.tasks) {
       tracker.removePointerFromTasks(
         pointer,
         existingRefState.tasks,
-        nextRefState.tasks,
+        nextPointerState.tasks,
       )
     }
 
@@ -157,7 +161,7 @@ export function mapMerge(
     if (!updates[bucket]) {
       updates[bucket] = {}
     }
-    updates[bucket][stringifiedId] = nextRefState
+    updates[bucket][stringifiedId] = nextPointerState
   }
 
   if (updatedTypes.size === 0) {

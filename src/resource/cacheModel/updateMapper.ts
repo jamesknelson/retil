@@ -12,16 +12,8 @@ export function createUpdateMapper(
     i: number,
   ) => {
     const tasks = state.tasks
-    if (
-      taskId !== null &&
-      taskId !== tasks.load &&
-      taskId !== tasks.manualLoad &&
-      taskId !== tasks.subscribe
-    ) {
-      return
-    }
-
     const { bucket, id, payload } = chunks[i]
+
     return {
       invalidated: false,
       tasks: {

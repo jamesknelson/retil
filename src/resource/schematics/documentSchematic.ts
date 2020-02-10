@@ -26,7 +26,7 @@ export const defaultDocumentOptions = {
     if (vars) {
       const varNames = Object.keys(vars)
       if (varNames.length === 1 && varNames[0] === 'id') {
-        return varNames[0]
+        return vars[varNames[0]]
       } else if (varNames.length) {
         return stringifyVariables(vars)
       }

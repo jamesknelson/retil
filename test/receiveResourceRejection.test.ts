@@ -4,7 +4,7 @@ import {
   createDocumentResource,
 } from '../src/resource'
 
-describe('receiveResourceRejection()', () => {
+describe('receiveRejection()', () => {
   test('immediately updates data', async () => {
     const resource = createDocumentResource()
     const vars = 'test'

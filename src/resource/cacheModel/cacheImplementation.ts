@@ -158,6 +158,7 @@ export class ResourceCacheImplementation<Context extends object>
             ...InitialPointerState,
             pointer,
           }
+
           const value = state.value
           return {
             data: value && value.type === 'data' ? value.data : undefined,

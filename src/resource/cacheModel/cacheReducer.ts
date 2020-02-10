@@ -1,6 +1,10 @@
 import { Dispose } from '../../store'
 
-import { CacheReducerAction, CacheReducerState } from '../types'
+import {
+  CacheReducerAction,
+  CacheReducerState,
+  ResourceRequestTask,
+} from '../types'
 
 import { DefaultRequestPolicies } from './constants'
 import { mapMerge } from './mapMerge'
@@ -181,13 +185,42 @@ export function resourceReducer(
       })
 
     case 'updateValue': {
-      const previousTask = action.taskId && state.tasks.pending[action.taskId]
+      const taskId = action.taskId
+
+      // Bail if the task has been stopped
+      const previousTask = taskId && state.tasks.pending[taskId]
+      if (taskId && !previousTask) {
+        return state
+      }
+
+      // Bail if the request task is no longer required
       const scope = previousTask ? previousTask.scope : action.scope!
+      const root =
+        (previousTask && (previousTask as ResourceRequestTask).request.root) ||
+        undefined
+      if (root) {
+        const scopeState = state.data[scope]
+        const rootState =
+          scopeState &&
+          scopeState[root.bucket] &&
+          scopeState[root.bucket][root.id]
+        const tasks = rootState && rootState.tasks
+        if (
+          !tasks ||
+          (taskId !== null &&
+            taskId !== tasks.load &&
+            taskId !== tasks.manualLoad &&
+            taskId !== tasks.subscribe)
+        ) {
+          return state
+        }
+      }
+
       return mapMerge(
         scope,
         state,
         action.chunks,
-        createUpdateMapper(action.taskId, action.timestamp, action.chunks),
+        createUpdateMapper(taskId, action.timestamp, action.chunks),
       )
     }
 

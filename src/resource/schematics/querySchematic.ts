@@ -94,10 +94,13 @@ class QuerySchematicImplementation<ResultData, ResultRejection, Input>
     private child: SchematicInstance<ResultData, ResultRejection, Input>,
   ) {}
 
-  chunk(input: Input): SchematicChunkedInput<Pointer, any> {
+  chunk(input: Input): SchematicChunkedInput<Pointer, Chunk> {
     const child = this.child.chunk(input)
     return {
-      chunks: child.chunks.concat([this.root, child.root]),
+      chunks: child.chunks.concat({
+        ...this.root,
+        payload: { type: 'data', data: child.root },
+      }),
       root: this.root,
     }
   }

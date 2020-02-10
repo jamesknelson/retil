@@ -1,6 +1,6 @@
 import { receiveData, request, createDocumentResource } from '../src/resource'
 
-describe('receiveResourceData()', () => {
+describe('receiveData()', () => {
   test('immediately updates data', async () => {
     const resource = createDocumentResource<number>()
     const vars = 'test'

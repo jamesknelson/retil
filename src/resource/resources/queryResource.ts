@@ -74,9 +74,9 @@ export function createQueryResource<
     ChildChunk
   >,
 ): QueryResource<
-  Vars,
   ResultData,
   ResultRejection,
+  Vars,
   Context,
   Input,
   Bucket,

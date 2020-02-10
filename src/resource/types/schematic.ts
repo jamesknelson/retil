@@ -18,7 +18,7 @@ export interface SchematicInstance<
   ResultRejection = any,
   Input = any,
   P extends Pointer | PointerList = any,
-  C extends Chunk = any
+  C extends Chunk = Chunk
 > {
   // For schematics with no parents or no split data, a pointer to the relevant
   // state needs to be provided -- as it can't be inferred.
