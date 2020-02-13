@@ -145,6 +145,8 @@ export interface ResourceRequestController<Rejection = any, Input = any> {
 }
 
 export interface ResourceRequestOptions<Vars = any> {
+  pause?: boolean
+
   /**
    * Configures which tasks will be automatically scheduled, and when. Options
    * include:

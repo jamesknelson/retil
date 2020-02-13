@@ -1,7 +1,4 @@
-import LRU from 'lru-cache'
-
 import { Outlet, createOutlet } from '../../outlets'
-import { stringifyVariables } from '../../utils/stringifyVariables'
 
 import {
   CachePointerState,
@@ -29,64 +26,31 @@ import { selectResourceResult } from './selectResourceResult'
 
 export class ResourceCacheImplementation<Context extends object>
   implements ResourceCache<Context> {
-  private memoizedQueries: Map<
-    Resource<any, any, any, Context>,
-    LRU<
-      string,
-      {
-        options: ResourceRequestOptions
-        controller: ResourceRequestController
-        source: ResourceRequestSource
-      }
-    >
-  >
-
   constructor(
     private context: Context,
     private defaultRequestPolicy: ResourceRequestPolicy,
     private dispatch: (action: CacheReducerAction) => void,
     private outlet: Outlet<CacheReducerState>,
     private scope: string,
-  ) {
-    this.memoizedQueries = new Map()
-  }
+  ) {}
 
   request<Data = any, Rejection = any, Vars = any, Input = any>(
     resource: Resource<Data, Rejection, Vars, Context> &
       Schematic<any, any, Vars, Input>,
-    optionsWithoutDefaults: ResourceRequestOptions<Vars> = {},
+    options: ResourceRequestOptions<Vars> = {},
   ): [
     ResourceRequestSource<Data, Rejection, Vars>,
     ResourceRequestController<Rejection, any>,
   ] {
-    const options = {
-      policy: this.defaultRequestPolicy,
-      ...optionsWithoutDefaults,
-    }
-    const { policy, vars } = options
-
-    // If we've recently created a request w/ these variables,
-    // then re-use it instead of creating a new one from scratch.
-    const stringifiedVariables = stringifyVariables(vars)
-    let resourceMemos = this.memoizedQueries.get(resource)
-    if (!resourceMemos) {
-      this.memoizedQueries.set(resource, (resourceMemos = new LRU(100)))
-    }
-    const memoizedQuery = resourceMemos.get(stringifiedVariables)
-    if (memoizedQuery && memoizedQuery.options.policy === policy) {
-      return [memoizedQuery.source, memoizedQuery.controller]
-    }
-
+    const { pause, policy = this.defaultRequestPolicy, vars } = options
     const request = resource.request(vars!, this.context)
-
     const actionOptions = {
       scope: this.scope,
       request,
-      policies: policy !== 'cacheOnly' ? [policy] : [],
+      policies: policy !== 'cacheOnly' && !pause ? [policy] : [],
     }
 
     let subscriptionCount = 0
-
     let keepMicrotask: Promise<void> | undefined
     let keptPointers = [] as Pointer[]
     const pointersToKeep = [] as Pointer[]
@@ -166,7 +130,7 @@ export class ResourceCacheImplementation<Context extends object>
             hasRejection: !!(value && value.type === 'rejection'),
             invalidated: !!state.invalidated,
             pending: isPending(state, policy !== 'cacheOnly'),
-            primed: isPrimed(state, policy !== 'cacheOnly'),
+            primed: isPrimed(state, policy !== 'cacheOnly', !!pause),
             rejection:
               value && value.type === 'rejection' ? value.rejection : undefined,
           } as PickerResult<Pointer>
@@ -257,12 +221,6 @@ export class ResourceCacheImplementation<Context extends object>
       this.outlet,
       buildChunksFromInput,
     )
-
-    resourceMemos.set(stringifiedVariables, {
-      options,
-      source,
-      controller,
-    })
 
     return [source, controller]
   }
@@ -389,9 +347,10 @@ function isPending(
 function isPrimed(
   state: CachePointerState<any, any>,
   hasRequestPolicy: boolean,
+  isPaused: boolean,
 ) {
   return !(
     state.value === null &&
-    (isPending(state, hasRequestPolicy) || state.modifiers.pause)
+    (isPending(state, hasRequestPolicy) || state.modifiers.pause || isPaused)
   )
 }
