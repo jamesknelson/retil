@@ -38,10 +38,7 @@ export interface ResourceResult<Data, Rejection, Vars> {
    */
   abandoned: boolean
 
-  data?: Data
-
-  getData(): Data
-  getRejection(): Rejection
+  data: Data
 
   /**
    * If there's data that can be accessed, this will be true.
@@ -74,7 +71,7 @@ export interface ResourceResult<Data, Rejection, Vars> {
    */
   primed: boolean
 
-  rejection?: Rejection
+  rejection: Rejection
 
   bucket: string
 

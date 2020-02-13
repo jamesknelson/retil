@@ -144,33 +144,33 @@ export function useResource(
   )
 
   if (resource === null) {
-    return [{ ...emptySnapshot, vars }, null]
+    return [
+      {
+        abandoned: true,
+        get data(): undefined {
+          throw new Error(
+            `Resource Error: no data is available for a "null" resource.`,
+          )
+        },
+        get rejection(): undefined {
+          throw new Error(
+            `Resource Error: no rejection is available for a "null" resource.`,
+          )
+        },
+        hasData: false,
+        hasRejection: false,
+        invalidated: false,
+        pending: false,
+        primed: true,
+        id: (undefined as any) as string | number,
+        bucket: (undefined as any) as string,
+        vars,
+      },
+      null,
+    ]
   } else {
     return [snapshot, controllerWithSource] as UseResourceOutput
   }
-}
-
-const emptySnapshot = {
-  abandoned: true,
-  getData() {
-    throw new Error(
-      `Resource Error: no data is available for a "null" resource.`,
-    )
-  },
-  getRejection() {
-    throw new Error(
-      `Resource Error: no rejection is available for a "null" resource.`,
-    )
-  },
-  data: undefined,
-  rejection: undefined,
-  hasData: false,
-  hasRejection: false,
-  invalidated: false,
-  pending: false,
-  primed: true,
-  id: (undefined as any) as string | number,
-  bucket: (undefined as any) as string,
 }
 
 const nullSource = {

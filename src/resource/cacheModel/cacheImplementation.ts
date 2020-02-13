@@ -211,7 +211,7 @@ export class ResourceCacheImplementation<Context extends object>
     }
 
     const source = Object.assign(resultSource, {
-      getData: () => resultSource.map(({ getData }) => getData()).getValue(),
+      getData: () => resultSource.map(result => result.data).getValue(),
     })
 
     const controller = new ResourceRequestControllerImplementation(

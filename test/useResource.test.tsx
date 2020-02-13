@@ -49,8 +49,8 @@ describe('useResource()', () => {
       async (vars: string) => 'value for ' + vars,
     )
 
-    const { result, waitForNextUpdate } = renderHook(() =>
-      useResource(resource, 'hello')[0].getData(),
+    const { result, waitForNextUpdate } = renderHook(
+      () => useResource(resource, 'hello')[0].data,
     )
     await waitForNextUpdate()
     expect(result && result.current).toBe('value for hello')
@@ -67,8 +67,8 @@ describe('useResource()', () => {
     )
 
     const store1 = createStore()
-    const hook1 = renderHook(() =>
-      useResource(resource, { vars: 'hello1', store: store1 })[0].getData(),
+    const hook1 = renderHook(
+      () => useResource(resource, { vars: 'hello1', store: store1 })[0].data,
     )
 
     expect(hook1.result && hook1.result.current).toBe(null)
@@ -80,14 +80,11 @@ describe('useResource()', () => {
 
     // Data should be immediately available, without waiting for suspense.
     const store2 = createStore(dehydratedState)
-    const hook2 = renderHook(
-      () => useResource(resource, 'hello1')[0].getData(),
-      {
-        wrapper: ({ children }: any) => (
-          <Provider store={store2}>{children}</Provider>
-        ),
-      },
-    )
+    const hook2 = renderHook(() => useResource(resource, 'hello1')[0].data, {
+      wrapper: ({ children }: any) => (
+        <Provider store={store2}>{children}</Provider>
+      ),
+    })
     expect(hook2.result && hook2.result.current).toBe('value for hello1')
 
     await hook2.waitForNextUpdate()

@@ -13,9 +13,8 @@ export function selectResourceResult<Result, Rejection, Vars>(
   const waitForValue = stateSource.filter(result => result.primed).getValue
 
   return stateSource.map(result => ({
-    ...result,
     abandoned: result.primed && !result.hasData && !result.hasRejection,
-    getData(): Result {
+    get data(): Result {
       if (!result.primed) {
         throw waitForValue()
       }
@@ -27,7 +26,7 @@ export function selectResourceResult<Result, Rejection, Vars>(
       }
       return result.data
     },
-    getRejection(): Rejection {
+    get rejection(): Rejection {
       if (!result.primed) {
         throw waitForValue()
       }
@@ -43,6 +42,9 @@ export function selectResourceResult<Result, Rejection, Vars>(
     hasData: !!result.hasData,
     hasRejection: !!result.hasRejection,
     id: root.id,
+    invalidated: result.invalidated,
+    pending: result.pending,
+    primed: result.primed,
     bucket: root.bucket,
     vars,
   }))

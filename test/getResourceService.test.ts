@@ -22,13 +22,13 @@ describe('getResourceService()', () => {
     })
 
     try {
-      expect(source.getCurrentValue().getData()).toBe({} /* never true */)
+      expect(source.getCurrentValue().data).toBe({} /* never true */)
     } catch (promise) {
       expect(promise).toBeInstanceOf(Promise)
       expect(source.getCurrentValue().hasData).toBe(false)
       await promise
       expect(source.getCurrentValue().hasData).toBe(true)
-      expect(source.getCurrentValue().getData()).toBe('value for hello')
+      expect(source.getCurrentValue().data).toBe('value for hello')
     }
   })
 
@@ -60,7 +60,7 @@ describe('getResourceService()', () => {
     })
 
     expect(() => {
-      source.getCurrentValue().getData()
+      console.log(source.getCurrentValue().data)
     }).toThrow(Promise)
 
     await expect(source.getData()).rejects.toBeInstanceOf(Error)
