@@ -9,8 +9,8 @@ export interface UserProps {
 }
 
 export default function User(props: UserProps) {
-  const [resource] = useResource(userWithPosts, props.id)
-  const data = resource.data
+  const [state] = useResource(userWithPosts, props.id)
+  const data = state.data
 
   return (
     <div>
@@ -24,7 +24,7 @@ export default function User(props: UserProps) {
         {data.email}
       </p>
       <h2>Posts</h2>
-      {resource.data.posts.map(item => (
+      {state.data.posts.map(item => (
         <div key={item.id}>
           <h3>
             <Link href={`/post/` + item.id}>{item.title}</Link>

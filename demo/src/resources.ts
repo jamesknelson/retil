@@ -1,10 +1,11 @@
 import { createDocumentResource, createQueryResource, embed, list } from 'retil'
 
-interface User {
+interface Comment {
+  postId: number
   id: number
   name: string
-  username: string
   email: string
+  body: string
 }
 
 interface Post {
@@ -14,17 +15,30 @@ interface Post {
   body: string
 }
 
+interface User {
+  id: number
+  name: string
+  username: string
+  email: string
+}
+
 const BaseURL = `https://jsonplaceholder.typicode.com`
 
-export const user = createDocumentResource<User>('user')
+export const comment = createDocumentResource<Comment>('comments')
 export const post = createDocumentResource<Post>('post')
+export const user = createDocumentResource<User>('user')
+
+export const postsQuery = createQueryResource('postsQuery', {
+  for: list(post),
+  load: (userId: string) => BaseURL + `/user/${userId}/posts`,
+})
 
 export const userWithPosts = createQueryResource('userAndPosts', {
   // Note that if you have multiple query resources w/ the same embeds, they
   // will get out of sync. If you need them to stay in sync, you'll need to
   // create separate query resources for the embed queries.
   for: embed(user, {
-    posts: (userId: string) => postList(userId),
+    posts: postsQuery,
   }),
   load: (userId: string) => BaseURL + `/users/${userId}?_embed=posts`,
 })
@@ -36,12 +50,9 @@ export const userList = createQueryResource('userList', {
 
 export const postWithUser = createQueryResource('postWithUser', {
   for: embed(post, {
-    user: () => user(),
+    comments: list(comment),
+    user,
   }),
-  load: (postId: string) => BaseURL + `/posts/${postId}?_expand=user`,
-})
-
-export const postList = createQueryResource('postList', {
-  for: list(post),
-  load: (userId: string) => BaseURL + `/user/${userId}/posts`,
+  load: (postId: string) =>
+    BaseURL + `/posts/${postId}?_expand=user&_embed=comments`,
 })

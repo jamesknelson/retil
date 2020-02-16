@@ -11,21 +11,16 @@ import {
   Selection,
 } from '../types'
 
-export type Embeds<
-  ParentVars,
-  ParentChunkData,
-  EmbedAttrs extends string,
-  EmbedChunk extends Chunk
-> = {
+export type Embeds<ParentVars, ParentChunkData, EmbedAttrs extends string> = {
   [Attr in EmbedAttrs]: (
     parentVars: ParentVars,
     parentData: ParentChunkData,
-  ) => SchematicInstance<any, any, any, any, EmbedChunk>
+  ) => SchematicInstance
 }
 
 export type EmbedResponseData<
   ParentResponseData = any,
-  E extends Embeds<any, any, EmbedAttrs, any> = any,
+  E extends Embeds<any, any, EmbedAttrs> = any,
   EmbedAttrs extends StringKeys<E> = any
 > = Omit<ParentResponseData, EmbedAttrs> &
   {
@@ -36,7 +31,7 @@ export type EmbedResponseData<
 
 export type EmbedInput<
   ParentInput = any,
-  E extends Embeds<any, any, EmbedAttrs, any> = any,
+  E extends Embeds<any, any, EmbedAttrs> = any,
   EmbedAttrs extends StringKeys<E> = any
 > = Omit<ParentInput, EmbedAttrs> &
   {
@@ -52,7 +47,7 @@ export type EmbedInput<
 
 export type EmbedSelection<
   ParentSelection extends RecordSelection = any,
-  E extends Embeds<any, any, EmbedAttrs, any> = any,
+  E extends Embeds<any, any, EmbedAttrs> = any,
   EmbedAttrs extends StringKeys<E> = any
 > = {
   root: ParentSelection['root']
@@ -72,6 +67,25 @@ export type EmbedSelection<
     }
 }
 
+export type EmbedChunk<
+  ParentChunk extends Chunk = any,
+  E extends Embeds<any, any, EmbedAttrs> = any,
+  EmbedAttrs extends StringKeys<E> = any
+> =
+  | ParentChunk
+  | {
+      [Attr in EmbedAttrs]: E[Attr] extends Schematic<
+        any,
+        any,
+        any,
+        any,
+        any,
+        infer ChildChunk
+      >
+        ? ChildChunk
+        : never
+    }[EmbedAttrs]
+
 export type EmbedSchematic<
   ParentResultData,
   ResultRejection,
@@ -79,16 +93,15 @@ export type EmbedSchematic<
   ParentInput,
   ParentSelection extends RecordSelection,
   ParentChunk extends Chunk,
-  E extends Embeds<Vars, ParentResultData, EmbedAttrs, EmbedChunk>,
-  EmbedAttrs extends StringKeys<E>,
-  EmbedChunk extends Chunk
+  E extends Embeds<Vars, ParentResultData, EmbedAttrs>,
+  EmbedAttrs extends StringKeys<E>
 > = Schematic<
   EmbedResponseData<ParentResultData, E, EmbedAttrs>,
   ResultRejection,
   Vars,
   EmbedInput<ParentInput, E, EmbedAttrs>,
   EmbedSelection<ParentSelection, E, EmbedAttrs>,
-  ParentChunk | EmbedChunk
+  EmbedChunk<ParentChunk, E, EmbedAttrs>
 >
 
 export function embedSchematic<
@@ -98,9 +111,8 @@ export function embedSchematic<
   ParentInput,
   ParentSelection extends RecordSelection,
   ParentChunk extends Chunk,
-  E extends Embeds<Vars, ParentResultData, EmbedAttrs, EmbedChunk>,
-  EmbedAttrs extends StringKeys<E>,
-  EmbedChunk extends Chunk
+  E extends Embeds<Vars, ParentResultData, EmbedAttrs>,
+  EmbedAttrs extends StringKeys<E>
 >(
   parentSchematic: Schematic<
     ParentResultData,
@@ -110,7 +122,7 @@ export function embedSchematic<
     ParentSelection,
     ParentChunk
   >,
-  embeddedSchematics: E & Embeds<Vars, ParentResultData, any, EmbedChunk>,
+  embeddedSchematics: E & Embeds<Vars, ParentResultData, any>,
 ): EmbedSchematic<
   ParentResultData,
   ResultRejection,
@@ -119,8 +131,7 @@ export function embedSchematic<
   ParentSelection,
   ParentChunk,
   E,
-  EmbedAttrs,
-  EmbedChunk
+  EmbedAttrs
 > {
   return (vars?: Vars) => {
     return new EmbedSchematicImplementation<
@@ -142,7 +153,7 @@ class EmbedSchematicImplementation<ParentResultData, ResultRejection, Vars>
       any,
       RecordSelection
     >,
-    private embeds: Embeds<Vars, ParentResultData, any, any>,
+    private embeds: Embeds<Vars, ParentResultData, any>,
   ) {}
 
   chunk(input: any): SchematicChunkedInput<EmbedSelection, any> {

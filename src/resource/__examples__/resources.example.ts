@@ -6,6 +6,11 @@ import {
 } from '../index'
 import { ChunkSchema } from '../types'
 
+const user = createDocumentResource('user', async () => ({
+  id: '1',
+  name: 'test',
+}))
+
 const video = createDocumentResource('video', async () => ({
   id: '1',
   youtubeId: 'test',
@@ -27,6 +32,7 @@ const newsletter = createDocumentResource('newsletter', {
 })
 const newsletterWithVideos = createQueryResource('newsletterWithVideos', {
   for: embed(newsletter, {
+    user: user,
     videos: list(video),
   }),
   load: async (vars: { language: string }) => {
