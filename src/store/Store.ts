@@ -140,19 +140,21 @@ export function createStore(
         )
       }
 
-      const config: NamespaceStoreConfig<any, any> = {
-        ...defaultNamespaceStoreOptions,
-        ...options,
-      }
+      if (!namespaceStores[namespace]) {
+        const config: NamespaceStoreConfig<any, any> = {
+          ...defaultNamespaceStoreOptions,
+          ...options,
+        }
 
-      namespaces.push(namespace)
-      namespaceConfigs[namespace] = config
-      namespaceStores[namespace] = registerNamespaceStore(
-        innerStore,
-        namespace,
-        storeCache,
-        config,
-      )
+        namespaces.push(namespace)
+        namespaceConfigs[namespace] = config
+        namespaceStores[namespace] = registerNamespaceStore(
+          innerStore,
+          namespace,
+          storeCache,
+          config,
+        )
+      }
 
       return namespaceStores[namespace]
     },

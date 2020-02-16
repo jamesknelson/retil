@@ -47,7 +47,9 @@ export function createCacheEnhancer(config: RunnerConfig) {
         }
         taskQueueIds = Object.keys(taskQueue)
 
-        store.dispatch({ type: 'clearQueue' })
+        if (taskQueueIds.length) {
+          store.dispatch({ type: 'clearQueue' })
+        }
 
         // Tasks/effects can synchronously dispatch further actions, and we only
         // want to process those jobs on the outermost dispatch.

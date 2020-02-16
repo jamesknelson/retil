@@ -103,12 +103,12 @@ export function createDocumentResource(
     bucketOrOptions = { load: bucketOrOptions }
   } else if (typeof options === 'function') {
     options = { load: options }
-  } else if (!options && bucketOrOptions) {
-    options = bucketOrOptions
   }
 
   let bucket: string | undefined
-  if (!options) {
+  if (typeof bucketOrOptions === 'string') {
+    bucket = bucketOrOptions
+  } else if (!options) {
     options = bucketOrOptions as DocumentResourceOptions
     bucket = options.bucket
   } else {

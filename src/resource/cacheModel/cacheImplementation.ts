@@ -59,17 +59,17 @@ export class ResourceCacheImplementation<Context extends object>
         keepMicrotask = Promise.resolve().then(() => {
           if (keepMicrotask) {
             keepMicrotask = undefined
-
             const pointers = pointersToKeep.slice(0)
             keptPointers.push(...pointers)
             pointersToKeep.length = 0
-
-            this.dispatch({
-              type: 'applyModifiers',
-              pointers,
-              scope: actionOptions.scope,
-              keep: 1,
-            })
+            if (pointers.length) {
+              this.dispatch({
+                type: 'applyModifiers',
+                pointers,
+                scope: actionOptions.scope,
+                keep: 1,
+              })
+            }
           }
         })
       }
@@ -163,8 +163,8 @@ export class ResourceCacheImplementation<Context extends object>
         return () => {
           if (!unsubscribed) {
             unsubscribed = true
-            unsubscribe()
             subscriptionCount--
+            unsubscribe()
             if (subscriptionCount === 0) {
               const unkeepPointers = keptPointers.slice(0)
               keepMicrotask = undefined
@@ -174,7 +174,7 @@ export class ResourceCacheImplementation<Context extends object>
                 type: 'dropRequest',
                 ...actionOptions,
               })
-              if (keptPointers.length) {
+              if (unkeepPointers.length) {
                 this.dispatch({
                   type: 'applyModifiers',
                   pointers: unkeepPointers,

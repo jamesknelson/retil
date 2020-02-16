@@ -18,8 +18,8 @@ export default function Post(props: PostProps) {
       <p>
         By <Link href={`/user/${data.user.id}`}>{data.user.name}</Link>
       </p>
-      {data.body.split('\n\n').map(p => (
-        <p>{p}</p>
+      {data.body.split('\n\n').map((p, i) => (
+        <p key={i}>{p}</p>
       ))}
     </div>
   )
