@@ -86,8 +86,6 @@ describe('useResource()', () => {
       ),
     })
     expect(hook2.result && hook2.result.current).toBe('value for hello1')
-
-    await hook2.waitForNextUpdate()
   })
 
   test('does not fetch data when `pause` is true', async () => {
