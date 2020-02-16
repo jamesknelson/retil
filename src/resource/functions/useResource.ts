@@ -35,55 +35,59 @@ export type UseResourceOutput<
     source: Outlet<ResourceResult<Data, Rejection, Vars>>
   },
 ]
+export type UseResourceNullOutput<Vars = any> = [
+  ResourceResult<undefined, undefined, Vars>,
+  null,
+]
 
 /**
  * Return an outlet and controller for the specified key, from which you can
  * get the latest value, or imperatively make changes.
  */
-export function useResource<Vars>(
-  resource: null,
-  options?: UseResourceOptions,
-): [ResourceResult<undefined, undefined, Vars>, null]
-export function useResource<
-  Data = any,
-  Rejection = any,
-  Vars = any,
-  Context extends object = any
->(
-  resource: Resource<Data, Rejection, Vars, Context>,
-  options?: UseResourceOptions<Vars, Context>,
-): UseResourceOutput<Data, Rejection, Vars, any>
-export function useResource<
-  Data = any,
-  Rejection = any,
-  Vars extends string | number = any,
-  Context extends object = any
->(
-  resource: Resource<Data, Rejection, Vars, Context>,
-  options: Vars,
-): UseResourceOutput<Data, Rejection, Vars, any>
 export function useResource<
   Data = any,
   Rejection = any,
   Vars = any,
   Context extends object = any,
-  Input = any
+  Input = any,
+  R extends
+    | null
+    | (Resource<Data, Rejection, Vars, Context> &
+        Schematic<any, any, Vars, Input>) = any
 >(
-  resource: Resource<Data, Rejection, Vars, Context> &
-    Schematic<any, any, Vars, Input>,
+  resource: R &
+    (
+      | null
+      | (Resource<Data, Rejection, Vars, Context> &
+          Schematic<any, any, Vars, Input>)
+    ),
   options?: UseResourceOptions<Vars, Context>,
-): UseResourceOutput<Data, Rejection, Vars, Input>
+): R extends null
+  ? UseResourceNullOutput<Vars>
+  : UseResourceOutput<Data, Rejection, Vars, Input>
+
 export function useResource<
   Data = any,
   Rejection = any,
-  Vars extends string | number = any,
+  Vars extends string | number = string | number,
   Context extends object = any,
-  Input = any
+  Input = any,
+  R extends
+    | null
+    | (Resource<Data, Rejection, Vars, Context> &
+        Schematic<any, any, Vars, Input>) = any
 >(
-  resource: Resource<Data, Rejection, Vars, Context> &
-    Schematic<any, any, Vars, Input>,
-  options?: Vars,
-): UseResourceOutput<Data, Rejection, Vars, Input>
+  resource: R &
+    (
+      | null
+      | (Resource<Data, Rejection, Vars, Context> &
+          Schematic<any, any, Vars, Input>)
+    ),
+  vars?: Vars,
+): R extends null
+  ? UseResourceNullOutput<Vars>
+  : UseResourceOutput<Data, Rejection, Vars, Input>
+
 export function useResource(
   resource: null | (Resource & Schematic) | Resource,
   options: string | number | UseResourceOptions = {},

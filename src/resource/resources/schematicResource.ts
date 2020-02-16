@@ -9,10 +9,11 @@ import {
 import {
   Chunk,
   Picker,
-  Pointer,
   Resource,
   ResourceRequest,
   ResourceRequestActions,
+  RootSchematic,
+  RootSelection,
   Schematic,
   PickerResult,
 } from '../types'
@@ -37,21 +38,28 @@ export const defaultResourceOptions = {
   }),
 }
 
-export type SchematicResourceLoadFunction<
-  Vars = any,
-  Context = any,
-  Input = any
-> = (vars: Vars, context: Context, signal: AbortSignal) => Promise<Input>
+export interface SchematicResourceContext {
+  fetch?: typeof fetch
+  fetchOptions?: RequestInit
+}
+
+export type SchematicResourceLoad<Vars = any, Context = any, Input = any> =
+  | RequestInfo
+  | ((
+      vars: Vars,
+      context: Context,
+      signal: AbortSignal,
+    ) => Promise<Input> | RequestInfo)
 
 // the idea is if you have a graphql query/schema/endpoint url, then you can
 // map it to a resource -- type, embed, etc. will be generated automatically.
 // you'll need to supply your own TypeScript types, though.
 export interface SchematicResourceBaseOptions<
   Vars = string,
-  Context = any,
+  Context extends SchematicResourceContext = any,
   Input = any
 > {
-  load?: SchematicResourceLoadFunction<Vars, Context, Input>
+  load?: SchematicResourceLoad<Vars, Context, Input>
   loadScheduler?: AsyncTaskScheduler
 }
 
@@ -59,17 +67,17 @@ export interface SchematicResourceOptions<
   ResultData = any,
   ResultRejection = any,
   Vars = any,
-  Context = any,
+  Context extends SchematicResourceContext = any,
   Input = any,
   Bucket extends string = any,
   C extends Chunk<any> = any
 > extends SchematicResourceBaseOptions<Vars, Context, Input> {
-  schematic: Schematic<
+  schematic: RootSchematic<
     ResultData,
     ResultRejection,
     Vars,
     Input,
-    Pointer<Bucket>,
+    RootSelection<Bucket>,
     C
   >
 }
@@ -78,7 +86,7 @@ export interface SchematicResource<
   ResultData = any,
   ResultRejection = any,
   Vars = any,
-  Context extends object = any,
+  Context extends SchematicResourceContext = any,
   Input = any,
   Bucket extends string = any,
   C extends Chunk<any> = any
@@ -88,7 +96,7 @@ export interface SchematicResource<
       ResultRejection,
       Vars,
       Input,
-      Pointer<Bucket>,
+      RootSelection<Bucket>,
       C
     >,
     Resource<ResultData, ResultRejection, Vars, Context> {}
@@ -112,7 +120,7 @@ export function createSchematicResource<
   ResultData = unknown,
   ResultRejection = unknown,
   Vars = any,
-  Context extends object = any,
+  Context extends SchematicResourceContext = any,
   Input = any,
   Bucket extends string = any,
   C extends Chunk<any> = any
@@ -135,32 +143,36 @@ export function createSchematicResource<
   Bucket,
   C
 > {
-  const { load, loadScheduler, schematic } = {
+  const { load: loadOption, loadScheduler, schematic } = {
     ...defaultResourceOptions,
     ...options,
   }
+
+  const load = loadOption && wrapLoad(loadOption)
 
   const request = (
     vars: Vars,
     context: Context,
   ): ResourceRequest<ResultData, ResultRejection> => {
     const schematicInstance = schematic(vars)
-    const root = schematicInstance.root
+    const selection = schematicInstance.selection
     const abortController = new AbortController()
 
-    if (!root) {
+    if (!selection) {
       throw new Error(
-        'Resource Error: Could not compute root id from resource vars.',
+        'Resource Error: Could not compute selection from resource vars.',
       )
     }
 
     return {
-      root,
+      root: selection.root,
 
       select: (
         pickerSource: Outlet<Picker>,
       ): Outlet<PickerResult<ResultData, ResultRejection>> => {
-        return pickerSource.map(pick => schematicInstance.build(root, pick))
+        return pickerSource.map(pick =>
+          schematicInstance.build(selection, pick),
+        )
       },
 
       load: (actions: ResourceRequestActions) => {
@@ -178,7 +190,7 @@ export function createSchematicResource<
               const rejection = something.rejection
               actions.update([
                 {
-                  ...root,
+                  ...selection.root,
                   payload: { type: 'rejection', rejection },
                 },
               ])
@@ -204,6 +216,51 @@ export function createSchematicResource<
     }
   }
 
-  const resourceSchematic = (vars: Vars) => schematic(vars)
+  const resourceSchematic = (vars: Vars = undefined as any) => schematic(vars)
   return Object.assign(resourceSchematic, { request })
+}
+
+function wrapLoad<Vars, Context extends SchematicResourceContext, Input>(
+  load: SchematicResourceLoad<Vars, Context, Input>,
+) {
+  const loadFn = typeof load === 'function' ? load : () => load
+
+  return async (
+    vars: Vars,
+    context: Context,
+    signal: AbortSignal,
+  ): Promise<Input> => {
+    const promiseOrRequest = loadFn(vars, context, signal)
+    if (isPromise(promiseOrRequest)) {
+      return promiseOrRequest
+    }
+
+    const url =
+      typeof promiseOrRequest === 'string'
+        ? promiseOrRequest
+        : promiseOrRequest.url
+    const fetchOptions = {
+      ...context.fetchOptions,
+      ...(typeof promiseOrRequest === 'string' ? undefined : promiseOrRequest),
+    }
+    const fetch = context.fetch || window.fetch
+
+    try {
+      const response = await fetch(url, fetchOptions)
+      if (response.ok) {
+        return await response.json()
+      } else if (response.status >= 400 && response.status < 500) {
+        throw new Rejection(response.statusText)
+      } else {
+        throw new Retry()
+      }
+    } catch (error) {
+      console.error('Error fetching resource data:', error)
+      throw new Retry()
+    }
+  }
+}
+
+function isPromise(x: any): x is Promise<any> {
+  return x && x.then
 }

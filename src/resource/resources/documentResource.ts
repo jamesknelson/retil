@@ -1,59 +1,29 @@
-import { Fallback, StringKeys } from '../../utils/types'
+import { Fallback } from '../../utils/types'
 
 import {
-  BaseDocumentOptions,
-  DocEmbeds,
   DocumentOptions,
-  EmbeddingDocChunk,
-  EmbeddingDocResponseData,
   documentSchematic,
 } from '../schematics/documentSchematic'
 import {
   SchematicResource,
   SchematicResourceBaseOptions,
-  SchematicResourceLoadFunction,
+  SchematicResourceLoad,
   extractSchematicResourceOptions,
   createSchematicResource,
 } from './schematicResource'
 import { Chunk } from '../types'
 
-export interface FlatDocumentResourceOptions<
-  Vars = any,
+export interface DocumentResourceOptions<
   Data = any,
+  Vars = any,
   Context extends object = any,
   Input = any,
   Bucket extends string = any
 >
-  extends BaseDocumentOptions<Vars, Data, Input, Bucket>,
+  extends DocumentOptions<Data, Vars, Input, Bucket>,
     SchematicResourceBaseOptions<Vars, Context, Input> {}
 
-export interface DocumentResourceOptions<
-  Vars = any,
-  DataWithEmbedInputs extends { [Attr in EmbedAttrs]?: any } = any,
-  Context extends object = any,
-  Input = any,
-  Bucket extends string = any,
-  Embeds extends DocEmbeds<
-    Vars,
-    DataWithEmbedInputs,
-    EmbedAttrs,
-    EmbedChunk
-  > = any,
-  EmbedAttrs extends StringKeys<Embeds> = any,
-  EmbedChunk extends Chunk<any> = any
->
-  extends DocumentOptions<
-      Vars,
-      DataWithEmbedInputs,
-      Input,
-      Bucket,
-      Embeds,
-      EmbedAttrs,
-      EmbedChunk
-    >,
-    SchematicResourceBaseOptions<Vars, Context, Input> {}
-
-export type FlatDocumentResource<
+export type DocumentResource<
   ResultData = any,
   ResultRejection = any,
   Vars = any,
@@ -70,42 +40,6 @@ export type FlatDocumentResource<
   Chunk<Bucket, Fallback<ResultData, Input>>
 >
 
-export type EmbeddingDocumentResource<
-  ResultDataTemplate,
-  ResultRejection = any,
-  Vars = any,
-  Context extends object = any,
-  DataWithEmbedInputs = ResultDataTemplate,
-  Input = DataWithEmbedInputs,
-  Bucket extends string = any,
-  Embeds extends DocEmbeds<
-    Vars,
-    DataWithEmbedInputs,
-    EmbedAttrs,
-    EmbedChunk
-  > = any,
-  EmbedAttrs extends StringKeys<Embeds> = StringKeys<Embeds>,
-  EmbedChunk extends Chunk<any> = any
-> = SchematicResource<
-  EmbeddingDocResponseData<
-    Fallback<Fallback<ResultDataTemplate, DataWithEmbedInputs>, Input>,
-    Embeds,
-    EmbedAttrs
-  >,
-  ResultRejection,
-  Vars,
-  Context,
-  Fallback<DataWithEmbedInputs, Input>,
-  Bucket,
-  EmbeddingDocChunk<
-    Fallback<Fallback<ResultDataTemplate, DataWithEmbedInputs>, Input>,
-    Bucket,
-    Embeds,
-    EmbedAttrs,
-    EmbedChunk
-  >
->
-
 // ---
 
 export function createDocumentResource<
@@ -116,15 +50,8 @@ export function createDocumentResource<
   Input = ResultData,
   Bucket extends string = any
 >(
-  load?: SchematicResourceLoadFunction<Vars, Context, Input>,
-): FlatDocumentResource<
-  ResultData,
-  ResultRejection,
-  Vars,
-  Context,
-  Input,
-  Bucket
->
+  load?: SchematicResourceLoad<Vars, Context, Input>,
+): DocumentResource<ResultData, ResultRejection, Vars, Context, Input, Bucket>
 
 export function createDocumentResource<
   ResultData extends Fallback<unknown, Input>,
@@ -135,136 +62,42 @@ export function createDocumentResource<
   Bucket extends string = any
 >(
   bucket: Bucket,
-  load?: SchematicResourceLoadFunction<Vars, Context, Input>,
-): FlatDocumentResource<
-  ResultData,
-  ResultRejection,
-  Vars,
-  Context,
-  Input,
-  Bucket
->
+  load?: SchematicResourceLoad<Vars, Context, Input>,
+): DocumentResource<ResultData, ResultRejection, Vars, Context, Input, Bucket>
 
 export function createDocumentResource<
-  ResultData extends Fallback<DataWithEmbedInputs, Input>,
+  ResultData extends Fallback<Data, Input>,
   ResultRejection = any,
   Vars = any,
   Context extends object = any,
-  DataWithEmbedInputs = any,
-  Input = Fallback<DataWithEmbedInputs, ResultData>,
+  Data = any,
+  Input = Fallback<Data, ResultData>,
   Bucket extends string = any
 >(
-  options?: BaseDocumentOptions<Vars, DataWithEmbedInputs, Input, Bucket> &
+  options?: DocumentOptions<Data, Vars, Input, Bucket> &
     SchematicResourceBaseOptions<Vars, Context, Input>,
-): FlatDocumentResource<
-  ResultData,
-  ResultRejection,
-  Vars,
-  Context,
-  Input,
-  Bucket
->
+): DocumentResource<ResultData, ResultRejection, Vars, Context, Input, Bucket>
 
 export function createDocumentResource<
-  ResultData extends Fallback<DataWithEmbedInputs, Input>,
+  ResultData extends Fallback<Data, Input>,
   ResultRejection = any,
   Vars = any,
   Context extends object = any,
-  DataWithEmbedInputs = any,
-  Input = Fallback<DataWithEmbedInputs, ResultData>,
+  Data = any,
+  Input = Fallback<Data, ResultData>,
   Bucket extends string = any
 >(
   bucket: Bucket,
-  options?: BaseDocumentOptions<Vars, DataWithEmbedInputs, Input, Bucket> &
+  options?: DocumentOptions<Data, Vars, Input, Bucket> &
     SchematicResourceBaseOptions<Vars, Context, Input>,
-): FlatDocumentResource<
-  ResultData,
-  ResultRejection,
-  Vars,
-  Context,
-  Input,
-  Bucket
->
-
-export function createDocumentResource<
-  ResultDataTemplate,
-  ResultRejection = any,
-  Vars = any,
-  Context extends object = any,
-  DataWithEmbedInputs = any,
-  Input = DataWithEmbedInputs,
-  Bucket extends string = any,
-  E extends DocEmbeds<Vars, DataWithEmbedInputs, EA, EC> = any,
-  EA extends StringKeys<E> = StringKeys<E>,
-  EC extends Chunk<any> = any
->(
-  options?: DocumentResourceOptions<
-    Vars,
-    DataWithEmbedInputs,
-    Context,
-    Input,
-    Bucket,
-    E,
-    EA,
-    EC
-  > &
-    SchematicResourceBaseOptions<Vars, Context, Input>,
-): EmbeddingDocumentResource<
-  ResultDataTemplate,
-  ResultRejection,
-  Vars,
-  Context,
-  DataWithEmbedInputs,
-  Input,
-  Bucket,
-  E,
-  EA,
-  EC
->
-
-export function createDocumentResource<
-  ResultData,
-  ResultRejection = any,
-  Vars = any,
-  Context extends object = any,
-  DatWithEmbedInputs = any,
-  Input = DatWithEmbedInputs,
-  Bucket extends string = string,
-  E extends DocEmbeds<Vars, DatWithEmbedInputs, EA, EC> = any,
-  EA extends StringKeys<E> = StringKeys<E>,
-  EC extends Chunk<any> = any
->(
-  bucket: Bucket,
-  options?: DocumentResourceOptions<
-    Vars,
-    DatWithEmbedInputs,
-    Context,
-    Input,
-    Bucket,
-    E,
-    EA,
-    EC
-  > &
-    SchematicResourceBaseOptions<Vars, Context, Input>,
-): EmbeddingDocumentResource<
-  ResultData,
-  ResultRejection,
-  Vars,
-  Context,
-  DatWithEmbedInputs,
-  Input,
-  Bucket,
-  E,
-  EA,
-  EC
->
+): DocumentResource<ResultData, ResultRejection, Vars, Context, Input, Bucket>
 
 export function createDocumentResource(
   bucketOrOptions:
     | string
-    | SchematicResourceLoadFunction
+    | SchematicResourceLoad
     | DocumentResourceOptions = {},
-  options?: SchematicResourceLoadFunction | DocumentResourceOptions,
+  options?: SchematicResourceLoad | DocumentResourceOptions,
 ): SchematicResource {
   if (typeof bucketOrOptions === 'function') {
     bucketOrOptions = { load: bucketOrOptions }

@@ -6,8 +6,11 @@ import {
   Picker,
   PickerResult,
   Pointer,
-  PointerList,
+  RootSchematic,
+  RootSchematicInstance,
+  RootSelection,
   Schematic,
+  Selection,
   SchematicInstance,
   SchematicChunkedInput,
   addBucketIfRequired,
@@ -19,7 +22,7 @@ export interface QueryOptions<
   Vars = any,
   Input = any,
   Bucket extends string = any,
-  ChildPointer extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 > {
   bucket?: Bucket
@@ -28,7 +31,7 @@ export interface QueryOptions<
     ResultRejection,
     Vars,
     Input,
-    ChildPointer,
+    ChildSelection,
     ChildChunk
   >
   mapVarsToId?: (vars: Vars) => string | number | Pointer<Bucket>
@@ -36,9 +39,9 @@ export interface QueryOptions<
 
 export type QueryChunk<
   Bucket extends string,
-  ChildPointer extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
-> = Chunk<Bucket, ChildPointer> | ChildChunk
+> = Chunk<Bucket, ChildSelection> | ChildChunk
 
 export type QuerySchematic<
   ResultData = any,
@@ -46,15 +49,15 @@ export type QuerySchematic<
   Vars = any,
   Input = any,
   Bucket extends string = any,
-  ChildPointer extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
-> = Schematic<
+> = RootSchematic<
   ResultData,
   ResultRejection,
   Vars,
   Input,
-  Pointer<Bucket>,
-  QueryChunk<Bucket, ChildPointer, ChildChunk>
+  RootSelection<Bucket>,
+  QueryChunk<Bucket, ChildSelection, ChildChunk>
 >
 
 // ---
@@ -78,35 +81,34 @@ export function querySchematic<
 
   const { for: child, mapVarsToId = stringifyVariables } = options
 
-  return (vars: Vars) => {
-    const rootPointer = addBucketIfRequired(bucket, mapVarsToId(vars))
+  return (vars?: Vars) => {
     return new QuerySchematicImplementation<ResultData, ResultRejection, Input>(
-      rootPointer,
+      { root: addBucketIfRequired(bucket, mapVarsToId(vars)) },
       child(vars),
     )
   }
 }
 
 class QuerySchematicImplementation<ResultData, ResultRejection, Input>
-  implements SchematicInstance<ResultData, ResultRejection, Input, Pointer> {
+  implements RootSchematicInstance<ResultData, ResultRejection, Input> {
   constructor(
-    readonly root: Pointer,
+    readonly selection: RootSelection,
     private child: SchematicInstance<ResultData, ResultRejection, Input>,
   ) {}
 
-  chunk(input: Input): SchematicChunkedInput<Pointer, Chunk> {
+  chunk(input: Input): SchematicChunkedInput<RootSelection, Chunk> {
     const child = this.child.chunk(input)
     return {
       chunks: child.chunks.concat({
-        ...this.root,
-        payload: { type: 'data', data: child.root },
+        ...this.selection.root,
+        payload: { type: 'data', data: child.selection },
       }),
-      root: this.root,
+      selection: this.selection,
     }
   }
 
-  build(pointer: Pointer, pick: Picker): PickerResult {
-    const queryResult = pick(pointer) as PickerResult<Pointer | PointerList>
+  build(selection: RootSelection, pick: Picker): PickerResult {
+    const queryResult = pick(selection.root) as PickerResult<Selection>
     const childResult =
       queryResult.hasData && this.child.build(queryResult.data, pick)
     return {

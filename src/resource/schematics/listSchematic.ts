@@ -2,8 +2,7 @@ import {
   Chunk,
   Picker,
   PickerResult,
-  PointerList,
-  Pointer,
+  RecordSelection,
   Schematic,
   SchematicInstance,
   SchematicChunkedInput,
@@ -19,10 +18,10 @@ export function listSchematic<
     ChildResultRejection,
     Vars,
     ChildInput,
-    Pointer<ChildBucket>,
+    ChildSelection,
     ChildChunk
   >,
-  ChildBucket extends string,
+  ChildSelection extends RecordSelection,
   ChildChunk extends Chunk
 >(
   child: Child &
@@ -31,7 +30,7 @@ export function listSchematic<
       ChildResultRejection,
       Vars,
       ChildInput,
-      Pointer<ChildBucket>,
+      ChildSelection,
       ChildChunk
     >,
 ): Schematic<
@@ -39,15 +38,15 @@ export function listSchematic<
   ChildResultRejection,
   Vars,
   ChildInput[],
-  PointerList<ChildBucket>,
+  readonly ChildSelection[],
   ChildChunk
 > {
-  return (vars: Vars) =>
+  return (vars?: Vars) =>
     new ListSchematicImplementation<
       ChildResultData,
       ChildResultRejection,
       ChildInput,
-      ChildBucket,
+      ChildSelection,
       ChildChunk
     >(child(vars))
 }
@@ -56,7 +55,7 @@ class ListSchematicImplementation<
   ChildResultData,
   ChildResultRejection,
   ChildInput,
-  ChildBucket extends string,
+  ChildSelection extends RecordSelection,
   ChildChunk extends Chunk
 >
   implements
@@ -66,31 +65,31 @@ class ListSchematicImplementation<
       ChildResultData,
       ChildResultRejection,
       ChildInput,
-      Pointer<ChildBucket>,
+      ChildSelection,
       ChildChunk
     >,
   ) {}
 
   chunk(
     input: ChildInput[],
-  ): SchematicChunkedInput<PointerList<ChildBucket>, ChildChunk> {
-    const [chunks, root] = input
+  ): SchematicChunkedInput<readonly ChildSelection[], ChildChunk> {
+    const [chunks, selection] = input
       .map(inputItem => this.child.chunk(inputItem))
       .reduce(
-        ([chunks, rootKeys], item) => [
+        ([chunks, selections], item) => [
           chunks.concat(item.chunks),
-          rootKeys.concat(item.root),
+          selections.concat([item.selection]),
         ],
-        [[] as ChildChunk[], [] as PointerList<ChildBucket>],
+        [[] as ChildChunk[], [] as ChildSelection[]],
       )
     return {
       chunks,
-      root,
+      selection,
     }
   }
 
-  build(pointer: PointerList, pick: Picker): PickerResult {
-    const results = pick(pointer)
+  build(selection: readonly ChildSelection[], pick: Picker): PickerResult {
+    const results = selection.map(item => this.child.build(item, pick))
     const primed = results.every(result => result.primed)
     if (!primed) {
       return {

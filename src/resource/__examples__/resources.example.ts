@@ -1,22 +1,10 @@
 import {
-  createCollectionResource,
   createDocumentResource,
-  list,
   createQueryResource,
+  embed,
+  list,
 } from '../index'
 import { ChunkSchema } from '../types'
-
-interface VideoData {
-  id: string
-  youtubeId: string
-  title: string
-  subtitles: {
-    english: string
-    translations: any[]
-  }[]
-}
-
-const localVideo = createDocumentResource<VideoData>('newsletter')
 
 const video = createDocumentResource('video', async () => ({
   id: '1',
@@ -29,84 +17,91 @@ const video = createDocumentResource('video', async () => ({
     },
   ],
 }))
-
-interface NewsletterData {
-  id: string
-  name: string
-  videos: any[]
-}
-
-const localNewsletter = createDocumentResource<NewsletterData>('newsletter', {
-  embedding: {
-    videos: list(video),
-  },
-})
-
 const newsletter = createDocumentResource('newsletter', {
-  embedding: {
+  identifiedBy: (data: {
+    id: string
+    date: string
+    language: string
+    name: string
+  }) => data.id,
+})
+const newsletterWithVideos = createQueryResource('newsletterWithVideos', {
+  for: embed(newsletter, {
     videos: list(video),
-  },
-
-  load: async () => {
+  }),
+  load: async (vars: { language: string }) => {
     return {
       id: '1',
       date: 'test',
-      description: 'test',
+      name: 'test',
+      language: vars.language,
       videos: [] as any[],
     }
   },
-
-  // transformInput: data => data,
 })
 
-const newsletterList = createCollectionResource('newsletterList', {
-  of: newsletter,
+const { chunks: chunks1 } = newsletterWithVideos().chunk({
+  id: 'test',
+  date: 'test',
+  name: 'test',
+  language: 'test',
+  videos: [],
+})
 
-  load: async (vars: { page: number }) => {
+type Schema1 = ChunkSchema<typeof chunks1[number]>
+type Types = keyof Schema1
+
+const newsletterList = createQueryResource('newsletterList', {
+  for: list(newsletterWithVideos),
+  load: async (vars: { language: string; page: number }) => {
     return [] as {
       id: string
       date: string
-      description: string
+      name: string
+      language: string
       videos: any[]
     }[]
   },
 })
 
 const latestNewsletter = createQueryResource('latestNewsletter', {
-  for: newsletter,
-
-  load: async () => {
+  for: newsletterWithVideos,
+  load: async (vars: { language: string }) => {
     return {
       id: '1',
       date: 'test',
-      description: 'test',
+      name: 'test',
+      language: vars.language,
       videos: [],
     }
   },
 })
 
-const instance = latestNewsletter({})
+const instance = latestNewsletter({ language: 'en' })
 const { chunks } = instance.chunk({} as any)
 
-type Schema = ChunkSchema<typeof chunks[number]>
+type Schema2 = ChunkSchema<typeof chunks[number]>
 
-const data0 = localVideo
+const data0 = video
   .request({} as any, {} as any)
   .select({} as any)
   .getCurrentValue().data
 
-const data1 = localNewsletter
+const data1 = newsletter
   .request({} as any, {} as any)
   .select({} as any)
   .getCurrentValue().data
 
-const data2 = newsletter
+const data2 = newsletterWithVideos
   .request({} as any, {} as any)
   .select({} as any)
-  .getCurrentValue().data
+  .getCurrentValue().data?.videos[0].youtubeId
 
 const value1 = instance.build({} as any, {} as any)
-const value2 = newsletterList({ page: 0 }).build({} as any, {} as any)
+const value2 = newsletterList({ language: 'en', page: 0 }).build(
+  {} as any,
+  {} as any,
+)
 
 const chunkData = newsletter({} as any).chunk({} as any).chunks[0]
 
@@ -118,11 +113,17 @@ console.log(value2.hasData && value2.data)
 
 chunks.forEach(item => {
   switch (item.bucket) {
+    case 'newsletterWithVideos':
+      return (
+        item.payload.type === 'data' &&
+        item.payload.data.embed.videos[1].root.bucket
+      )
+
     case 'latestNewsletter':
-      return item.payload.type === 'data' && item.payload.data
+      return item.payload.type === 'data' && item.payload.data.root.id
 
     case 'newsletter':
-      return item.payload.type === 'data' && item.payload.data.description
+      return item.payload.type === 'data' && item.payload.data.name
 
     case 'video':
       return (

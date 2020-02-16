@@ -38,6 +38,18 @@ export function getResourceService<
 export function getResourceService<
   Data = any,
   Rejection = any,
+  Vars extends string | number = string | number,
+  Context extends object = any
+>(
+  resource: Resource<Data, Rejection, Vars, Context>,
+  options?: Vars,
+): [
+  ResourceRequestSource<Data, Rejection, Vars>,
+  ResourceRequestController<Rejection, any>,
+]
+export function getResourceService<
+  Data = any,
+  Rejection = any,
   Vars = any,
   Context extends object = any,
   Input = any
@@ -49,10 +61,28 @@ export function getResourceService<
   ResourceRequestSource<Data, Rejection, Vars>,
   ResourceRequestController<Rejection, Input>,
 ]
+export function getResourceService<
+  Data = any,
+  Rejection = any,
+  Vars extends string | number = string | number,
+  Context extends object = any,
+  Input = any
+>(
+  resource: Resource<Data, Rejection, Vars, Context> &
+    Schematic<any, any, Vars, Input>,
+  options?: Vars,
+): [
+  ResourceRequestSource<Data, Rejection, Vars>,
+  ResourceRequestController<Rejection, Input>,
+]
 export function getResourceService(
   resource: (Resource & Schematic) | Resource,
   options: GetResourceServiceOptions = {},
 ): [ResourceRequestSource, ResourceRequestController] {
+  if (typeof options === 'string' || typeof options === 'number') {
+    options = { vars: options }
+  }
+
   const {
     cacheModel: cacheModelOption,
     store: storeOption,

@@ -5,12 +5,12 @@ export * from './functions/receiveResourceData'
 export * from './functions/receiveResourceRejection'
 export * from './functions/requestResource'
 export * from './functions/useResource'
-export * from './resources/collectionResource'
 export * from './resources/documentResource'
 export * from './resources/queryResource'
 export * from './cacheModel/selectResourceResult'
 export * from './resources/schematicResource'
 export * from './schematics/documentSchematic'
+export * from './schematics/embedSchematic'
 export * from './schematics/listSchematic'
 export * from './schematics/querySchematic'
 export * from './tasks/invalidator'
@@ -21,10 +21,8 @@ export * from './types'
 // Aliases
 //
 
-export {
-  // So that nested lists within document resources look nicer.
-  listSchematic as list,
-} from './schematics/listSchematic'
+export { embedSchematic as embed } from './schematics/embedSchematic'
+export { listSchematic as list } from './schematics/listSchematic'
 
 export { receiveResourceData as receiveData } from './functions/receiveResourceData'
 export { receiveResourceRejection as receiveRejection } from './functions/receiveResourceRejection'

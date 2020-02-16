@@ -9,7 +9,7 @@ import {
   extractSchematicResourceOptions,
   createSchematicResource,
 } from './schematicResource'
-import { Chunk, Pointer, PointerList } from '../types'
+import { Chunk, Selection } from '../types'
 
 export interface QueryResourceOptions<
   ResultData = any,
@@ -18,7 +18,7 @@ export interface QueryResourceOptions<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 >
   extends QueryOptions<
@@ -27,7 +27,7 @@ export interface QueryResourceOptions<
       Vars,
       Input,
       Bucket,
-      ChildRoot,
+      ChildSelection,
       ChildChunk
     >,
     SchematicResourceBaseOptions<Vars, Context, Input> {}
@@ -39,7 +39,7 @@ export type QueryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 > = SchematicResource<
   ResultData,
@@ -48,7 +48,7 @@ export type QueryResource<
   Context,
   Input,
   Bucket,
-  QueryChunk<Bucket, ChildRoot, ChildChunk>
+  QueryChunk<Bucket, ChildSelection, ChildChunk>
 >
 
 // ---
@@ -60,7 +60,7 @@ export function createQueryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 >(
   options: QueryResourceOptions<
@@ -70,7 +70,7 @@ export function createQueryResource<
     Context,
     Input,
     Bucket,
-    ChildRoot,
+    ChildSelection,
     ChildChunk
   >,
 ): QueryResource<
@@ -80,7 +80,7 @@ export function createQueryResource<
   Context,
   Input,
   Bucket,
-  ChildRoot,
+  ChildSelection,
   ChildChunk
 >
 
@@ -91,7 +91,7 @@ export function createQueryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
-  ChildRoot extends Pointer | PointerList = any,
+  ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 >(
   bucket: Bucket,
@@ -102,7 +102,7 @@ export function createQueryResource<
     Context,
     Input,
     Bucket,
-    ChildRoot,
+    ChildSelection,
     ChildChunk
   >,
 ): QueryResource<
@@ -112,7 +112,7 @@ export function createQueryResource<
   Context,
   Input,
   Bucket,
-  ChildRoot,
+  ChildSelection,
   ChildChunk
 >
 
