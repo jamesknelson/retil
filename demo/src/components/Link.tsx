@@ -26,6 +26,7 @@ export const Link = forwardRef<HTMLAnchorElement, LinkProps>(
         if (event.defaultPrevented) {
           return
         }
+        event.preventDefault()
         navigate(href)
       },
       [href, navigate, target, onClick],

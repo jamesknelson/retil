@@ -153,9 +153,9 @@ class DocumentSchematicImplementation<
       ? this.transformInput(input, this.vars)
       : input
 
-    const id = this._selection
-      ? this._selection.root
-      : this.identifiedBy(data, this.vars, input)
+    const id =
+      this.identifiedBy(data, this.vars, input) ||
+      (this._selection && this._selection.root)
     if (!id) {
       throw new Error("Resource Error: couldn't identify resource")
     }

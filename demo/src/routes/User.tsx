@@ -2,23 +2,33 @@ import React from 'react'
 import { useResource } from 'retil'
 
 import { Link } from '../components/Link'
-import { userAndPosts } from '../resources'
+import { userWithPosts } from '../resources'
 
 export interface UserProps {
   id: string
 }
 
 export default function User(props: UserProps) {
-  const [resource] = useResource(userAndPosts, props.id)
+  const [resource] = useResource(userWithPosts, props.id)
+  const data = resource.data
 
   return (
     <div>
-      <h1>Posts by @{resource.data.name}</h1>
+      <p>
+        <Link href="/">&laquo; Back to top</Link>
+      </p>
+      <h1>{data.name}</h1>
+      <p>
+        @{data.username}
+        <br />
+        {data.email}
+      </p>
+      <h2>Posts</h2>
       {resource.data.posts.map(item => (
         <div key={item.id}>
-          <h2>
+          <h3>
             <Link href={`/post/` + item.id}>{item.title}</Link>
-          </h2>
+          </h3>
         </div>
       ))}
     </div>

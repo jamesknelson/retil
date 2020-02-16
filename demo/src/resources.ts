@@ -16,10 +16,10 @@ interface Post {
 
 const BaseURL = `https://jsonplaceholder.typicode.com`
 
-export const user = createDocumentResource<User>()
-export const post = createDocumentResource<Post>()
+export const user = createDocumentResource<User>('user')
+export const post = createDocumentResource<Post>('post')
 
-export const userAndPosts = createQueryResource({
+export const userWithPosts = createQueryResource('userAndPosts', {
   // Note that if you have multiple query resources w/ the same embeds, they
   // will get out of sync. If you need them to stay in sync, you'll need to
   // create separate query resources for the embed queries.
@@ -29,19 +29,19 @@ export const userAndPosts = createQueryResource({
   load: (userId: string) => BaseURL + `/users/${userId}?_embed=posts`,
 })
 
-export const userList = createQueryResource({
+export const userList = createQueryResource('userList', {
   for: list(user),
   load: () => BaseURL + `/users`,
 })
 
-export const postAndUser = createQueryResource({
+export const postWithUser = createQueryResource('postWithUser', {
   for: embed(post, {
     user: () => user(),
   }),
-  load: (postId: string) => BaseURL + `/posts/${postId}`,
+  load: (postId: string) => BaseURL + `/posts/${postId}?_expand=user`,
 })
 
-export const postList = createQueryResource({
+export const postList = createQueryResource('postList', {
   for: list(post),
   load: (userId: string) => BaseURL + `/user/${userId}/posts`,
 })
