@@ -44,7 +44,6 @@ export type EmbedInput<
       any,
       any,
       any,
-      any,
       infer ChildInput
     >
       ? ChildInput
@@ -77,17 +76,17 @@ export type EmbedSchematic<
   ParentResultData,
   ResultRejection,
   Vars,
-  Input,
+  ParentInput,
   ParentSelection extends RecordSelection,
   ParentChunk extends Chunk,
-  E extends Embeds<Vars, Partial<ParentResultData>, EmbedAttrs, EmbedChunk>,
+  E extends Embeds<Vars, ParentResultData, EmbedAttrs, EmbedChunk>,
   EmbedAttrs extends StringKeys<E>,
   EmbedChunk extends Chunk
 > = Schematic<
-  EmbedResponseData<Partial<ParentResultData>, E, EmbedAttrs>,
+  EmbedResponseData<ParentResultData, E, EmbedAttrs>,
   ResultRejection,
   Vars,
-  EmbedInput<Input, E, EmbedAttrs>,
+  EmbedInput<ParentInput, E, EmbedAttrs>,
   EmbedSelection<ParentSelection, E, EmbedAttrs>,
   ParentChunk | EmbedChunk
 >
@@ -96,7 +95,7 @@ export function embedSchematic<
   ParentResultData,
   ResultRejection,
   Vars,
-  Input,
+  ParentInput,
   ParentSelection extends RecordSelection,
   ParentChunk extends Chunk,
   E extends Embeds<Vars, ParentResultData, EmbedAttrs, EmbedChunk>,
@@ -107,7 +106,7 @@ export function embedSchematic<
     ParentResultData,
     ResultRejection,
     Vars,
-    Input,
+    ParentInput,
     ParentSelection,
     ParentChunk
   >,
@@ -116,7 +115,7 @@ export function embedSchematic<
   ParentResultData,
   ResultRejection,
   Vars,
-  Input,
+  ParentInput,
   ParentSelection,
   ParentChunk,
   E,
@@ -168,7 +167,7 @@ class EmbedSchematicImplementation<ParentResultData, ResultRejection, Vars>
       return rootChunkedInput as SchematicChunkedInput<EmbedSelection, any>
     }
 
-    const chunks = [] as Chunk[]
+    const chunks = rootChunkedInput.chunks as Chunk[]
     const selection: EmbedSelection = {
       root,
       embed: { ...rootSelection.embed },

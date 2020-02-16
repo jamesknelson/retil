@@ -7,9 +7,9 @@ import {
   createDocumentResource,
 } from '../src/resource'
 
-describe('CollectionResource', () => {
+describe('listSchematic', () => {
   test('stores received data on the associated resource', async () => {
-    const newsletter = createDocumentResource<any>()
+    const newsletter = createDocumentResource<{ id: number; title: string }>()
     const allNewsletters = createQueryResource({
       for: list(newsletter),
       load: async () => [
@@ -35,11 +35,9 @@ describe('CollectionResource', () => {
     })
     expect(result2.data!.title).toEqual('#2')
 
-    receiveData(newsletter, {
-      vars: { id: 2 },
-      data: {
-        title: 'bob',
-      },
+    receiveData(newsletter, 2, {
+      id: 2,
+      title: 'bob',
     })
 
     const data2 = await source.getData()
