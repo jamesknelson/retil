@@ -227,7 +227,7 @@ function wrapLoad<Vars, Context extends SchematicResourceContext, Input>(
 
   return async (
     vars: Vars,
-    context: Context,
+    context: Context = {} as Context,
     signal: AbortSignal,
   ): Promise<Input> => {
     const promiseOrRequest = loadFn(vars, context, signal)

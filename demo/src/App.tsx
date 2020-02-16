@@ -1,62 +1,44 @@
-import './App.css'
-import React, { useState } from 'react'
-import {
-  createCollectionResource,
-  createDocumentResource,
-  useResource,
-} from 'retil'
+import { createBrowserHistory } from 'history'
+import React, { Suspense, useEffect, useState } from 'react'
 
-export const albumResource = createDocumentResource<{
-  albumId: number
-  id: number
-  title: string
-  url: string
-  thumbnailUrl: string
-}>()
+import { NavigationContext } from './context'
+import Post from './routes/Post'
+import User from './routes/User'
+import UserList from './routes/UserList'
+import { normalizePathname } from './utils/normalizePathname'
 
-export const photoResource = createDocumentResource<{
-  albumId: number
-  id: number
-  title: string
-  url: string
-  thumbnailUrl: string
-}>()
+const history = createBrowserHistory()
+const navigate = (path: string) => history.push(path)
 
-export const albumsResource = createCollectionResource({
-  of: photoResource,
-  load: async () => {
-    const response = await fetch('https://jsonplaceholder.typicode.com/albums')
-    return await response.json()
-  },
-})
+function getRoute(context: NavigationContext) {
+  switch (context.route) {
+    case 'post':
+      return <Post id={context.id!} />
 
-export const photoListResource = createCollectionResource({
-  of: photoResource,
-  load: async () => {
-    const response = await fetch('https://jsonplaceholder.typicode.com/photos')
-    return await response.json()
-  },
-})
+    case 'user':
+      return <User id={context.id!} />
 
-function App() {
-  const [selectedId, setSelectedId] = useState<null | number>(null)
-  const [photoList] = useResource(photoListResource)
-
-  return (
-    <div className="App">
-      {photoList.data.slice(0, 10).map(photo => (
-        <figure
-          key={photo.id}
-          onClick={event => {
-            event.preventDefault()
-            setSelectedId(photo.id)
-          }}>
-          <img src={photo.thumbnailUrl} alt="" />
-          <figcaption>{photo.title}</figcaption>
-        </figure>
-      ))}
-    </div>
-  )
+    default:
+      return <UserList />
+  }
 }
 
-export default App
+export default function App() {
+  const [location, setLocation] = useState(history.location)
+  const [, route, id] = normalizePathname(location.pathname).split('/')
+  const navigationContext = {
+    route,
+    id,
+    navigate,
+  }
+
+  useEffect(() => history.listen(setLocation), [])
+
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NavigationContext.Provider value={navigationContext}>
+        {getRoute(navigationContext)}
+      </NavigationContext.Provider>
+    </Suspense>
+  )
+}

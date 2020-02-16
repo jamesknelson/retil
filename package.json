@@ -20,6 +20,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "@types/history": "^4.7.5",
     "abort-controller": "^3.0.0",
     "redux": "^4.0.5",
     "tslib": "1.10.0",
