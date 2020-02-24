@@ -1,3 +1,4 @@
+import { Fallback } from '../../utils/types'
 import {
   QueryChunk,
   QueryOptions,
@@ -16,8 +17,9 @@ export interface QueryResourceOptions<
   ResultRejection = any,
   Vars = any,
   Context extends object = any,
-  Input = any,
+  Input = unknown,
   Bucket extends string = any,
+  ChildInput = any,
   ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 >
@@ -27,6 +29,7 @@ export interface QueryResourceOptions<
       Vars,
       Input,
       Bucket,
+      ChildInput,
       ChildSelection,
       ChildChunk
     >,
@@ -37,8 +40,9 @@ export type QueryResource<
   ResultRejection = any,
   Vars = any,
   Context extends object = any,
-  Input = any,
+  Input = unknown,
   Bucket extends string = any,
+  ChildInput = any,
   ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 > = SchematicResource<
@@ -46,7 +50,7 @@ export type QueryResource<
   ResultRejection,
   Vars,
   Context,
-  Input,
+  Fallback<Input, ChildInput>,
   Bucket,
   QueryChunk<Bucket, ChildSelection, ChildChunk>
 >
@@ -60,6 +64,7 @@ export function createQueryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
+  ChildInput = any,
   ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 >(
@@ -70,6 +75,7 @@ export function createQueryResource<
     Context,
     Input,
     Bucket,
+    ChildInput,
     ChildSelection,
     ChildChunk
   >,
@@ -80,6 +86,7 @@ export function createQueryResource<
   Context,
   Input,
   Bucket,
+  ChildInput,
   ChildSelection,
   ChildChunk
 >
@@ -91,6 +98,7 @@ export function createQueryResource<
   Context extends object = any,
   Input = any,
   Bucket extends string = any,
+  ChildInput = any,
   ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 >(
@@ -102,6 +110,7 @@ export function createQueryResource<
     Context,
     Input,
     Bucket,
+    ChildInput,
     ChildSelection,
     ChildChunk
   >,
@@ -112,6 +121,7 @@ export function createQueryResource<
   Context,
   Input,
   Bucket,
+  ChildInput,
   ChildSelection,
   ChildChunk
 >

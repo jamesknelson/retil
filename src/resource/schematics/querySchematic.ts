@@ -1,4 +1,5 @@
 import { stringifyVariables } from '../../utils/stringifyVariables'
+import { Fallback } from '../../utils/types'
 
 import { getNextDefaultBucket } from '../defaults'
 import {
@@ -20,8 +21,9 @@ export interface QueryOptions<
   ResultData = any,
   ResultRejection = any,
   Vars = any,
-  Input = any,
+  Input = unknown,
   Bucket extends string = any,
+  ChildInput = any,
   ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 > {
@@ -30,11 +32,12 @@ export interface QueryOptions<
     ResultData,
     ResultRejection,
     Vars,
-    Input,
+    ChildInput,
     ChildSelection,
     ChildChunk
   >
   mapVarsToId?: (vars: Vars) => string | number | Pointer<Bucket>
+  transformInput?: (input: Input, vars: Vars) => ChildInput
 }
 
 export type QueryChunk<
@@ -47,15 +50,16 @@ export type QuerySchematic<
   ResultData = any,
   ResultRejection = any,
   Vars = any,
-  Input = any,
+  Input = unknown,
   Bucket extends string = any,
+  ChildInput = unknown,
   ChildSelection extends Selection = any,
   ChildChunk extends Chunk = any
 > = RootSchematic<
   ResultData,
   ResultRejection,
   Vars,
-  Input,
+  Fallback<Input, ChildInput>,
   RootSelection<Bucket>,
   QueryChunk<Bucket, ChildSelection, ChildChunk>
 >
@@ -79,25 +83,36 @@ export function querySchematic<
     bucket = bucketOrOptions as string
   }
 
-  const { for: child, mapVarsToId = stringifyVariables } = options
+  const {
+    for: child,
+    mapVarsToId = stringifyVariables,
+    transformInput,
+  } = options
 
   return (vars?: Vars) => {
-    return new QuerySchematicImplementation<ResultData, ResultRejection, Input>(
+    return new QuerySchematicImplementation<ResultData, ResultRejection, Vars>(
       { root: addBucketIfRequired(bucket, mapVarsToId(vars)) },
       child(vars),
+      vars!,
+      transformInput,
     )
   }
 }
 
-class QuerySchematicImplementation<ResultData, ResultRejection, Input>
-  implements RootSchematicInstance<ResultData, ResultRejection, Input> {
+class QuerySchematicImplementation<ResultData, ResultRejection, Vars>
+  implements RootSchematicInstance<ResultData, ResultRejection> {
   constructor(
     readonly selection: RootSelection,
-    private child: SchematicInstance<ResultData, ResultRejection, Input>,
+    private child: SchematicInstance<ResultData, ResultRejection>,
+    private vars: Vars,
+    private transformInput?: (input: any, vars: Vars) => any,
   ) {}
 
-  chunk(input: Input): SchematicChunkedInput<RootSelection, Chunk> {
-    const child = this.child.chunk(input)
+  chunk(input: any): SchematicChunkedInput<RootSelection, Chunk> {
+    const transformedInput = this.transformInput
+      ? this.transformInput(input, this.vars)
+      : input
+    const child = this.child.chunk(transformedInput)
     return {
       chunks: child.chunks.concat({
         ...this.selection.root,
