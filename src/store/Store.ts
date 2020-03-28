@@ -64,8 +64,10 @@ const createDefaultReduxStore: StoreCreator = (
 }
 
 export function createStore(
-  preloadedState: { [namespace: string]: any } = (window as any)
-    .RetilPreloadedState || {},
+  preloadedState: { [namespace: string]: any } = (typeof window !==
+    'undefined' &&
+    (window as any).RetilPreloadedState) ||
+    {},
   createStore = createDefaultReduxStore,
   selector?: (state: any) => any,
 ): Store {
