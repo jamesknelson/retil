@@ -1,0 +1,1 @@
+A central state store for your application, allowing state to be serialized and passed between server and client.

@@ -1,24 +1,10 @@
 {
-  "name": "retil",
-  "version": "0.1.2",
-  "description": "A collection of simple hooks and functions for use with React",
+  "name": "retil-project",
+  "private": true,
+  "version": "0.2.0",
+  "description": "The react utility belt.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
-  "main": "dist/commonjs/index.js",
-  "module": "dist/es/index.js",
-  "types": "dist/types/index.d.ts",
-  "scripts": {
-    "clean": "rimraf dist",
-    "build:commonjs": "tsc --pretty --module commonjs --outDir dist/commonjs",
-    "build:es": "tsc --pretty --module es2015 --outDir dist/es",
-    "build:types": "tsc --pretty --declaration --emitDeclarationOnly --outDir dist/types --isolatedModules false",
-    "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types",
-    "build:watch": "yarn run clean && yarn build:es -- --types --watch",
-    "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn test && yarn build",
-    "test": "jest",
-    "test:watch": "jest --watch"
-  },
   "dependencies": {
     "@types/history": "^4.7.5",
     "abort-controller": "^3.0.0",
@@ -48,9 +34,9 @@
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-test-renderer": "^16.12.0",
-    "rimraf": "^3.0.0",
+    "rimraf": "^3.0.2",
     "ts-jest": "^24.3.0",
-    "typescript": "^3.7.4"
+    "typescript": "3.8.3"
   },
   "peerDependencies": {
     "react": "^16.12.0"
@@ -62,6 +48,10 @@
     "react",
     "resource",
     "cache",
-    "suspense"
+    "suspense",
+    "routing"
+  ],
+  "workspaces": [
+    "packages/*"
   ]
 }

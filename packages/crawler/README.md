@@ -1,0 +1,1 @@
+Functions and router middleware for building a list of available URLs and their metadata from a route matcher object.

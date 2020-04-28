@@ -1,126 +1,107 @@
 retil
 =====
 
-**The React Utility Library**
+**The React distro that's Just JavaScript.**
 
-- Declaratively fetch and subscribe to *any* data source -- whether GraphQL, REST, Firebase, or homing pigeon.
-- Designed for SSR, Suspense and Concurrent Mode.
-- Includes a normalized cache, so data is always up to date.
-- Simplify your app's structure with independent resource files.
-- Powerful tooling via integration with redux-devtools.
+
+## Why Retil?
+
+See those two elephants in the room over there? They're Next.js and Gatsby, and they're big magical frameworks. They're a faustian bargain that takes away your freedom -- forcing decisions on where your code needs to be located, how your requests are handled, and how your data is fetched and serialized. In return, they make it a little easier to get started -- while seriously limiting your options as your project grows.
+
+In contrast, Retil is a collection of independent utilities. It gives you the same power to split code, cache and load data, and do static and server rendering -- but *without* the magic directories, arcane plugin system, or special static methods. But how is this even possible?
+
+**Retil is a React distro** -- a collection of independent packages. It provides you with powerful JavaScript APIs, independent CLI tools, and well documented conventions. By drawing on just the bits you need, you'll be able to make progress in no time -- while still having the freedom to go your own way when the need arises.
+
+One more thing - *Retil is extracted from a real-world production app*. It's built by developers, for developers. As a result, it's incentivized to be small, nimble and maintainable -- *not* to pad VC pockets.
+
+The lowdown? **Retil is Just JavaScript.** And that's why it'll literally only take 2 minutes to create your first app with it. Here's how.
+
+
+## Getting Started
+
+The easiest way to get started is with the Retil CLI tool. To start, install it with NPM or Yarn:
 
 ```bash
-yarn add retil
+npm install -g @retil/cli
+# OR
+yarn global add @retil/cli
 ```
 
-## Examples
+Then, you can create a new app using `create-retil-app`
 
-See a full example in this repository's [./demo](demo) directory.
-
-### Fetch data with Suspense
-
-Thanks to Suspense, your component data will be transparently fetched as required.
-
-```js
-import { createDocumentResource, useResource } from 'retil'
-
-const BaseURL = "https://jsonplaceholder.typicode.com"
-
-const posts = createDocumentResource(id => BaseURL+"/posts/"+id)
-
-export function App() {
-  // `useResource()` returns an array with two items -- just like `useState()`
-  const [state, controller] = useResource(posts, 1)
-
-  // You can find out a bunch of things about the key's current state
-  const { hasData, hasRejection, invalidated, pending, primed } = state
-
-  // But if you access the `data` property and the data hasn't yet been fetched,
-  // your component will suspend.
-  const data = state.data
-    
-  // If you know the data is out of date and needs to be reloaded, you can let
-  // Retil know via the controller's `invalidate()` function
-  const refresh = () => controller.invalidate()
-
-  return (
-    <>
-      <h1>{data.title}</h1>
-      <button onClick={refresh}>
-        {pending ? "Refreshing..." : "Refresh"}
-      </button>
-      {data.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
-    </>
-  )
-}
+```bash
+npx create-retil-app sitbit
+cd sitbit
+npm start # or yarn start
 ```
 
-### Query Resources and the Normalized Cache
+If you prefer TypeScript, you can select the TypeScript template with `--template typescript` -- just as you can with `create-react-app`. In fact, `create-retil-app` is just a wrapper around CRA that adds server rendering and custom webpack configuration -- so if you've used CRA before, you'll feel right at home.
 
-Say that you want to display comments and user info along with your posts. You can request this information from the [JSON Placeholder](https://jsonplaceholder.typicode.com/) API used above by adding a couple query parameters to the URL:
-
-https://jsonplaceholder.typicode.com/posts/1?_expand=user&_embed=comments
-
-In simple apps, it may suffice to just switch this URL into the previous example and call it a day. But in larger apps, this is less than ideal. *What if the user updates their name?* Given that the received *user* object is inlined into the *post* object, if the user updates their name then the info stored with the post will become **stale**.
-
-To fix this, each type of resource needs to stored together, and then linked together. It needs to be **normalized.** And Retil makes this easy, using *query resources*.
-
-```ts
-import {
-  createDocumentResource,
-  createQueryResource,
-  embed,
-  list,
-  useResource
-} from 'retil'
-
-const BaseURL = "https://jsonplaceholder.typicode.com"
-
-export const comment = createDocumentResource()
-export const post = createDocumentResource()
-export const user = createDocumentResource()
-
-export const postQuery = createQueryResource({
-  for: embed(post, {
-    user,
-    comments: list(comment)
-  }),
-  load: (postId: string) =>
-    BaseURL + `/posts/${postId}?_expand=user&_embed=comments`,
-})
+```bash
+npx create-retil-app sitbit --template typescript
+cd sitbit
+npm start # or yarn start
 ```
 
-This tells Retil that the data received for `postQuery` should be stored independently as comments, posts and users, and then recombined at runtime. Importantly, you can use the same documents across multiple queries -- ensuring that all queries share the same document data.
+If everything has worked, the script should open up your browser to <http://localhost:3000>. You can then click the *View Source* link to check that server rendering is working as advertised, or follow the simple instructions to add your first route. And that's really all there is to it -- Retil is just an extended Create React App with SSR and a bunch of handy utilities to handle routing and data. So now that you're in the know, let's [explore your new toolbox]().
 
-```js
-export const postsQuery = createQueryResource({
-  for: list(posts),
-  load: () => BaseURL + `/posts`,
-})
-```
 
-Within your components, you can use query resources in exactly the same manner as you'd use document resources:
+## Roadmap
 
-```js
-export function App() {
-  const [state] = useResource(postQuery, 1)
-  const data = state.data
+The current plan for Retil 1.0 calls for the following packages across two repositories: `retil` (this repository)  and `create-retil-app`.
 
-  return (
-    <>
-      <h1>{data.title}</h1>
-      <p>
-        By <strong>{data.user.name}</strong>
-      </p>
-      {data.body.split("\n\n").map((p, i) => <p key={i}>{p}</p>)}
-      <h2>Comments</h2>
-      {data.comments.map(comment => (
-        <div key={comment.id}>
-          <h3>{comment.name}</h3>
-          <p>{comment.body}</p>
-        </div>
-      ))}
-    </>
-  )
-}
-```
+
+### The `retil` repository
+
+- retil
+
+  An umbrella package that re-exports all other utilities.
+
+- @retil/crawler
+
+  Functions and router middleware for building a list of available URLs and their metadata from a route matcher object.
+
+- @retil/data
+
+  Utilities for populating and maintaining a cache of structured data, e.g. from APIs or local user input.
+
+- @retil/history
+
+  Utilities for creating a @retil/source source that mirrors history on the browser, or a HTTP request on the server.
+
+- @retil/issues
+
+  Utilities for error handling.
+
+- @retil/router
+
+  Utilities for mapping @retil/history requests to relevant state and side effects, and then rendering that state within a React tree.
+
+- @retil/source
+
+  Utilities for creating and manipulating data sources, using reactive programming principles.
+
+- @retil/store
+
+  A central state store for your application, allowing state to be serialized and passed between server, client, and client tabs. Can be configured to store state with Redux (allowing use of redux-dev-tools), or `useReducer()`.
+
+
+### The `create-retil-app` repository:
+
+- cra-template-retil
+- cra-template-retil-typescript
+- create-retil-app
+
+  A wrapper around create-react-app that configures it's default scripts to @retil/react-scripts, and it's default template prefix to `cra-template-retil`.
+
+- retil-scripts
+
+  An extension to react-scripts that adds SSR and webpack config customization support.
+
+
+### Upstream dependencies
+
+Retil is designed to be used with React Suspense. As a result, the release of Retil 1.0 has the following prerequisites:
+
+- Stable release of React's Concurrent Mode
+- Suspense support in React's streaming renderer
