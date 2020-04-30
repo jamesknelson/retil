@@ -2,7 +2,7 @@ import { CacheModel, createResourceCacheModel } from './cacheModel/cacheModel'
 import { ResourceRequestPolicy } from './types'
 
 export const defaultCacheModelOptions = {
-  defaultInvalidator: 24 * 60 * 60 * 1000,
+  defaultInvalidator: 24 * 60 * 60 * 1000 * 365,
   defaultPurger: 60 * 1000,
   defaultRequestPolicy: (typeof window === 'undefined'
     ? 'loadOnce'
