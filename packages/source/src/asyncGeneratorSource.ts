@@ -1,21 +1,17 @@
 import { Source, SourceImplementation } from './source'
 
+/**
+ * Create a source from an async generator function, where the source's current
+ * value is the last value yielded or returned from the generator. The source
+ * does not have a value until the generator yields or returns its first value.
+ *
+ * Returns an array containing the source, along with two functions that allow
+ * the generator to be cancelled via the underlying `return` method, or to
+ * have the next `yield` statement throw an exception.
+ */
 export function createAsyncGeneratorSource<T>(
   generatorFn: () => AsyncGenerator<T, T, T>,
 ): [Source<T>, (value: T) => void, (error: unknown) => void] {
-  // source must follow the source rules:
-  // - after the generator is done, all subscriptions must be automatically
-  //   and immediately ended
-  // - notifications must only occur when the current value is different to
-  //   the value at the last point in time where the listener was notified.
-
-  // the source eagerly executes the first `next` call on creation, so that
-  // the value can be synchronously available if requested in the next tick
-
-  // there is currently no way to pass anything into `next` so as to allow
-  // values to be returned from `yield`, but you should treat the return of
-  // `yield` as undefined.
-
   const source = new AsyncGeneratorSourceImplementation(generatorFn)
   return [source, source._doCancelWith, source._doThrow]
 }
