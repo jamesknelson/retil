@@ -1,6 +1,12 @@
 retil
 =====
 
+React Utilities
+
+- [@retil/control](./packages/control): decouple pseudoselector styles from components
+
+<!--
+
 **The React distro that's Just JavaScript.**
 
 
@@ -105,3 +111,5 @@ Retil is designed to be used with React Suspense. As a result, the release of Re
 
 - Stable release of React's Concurrent Mode
 - Suspense support in React's streaming renderer
+
+-->
