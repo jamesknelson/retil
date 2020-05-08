@@ -13,6 +13,7 @@
     "use-subscription": "^1.3.0"
   },
   "devDependencies": {
+    "@testing-library/react": "^10.0.4",
     "@testing-library/react-hooks": "^3.2.1",
     "@types/jest": "^24.0.19",
     "@types/node": "^12.11.7",
@@ -31,6 +32,7 @@
     "eslint-plugin-react": "^7.17.0",
     "eslint-plugin-react-hooks": "^2.3.0",
     "jest": "^24.9.0",
+    "jest-styled-components": "^7.0.2",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-test-renderer": "^16.12.0",
