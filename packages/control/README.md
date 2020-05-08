@@ -33,7 +33,7 @@ You have two options for styling your control: you can use CSS template strings,
 
 #### with template strings
 
-```js
+```jsx
 import { active, focus, hover } from '@retil/control'
 
 const ButtonBody = ({ children, ...rest ) => (
@@ -64,7 +64,7 @@ const ButtonBody = ({ children, ...rest ) => (
 
 #### with objects with nested selectors
 
-TODO
+**TODO**
 
 <!--
 ```js
@@ -99,7 +99,7 @@ const ButtonBody = ({ children, ...rest ) => (
 
 ### 2. Add behavior with a Control Component
 
-```js
+```jsx
 import { AControl } from '@retil/control'
 
 export const App = () => (
@@ -194,10 +194,10 @@ export const ButtonControl = control(
 
 The following template strings allow can be interpolated within a styled component's css to add styled which respond to events on the control itself.
 
-- `active\`\``
-- `disabled\`\``
-- `focus\`\``
-- `hover\`\``
+- `active`
+- `disabled`
+- `focus`
+- `hover`
 
 Example usage:
 
@@ -288,11 +288,9 @@ export interface Control {
   // controls support `active`, `focus` and `hover` selectors, but this can
   // be configured by creating custom controls.
   getSelector: (name: string) => string
-
-  active?: boolean
-  disabled?: boolean
-  focus?: boolean
-  hover?: boolean
+  forceSelectors: {
+    [selectorName: string]: boolean
+  }
 }
 ```
 

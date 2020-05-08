@@ -9,8 +9,12 @@ export const AControl = control(
   `,
 )
 
+export type AControlProps = React.ComponentProps<typeof AControl>
+
 export const ButtonControl = control(
   styled.button`
     ${resetButtonCSS}
   `,
 )
+
+export type ButtonControlProps = React.ComponentProps<typeof ButtonControl>
