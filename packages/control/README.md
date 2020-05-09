@@ -318,6 +318,12 @@ import {
 ```
 
 
+Who is using `@retil/control`?
+------------------------------
+
+- [globify.com](https://globify.com/) - learn English one subtitle at a time
+- *Send a [Pull Request](https://github.com/jamesknelson/retil/pulls) to add your site here!*
+
 License
 -------
 
