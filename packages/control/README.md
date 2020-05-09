@@ -3,6 +3,8 @@
 
 Create styled buttons and link components with standard CSS -- including `:hover`, `:focus`, etc. -- *without* coupling your styles to the underlying `<button>` or `<a>` tags.
 
+[See an introduction with live examples &raquo;](https://frontarm.com/james-k-nelson/decoupling-react-pseudo-styles/)
+
 *This package currently assumes that you're using [Styled Components](https://styled-components.com/). Want to add Emotion support? [Please file an issue!](https://github.com/jamesknelson/retil)*
 
 

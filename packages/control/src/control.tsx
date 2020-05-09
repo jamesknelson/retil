@@ -54,6 +54,18 @@ export function control<
     (props, ref) => {
       const { forceSelectors = {}, ...rest } = props
 
+      // Add support for a `disabled` prop to the control, even if the
+      // underlying HTML doesn't support it
+      if (
+        'disabled' in rest &&
+        rest['disabled'] &&
+        forceSelectors['disabled'] === undefined
+      ) {
+        forceSelectors['active'] = false
+        forceSelectors['disabled'] = true
+        forceSelectors['hover'] = false
+      }
+
       const theme = useContext(ThemeContext)
       const patchedTheme = useMemo(() => {
         const control: Control = {
