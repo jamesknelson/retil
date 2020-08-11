@@ -6,6 +6,7 @@
     "moduleResolution": "node",
     "jsx": "react",
     "baseUrl": "src",
+    "importHelpers": true,
     "removeComments": false,
     "resolveJsonModule": true,
     "sourceMap": true,

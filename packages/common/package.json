@@ -15,7 +15,7 @@
     "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types",
     "build:watch": "yarn run clean && yarn build:es -- --types --watch",
     "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn test && yarn build",
+    "prepare": "yarn build",
     "test": "jest",
     "test:watch": "jest --watch"
   },
