@@ -1,23 +1,12 @@
-import { Deferred, areArraysShallowEqual, isPromiseLike } from '@retil/common'
+import { Deferred, isPromiseLike } from '@retil/common'
 
 import { observe } from './observe'
 import { ControlledSource, Source, SourceAct, hasSnapshot } from './source'
 
-export interface FusorController {
-  act: (callback: () => Promise<any>) => Promise<void>
-
-  // Like with React hooks, the order in which you call memo is important.
-  // Because of this, you'll probably want to avoid using it in if and while
-  // statements. However, if you do, you'll still receive the excpected
-  // value -- it may just be recomputed more than required.
-  memo: <T>(compute: () => T, deps: any[]) => T
-
-  use: <T, U = T>(source: Source<T>, defaultValue?: U) => T | U
-}
-
-export type Fusor<T> = (fusorController: FusorController) => T
-
-type MemoState = [any, any[]]
+export type Fusor<T> = (
+  use: <U, V = U>(source: Source<U>, defaultValue?: V) => U | V,
+  act: (callback: () => Promise<any>) => Promise<void>,
+) => T
 
 const NoDefaultValue = Symbol()
 
@@ -27,18 +16,6 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     error: (error: any) => void
     next: (value: T) => void
   } = null
-
-  let nextMemoIndex = 0
-  let maxMemoIndexSeen = -1
-  const memos: MemoState[] = []
-  const memo = <T>(compute: () => T, deps: any[]): T => {
-    const i = nextMemoIndex++
-    maxMemoIndexSeen = Math.max(i, maxMemoIndexSeen)
-    if (memos.length <= i || !areArraysShallowEqual(deps, memos[i][1])) {
-      memos[i] = [compute(), deps]
-    }
-    return memos[i][0]
-  }
 
   // Whatever creates the batch is responsible for synchronously
   // calling `performRun` if the deferred is still there after running
@@ -92,12 +69,6 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     return (defaultValue as any) === NoDefaultValue || hasSnapshot(source)
       ? getSnapshot()
       : defaultValue
-  }
-
-  const controller: FusorController = {
-    act,
-    memo,
-    use,
   }
 
   const waitingFor = new Map<PromiseLike<any>, Promise<void>>()
@@ -192,17 +163,12 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     try {
       hasImmediatelyScheduledRun = false
       usedSources.clear()
-      nextMemoIndex = 0
       isRunningFusor = true
-      const snapshot = fusor(controller)
+      const snapshot = fusor(use, act)
       isRunningFusor = false
 
       if (usedSources.size === 0) {
         throw new Error("not using any sources doesn't make any sense.")
-      }
-
-      if (maxMemoIndexSeen >= nextMemoIndex) {
-        throw new Error('todo: log warning, missing memos.')
       }
 
       if (hasImmediatelyScheduledRun) {
@@ -227,6 +193,9 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       usedSources.clear()
 
       if (isPromiseLike(errorOrPromise)) {
+        // TODO: unless this is an `act` promise, any changes on the sources
+        // actually need to trigger a new run of the fusor, as changes in the
+        // source values may be required to get passed the suspense.
         return scheduleRunAfterPromise(errorOrPromise)
       } else {
         currentSynchronousBatch = null
@@ -251,10 +220,6 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       usedUnsubscribes.clear()
       usedSources.clear()
       waitingFor.clear()
-
-      // Note: we're not clearing the memo cache, as that can be reused on
-      // subsequent subscriptions. It'll be garbage collected once nobody has
-      // access to the source anymore.
     }
   })
 

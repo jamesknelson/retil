@@ -10,7 +10,7 @@ export function control<T, C>(
   if (act) {
     return [source as ControlledSource<T>, createController(act)]
   } else {
-    const controlledSource = fuse(({ use }) => use(source))
+    const controlledSource = fuse((use) => use(source))
     return [controlledSource, createController(controlledSource[2])]
   }
 }
