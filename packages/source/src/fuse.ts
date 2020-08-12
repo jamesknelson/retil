@@ -82,19 +82,24 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   const scheduleRunAfterPromise = (
     promiseLike: PromiseLike<any>,
   ): Promise<void> => {
-    if (!currentOutput) {
-      return Promise.resolve()
-    }
-
     // If we're already waiting for this promise, don't add it again.
     let completePromise = waitingFor.get(promiseLike)
     if (!completePromise) {
       // Wrap `promiseLike` with Promise.resolve, so that we know we have
       // a real promise object and not some custom thenable.
-      completePromise = Promise.resolve(promiseLike).then(() => {
-        waitingFor.delete(promiseLike)
-        return scheduleRun(false)
-      }, currentOutput.error)
+      completePromise = Promise.resolve(promiseLike).then(
+        () => {
+          waitingFor.delete(promiseLike)
+          return scheduleRun(false)
+        },
+        (error) => {
+          if (currentOutput) {
+            currentOutput.error(error)
+          } else {
+            throw error
+          }
+        },
+      )
       waitingFor.set(promiseLike, completePromise)
     }
 
@@ -108,7 +113,9 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       currentSynchronousBatch = null
     }
 
-    currentOutput.clear()
+    if (currentOutput) {
+      currentOutput.clear()
+    }
 
     return completePromise
   }

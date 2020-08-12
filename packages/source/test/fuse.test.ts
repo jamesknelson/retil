@@ -169,4 +169,34 @@ describe(`fuse`, () => {
 
     expect(output.reverse()).toEqual([4])
   })
+
+  test('an asynchronous act() can called before subscribing', async () => {
+    const [stateSource, setState] = createStateService<number>()
+    const source = fuse((use, act) => use(stateSource))
+    const [, , act] = source
+    await act(async () => {
+      setState(1)
+    })
+
+    const output = sendToArray(source)
+
+    expect(output.reverse()).toEqual([1])
+  })
+
+  test('the fusor is only run once when a suspended source is updated', async () => {
+    let fuseCount = 0
+    const [stateSource, setState] = createStateService<number>()
+    const source = fuse((use) => {
+      const value = use(stateSource)
+      fuseCount++
+      return value
+    })
+
+    const output = sendToArray(source)
+
+    expect(hasSnapshot(source)).toBe(false)
+    setState(1)
+    expect(output.reverse()).toEqual([1])
+    expect(fuseCount).toBe(1)
+  })
 })
