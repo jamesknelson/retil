@@ -37,17 +37,18 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   ): Promise<U> => {
     if (isRunningFusor) {
       const innerPromise = callback()
-      if (!isPromiseLike(innerPromise)) {
+      if (isPromiseLike(innerPromise)) {
+        scheduleRunAfterPromise(innerPromise)
+      } else {
         console.error(
           "A callback passed to a fusor's `act` didn't return a promise. This " +
             'is a no-op. You can safely remove the `act` without affecting the result.',
         )
-        throw Promise.resolve()
       }
 
-      // If acting inside the fuser, we'll want to throw the promise to
-      // clear the current value and reschedule upon completion.
-      throw innerPromise
+      // If acting inside the fuser, we'll want to throw a promise to exit
+      // the current function run.
+      throw Promise.resolve()
     } else {
       let result: PromiseLike<U> | U
       return scheduleRun(() => {
@@ -192,15 +193,24 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       isRunningFusor = false
       usedSources.clear()
 
-      if (isPromiseLike(errorOrPromise)) {
-        // TODO: unless this is an `act` promise, any changes on the sources
-        // actually need to trigger a new run of the fusor, as changes in the
-        // source values may be required to get passed the suspense.
-        return scheduleRunAfterPromise(errorOrPromise)
-      } else {
+      const handleError = (error: any) => {
         currentSynchronousBatch = null
-        currentOutput.error(errorOrPromise)
-        batch.reject(errorOrPromise)
+        if (currentOutput) {
+          currentOutput.error(error)
+        }
+        batch.reject(error)
+      }
+
+      if (isPromiseLike(errorOrPromise)) {
+        // If the fusor suspends, then schedule another attempt at a run as
+        // soon as the promise resolves -- but don't wait for it.
+        currentSynchronousBatch = null
+        currentOutput.clear()
+        errorOrPromise.then(() => {
+          scheduleRun().then(batch.resolve, batch.reject)
+        }, handleError)
+      } else {
+        handleError(errorOrPromise)
       }
     }
     return batch.promise

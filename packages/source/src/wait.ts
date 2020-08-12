@@ -1,6 +1,6 @@
 import { Source, hasSnapshot } from './source'
 
-export const when = <T>(
+export const wait = <T>(
   source: Source<T>,
   maybePredicate?: (value: T) => boolean,
 ): void | Promise<void> => {

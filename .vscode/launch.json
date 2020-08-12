@@ -2,8 +2,9 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Jest Tests",
+      "name": "Debug Tests - @retil/source",
       "type": "node",
+      "cwd": "${workspaceFolder}/packages/source",
       "request": "launch",
       "runtimeArgs": [
         "--inspect-brk",
