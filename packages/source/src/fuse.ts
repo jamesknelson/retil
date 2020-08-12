@@ -37,10 +37,8 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   ): Promise<U> => {
     if (isRunningFusor) {
       const innerPromise = callback()
-      if (isPromiseLike(innerPromise)) {
-        scheduleRunAfterPromise(innerPromise)
-      } else {
-        console.error(
+      if (!isPromiseLike(innerPromise)) {
+        throw new Error(
           "A callback passed to a fusor's `act` didn't return a promise. This " +
             'is a no-op. You can safely remove the `act` without affecting the result.',
         )
@@ -48,6 +46,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
 
       // If acting inside the fuser, we'll want to throw a promise to exit
       // the current function run.
+      scheduleRunAfterPromise(innerPromise)
       throw Promise.resolve()
     } else {
       let result: PromiseLike<U> | U
@@ -82,23 +81,16 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     }
 
     // If we're already waiting for this promise, don't add it again.
-    const existingCompletePromise = waitingFor.get(promiseLike)
-    if (existingCompletePromise) {
-      return existingCompletePromise
+    let completePromise = waitingFor.get(promiseLike)
+    if (!completePromise) {
+      // Wrap `promiseLike` with Promise.resolve, so that we know we have
+      // a real promise object and not some custom thenable.
+      completePromise = Promise.resolve(promiseLike).then(() => {
+        waitingFor.delete(promiseLike)
+        return scheduleRun(false)
+      }, currentOutput.error)
+      waitingFor.set(promiseLike, completePromise)
     }
-
-    // Wrap `promiseLike` with Promise.resolve, so that we know we have
-    // a real promise object and not some custom thenable.
-    const completePromise = Promise.resolve(promiseLike).then(() => {
-      waitingFor.delete(promiseLike)
-      return scheduleRun(false)
-    }, currentOutput.error)
-
-    waitingFor.set(promiseLike, completePromise)
-
-    // Cancel any immediately scheduled run, as we'll schedule another run
-    // once our batch completes.
-    isInvalidated = false
 
     // If we're scheduling something inside a synchronous batch, end the
     // batch and resolve sits deferred when appropriate.
