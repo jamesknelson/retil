@@ -1,6 +1,6 @@
 {
   "name": "retil",
-  "version": "0.5.3",
+  "version": "0.5.4",
   "description": "The react utility belt.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -20,9 +20,9 @@
   },
   "dependencies": {
     "@retil/common": "^0.5.1",
-    "@retil/source": "^0.5.3",
+    "@retil/source": "^0.5.4",
     "tslib": "2.0.1",
-    "use-source": "^0.5.3"
+    "use-source": "^0.5.4"
   },
   "devDependencies": {
     "typescript": "3.8.3"
