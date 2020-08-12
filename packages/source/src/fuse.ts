@@ -24,7 +24,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   // the asynchronous batch completes.
   let currentSynchronousBatch: Deferred<void> | null = null
 
-  let hasImmediatelyScheduledRun = false
+  let isInvalidated = false
   let isRunningFusor = false
 
   const usedSources = new Set<Source<any>>()
@@ -51,7 +51,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       throw Promise.resolve()
     } else {
       let result: PromiseLike<U> | U
-      return scheduleRun(() => {
+      return scheduleRun(false, () => {
         result = callback()
         return result
       }).then(() => result)
@@ -91,14 +91,14 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     // a real promise object and not some custom thenable.
     const completePromise = Promise.resolve(promiseLike).then(() => {
       waitingFor.delete(promiseLike)
-      return scheduleRun()
+      return scheduleRun(false)
     }, currentOutput.error)
 
     waitingFor.set(promiseLike, completePromise)
 
     // Cancel any immediately scheduled run, as we'll schedule another run
     // once our batch completes.
-    hasImmediatelyScheduledRun = false
+    isInvalidated = false
 
     // If we're scheduling something inside a synchronous batch, end the
     // batch and resolve sits deferred when appropriate.
@@ -115,7 +115,12 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     return completePromise
   }
 
-  const scheduleRun = (callback?: () => any): Promise<any> => {
+  const scheduleRun = (
+    invalidate = true,
+    callback?: () => any,
+  ): Promise<any> => {
+    isInvalidated = isInvalidated || invalidate
+
     if (waitingFor.size > 0) {
       // We're already waiting, so there's no need to do any synchronous
       // batching.
@@ -123,12 +128,6 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       return isPromiseLike(maybePromise)
         ? scheduleRunAfterPromise(maybePromise)
         : Array.from(waitingFor.values()).reverse()[0]
-    }
-
-    // If we've provided a callback, then we don't want to actually run the
-    // fusor unless something *inside* the callback causes another call.
-    if (!callback) {
-      hasImmediatelyScheduledRun = true
     }
 
     const existingBatch = currentSynchronousBatch
@@ -143,7 +142,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       // a synchronous batch -- even if we just created one.
       currentSynchronousBatch
     ) {
-      if (hasImmediatelyScheduledRun) {
+      if (isInvalidated) {
         performRun()
       } else {
         // If we've run a callback and nothing has changed, just resolve
@@ -162,7 +161,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     const batch = currentSynchronousBatch!
 
     try {
-      hasImmediatelyScheduledRun = false
+      isInvalidated = false
       usedSources.clear()
       isRunningFusor = true
       const snapshot = fusor(use, act)
@@ -172,7 +171,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
         throw new Error("not using any sources doesn't make any sense.")
       }
 
-      if (hasImmediatelyScheduledRun) {
+      if (isInvalidated) {
         performRun()
       } else if (currentSynchronousBatch) {
         currentSynchronousBatch = null
@@ -207,7 +206,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
         currentSynchronousBatch = null
         currentOutput.clear()
         errorOrPromise.then(() => {
-          scheduleRun().then(batch.resolve, batch.reject)
+          scheduleRun(true).then(batch.resolve, batch.reject)
         }, handleError)
       } else {
         handleError(errorOrPromise)
@@ -219,7 +218,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   const source = observe<T>((output) => {
     currentOutput = output
 
-    scheduleRun()
+    scheduleRun(true)
 
     return () => {
       currentOutput = null

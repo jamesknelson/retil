@@ -1,6 +1,6 @@
 export * from './control'
-export * from './stateService'
 export * from './fuse'
 export * from './observe'
+export * from './stateService'
 export * from './source'
 export * from './wait'
