@@ -203,8 +203,13 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
         // soon as the promise resolves -- but don't wait for it.
         currentSynchronousBatch = null
         currentOutput.clear()
+        // We didn't complete the full run of the fusor, so we're still
+        // invalidated.
+        isInvalidated = true
         errorOrPromise.then(() => {
-          scheduleRun(true).then(batch.resolve, batch.reject)
+          // It's possible a source update has caused a run to complete in the
+          // intervening time.
+          scheduleRun(isInvalidated).then(batch.resolve, batch.reject)
         }, handleError)
       } else {
         handleError(errorOrPromise)
@@ -216,7 +221,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   const source = observe<T>((output) => {
     currentOutput = output
 
-    scheduleRun(true)
+    scheduleRun()
 
     return () => {
       currentOutput = null
