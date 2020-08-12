@@ -21,7 +21,6 @@
   },
   "dependencies": {
     "@retil/source": "^0.5.1",
-    "@testing-library/jest-dom": "^5.11.3",
     "tslib": "2.0.1",
     "use-subscription": "1.4.1"
   },
