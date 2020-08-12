@@ -25,31 +25,42 @@ const {
   ) => T
 }
 
-const mutableSources = new WeakMap<Source<any>, ReactMutableSource<any>>()
+const nullSource: Source<any> = [
+  () => {},
+  (_: any) => {
+    return () => {}
+  },
+]
+
+const mutableSources = new WeakMap<Source<any>, ReactMutableSource<any>>([
+  [nullSource, createMutableSource(nullSource, () => 1)],
+])
 const missingSnapshot = Symbol.for('RetilSuspense')
 const subscribe = ([, subscribe]: Source<any>, callback: () => void) =>
   subscribe(callback)
 
 export function useSource<T, U = T>(
-  source: Source<T>,
+  source: Source<T> | null,
   defaultValue?: U,
 ): T | U {
   const hasDefaultValue = arguments.length > 1
-  const [getSnapshot] = source
+  const [getSnapshot] = source || nullSource
   const getSnapshotWithDefaultValue = useMemo(
     () =>
-      !hasDefaultValue
+      getSnapshot === nullSource[0]
+        ? () => defaultValue
+        : !hasDefaultValue
         ? getSnapshot
         : () => (hasSnapshot([getSnapshot]) ? getSnapshot() : defaultValue),
     [hasDefaultValue, defaultValue, getSnapshot],
   )
 
-  let mutableSource = mutableSources.get(source)!
+  let mutableSource = mutableSources.get(source || nullSource)!
   if (!mutableSource) {
     const getVersion = () =>
       hasSnapshot([getSnapshot]) ? getSnapshot() : missingSnapshot
-    mutableSource = createMutableSource(source, getVersion)
-    mutableSources.set(source, mutableSource)
+    mutableSource = createMutableSource(source!, getVersion)
+    mutableSources.set(source!, mutableSource)
   }
 
   return useMutableSource(mutableSource, getSnapshotWithDefaultValue, subscribe)

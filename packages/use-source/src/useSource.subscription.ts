@@ -1,18 +1,27 @@
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { Source, hasSnapshot } from '@retil/source'
 import { useSubscription } from 'use-subscription'
 
+const nullSource: Source<any> = [
+  () => {},
+  (_: any) => {
+    return () => {}
+  },
+]
+
 export function useSource<T, U = T>(
-  source: Source<T>,
+  source: Source<T> | null,
   defaultValue?: U,
 ): T | U {
-  const [getSnapshot, subscribe] = source
+  const [getSnapshot, subscribe] = source || nullSource
   const hasDefaultValue = arguments.length > 1
-  const getCurrentValue = useCallback(
+  const getCurrentValue = useMemo(
     () =>
-      hasSnapshot([getSnapshot]) || !hasDefaultValue
-        ? getSnapshot()
-        : (defaultValue as U),
+      getSnapshot === nullSource[0]
+        ? () => defaultValue
+        : !hasDefaultValue
+        ? getSnapshot
+        : () => (hasSnapshot([getSnapshot]) ? getSnapshot() : defaultValue),
     [hasDefaultValue, defaultValue, getSnapshot],
   )
   const subscription = useMemo(

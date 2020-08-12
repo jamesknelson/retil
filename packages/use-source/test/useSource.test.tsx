@@ -7,6 +7,12 @@ import { useSource as useSourceModern } from '../src/useSource.modern'
 import { useSource as useSourceSubscription } from '../src/useSource.subscription'
 
 function testUseSource(useSource: typeof useSourceModern) {
+  test(`accepts null sources`, () => {
+    const Test = () => <>{useSource(null, 'default')}</>
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('default')
+  })
+
   test(`can get the latest value`, () => {
     const [stateSource] = createStateService('success')
     const Test = () => <>{useSource(stateSource)}</>
@@ -28,6 +34,27 @@ function testUseSource(useSource: typeof useSourceModern) {
       </Suspense>,
     )
     expect(container).toHaveTextContent('loading')
+  })
+
+  test(`can switch from a null source to a source with no initial value`, () => {
+    let setState: any
+
+    const [stateSource] = createStateService()
+    const Test = () => {
+      const stateHook = React.useState(null)
+      setState = stateHook[1]
+      return <>{useSource(stateSource, 'null')}</>
+    }
+    const { container } = render(
+      <Suspense fallback="loading">
+        <Test />
+      </Suspense>,
+    )
+    expect(container).toHaveTextContent('null')
+    act(() => {
+      setState(stateSource)
+    })
+    expect(container).not.toHaveTextContent('loading')
   })
 
   test(`doesn't suspends when there is no initial value, but a default value is provided`, () => {
