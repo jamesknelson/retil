@@ -1,7 +1,13 @@
 import { Deferred, isPromiseLike } from '@retil/common'
 
 import { observe } from './observe'
-import { ControlledSource, Source, SourceAct, hasSnapshot } from './source'
+import {
+  ControlledSource,
+  Source,
+  SourceAct,
+  SourceSubscribe,
+  hasSnapshot,
+} from './source'
 
 export type Fusor<T> = (
   use: <U, V = U>(source: Source<U>, defaultValue?: V) => U | V,
@@ -27,8 +33,8 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
   let isInvalidated = false
   let isRunningFusor = false
 
-  const usedSources = new Set<Source<any>>()
-  const usedUnsubscribes = new Map<Source<any>, () => void>()
+  const usedSubscribes = new Set<SourceSubscribe>()
+  const usedUnsubscribes = new Map<SourceSubscribe, () => void>()
 
   // NOTE: this cannot be an async function, as the thrown promises need to
   // be thrown synchronously.
@@ -61,10 +67,10 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
     source: Source<T>,
     defaultValue: U = NoDefaultValue as any,
   ): T | U => {
-    usedSources.add(source)
     const [getSnapshot, subscribe] = source
-    if (!usedUnsubscribes.has(source)) {
-      usedUnsubscribes.set(source, subscribe(scheduleRun))
+    usedSubscribes.add(subscribe)
+    if (!usedUnsubscribes.has(subscribe)) {
+      usedUnsubscribes.set(subscribe, subscribe(scheduleRun))
     }
     return (defaultValue as any) === NoDefaultValue || hasSnapshot(source)
       ? getSnapshot()
@@ -154,12 +160,12 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
 
     try {
       isInvalidated = false
-      usedSources.clear()
+      usedSubscribes.clear()
       isRunningFusor = true
       const snapshot = fusor(use, act)
       isRunningFusor = false
 
-      if (usedSources.size === 0) {
+      if (usedSubscribes.size === 0) {
         throw new Error("not using any sources doesn't make any sense.")
       }
 
@@ -171,10 +177,10 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
 
         // Unsubscribe from any previously used sources that weren't used on
         // this pass through.
-        for (const [source, unsubscribe] of usedUnsubscribes.entries()) {
-          if (!usedSources.has(source)) {
+        for (const [subscribe, unsubscribe] of usedUnsubscribes.entries()) {
+          if (!usedSubscribes.has(subscribe)) {
             unsubscribe()
-            usedSources.delete(source)
+            usedSubscribes.delete(subscribe)
           }
         }
 
@@ -182,7 +188,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
       }
     } catch (errorOrPromise) {
       isRunningFusor = false
-      usedSources.clear()
+      usedSubscribes.clear()
 
       const handleError = (error: any) => {
         currentSynchronousBatch = null
@@ -219,7 +225,7 @@ export function fuse<T>(fusor: Fusor<T>): ControlledSource<T> {
         unsubscribe()
       }
       usedUnsubscribes.clear()
-      usedSources.clear()
+      usedSubscribes.clear()
       waitingFor.clear()
     }
   })
