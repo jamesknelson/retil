@@ -5,6 +5,7 @@ import { UncontrolledSource } from './source'
 export interface ObserveSubscribeFunction<T> {
   (output: {
     clear: () => void
+    complete: () => void // noop
     error: (error: any) => void
     next: (value: T) => void
   }): (() => void) | { unsubscribe(): void }
@@ -71,6 +72,9 @@ export function observe<T>(
           }
           subscription.state = { deferred: new Deferred() }
           callbacks.slice().forEach(callCallback)
+        },
+        complete: () => {
+          console.warn('Retil Warning: observeController.complete is a noop.')
         },
         error: (value) => {
           if (!subscription) {
