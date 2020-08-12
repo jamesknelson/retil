@@ -16,10 +16,7 @@
     "build:umd:min": "tsc -p tsconfig.build.json --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=production rollup -c -o dist/umd/retil-source.min.js && rimraf dist/umd-intermediate",
     "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types && yarn build:umd && yarn build:umd:min",
     "build:watch": "yarn run clean && yarn build:es -- --types --watch",
-    "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn test && yarn build",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "prepare": "yarn build"
   },
   "dependencies": {
     "@retil/common": "^0.5.0",
@@ -32,5 +29,6 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "gitHead": "98700f30907d8481ed2c7c86a55b84c7e00d324a"
 }
