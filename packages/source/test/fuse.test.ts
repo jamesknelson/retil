@@ -97,8 +97,8 @@ describe(`fuse`, () => {
     const [stateSource, setState] = createStateService(1)
     const [missingSource] = createStateService()
     const source = fuse((use) => {
-      const state1 = use(stateSource)
-      return state1 % 2 === 0 ? use(missingSource, state1) : use(missingSource)
+      const state = use(stateSource)
+      return state % 2 === 0 ? use(missingSource, state) : use(missingSource)
     })
     const output = sendToArray(source)
 

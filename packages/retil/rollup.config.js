@@ -3,6 +3,7 @@
  */
 
 import * as React from 'react'
+import * as useSubscription from 'use-subscription'
 
 import commonjs from 'rollup-plugin-commonjs'
 import builtins from 'rollup-plugin-node-builtins'
@@ -16,7 +17,10 @@ const config = {
   input: 'dist/umd-intermediate/index.js',
   output: {
     format: 'umd',
-    name: 'RetilSource',
+    globals: {
+      react: 'React',
+    },
+    name: 'Retil',
   },
   onwarn: function (warning) {
     // Suppress warning caused by TypeScript classes using "this"
@@ -34,6 +38,7 @@ const config = {
     commonjs({
       namedExports: {
         react: Object.keys(React),
+        'use-subscription': Object.keys(useSubscription),
       },
     }),
 

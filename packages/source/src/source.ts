@@ -49,7 +49,11 @@ export type ControlledSource<T> = readonly [
   SourceAct,
 ]
 
-export function hasSnapshot([getSnapshot]: Source<any>): boolean {
+export function hasSnapshot([getSnapshot]: readonly [
+  SourceGetSnapshot<any>,
+  SourceSubscribe?,
+  SourceAct?,
+]): boolean {
   try {
     getSnapshot()
   } catch (errorOrPromise) {
@@ -60,7 +64,11 @@ export function hasSnapshot([getSnapshot]: Source<any>): boolean {
   return true
 }
 
-export function getSnapshot<T>([getSnapshot]: Source<T>): Promise<T> {
+export function getSnapshot<T>([getSnapshot]: readonly [
+  SourceGetSnapshot<any>,
+  SourceSubscribe?,
+  SourceAct?,
+]): Promise<T> {
   try {
     return Promise.resolve(getSnapshot())
   } catch (errorOrPromise) {

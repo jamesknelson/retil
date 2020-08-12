@@ -1,7 +1,7 @@
 {
-  "name": "@retil/common",
+  "name": "retil",
   "version": "0.4.0",
-  "description": "A reactive source",
+  "description": "The react utility belt.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -12,15 +12,20 @@
     "build:commonjs": "tsc -p tsconfig.build.json --module commonjs --outDir dist/commonjs",
     "build:es": "tsc -p tsconfig.build.json --module es2015 --outDir dist/es",
     "build:types": "tsc -p tsconfig.build.json --declaration --emitDeclarationOnly --outDir dist/types --isolatedModules false",
-    "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types",
+    "build:umd": "tsc -p tsconfig.build.json --pretty --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=development rollup -c -o dist/umd/retil-source.js && rimraf dist/umd-intermediate",
+    "build:umd:min": "tsc -p tsconfig.build.json --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=production rollup -c -o dist/umd/retil-source.min.js && rimraf dist/umd-intermediate",
+    "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types && yarn build:umd && yarn build:umd:min",
     "build:watch": "yarn run clean && yarn build:es -- --types --watch",
     "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn build",
+    "prepare": "yarn test && yarn build",
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "tslib": "2.0.1"
+    "@retil/common": "^0.4.0",
+    "@retil/source": "^0.4.0",
+    "tslib": "2.0.1",
+    "use-source": "^0.4.0"
   },
   "devDependencies": {
     "typescript": "3.8.3"

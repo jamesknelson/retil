@@ -1,1 +1,3 @@
-An umbrella package that re-exports all other utilities.
+# retil
+
+The React Utility Belt
