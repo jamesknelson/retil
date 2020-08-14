@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { Suspense } from 'react'
 import { act, render } from '@testing-library/react'
 
-import { createStateService, fuse, hasSnapshot } from 'retil-source'
+import { createState, fuse, hasSnapshot } from 'retil-source'
 
 import { useSource as useSourceModern } from '../src/useSource.modern'
 import { useSource as useSourceSubscription } from '../src/useSource.subscription'
@@ -17,7 +17,7 @@ function testUseSource(useSource: typeof useSourceModern) {
   })
 
   test(`can get the latest value`, () => {
-    const [stateSource] = createStateService('success')
+    const [stateSource] = createState('success')
     const Test = () => <>{useSource(stateSource)}</>
     const { container } = render(
       <Suspense fallback="loading">
@@ -29,7 +29,7 @@ function testUseSource(useSource: typeof useSourceModern) {
   })
 
   test(`suspends when there is no initial value`, () => {
-    const [stateSource] = createStateService()
+    const [stateSource] = createState()
     const Test = () => <>{useSource(stateSource)}</>
     const { container } = render(
       <Suspense fallback="loading">
@@ -42,7 +42,7 @@ function testUseSource(useSource: typeof useSourceModern) {
   test(`can switch from a null source to a source with no initial value`, () => {
     let setState: any
 
-    const [stateSource] = createStateService()
+    const [stateSource] = createState()
     const Test = () => {
       const stateHook = React.useState(null)
       setState = stateHook[1]
@@ -61,7 +61,7 @@ function testUseSource(useSource: typeof useSourceModern) {
   })
 
   test(`doesn't suspends when there is no initial value, but a default value is provided`, () => {
-    const [stateSource] = createStateService()
+    const [stateSource] = createState()
     const Test = () => <>{useSource(stateSource, 'default')}</>
     const { container } = render(
       <Suspense fallback="loading">
@@ -73,7 +73,7 @@ function testUseSource(useSource: typeof useSourceModern) {
   })
 
   test(`causes a re-render when the source notifies subscribers of a new value`, () => {
-    const [stateSource, setState] = createStateService()
+    const [stateSource, setState] = createState()
     const Test = () => <>{useSource(stateSource, 'default')}</>
     const { container } = render(<Test />)
 
@@ -85,8 +85,8 @@ function testUseSource(useSource: typeof useSourceModern) {
   })
 
   test(`updates to the default when changing to a missing value`, () => {
-    const [stateSource, setState] = createStateService(0)
-    const [missingSource] = createStateService()
+    const [stateSource, setState] = createState(0)
+    const [missingSource] = createState()
     const source = fuse((use) => {
       const state = use(stateSource)
       return state === 0 ? use(missingSource, state) : use(missingSource)
@@ -102,8 +102,8 @@ function testUseSource(useSource: typeof useSourceModern) {
   })
 
   test(`suspends on updates to missing values`, () => {
-    const [stateSource, setState] = createStateService(0)
-    const [missingSource] = createStateService()
+    const [stateSource, setState] = createState(0)
+    const [missingSource] = createState()
     const source = fuse((use) => {
       const state = use(stateSource)
       if (state === 0) {

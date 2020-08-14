@@ -6,7 +6,7 @@ export interface StateController<T> {
   (updater: (state: T) => T): void
 }
 
-export function createStateService<T>(
+export function createState<T>(
   // Doesn't accept a setter function, as it's not a hook that stores state
   // between renders and thus it wouldn't make sense to do so.
   initialState?: T,

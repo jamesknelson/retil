@@ -1,13 +1,25 @@
 import { isPromiseLike } from 'retil-common'
 
-export type Unsubscribe = () => void
-
-export type SourceGet = () => unknown
-
 /**
- * Return a snapshot, or throw a promise when there's no current value.
+ * Note, there's no need for a version, as snapshots are immutable. A change
+ * in snapshot indicates a new version.
+ *
+ * The only exception is on suspense/error. In these cases, `useSource` can
+ * always use the same constant value as the version, as React doesn't care
+ * what the suspense is or what the error is -- only that an suspense/error
+ * was thrown.
  */
-export type SourceSelect<T> = (get: SourceGet) => T
+export type Source<T> = readonly [SourceCore, SourceSelect<T>, SourceAct]
+
+export type SourceCore = readonly [SourceGet, SourceSubscribe]
+
+export type GettableSource<T> = readonly [
+  readonly [SourceGet, SourceSubscribe?],
+  SourceSelect<T>,
+  SourceAct?,
+]
+
+export type GettableSourceCore = readonly [SourceGet, SourceSubscribe?]
 
 /**
  * Subscribe to notification of new snapshots being available.
@@ -18,6 +30,16 @@ export type SourceSelect<T> = (get: SourceGet) => T
  * called for the last change in the tick.
  */
 export type SourceSubscribe = (callback: () => void) => Unsubscribe
+export type Unsubscribe = () => void
+
+export type SourceGet = () => unknown
+
+/**
+ * Return a snapshot, or throw a promise when there's no current value.
+ */
+export type SourceSelect<T> = (
+  core: readonly [SourceGet, SourceSubscribe?],
+) => T
 
 /**
  * An optional act function, which if exists, will batch synchronous updates,
@@ -25,48 +47,39 @@ export type SourceSubscribe = (callback: () => void) => Unsubscribe
  */
 export type SourceAct = <U>(callback: () => PromiseLike<U> | U) => Promise<U>
 
-/**
- * Note, there's no need for a version, as snapshots are immutable. A change
- * in snapshot indicates a new version.
- *
- * The only exception is on suspense/error. In these cases, `useSource` can
- * always use the same constant value as the version, as React doesn't care
- * what the suspense is or what the error is -- only that an suspense/error
- * was thrown.
- */
-export type Source<T> = readonly [
-  SourceGet,
-  SourceSelect<T>,
-  SourceSubscribe,
-  SourceAct,
-]
-
 export const nullSource: Source<null> = [
-  () => null,
+  [() => null, (_: any) => () => {}],
   (_: any) => null,
-  (_: any) => {
-    return () => {}
-  },
-  async <U>(cb: () => U | PromiseLike<U>) => cb(),
+  <U>(cb: () => U | PromiseLike<U>) => Promise.resolve(cb()),
 ]
 
-export function getSnapshot<T>([get, select]: readonly [
-  SourceGet,
-  SourceSelect<T>,
-  SourceSubscribe?,
-  SourceAct?,
-]): T {
-  return select(get)
+export function act<T, U>(
+  source: Source<T>,
+  callback: () => PromiseLike<U> | U,
+): Promise<U> {
+  return source[2](callback)
 }
 
-export function hasSnapshot([get, select]: readonly [
-  SourceGet,
-  SourceSelect<any>,
-  SourceSubscribe?,
-  SourceAct?,
-]): boolean {
+export function getSnapshot<T>([core, select]: GettableSource<T>): T {
+  return select(core)
+}
+
+export function getSnapshotPromise<T>([core, select]: GettableSource<
+  T
+>): Promise<T> {
   try {
-    select(get)
+    return Promise.resolve(select(core))
+  } catch (errorOrPromise) {
+    if (isPromiseLike(errorOrPromise)) {
+      return Promise.resolve(errorOrPromise).then(() => select(core))
+    }
+    return Promise.reject(errorOrPromise)
+  }
+}
+
+export function hasSnapshot([core, select]: GettableSource<any>): boolean {
+  try {
+    select(core)
   } catch (errorOrPromise) {
     if (isPromiseLike(errorOrPromise)) {
       return false
@@ -75,18 +88,11 @@ export function hasSnapshot([get, select]: readonly [
   return true
 }
 
-export function getSnapshotPromise<T>([get, select]: readonly [
-  SourceGet,
-  SourceSelect<T>,
-  SourceSubscribe?,
-  SourceAct?,
-]): Promise<T> {
-  try {
-    return Promise.resolve(select(get))
-  } catch (errorOrPromise) {
-    if (isPromiseLike(errorOrPromise)) {
-      return Promise.resolve(errorOrPromise).then(() => select(get))
-    }
-    return Promise.reject(errorOrPromise)
-  }
+export function subscribe<T>(
+  source: Source<T>,
+  callback: () => void,
+): Unsubscribe {
+  return source[0][1](callback)
 }
+
+export const identitySelector = <U>(core: GettableSourceCore) => core[0]() as U

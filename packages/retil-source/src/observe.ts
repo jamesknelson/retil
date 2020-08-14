@@ -1,6 +1,6 @@
-import { Deferred, callArg, isPromiseLike, noop } from 'retil-common'
+import { Deferred, isPromiseLike, noop } from 'retil-common'
 
-import { Source, SourceSelect } from './source'
+import { Source, identitySelector } from './source'
 
 export interface ObserveSubscribeFunction<T> {
   (
@@ -40,7 +40,7 @@ export function observe<T>(
   const observableSubscribe =
     typeof observable === 'function' ? observable : observable.subscribe
 
-  const getSnapshot = (): T => {
+  const get = (): T => {
     if (error) {
       throw error.value
     }
@@ -115,7 +115,7 @@ export function observe<T>(
     // skip notifying subscribers, as they can get the value if they need
     // it.
     if (subscription && !subscription.isSubscribing) {
-      callbacks.slice().forEach(callCallback)
+      callbacks.slice().forEach(callListener)
     }
   }
 
@@ -241,10 +241,10 @@ export function observe<T>(
     return batch.promise.then(() => result)
   }
 
-  return [getSnapshot, callArg as SourceSelect<T>, subscribe, act]
+  return [[get, subscribe], identitySelector, act]
 }
 
-const callCallback = (listener: () => void) => {
+const callListener = (listener: () => void) => {
   try {
     listener()
   } catch (errorOrPromise) {

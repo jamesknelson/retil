@@ -37,13 +37,14 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
     source: Source<T>,
     ...defaultValues: [U] | []
   ): T | U => {
-    const [get, select, subscribe] = source
+    const [core, select] = source
+    const subscribe = core[1]
     usedSubscribes.add(subscribe)
     if (!usedUnsubscribes.has(subscribe)) {
       usedUnsubscribes.set(subscribe, subscribe(invalidate))
     }
     return defaultValues.length === 0 || hasSnapshot(source)
-      ? select(get)
+      ? select(core)
       : defaultValues[0]
   }
 
@@ -55,7 +56,9 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
   }
 
   const unsubscribeFromUnused = () => {
-    for (const [subscribe, unsubscribe] of usedUnsubscribes.entries()) {
+    for (const [subscribe, unsubscribe] of Array.from(
+      usedUnsubscribes.entries(),
+    )) {
       if (!usedSubscribes.has(subscribe)) {
         usedUnsubscribes.delete(subscribe)
         unsubscribe()
@@ -148,7 +151,7 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
       onNext = null
       onError = throwArg
       onClear = null
-      for (const unsubscribe of usedUnsubscribes.values()) {
+      for (const unsubscribe of Array.from(usedUnsubscribes.values())) {
         unsubscribe()
       }
       usedUnsubscribes.clear()
@@ -156,7 +159,7 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
     }
   })
 
-  const act = source[3]
+  const act = source[2]
 
   return source
 }

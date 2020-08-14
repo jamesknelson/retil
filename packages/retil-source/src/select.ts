@@ -1,9 +1,9 @@
-import { Source, SourceGet } from './source'
+import { GettableSourceCore, Source } from './source'
 
 export function select<T, U>(
-  [get, parentSelect, subscribe, act]: Source<T>,
+  [core, parentSelect, act]: Source<T>,
   selector: (value: T) => U,
 ): Source<U> {
-  const select = (get: SourceGet) => selector(parentSelect(get))
-  return [get, select, subscribe, act]
+  const select = (core: GettableSourceCore) => selector(parentSelect(core))
+  return [core, select, act]
 }

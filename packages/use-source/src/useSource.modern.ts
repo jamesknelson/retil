@@ -2,42 +2,42 @@
 /// <reference types="react/experimental" />
 
 import * as React from 'react'
-import { useCallback, useMemo } from 'react'
+import { useMemo } from 'react'
 import {
+  GettableSourceCore,
+  SourceCore,
   Source,
   SourceGet,
-  SourceSelect,
   hasSnapshot,
+  identitySelector,
   nullSource,
-  selectDefault,
 } from 'retil-source'
 
-interface ReactMutableSource<T> {
-  _source: Source<T>
-  _getVersion: SourceSelect<T>
+interface ReactMutableSource {
+  _source: SourceCore
+  _getVersion: SourceGet
 }
 
 const {
   unstable_createMutableSource: createMutableSource,
   unstable_useMutableSource: useMutableSource,
 } = (React as any) as {
-  unstable_createMutableSource: <T>(
-    source: Source<T>,
-    getVersion: SourceSelect<T>,
-  ) => ReactMutableSource<T>
-  unstable_useMutableSource: <T, U>(
-    source: ReactMutableSource<T>,
-    getSnapshot: (source: Source<T>) => T | U,
-    subscribe: (source: Source<T>, callback: () => void) => () => void,
+  unstable_createMutableSource: (
+    source: SourceCore,
+    getVersion: SourceGet,
+  ) => ReactMutableSource
+  unstable_useMutableSource: <T>(
+    source: ReactMutableSource,
+    getSnapshot: (core: SourceCore) => T,
+    subscribe: (core: SourceCore, callback: () => void) => () => void,
   ) => T
 }
 
-const mutableSources = new WeakMap<SourceGet, ReactMutableSource<any>>([
-  [nullSource[0], createMutableSource(nullSource, nullSource[0])],
+const MissingToken = Symbol()
+const mutableSources = new WeakMap<SourceCore, ReactMutableSource>([
+  [nullSource[0], createMutableSource(nullSource[0], nullSource[0][0])],
 ])
-const missingSnapshot = Symbol.for('RetilSuspense')
-const subscribe = ([, , subscribe]: Source<any>, callback: () => void) =>
-  subscribe(callback)
+const subscribe = ([, subscribe]: SourceCore, cb: () => void) => subscribe(cb)
 
 export function useSource(maybeSource: null, ...defaultValues: [] | [any]): null
 export function useSource<T, U = T>(
@@ -49,30 +49,24 @@ export function useSource<T = null, U = T>(
   ...defaultValues: [] | [U]
 ): T | U | null {
   const hasDefaultValue = defaultValues.length
-  const maybeDefaultValue = defaultValues[0]
-  const inputSource = useMemo(
-    () => maybeSource || nullSource,
-    // Sources are arrays, and if their items are equal, they're equivalent.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    maybeSource || nullSource,
-  )
-  const source = useMemo(
+  const [core, select] = maybeSource || nullSource
+  const getSnapshot = useMemo(
     () =>
       hasDefaultValue
-        ? selectDefault(inputSource, maybeDefaultValue as U)
-        : inputSource,
-    [inputSource, hasDefaultValue, maybeDefaultValue],
+        ? (core: GettableSourceCore) =>
+            hasSnapshot([core, select]) ? select(core) : MissingToken
+        : select,
+    [hasDefaultValue, select],
   )
-  const [get, select] = source
-  const getSnapshot = useCallback(([get]: Source<T>) => select(get), [select])
 
-  let mutableSource = mutableSources.get(get)!
+  let mutableSource = mutableSources.get(core)!
   if (!mutableSource) {
     const getVersion = () =>
-      hasSnapshot([get, select]) ? select(get) : missingSnapshot
-    mutableSource = createMutableSource(source, getVersion)
-    mutableSources.set(get, mutableSource)
+      hasSnapshot([core, identitySelector]) ? core[0]() : MissingToken
+    mutableSource = createMutableSource(core, getVersion)
+    mutableSources.set(core, mutableSource)
   }
 
-  return useMutableSource(mutableSource, getSnapshot, subscribe)
+  const value = useMutableSource(mutableSource, getSnapshot, subscribe)
+  return value === MissingToken ? defaultValues[0]! : value
 }

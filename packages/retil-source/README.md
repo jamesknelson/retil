@@ -11,9 +11,9 @@ npm install --save @retil/source
 Why should a data source return a value before it has one?
 
 ```tsx
-import { createStateService, hasSnapshot } from 'retil'
+import { createState, hasSnapshot } from 'retil'
 
-const [stateSource, setState] = createStateService()
+const [stateSource, setState] = createState()
 const [getState, subscribe] = stateSource
 
 getState() // throws a promise that resolves to the first value.

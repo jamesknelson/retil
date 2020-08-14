@@ -1,13 +1,15 @@
-import { Source, hasSnapshot } from './source'
+import { Source, getSnapshot, hasSnapshot, subscribe } from './source'
 
 export const wait = <T>(
   source: Source<T>,
   maybePredicate?: (value: T) => boolean,
 ): void | Promise<void> => {
-  const [get, select, subscribe] = source
-
   // Don't wait for a predicate that already matches.
-  if (maybePredicate && hasSnapshot(source) && maybePredicate(select(get))) {
+  if (
+    maybePredicate &&
+    hasSnapshot(source) &&
+    maybePredicate(getSnapshot(source))
+  ) {
     return
   }
 
@@ -17,10 +19,10 @@ export const wait = <T>(
   // Get a promise that resolves once the source's snapshot matches the
   // condition.
   return new Promise((resolve, reject) => {
-    const unsubscribe = subscribe(() => {
+    const unsubscribe = subscribe(source, () => {
       if (hasSnapshot(source)) {
         try {
-          if (predicate(select(get))) {
+          if (predicate(getSnapshot(source))) {
             unsubscribe()
             resolve()
           }

@@ -1,10 +1,10 @@
-import { Source, SourceGet, hasSnapshot } from './source'
+import { GettableSourceCore, Source, hasSnapshot } from './source'
 
 export function selectDefault<T, U>(
-  [get, parentSelect, subscribe, act]: Source<T>,
+  [core, parentSelect, act]: Source<T>,
   defaultValue: U,
 ): Source<T | U> {
-  const select = (get: SourceGet) =>
-    hasSnapshot([get, parentSelect]) ? parentSelect(get) : defaultValue
-  return [get, select, subscribe, act]
+  const select = (core: GettableSourceCore) =>
+    hasSnapshot([core, parentSelect]) ? parentSelect(core) : defaultValue
+  return [core, select, act]
 }

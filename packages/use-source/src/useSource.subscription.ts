@@ -1,12 +1,13 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import {
+  GettableSourceCore,
   Source,
-  getSnapshot,
   hasSnapshot,
   nullSource,
-  selectDefault,
 } from 'retil-source'
 import { useSubscription } from 'use-subscription'
+
+const MissingToken = Symbol()
 
 export function useSource(maybeSource: null, ...defaultValues: [] | [any]): null
 export function useSource<T, U = T>(
@@ -18,22 +19,17 @@ export function useSource<T = null, U = T>(
   ...defaultValues: [] | [U]
 ): T | U | null {
   const hasDefaultValue = defaultValues.length
-  const maybeDefaultValue = defaultValues[0]
-  const inputSource = useMemo(
-    () => maybeSource || nullSource,
-    // Sources are arrays, and if their items are equal, they're equivalent.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    maybeSource || nullSource,
-  )
-  const source = useMemo(
+  const [core, inputSelect] = maybeSource || nullSource
+  const select = useMemo(
     () =>
       hasDefaultValue
-        ? selectDefault(inputSource, maybeDefaultValue as U)
-        : inputSource,
-    [inputSource, hasDefaultValue, maybeDefaultValue],
+        ? (core: GettableSourceCore) =>
+            hasSnapshot([core, inputSelect]) ? inputSelect(core) : MissingToken
+        : inputSelect,
+    [hasDefaultValue, inputSelect],
   )
-  const [get, select, subscribe] = source
-  const getCurrentValue = useCallback(() => select(get), [select, get])
+  const getCurrentValue = useCallback(() => select(core), [core, select])
+  const subscribe = core[1]
   const subscription = useMemo(
     () => ({
       getCurrentValue,
@@ -48,14 +44,15 @@ export function useSource<T = null, U = T>(
   useEffect(() => {
     if (!hasDefaultValue) {
       return subscribe(() => {
-        if (!hasSnapshot([get, select])) {
+        if (!hasSnapshot([core, select])) {
           setState(() => {
-            getSnapshot([get, select])
+            select(core)
           })
         }
       })
     }
-  }, [hasDefaultValue, get, select, subscribe])
+  }, [hasDefaultValue, core, select, subscribe])
 
-  return useSubscription(subscription)
+  const value = useSubscription(subscription)
+  return value === MissingToken ? defaultValues[0]! : value
 }
