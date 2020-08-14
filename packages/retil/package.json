@@ -19,8 +19,8 @@
     "prepare": "yarn build"
   },
   "dependencies": {
-    "@retil/common": "^0.5.1",
-    "@retil/source": "^0.5.7",
+    "retil-common": "^0.6.0",
+    "retil-source": "^0.6.0",
     "tslib": "2.0.1",
     "use-source": "^0.6.0"
   },
