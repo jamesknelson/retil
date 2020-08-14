@@ -1,4 +1,5 @@
 export * from './fuse'
+export * from './mergeLatest'
 export * from './observe'
 export * from './select'
 export * from './selectDefault'

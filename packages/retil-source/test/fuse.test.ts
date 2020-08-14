@@ -1,23 +1,6 @@
 import { delay } from 'retil-common'
-import {
-  Source,
-  act,
-  createState,
-  fuse,
-  getSnapshot,
-  hasSnapshot,
-  subscribe,
-  wait,
-} from '../src'
-
-function sendToArray<T>(source: Source<T>): T[] {
-  const array = [] as T[]
-  if (hasSnapshot(source)) {
-    array.unshift(getSnapshot(source))
-  }
-  subscribe(source, () => array.unshift(getSnapshot(source)))
-  return array
-}
+import { act, createState, fuse, hasSnapshot, subscribe, wait } from '../src'
+import { sendToArray } from './utils/sendToArray'
 
 describe(`fuse`, () => {
   test(`can map values from a single source`, () => {
