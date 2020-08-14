@@ -9,7 +9,7 @@
     "importHelpers": true,
     "removeComments": false,
     "resolveJsonModule": true,
-    "sourceMap": true,
+    "sourceMap": false,
     "strict": true,
     "strictPropertyInitialization": false,
     "target": "es5",

@@ -1,5 +1,5 @@
 {
-  "name": "@retil/common",
+  "name": "retil-common",
   "version": "0.5.1",
   "description": "A reactive source",
   "author": "James K Nelson <james@jamesknelson.com>",

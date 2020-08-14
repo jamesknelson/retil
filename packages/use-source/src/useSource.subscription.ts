@@ -1,29 +1,39 @@
-import { useMemo, useState, useEffect } from 'react'
-import { Source, hasSnapshot } from '@retil/source'
+import { useCallback, useMemo, useState, useEffect } from 'react'
+import {
+  Source,
+  getSnapshot,
+  hasSnapshot,
+  nullSource,
+  selectDefault,
+} from 'retil-source'
 import { useSubscription } from 'use-subscription'
 
-const nullSource: Source<any> = [
-  () => {},
-  (_: any) => {
-    return () => {}
-  },
-]
-
+export function useSource(maybeSource: null, ...defaultValues: [] | [any]): null
 export function useSource<T, U = T>(
-  source: Source<T> | null,
-  defaultValue?: U,
-): T | U {
-  const [getSnapshot, subscribe] = source || nullSource
-  const hasDefaultValue = arguments.length > 1
-  const getCurrentValue = useMemo(
-    () =>
-      getSnapshot === nullSource[0]
-        ? () => defaultValue
-        : !hasDefaultValue
-        ? getSnapshot
-        : () => (hasSnapshot([getSnapshot]) ? getSnapshot() : defaultValue),
-    [hasDefaultValue, defaultValue, getSnapshot],
+  source: Source<T>,
+  ...defaultValues: [] | [U]
+): T | U
+export function useSource<T = null, U = T>(
+  maybeSource: Source<T> | null,
+  ...defaultValues: [] | [U]
+): T | U | null {
+  const hasDefaultValue = defaultValues.length
+  const maybeDefaultValue = defaultValues[0]
+  const inputSource = useMemo(
+    () => maybeSource || nullSource,
+    // Sources are arrays, and if their items are equal, they're equivalent.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    maybeSource || nullSource,
   )
+  const source = useMemo(
+    () =>
+      hasDefaultValue
+        ? selectDefault(inputSource, maybeDefaultValue as U)
+        : inputSource,
+    [inputSource, hasDefaultValue, maybeDefaultValue],
+  )
+  const [get, select, subscribe] = source
+  const getCurrentValue = useCallback(() => select(get), [select, get])
   const subscription = useMemo(
     () => ({
       getCurrentValue,
@@ -38,14 +48,14 @@ export function useSource<T, U = T>(
   useEffect(() => {
     if (!hasDefaultValue) {
       return subscribe(() => {
-        if (!hasSnapshot([getSnapshot])) {
+        if (!hasSnapshot([get, select])) {
           setState(() => {
-            getSnapshot()
+            getSnapshot([get, select])
           })
         }
       })
     }
-  }, [hasDefaultValue, getSnapshot, subscribe])
+  }, [hasDefaultValue, get, select, subscribe])
 
   return useSubscription(subscription)
 }

@@ -4,7 +4,10 @@
   "compilerOptions": {
     "baseUrl": "./packages",
     "paths": {
-      "@retil/*": ["*/src"]
+      "retil": ["retil/src"],
+      "retil-common": ["retil-common/src"],
+      "retil-source": ["retil-source/src"],
+      "use-source": ["use-source/src"]
     }
   }
 }

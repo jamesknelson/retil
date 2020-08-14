@@ -1,5 +1,5 @@
 import { observe } from './observe'
-import { UncontrolledSource } from './source'
+import { Source } from './source'
 
 export interface StateController<T> {
   (state: T): void
@@ -10,7 +10,7 @@ export function createStateService<T>(
   // Doesn't accept a setter function, as it's not a hook that stores state
   // between renders and thus it wouldn't make sense to do so.
   initialState?: T,
-): readonly [UncontrolledSource<T>, StateController<T>] {
+): readonly [Source<T>, StateController<T>] {
   let hasState = arguments.length !== 0
   let state = initialState as T
   let next: null | ((value: T) => void) = null
@@ -26,10 +26,10 @@ export function createStateService<T>(
     }
   }
 
-  const source = observe<T>((output) => {
-    next = output.next
+  const source = observe<T>((onNext) => {
+    next = onNext
     if (hasState) {
-      output.next(state)
+      onNext(state)
     }
     return () => {
       next = null

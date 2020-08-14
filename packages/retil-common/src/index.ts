@@ -1,4 +1,5 @@
 export * from './areArraysShallowEqual'
+export * from './callArg'
 export * from './deferred'
 export * from './delay'
 export * from './fromEntries'

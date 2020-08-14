@@ -1,13 +1,20 @@
-import { delay } from '@retil/common'
-import { Source, createStateService, fuse, hasSnapshot, wait } from '../src'
+import { delay } from 'retil-common'
+import {
+  Source,
+  act,
+  createStateService,
+  fuse,
+  getSnapshot,
+  hasSnapshot,
+  wait,
+} from '../src'
 
 function sendToArray<T>(source: Source<T>): T[] {
-  const [getSnapshot, subscribe] = source
   const array = [] as T[]
   if (hasSnapshot(source)) {
-    array.unshift(getSnapshot())
+    array.unshift(getSnapshot(source))
   }
-  subscribe(() => array.unshift(getSnapshot()))
+  source[2](() => array.unshift(getSnapshot(source)))
   return array
 }
 
@@ -48,11 +55,10 @@ describe(`fuse`, () => {
     const [stateSource1, setState1] = createStateService(1)
     const [stateSource2, setState2] = createStateService(1)
     const source = fuse((use) => use(stateSource1) / use(stateSource2))
-    const [, , act] = source
     const output = sendToArray(source)
 
     expect(output).toEqual([1])
-    act(() => {
+    act(source, () => {
       setState1(4)
       setState2(2)
     })
@@ -82,7 +88,7 @@ describe(`fuse`, () => {
       const state1 = use(stateSource)
       return state1 % 2 === 0 ? use(missingSource, state1) : use(missingSource)
     })
-    const [, subscribe] = source
+    const [, , subscribe] = source
 
     const output = [hasSnapshot(source)] as any[]
     subscribe(() => output.unshift(hasSnapshot(source)))
@@ -115,9 +121,8 @@ describe(`fuse`, () => {
     const [stateSource, setState] = createStateService<number>()
     const source = fuse((use) => use(stateSource) * 2)
     const output = sendToArray(source)
-    const [, , act] = source
 
-    act(() => {
+    act(source, () => {
       setState(1)
       setState(2)
       setState(3)
@@ -131,9 +136,8 @@ describe(`fuse`, () => {
     const [stateSource, setState] = createStateService<number>()
     const source = fuse((use) => use(stateSource) * 2)
     const output = sendToArray(source)
-    const [, , act] = source
 
-    const actPromise = act(async () => {
+    const actPromise = act(source, async () => {
       setState(1)
       await delay(10)
       setState(2)
@@ -148,10 +152,10 @@ describe(`fuse`, () => {
 
   test('will not run the fusor again until an internal act() completes', async () => {
     const [stateSource, setState] = createStateService<number>()
-    const source = fuse((use, act) => {
+    const source = fuse((use, effect) => {
       const state = use(stateSource)
       if (state % 2 === 1) {
-        act(async () => {
+        return effect(async () => {
           setState((state) => state + 1)
           await delay(10)
         })
@@ -172,9 +176,8 @@ describe(`fuse`, () => {
 
   test('an asynchronous act() can called before subscribing', async () => {
     const [stateSource, setState] = createStateService<number>()
-    const source = fuse((use, act) => use(stateSource))
-    const [, , act] = source
-    await act(async () => {
+    const source = fuse((use) => use(stateSource))
+    await act(source, async () => {
       setState(1)
     })
 
@@ -198,5 +201,22 @@ describe(`fuse`, () => {
     setState(1)
     expect(output.reverse()).toEqual([1])
     expect(fuseCount).toBe(1)
+  })
+
+  test('0 is considered a value', () => {
+    const [stateSource] = createStateService(0)
+    const source = fuse((use) => use(stateSource))
+    const output = sendToArray(source)
+    expect(output.reverse()).toEqual([0])
+  })
+
+  test('can use a value of 0 as a default', () => {
+    const [stateSource] = createStateService(0)
+    const [missingSource] = createStateService()
+    const source = fuse((use) => {
+      const state = use(stateSource)
+      return state === 0 ? use(missingSource, state) : use(missingSource)
+    })
+    expect(hasSnapshot(source)).toBe(true)
   })
 })

@@ -1,16 +1,19 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { Suspense } from 'react'
 import { act, render } from '@testing-library/react'
-import { createStateService, fuse } from '@retil/source'
+
+import { createStateService, fuse, hasSnapshot } from 'retil-source'
 
 import { useSource as useSourceModern } from '../src/useSource.modern'
 import { useSource as useSourceSubscription } from '../src/useSource.subscription'
 
 function testUseSource(useSource: typeof useSourceModern) {
   test(`accepts null sources`, () => {
-    const Test = () => <>{useSource(null, 'default')}</>
+    const Test = () => (
+      <>{useSource(null, 'default') === null ? 'success' : 'failure'}</>
+    )
     const { container } = render(<Test />)
-    expect(container).toHaveTextContent('default')
+    expect(container).toHaveTextContent('success')
   })
 
   test(`can get the latest value`, () => {

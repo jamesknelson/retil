@@ -1,11 +1,13 @@
-import { isPromiseLike } from '@retil/common'
+import { isPromiseLike } from 'retil-common'
 
 export type Unsubscribe = () => void
+
+export type SourceGet = () => unknown
 
 /**
  * Return a snapshot, or throw a promise when there's no current value.
  */
-export type SourceGetSnapshot<T> = () => T
+export type SourceSelect<T> = (get: SourceGet) => T
 
 /**
  * Subscribe to notification of new snapshots being available.
@@ -33,29 +35,38 @@ export type SourceAct = <U>(callback: () => PromiseLike<U> | U) => Promise<U>
  * was thrown.
  */
 export type Source<T> = readonly [
-  SourceGetSnapshot<T>,
-  SourceSubscribe,
-  SourceAct?,
-]
-
-export type UncontrolledSource<T> = readonly [
-  SourceGetSnapshot<T>,
-  SourceSubscribe,
-]
-
-export type ControlledSource<T> = readonly [
-  SourceGetSnapshot<T>,
+  SourceGet,
+  SourceSelect<T>,
   SourceSubscribe,
   SourceAct,
 ]
 
-export function hasSnapshot([getSnapshot]: readonly [
-  SourceGetSnapshot<any>,
+export const nullSource: Source<null> = [
+  () => null,
+  (_: any) => null,
+  (_: any) => {
+    return () => {}
+  },
+  async <U>(cb: () => U | PromiseLike<U>) => cb(),
+]
+
+export function getSnapshot<T>([get, select]: readonly [
+  SourceGet,
+  SourceSelect<T>,
+  SourceSubscribe?,
+  SourceAct?,
+]): T {
+  return select(get)
+}
+
+export function hasSnapshot([get, select]: readonly [
+  SourceGet,
+  SourceSelect<any>,
   SourceSubscribe?,
   SourceAct?,
 ]): boolean {
   try {
-    getSnapshot()
+    select(get)
   } catch (errorOrPromise) {
     if (isPromiseLike(errorOrPromise)) {
       return false
@@ -64,16 +75,17 @@ export function hasSnapshot([getSnapshot]: readonly [
   return true
 }
 
-export function getSnapshot<T>([getSnapshot]: readonly [
-  SourceGetSnapshot<any>,
+export function getSnapshotPromise<T>([get, select]: readonly [
+  SourceGet,
+  SourceSelect<T>,
   SourceSubscribe?,
   SourceAct?,
 ]): Promise<T> {
   try {
-    return Promise.resolve(getSnapshot())
+    return Promise.resolve(select(get))
   } catch (errorOrPromise) {
     if (isPromiseLike(errorOrPromise)) {
-      return Promise.resolve(errorOrPromise).then(getSnapshot)
+      return Promise.resolve(errorOrPromise).then(() => select(get))
     }
     return Promise.reject(errorOrPromise)
   }

@@ -1,7 +1,7 @@
 {
-  "name": "@retil/source",
-  "version": "0.5.7",
-  "description": "A reactive source",
+  "name": "retil-source",
+  "version": "0.6.0",
+  "description": "Utilities to create and combine suspendable, reactive sources",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -31,5 +31,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "f69343053d6c30c7144b60e98289eb49fb2a5502"
+  "gitHead": "7b1a1ca551450ac7d49ee8fdd8b5b9b2512efd1c"
 }
