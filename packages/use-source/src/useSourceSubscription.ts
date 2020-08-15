@@ -7,18 +7,16 @@ import {
 } from 'retil-source'
 import { useSubscription } from 'use-subscription'
 
+import { UseSourceFunction, UseSourceOptions } from './useSourceType'
+
 const MissingToken = Symbol()
 
-export function useSource(maybeSource: null, ...defaultValues: [] | [any]): null
-export function useSource<T, U = T>(
-  source: Source<T>,
-  ...defaultValues: [] | [U]
-): T | U
-export function useSource<T = null, U = T>(
+export const useSourceSubscription: UseSourceFunction = <T = null, U = T>(
   maybeSource: Source<T> | null,
-  ...defaultValues: [] | [U]
-): T | U | null {
-  const hasDefaultValue = defaultValues.length
+  options: UseSourceOptions<U> = {},
+): T | U | null => {
+  const hasDefaultValue = 'defaultValue' in options
+  const { defaultValue, startTransition } = options
   const [core, inputSelect] = maybeSource || nullSource
   const select = useMemo(
     () =>
@@ -29,7 +27,18 @@ export function useSource<T = null, U = T>(
     [hasDefaultValue, inputSelect],
   )
   const getCurrentValue = useCallback(() => select(core), [core, select])
-  const subscribe = core[1]
+
+  const subscribe = useMemo(
+    () =>
+      startTransition
+        ? (callback: () => void) =>
+            core[1](() => {
+              startTransition(callback)
+            })
+        : core[1],
+    [core, startTransition],
+  )
+
   const subscription = useMemo(
     () => ({
       getCurrentValue,
@@ -39,13 +48,14 @@ export function useSource<T = null, U = T>(
   )
 
   // useSubscription doesn't suspend if its value changes to a missing value.
-  // This hack normalizes the it to act the same as useMutableSource.
+  // This hack normalizes it to act the same as useMutableSource.
   const [, setState] = useState()
   useEffect(() => {
     if (!hasDefaultValue) {
       return subscribe(() => {
         if (!hasSnapshot([core, select])) {
           setState(() => {
+            // Because hasSnapshot returns false, this'll return a promise.
             select(core)
           })
         }
@@ -54,5 +64,5 @@ export function useSource<T = null, U = T>(
   }, [hasDefaultValue, core, select, subscribe])
 
   const value = useSubscription(subscription)
-  return value === MissingToken ? defaultValues[0]! : value
+  return value === MissingToken || maybeSource === null ? defaultValue! : value
 }

@@ -13,6 +13,8 @@ import {
   nullSource,
 } from 'retil-source'
 
+import { UseSourceFunction, UseSourceOptions } from './useSourceType'
+
 interface ReactMutableSource {
   _source: SourceCore
   _getVersion: SourceGet
@@ -39,17 +41,14 @@ const mutableSources = new WeakMap<SourceCore, ReactMutableSource>([
 ])
 const subscribe = ([, subscribe]: SourceCore, cb: () => void) => subscribe(cb)
 
-export function useSource(maybeSource: null, ...defaultValues: [] | [any]): null
-export function useSource<T, U = T>(
-  source: Source<T>,
-  ...defaultValues: [] | [U]
-): T | U
-export function useSource<T = null, U = T>(
+export const useSourceConcurrent: UseSourceFunction = <T = null, U = T>(
   maybeSource: Source<T> | null,
-  ...defaultValues: [] | [U]
-): T | U | null {
-  const hasDefaultValue = defaultValues.length
+  options: UseSourceOptions<U> = {},
+): T | U | null => {
+  const hasDefaultValue = 'defaultValue' in options
+  const { defaultValue, startTransition } = options
   const [core, select] = maybeSource || nullSource
+
   const getSnapshot = useMemo(
     () =>
       hasDefaultValue
@@ -57,6 +56,17 @@ export function useSource<T = null, U = T>(
             hasSnapshot([core, select]) ? select(core) : MissingToken
         : select,
     [hasDefaultValue, select],
+  )
+
+  const subscribeWithTransition = useMemo(
+    () =>
+      startTransition
+        ? ([, subscribe]: SourceCore, callback: () => void) =>
+            subscribe(() => {
+              startTransition(callback)
+            })
+        : subscribe,
+    [startTransition],
   )
 
   let mutableSource = mutableSources.get(core)!
@@ -67,6 +77,10 @@ export function useSource<T = null, U = T>(
     mutableSources.set(core, mutableSource)
   }
 
-  const value = useMutableSource(mutableSource, getSnapshot, subscribe)
-  return value === MissingToken ? defaultValues[0]! : value
+  const value = useMutableSource(
+    mutableSource,
+    getSnapshot,
+    subscribeWithTransition,
+  )
+  return value === MissingToken || maybeSource === null ? defaultValue! : value
 }

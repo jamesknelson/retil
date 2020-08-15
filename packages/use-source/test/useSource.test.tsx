@@ -2,15 +2,18 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { Suspense } from 'react'
 import { act, render } from '@testing-library/react'
 
-import { createState, fuse, hasSnapshot } from 'retil-source'
+import { createState, fuse } from 'retil-source'
 
-import { useSource as useSourceModern } from '../src/useSource.modern'
-import { useSource as useSourceSubscription } from '../src/useSource.subscription'
+import { useSourceConcurrent, useSourceSubscription } from '../src'
 
-function testUseSource(useSource: typeof useSourceModern) {
+function testUseSource(useSource: typeof useSourceConcurrent) {
   test(`accepts null sources`, () => {
     const Test = () => (
-      <>{useSource(null, 'default') === null ? 'success' : 'failure'}</>
+      <>
+        {useSource(null, { defaultValue: 'default' }) === 'default'
+          ? 'success'
+          : 'failure'}
+      </>
     )
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('success')
@@ -46,7 +49,7 @@ function testUseSource(useSource: typeof useSourceModern) {
     const Test = () => {
       const stateHook = React.useState(null)
       setState = stateHook[1]
-      return <>{useSource(stateSource, 'null')}</>
+      return <>{useSource(stateSource, { defaultValue: 'null' })}</>
     }
     const { container } = render(
       <Suspense fallback="loading">
@@ -62,7 +65,9 @@ function testUseSource(useSource: typeof useSourceModern) {
 
   test(`doesn't suspends when there is no initial value, but a default value is provided`, () => {
     const [stateSource] = createState()
-    const Test = () => <>{useSource(stateSource, 'default')}</>
+    const Test = () => (
+      <>{useSource(stateSource, { defaultValue: 'default' })}</>
+    )
     const { container } = render(
       <Suspense fallback="loading">
         <Test />
@@ -74,7 +79,9 @@ function testUseSource(useSource: typeof useSourceModern) {
 
   test(`causes a re-render when the source notifies subscribers of a new value`, () => {
     const [stateSource, setState] = createState()
-    const Test = () => <>{useSource(stateSource, 'default')}</>
+    const Test = () => (
+      <>{useSource(stateSource, { defaultValue: 'default' })}</>
+    )
     const { container } = render(<Test />)
 
     act(() => {
@@ -91,7 +98,7 @@ function testUseSource(useSource: typeof useSourceModern) {
       const state = use(stateSource)
       return state === 0 ? use(missingSource, state) : use(missingSource)
     })
-    const Test = () => <>{useSource(source, 'default')}</>
+    const Test = () => <>{useSource(source, { defaultValue: 'default' })}</>
     const { container } = render(<Test />)
 
     expect(container).not.toHaveTextContent('default')
@@ -128,7 +135,7 @@ function testUseSource(useSource: typeof useSourceModern) {
 }
 
 describe(`useSource (modern implementation)`, () => {
-  const useSource = useSourceModern
+  const useSource = useSourceConcurrent
   testUseSource(useSource)
 })
 
