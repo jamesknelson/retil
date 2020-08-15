@@ -202,4 +202,18 @@ describe(`fuse`, () => {
     })
     expect(hasSnapshot(source)).toBe(true)
   })
+
+  test('can dedupe values selected from another source', () => {
+    const [stateSource, setState] = createState({ value: 1 })
+    const source = fuse((use) => use(stateSource).value)
+
+    const output = sendToArray(source)
+
+    setState({ value: 2 })
+    setState({ value: 2 })
+    setState({ value: 2 })
+    setState({ value: 3 })
+
+    expect(output.reverse()).toEqual([1, 2, 3])
+  })
 })
