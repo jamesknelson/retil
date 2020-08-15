@@ -20,7 +20,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-source": "^0.7.1",
+    "retil-source": "^0.8.0",
     "tslib": "2.0.1",
     "use-subscription": "1.4.1"
   },

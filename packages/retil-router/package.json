@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "path-to-regexp": "^6.1.0",
-    "retil-common": "^0.7.0",
-    "retil-history": "^0.7.1",
-    "retil-source": "^0.7.1",
+    "retil-common": "^0.8.0",
+    "retil-history": "^0.8.0",
+    "retil-source": "^0.8.0",
     "tslib": "2.0.1",
     "use-source": "^0.8.0"
   },
