@@ -1,0 +1,164 @@
+import {
+  HistoryAction,
+  HistoryService,
+  HistoryState,
+  applyLocationAction,
+  createMemoryHistory,
+  getDefaultBrowserHistory,
+  parseLocation,
+} from 'retil-history'
+import { fuse, getSnapshotPromise, getSnapshot } from 'retil-source'
+
+import {
+  RouterController,
+  RouterFunction,
+  RouterRequest,
+  RouterResponse,
+  RouterService,
+  RouterSnapshot,
+} from './routerTypes'
+import { waitForMutablePromiseList } from './routerUtils'
+
+import { routeNormalize } from './routers/routeNormalize'
+
+export interface RouterOptions<
+  Ext = {},
+  S extends HistoryState = HistoryState
+> {
+  basename?: string
+  followRedirects?: boolean
+  history?: HistoryService<S>
+  maxRedirects?: number
+  normalizePathname?: boolean
+  transformRequest?: (request: RouterRequest<S>) => RouterRequest<S> & Ext
+}
+
+export function createRouter<
+  Ext = {},
+  S extends HistoryState = HistoryState,
+  Response extends RouterResponse = RouterResponse
+>(
+  router: RouterFunction<RouterRequest<S> & Ext, Response>,
+  options: RouterOptions<Ext, S> = {},
+): RouterService<Ext, S, Response> {
+  let redirectCounter = 0
+
+  const {
+    basename = '',
+    history = getDefaultBrowserHistory() as HistoryService<S>,
+    followRedirects = true,
+    maxRedirects = 0,
+    normalizePathname = true,
+    transformRequest,
+  } = options
+  const normalizedRouter = normalizePathname ? routeNormalize(router) : router
+  const [historySource, historyController] = history
+
+  // Create a source for just the request, so that our fusor only produces new
+  // values when the request has changed (and not the pendingLocation).
+  const historyRequestSource = fuse((use) => use(historySource).request)
+
+  const source = fuse<RouterSnapshot<Ext, S, Response>>((use, effect) => {
+    const historyRequest = use(historyRequestSource)
+    const routerRequest: RouterRequest<S> = {
+      basename,
+      params: {},
+      ...historyRequest,
+    }
+    const request: RouterRequest<S> & Ext = transformRequest
+      ? transformRequest(routerRequest)
+      : (routerRequest as RouterRequest<S> & Ext)
+
+    const response = ({
+      head: [],
+      headers: {},
+      pendingCommits: [],
+      pendingSuspenses: [],
+    } as any) as Response
+
+    const content = normalizedRouter(request, response)
+
+    if (followRedirects && isRedirect(response)) {
+      return effect(() => {
+        if (++redirectCounter > maxRedirects) {
+          throw new Error('Possible redirect loop detected')
+        }
+
+        const redirectTo =
+          response.headers?.Location || response.headers?.location
+
+        if (redirectTo === undefined) {
+          throw new Error('Redirect responses require a "Location" header')
+        }
+
+        return historyController.navigate(redirectTo, { replace: true })
+      })
+    }
+
+    redirectCounter = 0
+
+    const snapshot: RouterSnapshot<Ext, S, Response> = {
+      content,
+      response,
+      request,
+    }
+
+    return snapshot
+  })
+
+  const controller: RouterController<Ext, S, Response> = {
+    // TODO:
+    // - prevent these controller methods form returning until the responses
+    //   are complete
+    // - when the responses aren't complete, add a `pendingRoute` prop to the
+    //   snapshot
+    ...historyController,
+    async prefetch(
+      action: HistoryAction<S>,
+      options: {
+        method?: string
+      } = {},
+    ): Promise<RouterSnapshot<Ext, S, Response>> {
+      const currentRequest = getSnapshot(historySource).request
+      const location = applyLocationAction(currentRequest, action)
+      return await getRouterSnapshot(normalizedRouter, location, {
+        basename,
+        method: options.method,
+      })
+    },
+  }
+
+  return [source, controller]
+}
+
+export interface GetRouteOptions<Ext> {
+  basename?: string
+  method?: string
+  normalizePathname?: boolean
+  requestExtension?: Ext
+}
+
+export async function getRouterSnapshot<
+  Ext,
+  S extends HistoryState = HistoryState,
+  Response extends RouterResponse = RouterResponse
+>(
+  router: RouterFunction<RouterRequest<S> & Ext, Response>,
+  action: HistoryAction<S>,
+  options: GetRouteOptions<Ext> = {},
+): Promise<RouterSnapshot<Ext, S, Response>> {
+  const method = options.method || 'GET'
+  const history = createMemoryHistory(parseLocation(action), method)
+  const [routerSource] = createRouter(router, {
+    history,
+    ...options,
+    followRedirects: false,
+  })
+  const route = await getSnapshotPromise(routerSource)
+  await waitForMutablePromiseList(route.response.pendingSuspenses)
+  return route
+}
+
+function isRedirect(response: RouterResponse) {
+  return response.status && response.status >= 300 && response.status < 400
+}

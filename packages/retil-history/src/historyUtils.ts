@@ -6,7 +6,7 @@ import {
   HistoryActionObject,
   HistoryLocation,
   HistoryState,
-} from './history'
+} from './historyTypes'
 
 export function createHref(request: HistoryActionObject<any>): string {
   return (

@@ -6,6 +6,8 @@
     "paths": {
       "retil": ["retil/src"],
       "retil-common": ["retil-common/src"],
+      "retil-history": ["retil-history/src"],
+      "retil-router": ["retil-router/src"],
       "retil-source": ["retil-source/src"],
       "use-source": ["use-source/src"]
     }

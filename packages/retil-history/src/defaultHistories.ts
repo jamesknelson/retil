@@ -1,5 +1,5 @@
 import { createBrowserHistory } from './historyServices'
-import { HistoryService } from './history'
+import { HistoryService } from './historyTypes'
 
 export const getDefaultBrowserHistory: {
   (window?: Window): HistoryService

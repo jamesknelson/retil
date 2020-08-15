@@ -1,7 +1,7 @@
 {
-  "name": "retil-history",
-  "version": "0.7.1",
-  "description": "Retil sources for consuming and interacting with browser history.",
+  "name": "retil-router",
+  "version": "0.8.0",
+  "description": "Simple, powerful routing that grows with your app.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -20,17 +20,24 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "history": "^5.0.0",
-    "querystring": "^0.2.0",
+    "path-to-regexp": "^6.1.0",
     "retil-common": "^0.7.0",
+    "retil-history": "^0.7.1",
     "retil-source": "^0.7.1",
-    "tslib": "2.0.1"
+    "tslib": "2.0.1",
+    "use-source": "^0.8.0"
   },
   "devDependencies": {
     "typescript": "3.8.3"
   },
   "files": [
     "dist"
+  ],
+  "keywords": [
+    "react",
+    "routing",
+    "router",
+    "navigation"
   ],
   "gitHead": "7b1a1ca551450ac7d49ee8fdd8b5b9b2512efd1c"
 }

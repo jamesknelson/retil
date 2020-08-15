@@ -1,4 +1,4 @@
 export * from './defaultHistories'
-export * from './history'
 export * from './historyServices'
-export * from './utils'
+export * from './historyTypes'
+export * from './historyUtils'

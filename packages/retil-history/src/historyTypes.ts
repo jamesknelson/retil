@@ -52,7 +52,7 @@ export interface HistoryController<S extends HistoryState = HistoryState> {
   block(blocker: HistoryBlockPredicate<S>): Unblock
 
   navigate(
-    action: string | HistoryAction<S>,
+    action: HistoryAction<S>,
     options?: {
       method?: string
       replace?: boolean
@@ -66,3 +66,8 @@ export type HistoryBlockPredicate<S extends HistoryState = HistoryState> = (
 ) => Promise<boolean>
 
 export type Unblock = () => void
+
+export type HistoryLocationReducer<S extends HistoryState = HistoryState> =
+  // This returns a partial request, as a key and cache still need to be added
+  // by the router itself.
+  (location: HistoryLocation<S>, action: HistoryAction<S>) => HistoryLocation<S>

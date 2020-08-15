@@ -9,20 +9,15 @@ import {
 import { act, mergeLatest, observe } from 'retil-source'
 
 import {
-  HistoryAction,
   HistoryController,
   HistoryLocation,
+  HistoryLocationReducer,
   HistoryService,
   HistorySnapshot,
   HistoryState,
   HistoryRequest,
-} from './history'
-import { applyLocationAction, parseLocation } from './utils'
-
-export type HistoryLocationReducer<S extends HistoryState = HistoryState> =
-  // This returns a partial request, as a key and cache still need to be added
-  // by the router itself.
-  (location: HistoryLocation<S>, action: HistoryAction<S>) => HistoryLocation<S>
+} from './historyTypes'
+import { applyLocationAction, parseLocation } from './historyUtils'
 
 export function createBrowserHistory<S extends HistoryState = HistoryState>(
   options: BrowserHistoryOptions,
@@ -33,26 +28,30 @@ export function createBrowserHistory<S extends HistoryState = HistoryState>(
 }
 
 export function createMemoryHistory<S extends HistoryState = HistoryState>(
-  initialURL: string,
+  initialLocation: string | HistoryLocation<S>,
+  initialMethod = 'GET',
 ): HistoryService<S> {
   return createHistoryService(
-    baseCreateMemoryHistory({ initialEntries: [initialURL] }) as MemoryHistory<
-      S
-    >,
+    baseCreateMemoryHistory({
+      initialEntries: [parseLocation(initialLocation)],
+    }) as MemoryHistory<S>,
+    initialMethod,
   )
 }
 
 export function createHistoryService<S extends HistoryState = HistoryState>(
   history: History<S>,
+  initialMethod = 'GET',
   locationReducer: HistoryLocationReducer<S> = applyLocationAction,
 ): HistoryService<S> {
   const actions = new Set<Promise<any>>()
 
+  let ignoreChange = false
   let pendingLocation: null | HistoryLocation<S> = null
   let lastRequest = {
     ...parseLocation(history.location),
     key: history.location.key,
-    method: 'GET',
+    method: initialMethod,
   } as HistoryRequest<S>
   let nextMethod: string = 'GET'
 
@@ -60,17 +59,19 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     (next) => {
       next({ trigger: 'POP', request: lastRequest })
       return history.listen(({ action, location }) => {
-        const method = nextMethod
-        nextMethod = 'GET'
-        lastRequest = {
-          ...parseLocation(location),
-          key: location.key,
-          method,
+        if (!ignoreChange) {
+          const method = nextMethod
+          nextMethod = 'GET'
+          lastRequest = {
+            ...parseLocation(location),
+            key: location.key,
+            method,
+          }
+          next({
+            trigger: action,
+            request: lastRequest,
+          })
         }
-        next({
-          trigger: action,
-          request: lastRequest,
-        })
       })
     },
   )
@@ -136,7 +137,9 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
         // in a request with a different key (as the method will be
         // changed to GET)
         if (navigated && method !== 'GET') {
+          ignoreChange = true
           history.replace(location, location.state)
+          ignoreChange = false
         }
         return navigated
       })

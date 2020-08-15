@@ -33,6 +33,7 @@
     "eslint-plugin-react-hooks": "^2.3.0",
     "jest": "^24.9.0",
     "lerna": "^3.22.1",
+    "parcel": "^2.0.0-beta.1",
     "react": "0.0.0-experimental-94c0244ba",
     "react-dom": "0.0.0-experimental-94c0244ba",
     "react-test-renderer": "^0.0.0-experimental-94c0244ba",
