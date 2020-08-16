@@ -51,7 +51,7 @@ export function useRouter<
   const {
     basename,
     history,
-    initialState: initialSnapshot,
+    initialState,
     onResponseComplete,
     transformRequest,
     transitionTimeoutMs,
@@ -61,7 +61,7 @@ export function useRouter<
   const onResponseCompleteRef = useRef(onResponseComplete)
   onResponseCompleteRef.current = onResponseComplete
 
-  const [snapshotToUse, setSnapshotToUse] = useState(initialSnapshot || null)
+  const [snapshotToUse, setSnapshotToUse] = useState(initialState || null)
 
   const routerServiceOrSnapshot = useMemo(
     () =>
@@ -75,7 +75,7 @@ export function useRouter<
   )
 
   useEffect(() => {
-    if (initialSnapshot) {
+    if (initialState) {
       setSnapshotToUse(null)
     }
     // We only want this to be called on mount.
