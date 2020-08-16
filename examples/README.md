@@ -1,8 +1,9 @@
 # Running the examples
 
-First, you'll need to install the project's dev dependencies:
+First, you'll need to clone this repository and install the project's dev dependencies. Retil uses [yarn](https://yarnpkg.com/) for dependency management -- npm may work, but there are no guarantees.
 
 ```bash
+git clone git@github.com:jamesknelson/retil.git
 cd retil
 yarn install
 ```

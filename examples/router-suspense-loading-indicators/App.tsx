@@ -2,7 +2,6 @@ import * as React from 'react'
 
 import { delay } from '../../packages/retil-common/src'
 import {
-  Content,
   Link,
   RouterProvider,
   routeAsync,
@@ -40,7 +39,7 @@ export function App() {
       <main>
         {route.pending && 'loading concurrently...'}
         <React.Suspense fallback="loading fallback...">
-          <Content />
+          {route.content}
         </React.Suspense>
       </main>
     </RouterProvider>

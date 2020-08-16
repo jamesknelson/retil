@@ -1,7 +1,6 @@
 import * as React from 'react'
 
 import {
-  Content,
   Link,
   NotFoundBoundary,
   RouterProvider,
@@ -28,7 +27,7 @@ export function App() {
       </nav>
       <main>
         <NotFoundBoundary renderError={() => <h1>404 Not Found</h1>}>
-          <Content />
+          {route.content}
         </NotFoundBoundary>
       </main>
     </RouterProvider>

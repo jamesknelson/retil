@@ -1,7 +1,6 @@
 import * as React from 'react'
 
 import {
-  Content,
   Link,
   RouterProvider,
   RouterRequest,
@@ -33,9 +32,7 @@ export function App() {
         &nbsp;&middot;&nbsp;
         <Link to="/not-found">Not Found</Link>
       </nav>
-      <main>
-        <Content />
-      </main>
+      <main>{route.content}</main>
     </RouterProvider>
   )
 }
