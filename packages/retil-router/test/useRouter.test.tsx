@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/extend-expect'
-import React, { Suspense } from 'react'
+import React, { Suspense, useState } from 'react'
 import { delay } from 'retil-common'
 import { createMemoryHistory } from 'retil-history'
 import { act, render } from '@testing-library/react'
@@ -46,6 +46,23 @@ function testUseRouter(useRouter: typeof _useRouter) {
     const Test = () => <>{useRouter(router, { transformRequest }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
+  })
+
+  test(`can change routers`, () => {
+    const router1: RouterFunction = () => 'router-1'
+    const router2: RouterFunction = () => 'router-2'
+    let setState!: any
+    const Test = () => {
+      const [state, _setState] = useState({ router: router1 })
+      setState = _setState
+      return <>{useRouter(state.router).content}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('router-1')
+    act(() => {
+      setState({ router: router2 })
+    })
+    expect(container).toHaveTextContent('router-2')
   })
 }
 
