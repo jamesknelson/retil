@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { HistoryService } from 'retil-history'
+import { HistoryService, getDefaultBrowserHistory } from 'retil-history'
 
 import {
   RouterFunction,
@@ -63,15 +63,19 @@ export function useRouter<
 
   const [snapshotToUse, setSnapshotToUse] = useState(initialState || null)
 
+  const historyRef = useRef<HistoryService<State> | null>(history || null)
+  if (!historyRef.current && !snapshotToUse) {
+    historyRef.current = getDefaultBrowserHistory() as HistoryService<State>
+  }
+
   const routerServiceOrSnapshot = useMemo(
     () =>
       snapshotToUse ||
-      createRouter(routerFunction, {
+      createRouter(routerFunction, historyRef.current!, {
         basename,
-        history,
         transformRequest,
       }),
-    [basename, history, routerFunction, snapshotToUse, transformRequest],
+    [basename, routerFunction, snapshotToUse, transformRequest],
   )
 
   useEffect(() => {

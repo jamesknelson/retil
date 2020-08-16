@@ -64,7 +64,7 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
 
   useEffect(() => {
     if (routerSource) {
-      return subscribe(routerSource, () => {
+      const handleNewSnapshot = () => {
         const snapshot = getSnapshot(routerSource)
         if (
           transitionTimeoutMs === 0 ||
@@ -87,7 +87,11 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
             }
           })
         }
-      })
+      }
+
+      handleNewSnapshot()
+
+      return subscribe(routerSource, handleNewSnapshot)
     }
   }, [routerSource, transitionTimeoutMs])
 

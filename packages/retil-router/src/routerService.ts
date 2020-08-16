@@ -28,7 +28,6 @@ export interface RouterOptions<
 > {
   basename?: string
   followRedirects?: boolean
-  history?: HistoryService<S>
   maxRedirects?: number
   normalizePathname?: boolean
   transformRequest?: (request: RouterRequest<S>) => RouterRequest<S> & Ext
@@ -40,13 +39,13 @@ export function createRouter<
   Response extends RouterResponse = RouterResponse
 >(
   router: RouterFunction<RouterRequest<S> & Ext, Response>,
-  options: RouterOptions<Ext, S> = {},
+  history: HistoryService<S>,
+  options: RouterOptions<Ext, S>,
 ): RouterService<Ext, S, Response> {
   let redirectCounter = 0
 
   const {
     basename = '',
-    history = getDefaultBrowserHistory() as HistoryService<S>,
     followRedirects = true,
     maxRedirects = 0,
     normalizePathname = true,
@@ -155,8 +154,7 @@ export async function getInitialStateAndResponse<
 ): Promise<readonly [RouterState<Ext, S>, Response]> {
   const method = options.method || 'GET'
   const history = createMemoryHistory(parseLocation(action), method)
-  const [routerSource] = createRouter(router, {
-    history,
+  const [routerSource] = createRouter(router, history, {
     ...options,
     followRedirects: false,
   })

@@ -48,7 +48,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('james')
   })
 
-  test(`can change routers`, () => {
+  test.only(`can change routers`, () => {
     const router1: RouterFunction = () => 'router-1'
     const router2: RouterFunction = () => 'router-2'
     let setState!: any
