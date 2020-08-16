@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { HistoryService } from 'retil-history'
 
 import {
@@ -23,6 +23,8 @@ export interface UseRouterOptions<
 
   history?: HistoryService<State>
 
+  initialSnapshot?: RouterSnapshot<Ext, State, Response>
+
   /**
    * Called when a complete response object becomes available.
    */
@@ -45,14 +47,13 @@ export function useRouter<
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  routerFunctionOrInitialSnapshot:
-    | RouterFunction<RouterRequest<State> & Ext, Response>
-    | RouterSnapshot<Ext, State, Response>,
+  routerFunction: RouterFunction<RouterRequest<State> & Ext, Response>,
   options: UseRouterOptions<Ext, State, Response> = {},
 ): readonly [Route<Ext, State>, RouterController<Ext, State, Response>] {
   const {
     basename,
     history,
+    initialSnapshot,
     onResponseComplete,
     transformRequest,
     transitionTimeoutMs,
@@ -61,18 +62,28 @@ export function useRouter<
   const onResponseCompleteRef = useRef(onResponseComplete)
   onResponseCompleteRef.current = onResponseComplete
 
-  const routerServiceOrInitialSnapshot = useMemo(
+  const [snapshotToUse, setSnapshotToUse] = useState(initialSnapshot || null)
+
+  const routerServiceOrSnapshot = useMemo(
     () =>
-      typeof routerFunctionOrInitialSnapshot === 'function'
-        ? createRouter(routerFunctionOrInitialSnapshot, {
-            basename,
-            history,
-            transformRequest,
-          })
-        : routerFunctionOrInitialSnapshot,
-    [basename, history, routerFunctionOrInitialSnapshot, transformRequest],
+      snapshotToUse ||
+      createRouter(routerFunction, {
+        basename,
+        history,
+        transformRequest,
+      }),
+    [basename, history, routerFunction, snapshotToUse, transformRequest],
   )
-  return useRouterService(routerServiceOrInitialSnapshot, {
+
+  useEffect(() => {
+    if (initialSnapshot) {
+      setSnapshotToUse(null)
+    }
+    // We only want this to be called on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return useRouterService(routerServiceOrSnapshot, {
     transitionTimeoutMs,
   })
 }

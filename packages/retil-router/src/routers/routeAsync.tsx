@@ -44,6 +44,10 @@ export function routeAsync<
   asyncRouter: (request: Request, response: Response) => PromiseLike<ReactNode>,
 ): RouterFunction<Request, Response> {
   return routeProvide<Request, Response>((request, response) => {
+    if (!response) {
+      debugger
+    }
+
     const promisedContent = asyncRouter(request, response)
 
     if (!isPromiseLike(promisedContent)) {

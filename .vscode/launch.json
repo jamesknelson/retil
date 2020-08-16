@@ -2,9 +2,24 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Debug Tests - @retil/source",
+      "name": "Debug Tests - retil-router",
       "type": "node",
-      "cwd": "${workspaceFolder}/packages/source",
+      "cwd": "${workspaceFolder}/packages/retil-router",
+      "request": "launch",
+      "runtimeArgs": [
+        "--inspect-brk",
+        "${workspaceRoot}/node_modules/.bin/jest",
+        "--runInBand",
+        "--watch"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "port": 9229
+    },
+    {
+      "name": "Debug Tests - retil-source",
+      "type": "node",
+      "cwd": "${workspaceFolder}/packages/retil-source",
       "request": "launch",
       "runtimeArgs": [
         "--inspect-brk",

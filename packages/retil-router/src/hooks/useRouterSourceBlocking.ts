@@ -1,17 +1,17 @@
 /**
- * For the legacy/blocking mode hook, we can't just useSource if we want to
+ * For the blocking mode hook, we can't just `useSource()` if we want to
  * get route transitions which wait for the next route to load, because
- * useSource always immediately sets state.
+ * useSource() (and useSubscription()) always immediately sets state --
+ * even if we provide a `startTransition` function.
  *
- * We also can't rely on any fake transitions stuff added to the legacy
- * useSource hook, as its possible that the app will use the modern useSource,
- * (as useMutableSource is available), but still won't be using concurrent mode.
- *
- * So the result is, if we want transitions without concurrent mode, we need to
- * manually manage the subscription and state here.
+ * In order to subscribe to a source *and maybe wait before saving the received
+ * value to React state*, we'll need custom subscription logic. That's what
+ * this hook provides.
  */
 
-/// <reference types="react/experimental" />
+import { useEffect, useRef, useState } from 'react'
+import { delay } from 'retil-common'
+import { getSnapshot, subscribe } from 'retil-source'
 
 import {
   RouterHistoryState,
@@ -19,6 +19,7 @@ import {
   RouterSnapshot,
   RouterSource,
 } from '../routerTypes'
+import { waitForMutablePromiseList } from '../routerUtils'
 
 import {
   UseRouterSourceFunction,
@@ -37,62 +38,58 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     | RouterSnapshot<Ext, State, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
-  throw new Error('unimplemented')
+  const { transitionTimeoutMs = DefaultTransitionTimeoutMs } = options
+  const initialSnapshot = (Array.isArray(serviceOrInitialSnapshot)
+    ? null
+    : serviceOrInitialSnapshot) as null | RouterSnapshot<Ext, State, Response>
+  const routerSource = initialSnapshot
+    ? null
+    : (serviceOrInitialSnapshot as RouterSource<Ext, State, Response>)
+
+  const [state, setState] = useState<
+    [
+      RouterSnapshot<Ext, State, Response>,
+      RouterSnapshot<Ext, State, Response> | null,
+    ]
+  >(() => [initialSnapshot || getSnapshot(routerSource!), null])
+
+  const hasUnmountedRef = useRef(false)
+
+  useEffect(
+    () => () => {
+      hasUnmountedRef.current = true
+    },
+    [],
+  )
+
+  useEffect(() => {
+    if (routerSource) {
+      return subscribe(routerSource, () => {
+        const snapshot = getSnapshot(routerSource)
+        if (
+          transitionTimeoutMs === 0 ||
+          !snapshot.response.pendingSuspenses.length
+        ) {
+          setState([snapshot, null])
+        } else {
+          setState(([currentSnapshot]) => [currentSnapshot, snapshot])
+
+          Promise.race([
+            delay(transitionTimeoutMs),
+            waitForMutablePromiseList(snapshot.response.pendingSuspenses),
+          ]).then(() => {
+            if (!hasUnmountedRef.current) {
+              setState(([latestSnapshot, pendingSnapshot]) =>
+                snapshot === pendingSnapshot
+                  ? [snapshot, null]
+                  : [latestSnapshot, pendingSnapshot],
+              )
+            }
+          })
+        }
+      })
+    }
+  }, [routerSource, transitionTimeoutMs])
+
+  return [state[0], !!state[1]]
 }
-
-//   const [route, setRoute] = useState<RouterSnapshot<S, Response>>(() => {
-//     if (initialRoute) {
-//       return initialRoute
-//     } else {
-//       const history = historyRef.current!
-//       return Array.from(
-//         generateSyncRoutes(router, history.location, {
-//           basename,
-//           followRedirects: true,
-//           history,
-//         }),
-//       ).pop()!
-//     }
-//   })
-
-//     const transitionCountRef = useRef(0)
-//     transitionRoute = useCallback(
-//       (route: RouterSnapshot<S, Response>) => {
-//         if (
-//           transitionTimeoutMs === 0 ||
-//           !route.response.pendingSuspenses.length
-//         ) {
-//           setRoute(route)
-//         } else {
-//           // Force a refresh to pick up our transitioning request
-//           setRoute((state) => ({ ...state }))
-
-//           const transitionCount = ++transitionCountRef.current
-
-//           Promise.race([
-//             waitForMutablePromiseList(route.response.pendingSuspenses),
-//             new Promise((resolve) => setTimeout(resolve, transitionTimeoutMs)),
-//           ]).then(() => {
-//             if (transitionCount === transitionCountRef.current) {
-//               setRoute(route)
-//             }
-//           })
-//         }
-//       },
-//       [transitionTimeoutMs],
-//     )
-//     useEffect(() => {
-//       return () => {
-//         transitionCountRef.current += 1
-//       }
-//     }, [])
-
-//   useEffect(() => {
-//     const browserHistory = getBrowserHistory(window) as History<S>
-//     historyRef.current = browserHistory
-//     return browserHistory.listen(({ action, location }) => {
-//       if (action === 'POP') {
-//         transition('pop', 'GET', () => location)
-//       }
-//     })
-//   }, [transition, window])
