@@ -114,7 +114,7 @@ export default function App() {
   const route = useRouter(router)
   
   return (
-    <RouterProvider route={route} controller={controller}>
+    <RouterProvider route={route}>
       <AppLayout>
         {route.content}
       </AppLayout>
