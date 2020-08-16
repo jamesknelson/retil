@@ -1,8 +1,8 @@
 import * as React from 'react'
-import { HistoryAction, createHref, parseAction } from 'retil-history'
+import { createHref, parseAction } from 'retil-history'
 
 import { useRouterController } from '../hooks/useRouterController'
-import { RouterFunction, RouterRequest } from '../routerTypes'
+import { RouterAction, RouterFunction, RouterRequest } from '../routerTypes'
 
 export interface RedirectProps {
   href: string
@@ -14,7 +14,7 @@ export const Redirect: React.SFC<RedirectProps> = (props) => {
 }
 
 export function routeRedirect<Request extends RouterRequest = RouterRequest>(
-  to: HistoryAction<any> | ((request: Request) => HistoryAction<any>),
+  to: RouterAction<any> | ((request: Request) => RouterAction<any>),
   status = 302,
 ): RouterFunction<Request> {
   return (fromRequest, response) => {

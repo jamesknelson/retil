@@ -2,10 +2,14 @@
 
 import * as React from 'react'
 import { useMemo } from 'react'
-import { HistoryState } from 'retil-history'
 import { useSource } from 'use-source'
 
-import { RouterResponse, RouterSnapshot, RouterSource } from '../routerTypes'
+import {
+  RouterHistoryState,
+  RouterResponse,
+  RouterSnapshot,
+  RouterSource,
+} from '../routerTypes'
 
 import {
   UseRouterSourceFunction,
@@ -17,7 +21,7 @@ const { unstable_useTransition: useTransition } = React
 
 export const useRouterSourceConcurrent: UseRouterSourceFunction = <
   Ext = {},
-  State extends HistoryState = HistoryState,
+  State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
   serviceOrInitialSnapshot:

@@ -1,17 +1,22 @@
-import { HistoryState } from 'retil-history'
-
-import { RouterResponse, RouterSource, RouterSnapshot } from '../routerTypes'
+import {
+  RouterHistoryState,
+  RouterResponse,
+  RouterSource,
+  RouterSnapshot,
+} from '../routerTypes'
 
 import {
   UseRouterSourceFunction,
   UseRouterSourceOptions,
 } from './useRouterSourceCommon'
-import { useRouterSourceConcurrent } from './useRouterSourceConcurrent'
 
-// TODO: add a legacy router service
+// Avoid the `use` name to disable the no conditional hooks lint check.
+import { useRouterSourceBlocking as _useRouterSourceBlocking } from './useRouterSourceBlocking'
+import { useRouterSourceConcurrent as _useRouterSourceConcurrent } from './useRouterSourceConcurrent'
+
 export const useRouterSource: UseRouterSourceFunction = <
   Ext = {},
-  State extends HistoryState = HistoryState,
+  State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
   serviceOrInitialSnapshot:
@@ -19,7 +24,9 @@ export const useRouterSource: UseRouterSourceFunction = <
     | RouterSnapshot<Ext, State, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
-  return useRouterSourceConcurrent(serviceOrInitialSnapshot, options)
+  return options.unstable_isConcurrent
+    ? _useRouterSourceConcurrent(serviceOrInitialSnapshot, options)
+    : _useRouterSourceBlocking(serviceOrInitialSnapshot, options)
 }
 
 export * from './useRouterSourceCommon'

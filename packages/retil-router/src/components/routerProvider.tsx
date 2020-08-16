@@ -1,11 +1,6 @@
 import * as React from 'react'
 
-import {
-  RouterContentContext,
-  RouterControllerContext,
-  RouterPendingContext,
-  RouterRequestContext,
-} from '../routerContext'
+import { RouterControllerContext, RouterRequestContext } from '../routerContext'
 import { RouterController, Route } from '../routerTypes'
 
 export interface RouterProviderProps {
@@ -22,11 +17,7 @@ export function RouterProvider({
   return (
     <RouterControllerContext.Provider value={controller}>
       <RouterRequestContext.Provider value={route.request}>
-        <RouterPendingContext.Provider value={route.pending}>
-          <RouterContentContext.Provider value={route.content}>
-            {children}
-          </RouterContentContext.Provider>
-        </RouterPendingContext.Provider>
+        {children}
       </RouterRequestContext.Provider>
     </RouterControllerContext.Provider>
   )

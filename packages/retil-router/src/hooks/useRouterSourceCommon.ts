@@ -1,15 +1,19 @@
-import { HistoryState } from 'retil-history'
-
-import { RouterResponse, RouterSource, RouterSnapshot } from '../routerTypes'
+import {
+  RouterHistoryState,
+  RouterResponse,
+  RouterSource,
+  RouterSnapshot,
+} from '../routerTypes'
 
 export interface UseRouterSourceOptions {
   transitionTimeoutMs?: number
+  unstable_isConcurrent?: boolean
 }
 
 export interface UseRouterSourceFunction {
   <
     Ext = {},
-    State extends HistoryState = HistoryState,
+    State extends RouterHistoryState = RouterHistoryState,
     Response extends RouterResponse = RouterResponse
   >(
     serviceOrInitialSnapshot:

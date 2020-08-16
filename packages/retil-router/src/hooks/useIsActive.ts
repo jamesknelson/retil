@@ -1,10 +1,7 @@
-import {
-  HistoryAction,
-  applyLocationAction,
-  normalizePathname,
-} from 'retil-history'
+import { applyLocationAction, normalizePathname } from 'retil-history'
 
 import { useRequest } from './useRequest'
+import { RouterAction } from '../routerTypes'
 
 /**
  * Returns a boolean that indicates whether the user is currently
@@ -14,7 +11,7 @@ import { useRequest } from './useRequest'
  * @param options.loading If true, will match even if the route is currently loading
  */
 export const useIsActive = (
-  href: HistoryAction<any>,
+  href: RouterAction<any>,
   {
     exact = true,
   }: {

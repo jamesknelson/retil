@@ -1,21 +1,28 @@
-export * from 'retil-history'
+export {
+  applyLocationAction as applyAction,
+  createBrowserHistory,
+  createHref,
+  createMemoryHistory,
+  isExternalHref,
+  joinPaths,
+  normalizePathname,
+  parseAction,
+  parseLocation,
+} from 'retil-history'
 
 export * from './routerService'
 export * from './routerTypes'
 
-export * from './components/content'
 export * from './components/link'
 export * from './components/notFoundBoundary'
 export * from './components/routerProvider'
 
-export * from './hooks/useContent'
 export * from './hooks/useIsActive'
-export * from './hooks/useIsRouterPending'
 export * from './hooks/useLink'
 export * from './hooks/useRequest'
 export * from './hooks/useRouter'
 export * from './hooks/useRouterController'
-export * from './hooks/useRouterSource'
+export * from './hooks/useRouterService'
 
 export * from './routers/routeAsync'
 export * from './routers/routeByPattern'

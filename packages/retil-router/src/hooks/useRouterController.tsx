@@ -1,12 +1,15 @@
 import { useContext } from 'react'
-import { HistoryState } from 'retil-history'
 
 import { RouterControllerContext } from '../routerContext'
-import { RouterController, RouterResponse } from '../routerTypes'
+import {
+  RouterController,
+  RouterHistoryState,
+  RouterResponse,
+} from '../routerTypes'
 
 export function useRouterController<
   Ext = {},
-  State extends HistoryState = HistoryState,
+  State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(): RouterController<Ext, State, Response> {
   return useContext(RouterControllerContext) as RouterController<

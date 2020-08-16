@@ -11,6 +11,35 @@
  * manually manage the subscription and state here.
  */
 
+/// <reference types="react/experimental" />
+
+import {
+  RouterHistoryState,
+  RouterResponse,
+  RouterSnapshot,
+  RouterSource,
+} from '../routerTypes'
+
+import {
+  UseRouterSourceFunction,
+  UseRouterSourceOptions,
+} from './useRouterSourceCommon'
+
+const DefaultTransitionTimeoutMs = 3000
+
+export const useRouterSourceBlocking: UseRouterSourceFunction = <
+  Ext = {},
+  State extends RouterHistoryState = RouterHistoryState,
+  Response extends RouterResponse = RouterResponse
+>(
+  serviceOrInitialSnapshot:
+    | RouterSource<Ext, State, Response>
+    | RouterSnapshot<Ext, State, Response>,
+  options: UseRouterSourceOptions = {},
+): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
+  throw new Error('unimplemented')
+}
+
 //   const [route, setRoute] = useState<RouterSnapshot<S, Response>>(() => {
 //     if (initialRoute) {
 //       return initialRoute

@@ -2,18 +2,29 @@ import { ReactElement, ReactNode } from 'react'
 import {
   HistoryAction,
   HistoryController,
+  HistoryLocation,
   HistoryRequest,
   HistoryState,
 } from 'retil-history'
 import { Source } from 'retil-source'
+
+export type RouterAction<State extends RouterHistoryState> = HistoryAction<
+  State
+>
+export type RouterHistoryState = HistoryState
+
+export type RouterLocation<State extends RouterHistoryState> = HistoryLocation<
+  State
+>
 
 export type RouterFunction<
   Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
 > = (request: Request, response: Response) => ReactNode
 
-export interface RouterRequest<S extends HistoryState = HistoryState>
-  extends HistoryRequest<S> {
+export interface RouterRequest<
+  S extends RouterHistoryState = RouterHistoryState
+> extends HistoryRequest<S> {
   /**
    * Contains the parts of the url that are not meand to be matched on,
    * either because they've been matched by a previous router or because the
@@ -49,7 +60,7 @@ export interface RouterResponse {
 
 export interface RouterSnapshot<
   Ext = {},
-  S extends HistoryState = HistoryState,
+  S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 > {
   content: ReactNode
@@ -59,13 +70,13 @@ export interface RouterSnapshot<
 
 export type RouterSource<
   Ext = {},
-  S extends HistoryState = HistoryState,
+  S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 > = Source<RouterSnapshot<Ext, S, Response>>
 
 export type RouterService<
   Ext = {},
-  S extends HistoryState = HistoryState,
+  S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 > = readonly [
   RouterSource<Ext, S, Response>,
@@ -74,14 +85,24 @@ export type RouterService<
 
 export interface RouterController<
   Ext = {},
-  S extends HistoryState = HistoryState,
+  S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 > extends HistoryController<S> {
+  back(): Promise<boolean>
+
+  navigate(
+    action: RouterAction<S>,
+    options?: {
+      method?: string
+      replace?: boolean
+    },
+  ): Promise<boolean>
+
   /**
    * Allows you to fetch a route response without actually rendering it.
    */
   prefetch(
-    action: HistoryAction<S>,
+    action: RouterAction<S>,
     options?: {
       method?: string
     },
@@ -94,7 +115,10 @@ export interface RouterController<
  * the `response` property (which is mutable and can't be safeuly used inside
  * React).
  */
-export interface Route<Ext = {}, State extends HistoryState = HistoryState> {
+export interface Route<
+  Ext = {},
+  State extends RouterHistoryState = RouterHistoryState
+> {
   /**
    * In concurrent mode, this will return the latest content -- and if the
    * current route is pending, it'll return the pending content.

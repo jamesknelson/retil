@@ -1,10 +1,10 @@
 import * as React from 'react'
-import { HistoryState, HistoryAction } from 'retil-history'
 
 import { useIsActive } from '../hooks/useIsActive'
 import { UseLinkOptions, useLink } from '../hooks/useLink'
+import { RouterHistoryState, RouterAction } from '../routerTypes'
 
-export interface LinkProps<S extends HistoryState = HistoryState>
+export interface LinkProps<S extends RouterHistoryState = RouterHistoryState>
   extends UseLinkOptions,
     Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   active?: boolean
@@ -13,7 +13,7 @@ export interface LinkProps<S extends HistoryState = HistoryState>
   children: React.ReactNode
   exact?: boolean
   ref?: React.Ref<HTMLAnchorElement>
-  to: HistoryAction<S>
+  to: RouterAction<S>
 }
 
 // Need to include this type definition, as the automatically generated one

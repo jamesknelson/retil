@@ -1,13 +1,9 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import {
-  HistoryAction,
-  HistoryState,
-  applyLocationAction,
-  createHref,
-} from 'retil-history'
+import { applyLocationAction, createHref } from 'retil-history'
 
 import { useRouterController } from './useRouterController'
 import { useRequest } from './useRequest'
+import { RouterAction, RouterHistoryState } from '../routerTypes'
 
 export interface UseLinkOptions {
   disabled?: boolean
@@ -18,8 +14,8 @@ export interface UseLinkOptions {
   onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
-export const useLink = <S extends HistoryState = HistoryState>(
-  to: HistoryAction<S>,
+export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
+  to: RouterAction<S>,
   options: UseLinkOptions,
 ) => {
   const { disabled, prefetch, replace, state, onClick, onMouseEnter } = options

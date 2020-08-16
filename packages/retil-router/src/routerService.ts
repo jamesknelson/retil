@@ -1,7 +1,5 @@
 import {
-  HistoryAction,
   HistoryService,
-  HistoryState,
   applyLocationAction,
   createMemoryHistory,
   getDefaultBrowserHistory,
@@ -10,8 +8,10 @@ import {
 import { fuse, getSnapshotPromise, getSnapshot } from 'retil-source'
 
 import {
+  RouterAction,
   RouterController,
   RouterFunction,
+  RouterHistoryState,
   RouterRequest,
   RouterResponse,
   RouterService,
@@ -23,7 +23,7 @@ import { routeNormalize } from './routers/routeNormalize'
 
 export interface RouterOptions<
   Ext = {},
-  S extends HistoryState = HistoryState
+  S extends RouterHistoryState = RouterHistoryState
 > {
   basename?: string
   followRedirects?: boolean
@@ -35,7 +35,7 @@ export interface RouterOptions<
 
 export function createRouter<
   Ext = {},
-  S extends HistoryState = HistoryState,
+  S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
   router: RouterFunction<RouterRequest<S> & Ext, Response>,
@@ -114,7 +114,7 @@ export function createRouter<
     //   snapshot
     ...historyController,
     async prefetch(
-      action: HistoryAction<S>,
+      action: RouterAction<S>,
       options: {
         method?: string
       } = {},
@@ -140,11 +140,11 @@ export interface GetRouteOptions<Ext> {
 
 export async function getRouterSnapshot<
   Ext,
-  S extends HistoryState = HistoryState,
+  S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
   router: RouterFunction<RouterRequest<S> & Ext, Response>,
-  action: HistoryAction<S>,
+  action: RouterAction<S>,
   options: GetRouteOptions<Ext> = {},
 ): Promise<RouterSnapshot<Ext, S, Response>> {
   const method = options.method || 'GET'
