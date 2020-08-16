@@ -3,11 +3,11 @@
 </h1>
 
 <h4 align="center">
-  Concurrent routing for React that grows with your app.
+  Superpowers for React Developers
 </h4>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/react-routing-library"><img alt="NPM" src="https://img.shields.io/npm/v/react-routing-library.svg"></a>
+  <a href="https://www.npmjs.com/package/retil-router"><img alt="NPM" src="https://img.shields.io/npm/v/retil-router.svg"></a>
 </p>
 
 
