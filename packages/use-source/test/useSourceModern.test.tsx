@@ -6,7 +6,7 @@ import { act } from 'react-dom/test-utils'
 import { delay } from 'retil-common'
 import { createState } from 'retil-source'
 
-import { useSourceConcurrent as useSource } from '../src'
+import { useSourceModern as useSource } from '../src'
 
 jest.mock('scheduler', () => require('scheduler/unstable_mock'))
 

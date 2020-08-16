@@ -1,3 +1,3 @@
 export * from './useSource'
-export * from './useSourceConcurrent'
-export * from './useSourceSubscription'
+export * from './useSourceLegacy'
+export * from './useSourceModern'

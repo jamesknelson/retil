@@ -41,7 +41,7 @@ const mutableSources = new WeakMap<SourceCore, ReactMutableSource>([
 ])
 const subscribe = ([, subscribe]: SourceCore, cb: () => void) => subscribe(cb)
 
-export const useSourceConcurrent: UseSourceFunction = <T = null, U = T>(
+export const useSourceModern: UseSourceFunction = <T = null, U = T>(
   maybeSource: Source<T> | null,
   options: UseSourceOptions<U> = {},
 ): T | U | null => {

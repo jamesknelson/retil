@@ -3,9 +3,9 @@
 
 import * as React from 'react'
 
-import { useSourceConcurrent } from './useSourceConcurrent'
-import { useSourceSubscription } from './useSourceSubscription'
+import { useSourceModern } from './useSourceModern'
+import { useSourceLegacy } from './useSourceLegacy'
 
 export const useSource = !!(React as any).unstable_useMutableSource
-  ? useSourceConcurrent
-  : useSourceSubscription
+  ? useSourceModern
+  : useSourceLegacy

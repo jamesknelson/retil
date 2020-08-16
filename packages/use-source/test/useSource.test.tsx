@@ -4,9 +4,9 @@ import { act, render } from '@testing-library/react'
 
 import { createState, fuse } from 'retil-source'
 
-import { useSourceConcurrent, useSourceSubscription } from '../src'
+import { useSourceModern, useSourceLegacy } from '../src'
 
-function testUseSource(useSource: typeof useSourceConcurrent) {
+function testUseSource(useSource: typeof useSourceModern) {
   test(`accepts null sources`, () => {
     const Test = () => (
       <>
@@ -135,11 +135,11 @@ function testUseSource(useSource: typeof useSourceConcurrent) {
 }
 
 describe(`useSource (modern implementation)`, () => {
-  const useSource = useSourceConcurrent
+  const useSource = useSourceModern
   testUseSource(useSource)
 })
 
-describe(`useSource (subscription implementation)`, () => {
-  const useSource = useSourceSubscription
+describe(`useSource (legacy implementation)`, () => {
+  const useSource = useSourceLegacy
   testUseSource(useSource)
 })

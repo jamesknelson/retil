@@ -11,7 +11,7 @@ import { UseSourceFunction, UseSourceOptions } from './useSourceType'
 
 const MissingToken = Symbol()
 
-export const useSourceSubscription: UseSourceFunction = <T = null, U = T>(
+export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
   maybeSource: Source<T> | null,
   options: UseSourceOptions<U> = {},
 ): T | U | null => {
