@@ -57,6 +57,7 @@ export function useRouter<
     onResponseComplete,
     transformRequest,
     transitionTimeoutMs,
+    unstable_isConcurrent,
   } = options
 
   const onResponseCompleteRef = useRef(onResponseComplete)
@@ -85,5 +86,6 @@ export function useRouter<
 
   return useRouterService(routerServiceOrSnapshot, {
     transitionTimeoutMs,
+    unstable_isConcurrent,
   })
 }

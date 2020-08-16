@@ -48,6 +48,97 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('james')
   })
 
+  test.skip(`can specify an initial snapshot to avoid initial loading`, async () => {
+    const innerRouter: RouterFunction = (request) => request.pathname
+    const router = routeLazy(async () => {
+      await delay(10)
+      return { default: innerRouter }
+    })
+
+    const initialSnapshot = await getRouterSnapshot(router, '/test-1')
+    const Test = () => {
+      const [route] = useRouter(router, {
+        initialSnapshot,
+      })
+      return <>{route.content}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('/test-1')
+  })
+}
+
+describe('useRouter (in concurrent mode)', () => {
+  const useRouter = (router: RouterFunction, options: UseRouterOptions) =>
+    _useRouter(router, { ...options, unstable_isConcurrent: true })
+
+  testUseRouter(useRouter as any)
+
+  // FIXME: Doesn't work right now because the test environment doesn't support
+  // concurrent mode
+  test.skip(`can specify an initial snapshot to avoid initial loading`, async () => {
+    const innerRouter: RouterFunction = (request) => request.pathname
+    const router = routeLazy(async () => {
+      await delay(10)
+      return { default: innerRouter }
+    })
+
+    const initialSnapshot = await getRouterSnapshot(router, '/test-1')
+    const Test = () => {
+      const [route] = useRouter(router, {
+        initialSnapshot,
+      })
+      return <>{route.content}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('/test-1')
+  })
+
+  // FIXME: Doesn't work right now because the test environment doesn't support
+  // concurrent mode
+  test.skip(`doesn't resolve controller actions until the new route is loaded`, async () => {
+    const history = createMemoryHistory('/test-1')
+    const innerRouter: RouterFunction = (request) => request.pathname
+    const router = routeByPattern({
+      '/test-1': innerRouter,
+      '/test-2': routeLazy(async () => {
+        await delay(10)
+        return { default: innerRouter }
+      }),
+    })
+    let controller!: RouterController
+
+    const Test = () => {
+      const [route, routerController] = useRouter(router, { history })
+      controller = routerController
+      return (
+        <>
+          {route.pending ? 'pending' : ''}
+          <Suspense fallback="loading">{route.content}</Suspense>
+        </>
+      )
+    }
+    const { container } = render(<Test />)
+    let didNavigatePromise!: Promise<boolean>
+    expect(container).toHaveTextContent('/test-1')
+    act(() => {
+      didNavigatePromise = controller.navigate('/test-2')
+    })
+    expect(container).toHaveTextContent('pending/test-1')
+    let didNavigate!: boolean
+    await act(async () => {
+      didNavigate = await didNavigatePromise
+    })
+    expect(didNavigate).toBe(true)
+    expect(container).toHaveTextContent('/test-2')
+  })
+})
+
+describe('useRouter (in blocking mode)', () => {
+  const useRouter = (router: RouterFunction, options: UseRouterOptions) =>
+    _useRouter(router, { ...options, unstable_isConcurrent: false })
+
+  testUseRouter(useRouter as any)
+
   test(`can specify an initial snapshot to avoid initial loading`, async () => {
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeLazy(async () => {
@@ -102,17 +193,4 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(didNavigate).toBe(true)
     expect(container).toHaveTextContent('/test-2')
   })
-}
-
-describe('useRouter (in concurrent mode)', () => {
-  const useRouter = (router: RouterFunction, options: UseRouterOptions) =>
-    _useRouter(router, { ...options, unstable_isConcurrent: true })
-
-  testUseRouter(useRouter as any)
-})
-
-describe('useRouter (in blocking mode)', () => {
-  const useRouter = (router: RouterFunction, options: UseRouterOptions) =>
-    _useRouter(router, { ...options, unstable_isConcurrent: false })
-  testUseRouter(useRouter as any)
 })
