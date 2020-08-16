@@ -104,9 +104,9 @@ Useful in situations where you need to work with one or more **external** data s
 
 ## The Dream
 
-My dream? I want *you* to be able to start and **launch** a web app with authentication, routing and payments in a single weekend. Retil is the foundation for that app. It's designed to get you started with the minimum effort possible -- both in terms of writing code, *and* learning APIs -- so that you can focus your energy on building something amazing.
+I want *you* to be able to start *and launch** a web app with authentication, routing and payments **in a single weekend**. Retil is the foundation for that app. It's designed to get you started with the minimum effort possible -- both in terms of writing code, *and* learning APIs -- so that you can focus your energy on building something amazing.
 
-Retil is one half of the project. [Frontend Armory](https://frontarm.com) is the other half. Click the link and check it out.
+Retil is one half of the project, with [Frontend Armory](https://frontarm.com) being the other. Click the link and check it out!
 
 
 ## License

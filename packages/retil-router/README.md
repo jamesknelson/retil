@@ -51,9 +51,7 @@ const router = request => {
 }
 ```
 
-Once you have a router function, just pass it to `useRouter` to get an array containing your `route` (with the current request and content) and `controller` (with a `navigate()` function).
-
-Then, rendering the current route is as simple as returning `route.content`!
+Once you have a router function, just pass it to `useRouter` to get your `route` -- your current route's content is available on the `content` property.
 
 ```tsx
 import { useRouter } from 'retil-router'
@@ -75,7 +73,7 @@ const router = routeByPattern({
 })
 ```
 
-If you want to use retil-router's built in `<Link>` component and redirect routes, you'll need to make sure they can access the current route and controller. To do so, just wrap your app with a `<RouterProvider>`.
+If you want to use retil-router's built in `<Link>` component and redirect routes, you'll need to make sure they can access the current route and `navigate()` function. You can do this by wrapping your app with a `<RouterProvider>`.
 
 ```tsx
 import { RouterProvider, useRouter } from 'retil-router'
@@ -91,7 +89,7 @@ export default function App() {
 }
 ```
 
-Naturally, your `route.content` element can be nested inside other elements. This lets you easily add layout elements, for example a site-wide navigation bar. And hey presto -- you've now built a simple app with push-state routing!
+Naturally, your `route.content` element can be nested inside other elements. This lets you easily add layout elements -- like a site-wide navigation bar. And hey presto -- you've now built a simple app with push-state routing!
 
 [*View this example live at CodeSandbox &raquo;*](https://codesandbox.io/s/rrl-minimal-vsdsd)
 
