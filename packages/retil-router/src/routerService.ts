@@ -16,8 +16,9 @@ import {
   RouterResponse,
   RouterService,
   RouterSnapshot,
+  RouterState,
 } from './routerTypes'
-import { waitForMutablePromiseList } from './routerUtils'
+import { getNoopController, waitForMutablePromiseList } from './routerUtils'
 
 import { routeNormalize } from './routers/routeNormalize'
 
@@ -118,13 +119,18 @@ export function createRouter<
       options: {
         method?: string
       } = {},
-    ): Promise<RouterSnapshot<Ext, S, Response>> {
+    ): Promise<RouterState<Ext, S>> {
       const currentRequest = getSnapshot(historySource).request
       const location = applyLocationAction(currentRequest, action)
-      return await getRouterSnapshot(normalizedRouter, location, {
-        basename,
-        method: options.method,
-      })
+      const [state] = await getInitialStateAndResponse(
+        normalizedRouter,
+        location,
+        {
+          basename,
+          method: options.method,
+        },
+      )
+      return state
     },
   }
 
@@ -138,7 +144,7 @@ export interface GetRouteOptions<Ext> {
   requestExtension?: Ext
 }
 
-export async function getRouterSnapshot<
+export async function getInitialStateAndResponse<
   Ext,
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
@@ -146,7 +152,7 @@ export async function getRouterSnapshot<
   router: RouterFunction<RouterRequest<S> & Ext, Response>,
   action: RouterAction<S>,
   options: GetRouteOptions<Ext> = {},
-): Promise<RouterSnapshot<Ext, S, Response>> {
+): Promise<readonly [RouterState<Ext, S>, Response]> {
   const method = options.method || 'GET'
   const history = createMemoryHistory(parseLocation(action), method)
   const [routerSource] = createRouter(router, {
@@ -154,9 +160,17 @@ export async function getRouterSnapshot<
     ...options,
     followRedirects: false,
   })
-  const route = await getSnapshotPromise(routerSource)
-  await waitForMutablePromiseList(route.response.pendingSuspenses)
-  return route
+  const { content, request, response } = await getSnapshotPromise(routerSource)
+  await waitForMutablePromiseList(response.pendingSuspenses)
+  return [
+    {
+      content,
+      controller: getNoopController<Ext, S, Response>(),
+      pending: false,
+      request,
+    },
+    response,
+  ] as const
 }
 
 function isRedirect(response: RouterResponse) {

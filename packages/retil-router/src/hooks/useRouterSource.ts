@@ -19,14 +19,14 @@ export const useRouterSource: UseRouterSourceFunction = <
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  serviceOrInitialSnapshot:
+  serviceOrSnapshot:
     | RouterSource<Ext, State, Response>
     | RouterSnapshot<Ext, State, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
   return options.unstable_isConcurrent
-    ? _useRouterSourceConcurrent(serviceOrInitialSnapshot, options)
-    : _useRouterSourceBlocking(serviceOrInitialSnapshot, options)
+    ? _useRouterSourceConcurrent(serviceOrSnapshot, options)
+    : _useRouterSourceBlocking(serviceOrSnapshot, options)
 }
 
 export * from './useRouterSourceCommon'

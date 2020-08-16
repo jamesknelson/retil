@@ -2,13 +2,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { HistoryService } from 'retil-history'
 
 import {
-  RouterController,
   RouterFunction,
   RouterHistoryState,
   RouterRequest,
   RouterResponse,
-  RouterSnapshot,
-  Route,
+  RouterState,
 } from '../routerTypes'
 
 import { createRouter } from '../routerService'
@@ -23,7 +21,7 @@ export interface UseRouterOptions<
 
   history?: HistoryService<State>
 
-  initialSnapshot?: RouterSnapshot<Ext, State, Response>
+  initialState?: RouterState<Ext, State>
 
   /**
    * Called when a complete response object becomes available.
@@ -49,11 +47,11 @@ export function useRouter<
 >(
   routerFunction: RouterFunction<RouterRequest<State> & Ext, Response>,
   options: UseRouterOptions<Ext, State, Response> = {},
-): readonly [Route<Ext, State>, RouterController<Ext, State, Response>] {
+): RouterState<Ext, State> {
   const {
     basename,
     history,
-    initialSnapshot,
+    initialState: initialSnapshot,
     onResponseComplete,
     transformRequest,
     transitionTimeoutMs,

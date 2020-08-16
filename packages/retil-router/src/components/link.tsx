@@ -1,6 +1,6 @@
 import * as React from 'react'
 
-import { useIsActive } from '../hooks/useIsActive'
+import { useLinkActive } from '../hooks/useLinkActive'
 import { UseLinkOptions, useLink } from '../hooks/useLink'
 import { RouterHistoryState, RouterAction } from '../routerTypes'
 
@@ -47,7 +47,7 @@ export const Link: React.FunctionComponent<LinkProps> = React.forwardRef(
       state,
     })
 
-    let actualActive = useIsActive(to, { exact: !!exact })
+    let actualActive = useLinkActive(to, { exact: !!exact })
     if (active === undefined) {
       active = actualActive
     }

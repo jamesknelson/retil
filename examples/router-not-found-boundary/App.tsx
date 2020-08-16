@@ -2,22 +2,25 @@ import * as React from 'react'
 
 import {
   Link,
-  NotFoundBoundary,
   RouterProvider,
   routeByPattern,
+  routeNotFoundBoundary,
   useRouter,
 } from '../../packages/retil-router/src'
 
-const appRouter = routeByPattern({
-  '/': <h1>Welcome!</h1>,
-  '/about': <h1>About</h1>,
-})
+const appRouter = routeNotFoundBoundary(
+  routeByPattern({
+    '/': <h1>Welcome!</h1>,
+    '/about': <h1>About</h1>,
+  }),
+  (request) => <NotFound pathname={request.pathname} />,
+)
 
 export function App() {
-  const [route, controller] = useRouter(appRouter)
+  const route = useRouter(appRouter)
 
   return (
-    <RouterProvider route={route} controller={controller}>
+    <RouterProvider state={route}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
@@ -25,11 +28,11 @@ export function App() {
         &nbsp;&middot;&nbsp;
         <Link to="/not-found">Not Found</Link>
       </nav>
-      <main>
-        <NotFoundBoundary renderError={() => <h1>404 Not Found</h1>}>
-          {route.content}
-        </NotFoundBoundary>
-      </main>
+      <main>{route.content}</main>
     </RouterProvider>
   )
+}
+
+function NotFound({ pathname }: { pathname: string }) {
+  return <h1>404 Not Found - {pathname}</h1>
 }

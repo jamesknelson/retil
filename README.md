@@ -67,7 +67,12 @@ Provides helpers for `<Link>`s, redirects, 404 messages, and prefetching content
 
 #### api docs
 
-- *TODO*
+- [components](/docs/router-api.md#components)
+- [hooks](/docs/router-api.md#hooks)
+- [router function helpers](/docs/router-api.md#router-function-helpers)
+- [functions](/docs/router-api.md#functions)
+- [types](/docs/router-api.md#types)
+
 
 #### examples
 

@@ -20,7 +20,7 @@ yarn add retil-router
 - [**Read the 2-minute primer**](#2-minute-primer)
 <!-- - Why React Routing Library? *(coming soon*)* -->
 <!-- - [View the guided examples &raquo;](./examples) -->
-- [View the API reference &raquo;](../../docs/router-api.md)
+- [View the API reference &raquo;](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md)
 <!-- - Try a Real-world example on CodeSandbox &raquo; *(coming soon)* -->
 
 
@@ -46,7 +46,7 @@ const router = request => {
       return <h1>About</h1>
 
     default:
-      throw new Error('Not Found')
+      return <h1>Not Found</h1>
   }
 }
 ```
@@ -59,7 +59,7 @@ Then, rendering the current route is as simple as returning `route.content`!
 import { useRouter } from 'retil-router'
 
 export default function App() {
-  const [route, controller] = useRouter(router)
+  const route = useRouter(router)
   return route.content
 }
 ```
@@ -81,10 +81,10 @@ If you want to use retil-router's built in `<Link>` component and redirect route
 import { RouterProvider, useRouter } from 'retil-router'
 
 export default function App() {
-  const [route, controller] = useRouter(router)
+  const route = useRouter(router)
   
   return (
-    <RouterProvider route={route} controller={controller}>
+    <RouterProvider route={route}>
       {route.content}
     </RouterProvider>
   )
@@ -113,7 +113,7 @@ function AppLayout({ children }) {
 }
 
 export default function App() {
-  const [route, controller] = useRouter(router)
+  const route = useRouter(router)
   
   return (
     <RouterProvider route={route} controller={controller}>
@@ -153,48 +153,43 @@ TODO
 
 ## API
 
-[**Components**](/docs/api.md#components)
+[**Components**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#components)
 
-- [`<RoutingProvider>`](/docs/api.md#routingprovider)
-- [`<Content>`](/docs/api.md#content)
-- [`<Link>`](/docs/api.md#link)
-- [`<NotFoundBoundary>`](/docs/api.md#notfoundboundary)
+- [`<Link>`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#link)
+- [`<RouterProvider>`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routerprovider)
 
-[**Hooks**](/docs/api.md#hooks)
+[**Hooks**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#hooks)
 
-- [`useContent()`](/docs/api.md#usecontent)
-- [`useIsActive()`](/docs/api.md#useisactive)
-- [`useLink()`](/docs/api.md#uselink)
-- [`useNavigation()`](/docs/api.md#usenavigation)
-- [`usePendingRequest()`](/docs/api.md#usependingrequest)
-- [`useRequest()`](/docs/api.md#userequest)
+- [`useLink()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#uselink)
+- [`useLinkActive()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#uselinkactive)
+- [`useRouterRequest()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#userouterrequest)
+- [`useRouter()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#userouter)
+- [`useRouterController()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#useroutercontroller)
 
-[**Router helpers**](/docs/api.md#router-helpers)
+[**Router function helpers**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#router-function-helpers)
 
-- [`createAsyncRouter()`](/docs/api.md#createasyncrouter)
-- [`createLazyRouter()`](/docs/api.md#createlazyrouter)
-- [`createPatternRouter()`](/docs/api.md#createpatternrouter)
-- [`createRedirectRouter()`](/docs/api.md#createredirectrouter)
+- [`routeAsync()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routeasync)
+- [`routeByPattern()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routebypattern)
+- [`routeLazy()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routelazy)
+- [`routeNotFound()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routenotfound)
+- [`routeNotFoundBoundary()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routenotfoundboundary)
+- [`routeRedirect()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routeredirect)
 
-[**Functions**](/docs/api.md#functions)
+[**Functions**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#functions)
 
-- [`createHref()`](/docs/api.md#createhref)
-- [`getRoute()`](/docs/api.md#getroute)
-- [`parseHref()`](/docs/api.md#parsehref)
+- [`applyAction()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#applyaction)
+- [`createHref()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#createhref)
+- [`getInitialStateAndResponse()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#getinitialstateandresponse)
+- [`parseAction()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#parseaction)
 
-[**Error handling**](/docs/api.md#error-handling)
+[**Types**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#types)
 
-- [`NotFoundError`](/docs/api.md#notfounderror)
-- [`notFoundRouter`](/docs/api.md#notfoundrouter)
-
-[**Types**](/docs/api.md#types)
-
-- [`Route`](/docs/api.md#route)
-- [`Router`](/docs/api.md#router)
-- [`RouterDelta`](/docs/api.md#routerdelta)
-- [`RouterNavigation`](/docs/api.md#routernavigation)
-- [`RouterRequest`](/docs/api.md#routerrequest)
-- [`RouterResponse`](/docs/api.md#routerresponse)
+- [`RouterAction`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routeraction)
+- [`RouterController`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routercontroller)
+- [`RouterFunction`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routerfunction)
+- [`RouterRequest`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routerrequest)
+- [`RouterResponse`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routerresponse)
+- [`RouterState`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#routerstate)
 
 
 ## License

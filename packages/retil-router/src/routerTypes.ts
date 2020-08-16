@@ -106,16 +106,10 @@ export interface RouterController<
     options?: {
       method?: string
     },
-  ): Promise<RouterSnapshot<Ext, S, Response>>
+  ): Promise<RouterState<Ext, S>>
 }
 
-/**
- * The snapshot returned by `useSnapshot` has an extra `pendingRequest` object
- * (which depends on when the content is rendered to the DOM), and is missing
- * the `response` property (which is mutable and can't be safeuly used inside
- * React).
- */
-export interface Route<
+export interface RouterState<
   Ext = {},
   State extends RouterHistoryState = RouterHistoryState
 > {
@@ -126,6 +120,10 @@ export interface Route<
    * In legacy mode, it'll contain the most recent non-pending content.
    */
   content: React.ReactNode
+
+  // While this isn't really router state, it's placed here so that `useRouter`
+  // hook can return a single object which can be passed as-is to the provider.
+  controller: RouterController<Ext, State, any>
 
   /**
    * If the browser location has changed but the request isn't ready to render

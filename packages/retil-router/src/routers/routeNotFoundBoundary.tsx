@@ -1,20 +1,19 @@
 import * as React from 'react'
-import { useContext } from 'react'
 
-import { RouterRequestContext } from '../routerContext'
-import { RouterRequest } from '../routerTypes'
-import { NotFoundError } from '../routers/routeNotFound'
+import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+
+import { NotFoundError } from './routeNotFound'
 
 export interface NotFoundBoundaryProps {
-  renderError: (error: NotFoundError) => React.ReactNode
+  request: RouterRequest
+  response: RouterResponse
+  notFoundRouter: RouterFunction
 }
 
-export const NotFoundBoundary: React.SFC<NotFoundBoundaryProps> = function ErrorBoundary(
+export const NotFoundBoundary: React.FunctionComponent<NotFoundBoundaryProps> = function NotFoundBoundary(
   props: NotFoundBoundaryProps,
 ) {
-  const request = useContext(RouterRequestContext)
-
-  return <InnerNotFoundBoundary request={request} {...props} />
+  return <InnerNotFoundBoundary {...props} />
 }
 
 interface InnerNotFoundBoundaryProps extends NotFoundBoundaryProps {
@@ -63,9 +62,29 @@ class InnerNotFoundBoundary extends React.Component<
   }
 
   render() {
-    if (this.state.error) {
-      return this.props.renderError(this.state.error)
+    // As SSR doesn't support state, and thus can't recover using error
+    // boundaries, we'll also check for a 404 on the response object (as
+    // during SSR, the response will always be complete before rendering).
+    if (this.state.error || this.props.response.status === 404) {
+      return this.props.notFoundRouter(this.props.request, this.props.response)
     }
     return this.props.children
   }
+}
+
+export const routeNotFoundBoundary = <
+  Request extends RouterRequest,
+  Response extends RouterResponse
+>(
+  initialRouter: RouterFunction,
+  notFoundRouter: RouterFunction,
+): RouterFunction<Request, Response> => {
+  return (request, response) => (
+    <NotFoundBoundary
+      request={request}
+      response={response}
+      notFoundRouter={notFoundRouter}>
+      {initialRouter(request, response)}
+    </NotFoundBoundary>
+  )
 }

@@ -25,12 +25,13 @@ const appRouter = routeByPattern({
 })
 
 export function App() {
-  const [route, controller] = useRouter(appRouter, {
+  const route = useRouter(appRouter, {
     transitionTimeoutMs: 500,
+    unstable_isConcurrent: true,
   })
 
   return (
-    <RouterProvider route={route} controller={controller}>
+    <RouterProvider state={route}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;

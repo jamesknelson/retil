@@ -1,6 +1,6 @@
 import { applyLocationAction, normalizePathname } from 'retil-history'
 
-import { useRequest } from './useRequest'
+import { useRouterRequest } from './useRouterRequest'
 import { RouterAction } from '../routerTypes'
 
 /**
@@ -10,7 +10,7 @@ import { RouterAction } from '../routerTypes'
  * @param options.exact If false, will match any URL underneath this href
  * @param options.loading If true, will match even if the route is currently loading
  */
-export const useIsActive = (
+export const useLinkActive = (
   href: RouterAction<any>,
   {
     exact = true,
@@ -21,7 +21,7 @@ export const useIsActive = (
     exact?: boolean
   } = {},
 ) => {
-  const request = useRequest()
+  const request = useRouterRequest()
   const delta = applyLocationAction(request, href)
 
   return (

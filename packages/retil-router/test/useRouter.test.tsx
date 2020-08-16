@@ -9,7 +9,7 @@ import {
   RouterFunction,
   RouterRequest,
   UseRouterOptions,
-  getRouterSnapshot,
+  getInitialStateAndResponse,
   routeByPattern,
   routeLazy,
   useRouter as _useRouter,
@@ -18,7 +18,7 @@ import {
 function testUseRouter(useRouter: typeof _useRouter) {
   test(`returns content`, () => {
     const router: RouterFunction = () => 'success'
-    const Test = () => <>{useRouter(router)[0].content}</>
+    const Test = () => <>{useRouter(router).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('success')
   })
@@ -26,7 +26,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
   test(`accepts and transitions via custom history services`, () => {
     const history = createMemoryHistory('/test-1')
     const router: RouterFunction = (request) => request.pathname
-    const Test = () => <>{useRouter(router, { history })[0].content}</>
+    const Test = () => <>{useRouter(router, { history }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('/test-1')
     act(() => {
@@ -43,27 +43,9 @@ function testUseRouter(useRouter: typeof _useRouter) {
       ...request,
       currentUser: 'james',
     })
-    const Test = () => <>{useRouter(router, { transformRequest })[0].content}</>
+    const Test = () => <>{useRouter(router, { transformRequest }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
-  })
-
-  test.skip(`can specify an initial snapshot to avoid initial loading`, async () => {
-    const innerRouter: RouterFunction = (request) => request.pathname
-    const router = routeLazy(async () => {
-      await delay(10)
-      return { default: innerRouter }
-    })
-
-    const initialSnapshot = await getRouterSnapshot(router, '/test-1')
-    const Test = () => {
-      const [route] = useRouter(router, {
-        initialSnapshot,
-      })
-      return <>{route.content}</>
-    }
-    const { container } = render(<Test />)
-    expect(container).toHaveTextContent('/test-1')
   })
 }
 
@@ -82,11 +64,9 @@ describe('useRouter (in concurrent mode)', () => {
       return { default: innerRouter }
     })
 
-    const initialSnapshot = await getRouterSnapshot(router, '/test-1')
+    const [initialState] = await getInitialStateAndResponse(router, '/test-1')
     const Test = () => {
-      const [route] = useRouter(router, {
-        initialSnapshot,
-      })
+      const route = useRouter(router, { initialState })
       return <>{route.content}</>
     }
     const { container } = render(<Test />)
@@ -106,10 +86,9 @@ describe('useRouter (in concurrent mode)', () => {
       }),
     })
     let controller!: RouterController
-
     const Test = () => {
-      const [route, routerController] = useRouter(router, { history })
-      controller = routerController
+      const route = useRouter(router, { history })
+      controller = route.controller
       return (
         <>
           {route.pending ? 'pending' : ''}
@@ -146,11 +125,9 @@ describe('useRouter (in blocking mode)', () => {
       return { default: innerRouter }
     })
 
-    const initialSnapshot = await getRouterSnapshot(router, '/test-1')
+    const [initialState] = await getInitialStateAndResponse(router, '/test-1')
     const Test = () => {
-      const [route] = useRouter(router, {
-        initialSnapshot,
-      })
+      const route = useRouter(router, { initialState })
       return <>{route.content}</>
     }
     const { container } = render(<Test />)
@@ -170,8 +147,8 @@ describe('useRouter (in blocking mode)', () => {
     let controller!: RouterController
 
     const Test = () => {
-      const [route, routerController] = useRouter(router, { history })
-      controller = routerController
+      const route = useRouter(router, { history })
+      controller = route.controller
       return (
         <>
           {route.pending ? 'pending' : ''}

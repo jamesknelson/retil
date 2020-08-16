@@ -1,22 +1,20 @@
 import * as React from 'react'
 
 import { RouterControllerContext, RouterRequestContext } from '../routerContext'
-import { RouterController, Route } from '../routerTypes'
+import { RouterState } from '../routerTypes'
 
 export interface RouterProviderProps {
   children: React.ReactNode
-  controller: RouterController
-  route: Route
+  state: RouterState
 }
 
 export function RouterProvider({
   children,
-  controller,
-  route,
+  state: router,
 }: RouterProviderProps) {
   return (
-    <RouterControllerContext.Provider value={controller}>
-      <RouterRequestContext.Provider value={route.request}>
+    <RouterControllerContext.Provider value={router.controller}>
+      <RouterRequestContext.Provider value={router.request}>
         {children}
       </RouterRequestContext.Provider>
     </RouterControllerContext.Provider>

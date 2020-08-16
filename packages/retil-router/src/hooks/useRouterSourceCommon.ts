@@ -16,7 +16,7 @@ export interface UseRouterSourceFunction {
     State extends RouterHistoryState = RouterHistoryState,
     Response extends RouterResponse = RouterResponse
   >(
-    serviceOrInitialSnapshot:
+    serviceOrSnapshot:
       | RouterSource<Ext, State, Response>
       | RouterSnapshot<Ext, State, Response>,
     options?: UseRouterSourceOptions,

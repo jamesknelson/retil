@@ -1,136 +1,61 @@
 # API Reference
 
-[**Components**](/docs/api.md#components)
+[**Components**](/docs/router-api.md#components)
 
-- [`<RouterProvider>`](/docs/api.md#routerprovider)
-- [`<Content>`](/docs/api.md#content)
-- [`<Link>`](/docs/api.md#link)
-- [`<NotFoundBoundary>`](/docs/api.md#notfoundboundary)
+- [`<Link>`](/docs/router-api.md#link)
+- [`<RouterProvider>`](/docs/router-api.md#routerprovider)
 
-[**Hooks**](/docs/api.md#hooks)
+[**Hooks**](/docs/router-api.md#hooks)
 
-- [`useContent()`](/docs/api.md#usecontent)
-- [`useIsActive()`](/docs/api.md#useisactive)
-- [`useIsRouterPending()`](/docs/api.md#useisrouterpending)
-- [`useLink()`](/docs/api.md#uselink)
-- [`useRequest()`](/docs/api.md#userequest)
-- [`useRouterController()`](/docs/api.md#useroutercontroller)
+- [`useLink()`](/docs/router-api.md#uselink)
+- [`useLinkActive()`](/docs/router-api.md#uselinkactive)
+- [`useRouterRequest()`](/docs/router-api.md#userouterrequest)
+- [`useRouter()`](/docs/router-api.md#userouter)
+- [`useRouterController()`](/docs/router-api.md#useroutercontroller)
 
-[**Router helpers**](/docs/api.md#router-helpers)
+[**Router function helpers**](/docs/router-api.md#router-function-helpers)
 
-- [`routeAsync()`](/docs/api.md#routeasync)
-- [`routeLazy()`](/docs/api.md#routelazy)
-- [`routeByPattern()`](/docs/api.md#routebypattern)
-- [`routeRedirect()`](/docs/api.md#routeredirect)
-- [`routeNotFound`](/docs/api.md#routenotfound)
+- [`routeAsync()`](/docs/router-api.md#routeasync)
+- [`routeByPattern()`](/docs/router-api.md#routebypattern)
+- [`routeLazy()`](/docs/router-api.md#routelazy)
+- [`routeNotFound()`](/docs/router-api.md#routenotfound)
+- [`routeNotFoundBoundary()`](/docs/router-api.md#routenotfoundboundary)
+- [`routeRedirect()`](/docs/router-api.md#routeredirect)
 
-[**Functions**](/docs/api.md#functions)
+[**Functions**](/docs/router-api.md#functions)
 
-- [`parseAction()`](/docs/api.md#parsehref)
-- [`parseAction()`](/docs/api.md#parsehref)
-- [`createHref()`](/docs/api.md#createhref)
-- [`getRouterSnapshot()`](/docs/api.md#getroutersnapshot)
+- [`applyAction()`](/docs/router-api.md#applyaction)
+- [`createHref()`](/docs/router-api.md#createhref)
+- [`getInitialStateAndResponse()`](/docs/router-api.md#getinitialstateandresponse)
+- [`parseAction()`](/docs/router-api.md#parseaction)
 
-[**Error handling**](/docs/api.md#error-handling)
+[**Types**](/docs/router-api.md#types)
 
-- [`NotFoundError`](/docs/api.md#notfounderror)
-
-[**Types**](/docs/api.md#types)
-
-- [`Route`](/docs/api.md#route)
-- [`RouterFunction`](/docs/api.md#routerfunction)
-- [`RouterDelta`](/docs/api.md#routerdelta)
-- [`RouterNavigation`](/docs/api.md#routernavigation)
-- [`RouterRequest`](/docs/api.md#routerrequest)
-- [`RouterResponse`](/docs/api.md#routerresponse)
+- [`RouterAction`](/docs/router-api.md#routeraction)
+- [`RouterController`](/docs/router-api.md#routercontroller)
+- [`RouterFunction`](/docs/router-api.md#routerfunction)
+- [`RouterRequest`](/docs/router-api.md#routerrequest)
+- [`RouterResponse`](/docs/router-api.md#routerresponse)
+- [`RouterState`](/docs/router-api.md#routerstate)
 
 
 ## Components
 
-### `<RouterProvider>`
-
-This component goes at the top level of your app, configuring your app's routing and providing the routing context required by all other components and hooks.
-
-#### Props
-
-- `router` - **required** - [`Router`](#router)
-
-  A function that returns the content for each new location that the user navigates to.
-  
-  Typically, you'll use router helpers like [`routeByPattern()`](#routebypattern) to create this function.
-
-- `basename` - *optional* - `string`
-
-  If specified, this will be added to the `basename` property of each the router's requests - ensuring that when this string appears at the beginning of the current URL, it'll be ignored by [`routeByPattern()`](#routebypattern) and other router helpers.
-
-  Use this when you need to mount a RRL router under a subdirectory.
-
-- `initialRoute` - *optional* - [`Route`](#route)
-
-  If provided with a `Route` object (as returned by the promise returned by [`getRouterSnapshot()`](#getroutersnapshot)), this prop will be used as the current route until the first effect is able to be run.
-
-  As effects will not run during server side rendering, this is useful for SSR. This can also be used to load asynchronous routes in legacy-mode React.
-  
-- `onResponseComplete` - *optional* - `(res: RouterResponse, req: RouterRequest) => void`
-
-  If provided, this will be called with the final response object once a router has returned its final non-pending value.
-
-  This is the only way to access the Response object outside of calling `getRouterSnapshot()` directly, as response objects will not always be available on the initial render in concurrent mode due to partial hydration.
-
-- `transitionTimeoutMs` - *optional* - `number`
-
-  *Defaults to 3000ms.*
-
-  This value specifies the amount of time that the router should wait for asynchronous and suspenseful content to load before going ahead and rendering an incomplete route anyway.
-
-  If you'd like to always immediately render each new route, set this to 0. If you'd like to always wait until each route is fully loaded before rendering, set this to `Infinity`.
-
-- `unstable_concurrentMode` - *optional* - `boolean`
-
-  Set this to `true` to opt into using React's concurrent mode internally for transitions (i.e. `useTransition()`). Note, this feature will only work when using React's experimental branch, and when rendering your app with `createRoot()`.
-  
-  This should have no affect on the router's behavior itself, but may improve performance and allow you to use concurrent mode features like `<SuspenseList>` alongside routing components like [`<Content>`](#content).
-
-
-### `<Content>`
-
-Renders the current route's content.
-
-This component will suspend if rendering lazy or async content that is still pending, and will throw an error if something goes wrong while loading your request's content.
-
-To access the content element directly, e.g. to create animated transitions, use the [`useContent()`](#usecontent) hook -- this component uses it internally.
-
-#### Examples
-
-Typically, you'll want to render the content inside a component that renders any fixed layout (e.g. a navbar), and inside a `<Suspense>` that renders a fallback until any async or lazy routes have loaded.
-
-```tsx
-export default function App() {
-  return (
-    <RouterProvider router={appRouter}>
-      <AppLayout>
-        <React.Suspense fallback={<AppSpinner />}>
-          <Content />
-        </React.Suspense>
-      </AppLayout>
-    </RouterProvider>
-  )
-}
-```
-
 ### `<Link>`
+
+*`<Link>` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
 
 Renders an `<a>` element that'll update the route when clicked.
 
-To create custom link components, use the [`useLink()`](#uselink) and [`useIsActive()`](#useisactive) hooks -- this component uses them internally.
+To create custom link components, use the [`useLink()`](#uselink) and [`useLinkActive()`](#uselinkactive) hooks -- this component uses them internally.
 
 #### Props
 
 Accepts most props that the standard `<a>` does, along with:
 
-- `to` - **required** - `string | RouterDelta`
+- `to` - **required** - `string | RouterAction`
 
-  The address to which the link should navigate on click. Can be an `/absolute` string, a string `./relative` to the current route, or a *RouterDelta* object containing one or more of the keys `pathname`, `search`, `hash`, `query` or `state`.
+  The address to which the link should navigate on click. Can be an `/absolute` string, a string `./relative` to the current route, or a *RouterAction* object containing one or more of the keys `pathname`, `search`, `hash`, `query` or `state`.
 
 - `active` - *optional* - `boolean`
 
@@ -175,9 +100,9 @@ export function AppLayout({ children }) {
   return (
     <>
       <nav>
-        <Link to="/" exact activeClassName="active" prefetch="hover">Home</Link>
+        <Link to="/" exact activeClassName="active">Home</Link>
         &nbsp;&middot;&nbsp;
-        <Link to="/about" activeClassName="active" prefetch="hover">About</Link>
+        <Link to="/about" activeClassName="active">About</Link>
       </nav>
       <main>
         {children}
@@ -187,65 +112,42 @@ export function AppLayout({ children }) {
 }
 ```
 
-### `<NotFoundBoundary>`
+### `<RouterProvider>`
 
-Use this to catch any [`NotFoundError`](#notfounderror) thrown within your [`<Content>`](#content) element, and render a user-friendly error message in its place.
+This component configures the routing state that is visible to your routing hooks, `<Link>` components, `routeRedirect()` routers.
 
-#### Props
-
-- `renderError` - **required** - `(error: NotFoundError) => ReactNode`
-
-  This function should return a React Element that renders your Not Found message.
-
-#### Examples
-
-Generally, you'll want to place a `<NotFoundBoundary>` *within* your app's layout element, but *around* your `<Content>` element. This ensures that your not found message will be rendered inside your app layout.
+Generally, you'll wrap your `<App>` component's content with a `<RouterProvider>`, and pass in the result of [`useRouter()`](#userouter) as its `router` prop. Here's an example:
 
 ```tsx
+import { RouterProvider, useRouter } from 'retil-router'
+
 export default function App() {
+  const route = useRouter(appRouter)
+  
   return (
-    <RouterProvider router={appRouter}>
-      <AppLayout>
-        <React.Suspense fallback={<AppSpinner />}>
-          <NotFoundBoundary renderError={() => <AppNotFoundPage />}>
-            <Content />
-          </NotFoundBoundary>
-        </React.Suspense>
-      </AppLayout>
+    <RouterProvider state={route}>
+      {route.content}
     </RouterProvider>
   )
 }
 ```
 
+#### Props
+
+- `controller` - *required* - [`RouterController`](#routercontroller)
+
+  Configures how your `<Link>` components and `routeRedirect()` routers will navigate between pages.
+
+- `route` - *optional* - [`RouterState`](#routerstate)
+
+  Configures the currently active route, as returned by [`useRouterRequest()`](#userouterrequest) and used by [`useLinkActive()`](#uselinkactive).
+
 
 ## Hooks
 
-### `useContent()`
-
-```tsx
-const contentElement = useContent()
-```
-
-Returns the current route's content.
-
-If stored in state, the element returned by this hook will always render a tree containing the original `request`. This makes it suitable for creating animated transitions between routes.
-
-
-### `useIsActive()`
-
-```tsx
-const isActive = useIsActive(href, options?)
-```
-
-Returns `true` if the current request matches the specified `href`. If an `exact` option is passed, an exact match is required. Otherwise, any child of the specified `href` will also be considered a match.
-
-#### Options
-
-- `exact` - *optional* - `boolean`
-
-  If `true`, the current route will only be considered active if it exactly matches the `href` passed as the first argument.
-
 ### `useLink()`
+
+*`useLink()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
 
 ```tsx
 const linkProps = useLink(href, options?)
@@ -287,7 +189,7 @@ By spreading the result of `useLink()`, you can use buttons from popular framewo
 
 ```tsx
 import Button from '@material-ui/core/Button'
-import { useLink } from 'react-routing-library'
+import { useLink } from 'retil-router'
 
 export function ButtonLink({ href, onClick, onMouseEnter, ...restProps }) {
   const linkProps = useLink(href, {
@@ -302,64 +204,125 @@ export function ButtonLink({ href, onClick, onMouseEnter, ...restProps }) {
 ```
 
 
-### `useRouterController()`
+### `useLinkActive()`
+
+*`useLinkActive()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
 
 ```tsx
-const { block, navigate, prefetch, ...other } = useRouterController()
+const isActive = useLinkActive(href, options?)
 ```
 
-Returns a [`RouterNavigation`](#routernavigation) object, which you can use to prefetch routes, block navigation, and perform programmatic navigation.
+Returns `true` if the current request matches the specified `href`. If an `exact` option is passed, an exact match is required. Otherwise, any child of the specified `href` will also be considered a match.
+
+#### Options
+
+- `exact` - *optional* - `boolean`
+
+  If `true`, the current route will only be considered active if it exactly matches the `href` passed as the first argument.
 
 
-### `useIsRouterPending()`
+### `useRouterRequest()`
 
-```tsx
-const pendingRequest = useIsRouterPending()
-```
-
-If a navigation action maps to a request with asynchronous content that has started loading but not yet been rendered, this will return the [`RouterRequest`](#routerrequest) object associated with action. Otherwise, it'll return `null`.
-
-#### Examples
-
-This hook is useful for rendering an app-wide loading bar at the top of your page.
+*`useRouterRequest()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
 
 ```tsx
-function App() {
-  return (
-    <RouterProvider router={appRouter}>
-      <AppRouteLoadingIndicator />
-      <AppLayout>
-        <Suspense fallback={<Spinner />}>
-          <RouterContent />
-        </Suspense>
-      </AppLayout>
-    </RouterProvider>
-  )
-}
-
-function AppRouteLoadingIndicator() {
-  const pendingRequest = useIsRouterPending()
-  return pendingRequest && <div className="AppRouteLoadingIndicator" />
-}
-```
-
-### `useRequest()`
-
-```tsx
-const request = useRequest()
+const request = useRouterRequest()
 ```
 
 Returns the [`RouterRequest`](#routerrequest) object associated with the current route.
 
 
-## Router helpers
+### `useRouterController()`
+
+*`useRouterController()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
+
+```tsx
+const { back, block, navigate, prefetch } = useRouterController()
+```
+
+Returns a [`RouterController`](#routercontroller) object, which you can use to prefetch routes, block navigation, and perform programmatic navigation.
+
+
+### `useRouter()`
+
+```tsx
+const [route, controller] = useRouter(routerFunction, options?)
+```
+
+Hooks up routing for your application.
+
+The first argument is the [router function](#routerfunction) that'll be called each time the user navigates, and each time the given function changes. You can create router functions through retil-router's [Router function helpers](#router-function-helpers), or by supplying a function yourself that maps a [`RouterRequest`] to a React element.
+
+Returns an array containing a [`RouterState`](#routerstate) object with details on the current route, and a [`RouterController`](#routercontroller) that allows you to programmatically navigate, block navigation, or prefetch routes.
+
+Typically, you'll pass the returned `route` and `controller` objects to your `<RouterProvider>`, and then use `route.content` and `route.pending` to render your app's content and page loading bar.
+
+```tsx
+export default function App() {
+  const route = useRouter(router)
+
+  return (
+    <RouterProvider state={route}>
+      <AppLayout>
+        {route.pending && <AppLoadingBar />}
+        <React.Suspense fallback={<AppSpinner />}>
+          {route.content}
+        </React.Suspense>
+      </AppLayout>
+    </RouterProvider>
+  )
+}
+```
+
+#### Options
+
+- `basename` - *optional* - `string`
+
+  If specified, this will be added to the `basename` property of each the router's requests - ensuring that when this string appears at the beginning of the current URL, it'll be ignored by [`routeByPattern()`](#routebypattern) and other router helpers.
+
+  Use this when you need to mount a retil-router router under a subdirectory.
+
+- `initialRoute` - *optional* - [`RouterState`](#routerstate)
+
+  If provided with a `Route` object (as returned by the promise returned by [`getInitialStateAndResponse()`](#getinitialstateandresponse)), this prop will be returned as the current route until the first effect is able to be run. As effects will not run during server side rendering, this allows you to provide a ready-to-render route during SSR. It can also be used to load asynchronous routes in legacy-mode React.
+  
+- `onResponseComplete` - *optional* - `(res: RouterResponse, req: RouterRequest) => void`
+
+  If provided, this will be called with the final response object once a router has returned its final non-pending value.
+
+  This is the only way to access the Response object outside of calling `getInitialStateAndResponse()` directly, as response objects will not always be available on the initial render in concurrent mode due to partial hydration.
+
+- `transformRequest` - *optional* - `(req: RouterRequest) => RouterRequest & Ext`
+
+  If provided, each request will be passed through this function before being passed to the router function. This allows you to extend the request with application-specific information. A common use case would be to add a `currentUser` property to the request.
+
+  Note that each time this property changes to a new value, it'll cause your route to be re-computed. Memoize this where possible to ensure performant routing.
+
+- `transitionTimeoutMs` - *optional* - `number`
+
+  *Defaults to 3000ms.*
+
+  This value specifies the amount of time that the router should wait for asynchronous and suspenseful content to load before going ahead and rendering an incomplete route anyway.
+
+  If you'd like to always immediately render each new route, set this to 0. If you'd like to always wait until each route is fully loaded before rendering, set this to `Infinity`.
+
+- `unstable_isConcurrent` - *optional* - `boolean`
+
+  Set this to `true` to opt into using React's concurrent mode internally for transitions (i.e. `useTransition()`). Note, this feature will only work when using React's experimental branch, and when rendering your app with `createRoot()`.
+  
+  The advantage to putting the router into concurrent mode is that it allows the router to wait for `React.lazy` components and suspense-based data fetching to complete before transitioning to the next route. It also allows the `route.pending` flag to track React's suspense state.
+
+
+## Router creators
+
+All functions starting with the `route` prefix will return a [`RouterFunction`](#routerfunction), which can be passed as the first argument of [`useRouter`](#userouter).
 
 ### `routeAsync()`
 
 ```tsx
 function routeAsync(
   asyncRouter: (request: Request, response: Response) => Promise<ReactNode>,
-)
+): RouterFunction
 ```
 
 Creates a router that on *each and every* request, executes the provided asynchronous function.
@@ -369,31 +332,6 @@ Keep in mind that new requests will be generated each time you update the router
 Typical uses for `routeAsync()` including fetching any data reference in URL parameters, so that you can call [`routeNotFound`](#routenotfound) if the referenced data doesn't exist. You can also use `routeAsync()` to wait for data to load when implementing SSR.
 
 
-### `routeLazy()`
-
-```tsx
-function routeLazy(
-  load: () => Promise<{ default: Router }>,
-)
-```
-
-Like React's `lazy()` function, this helper returns a router that suspends until the promise returned by its `load()` function has resolved. Use this to implement code-splitting with dynamic `import()` at the router level.
-
-Note that the `load()` function will only ever be called once, and the result cached for future renders.
-
-#### Examples
-
-If your app has a number of large text-based pages that are infrequently viewed, e.g. including your privacy policy and terms of service, you may decide to split them out as so:
-
-```tsx
-const appRouter = routeByPattern({
-  '/': <Home />,
-  '/pages*': routeLazy(() => import('./pagesRouter'))
-})
-```
-
-Then in your `pagesRouter` file, you can export a pattern router that loads the actual pages.
-
 ### `routeByPattern()`
 
 ```tsx
@@ -401,7 +339,7 @@ function routeByPattern(
   patterns: {
     [pattern: string]: ReactNode | Router
   },
-)
+): RouterFunction
 ```
 
 Creates a router that switches between other routers based on the unmatched portion of the request's path.
@@ -435,21 +373,89 @@ const appRouter = routeByPattern({
 In the nested router, the `request.basename` property will be updated to include the matched portion of the pathname.
 
 
+### `routeLazy()`
+
+```tsx
+function routeLazy(
+  load: () => Promise<{ default: Router }>,
+): RouterFunction
+```
+
+Like React's `lazy()` function, this helper returns a router that suspends until the promise returned by its `load()` function has resolved. Use this to implement code-splitting with dynamic `import()` at the router level.
+
+Note that the `load()` function will only ever be called once, and the result cached for future renders.
+
+#### Examples
+
+If your app has a number of large text-based pages that are infrequently viewed, e.g. including your privacy policy and terms of service, you may decide to split them out as so:
+
+```tsx
+const appRouter = routeByPattern({
+  '/': <Home />,
+  '/pages*': routeLazy(() => import('./pagesRouter'))
+})
+```
+
+Then in your `pagesRouter` file, you can export a pattern router that loads the actual pages.
+
+
+### `routeNotFound()`
+
+```tsx
+function routeNotFound(): RouterFunction
+```
+
+Returns a router function that will set the response's status code to 404, and throw a `NotFoundError`. You can conditionally use this router function in your own routers if you'd like to conditionally throw a not found error -- e.g. for when an id specified in the route parameters can't be found in the database.
+
+To handle the errors thrown by this router function, use `routeNotFoundBoundary()`.
+
+
+### `routeNotFoundBoundary()`
+
+```tsx
+function routeNotFound(
+  routerFunction,
+  fallbackRouterFunction
+): RouterFunction
+```
+
+Handles the `NotFoundError` objects thrown by [`routeNotFound()`](#routeNotFound) routerFunctions.
+
+To use `routeNotFoundBoundary()`, you'll need two router functions: the main router function, and a fallback to use in its place in case the main router throws a `NotFoundError`.
+
+If your app has more than one not found boundary, the innermost one will be used. This allows you to render 404 messages inside of custom layouts.
+
+At minimum, you'll usually want to place a `routeNotFoundBoundary` at the top level of your app. 
+
+```tsx
+const appRouter = 
+  routeNotFoundBoundary(
+    routeByPattern({
+      '/home': () => <Home />
+      '/about': () => <About />
+    }),
+    () => <NotFoundMessage />
+  )
+```
+
+
 ### `routeRedirect()`
+
+*`routeRedirect()` requires that your is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
 
 ```tsx
 function routeRedirect(
   to:
     | string
-    | RouterDelta<any>
-    | ((request: RouterRequest) => string | RouterDelta<any>),
+    | RouterAction<any>
+    | ((request: RouterRequest) => string | RouterAction<any>),
   status = 302,
 )
 ```
 
 Creates a router that when matched, redirects the user to another path.
 
-The path can be specified as a bare string, or as a [`RouterDelta`](#routerdelta) object with the portions of the new URL that should differ from the matched URL.
+The path can be specified as a bare string, or as a [`RouterAction`](#routeraction) object with the portions of the new URL that should differ from the matched URL.
 
 #### Examples
 
@@ -465,6 +471,17 @@ const stepRouter = routeByPattern({
 
 ## Functions
 
+### `applyAction()`
+
+```tsx
+const location = applyAction(request, action, state?)
+```
+
+Applies a [`RouterAction`](#routeraction) to an existing [`RouterRequest`](#routerrequest) -- e.g. as returned from [`useRouterRequest()`](#userouterrequest), returning the new location.
+
+This function is used to compute where links will take the user. It supports relative paths (i.e. those starting with `./` and `../`), absolute paths (those starting with `/`), and follows the browser's default behavior for all other paths.
+
+
 ### `createHref()`
 
 ```tsx
@@ -474,79 +491,136 @@ const href = createHref({ pathname, search, hash })
 Joins the argument URL components together into a string href.
 
 
-### `getRouterSnapshot()`
+### `getInitialStateAndResponse()`
 
 ```tsx
-const route = await getRouterSnapshot(router, href, options?)
+const [state, response] = await getInitialStateAndResponse(router, href, options?)
 ```
 
-Returns a promise to a [`Route`](#route) object containing the complete content and response for the given `href`.
+Returns a promise to an array containing [`RouterState`](#routerstate) and [`RouterResponse`](#routerresponse) objects, containing the complete content and response for the given `href`.
 
-The returned route can be passed to the `initialRoute` prop of `<RouterProvider>` when performing Server Side Rendering. It also allows you to inspect the full [`RouterResponse`](#routerresponse) object at `route.response`, which makes it possible to to set headers/status from your routes, and implement server-side HTTP redirects.
+The returned route can be passed to the `initialRoute` option of `useRouter` -- allowing you to server render asynchronous routes with React's `renderToString()` function.
+
+The returned response contains a status code and headers, which allow you to implement server-side HTTP redirects, return friendly 404 messages with the correct status code, and (using custom router functions) to set caching and other custom headers.
 
 #### Options
 
 - `basename` - *optional* - `string`
 
-- `followRedirects` - *optional* - `boolean`
 
-- `method` - *optional* - `string`
-
-  *Defaults to `GET`.*`
-
-
-### `parseHref()`
+### `parseAction()`
 
 ```tsx
-const delta = parseHref(href, state?)
+const action = parseAction(href, state?)
 ```
 
-Takes a string or object `href`, and optionally a `state` object, and returns a [`RouterDelta`](#routerdelta) object containing the individual parts of the provided inputs.
-
-
-## Error handling
-
-### `NotFoundError`
-
-```tsx
-import { NotFoundError } from 'react-routing-library'
-
-const error = new NotFoundError(request)
-
-error.request // returns a RouterRequest
-```
-
-This is the error thrown by `routeByPattern()` when it can't match a URL, and the error which `<NotFoundBoundary>` looks for to render a not found page.
-
-You can catch this error in your own components if you'd like to implement custom behavior for not found errors.
-
-### `routeNotFound`
-
-```tsx
-import { routeNotFound } from 'react-routing-library'
-```
-
-This is a router function that will always render a component that throws a `NotFoundError`. You can conditionally call this router function in your own routers if you'd like to conditionally throw a not found error.
+Takes a string or object `href`, and optionally a `state` object, and returns a [`RouterAction`](#routeraction) object containing the `pathname`, `query`, `search`, `hash` and `state` for the provided inputs. Properties which are not defined in the inputs will be `undefined`.
 
 
 ## Types
 
-RRL is built with TypeScript. It exports the following types for public use.
+Retil Router is built with TypeScript. It exports the following types for public use.
 
-### `Route`
+### `RouterState`
 
-The object returned by [`getRouterSnapshot()`](#getroutersnapshot), and accepted as the `initialRoute` prop of `<RouterProvider>`.e
+The object returned by `useRouter()` and `getInitialStateAndResponse()`. Contains:
+
+- `content` - the current content
+- `controller`- a [`RouterController`](#routercontroller), which can be used to navigate programmatically
+- `pending` - a boolean that indicates whether a new route is being loaded
+- `request` - a [`RouterRequest`] object with details on the currently displayed route
+
+#### `routerState.content`
+
+Contains a React Element that contains your page's content.
+
+The rendered component will suspend if rendering lazy or async content that is still pending, and will throw an error if something goes wrong while loading your request's content.
+
+Typically, you'll want to render the content inside a component that renders any fixed layout (e.g. a navbar), and inside a `<Suspense>` that renders a fallback until any async or lazy routes have loaded.
 
 ```tsx
-interface Route {
-  content: ReactNode
-  request: RouterRequest
-  response: Response
+export default function App() {
+  const route = useRouter(router)
+
+  return (
+    <RouterProvider state={route}>
+      <AppLayout>
+        <React.Suspense fallback={<AppSpinner />}>
+          {route.content}
+        </React.Suspense>
+      </AppLayout>
+    </RouterProvider>
+  )
+}
+```
+
+#### `routerState.pending`
+
+For lazily loaded routes and routes with async content, it may take some time between clicking a link, and the new content becoming available. During this waiting period, `route.pending` will become `true`. This allows you to display an app-wide loading bar for long-loading routes.
+
+#### Examples
+
+This hook is useful for rendering an app-wide loading bar at the top of your page.
+
+```tsx
+export default function App() {
+  const route = useRouter(router)
+
+  return (
+    <RouterProvider state={route}>
+      <AppLayout>
+        {route.pending && <AppLoadingBar />}
+        <React.Suspense fallback={<AppSpinner />}>
+          {route.content}
+        </React.Suspense>
+      </AppLayout>
+    </RouterProvider>
+  )
+}
+```
+
+### `RouterAction`
+
+An object used to represent a change (or *delta*) from the current path. `undefined` values represent no change from the current value.
+
+```tsx
+interface RouterAction {
+  hash?: string
+  pathname?: string
+  query?: { [key: string]: string | string[] }
+  search?: string
+  state?: object
+}
+```
+
+### `RouterController`
+
+An object providing functions to control the router programmatically.
+
+The promises returned by some functions in this object will resolve once navigation and routing has completed.
+
+```tsx
+interface RouterController {
+  // Returned boolean indicates whether navigation completed successfully.
+  back(): Promise<boolean>
+
+  block(
+    // Returns a boolean indicating whether navigation should be blocked.
+    blockerFn: (location) => Promise<boolean>
+  ): () => void
+
+  // Returned boolean indicates whether navigation completed successfully.
+  navigate(
+    action: string | RouterAction,
+    { replace? } = {}
+  ): Promise<boolean>
+
+  prefetch(action): Promise<Route>
 }
 ```
 
 
-### `Router`
+### `RouterFunction`
 
 A function that maps a [`RouterRequest`](#routerrequest) to a React element, and optionally may mutate the response object.
 
@@ -566,50 +640,7 @@ interface AppRequest extends RouterRequest {
 type AppRouter = Router<AppRequest>
 ```
 
-Bear in mind that `<RouterProvider>` and `getRouterSnapshot()` expect a base `RouterRequest` object, so you'll always want your root-level router to accept a plain `RouterRequest`. The root router can then create an extended request object, and pass it to its child router.
-
-When creating this router within a component, e.g. to access component state, you'll want to make sure to memoize it with `useCallback()` so that you're not creating a new router -- and recomputing the route -- on every render.
-
-```tsx
-const rootRouter = useCallback((request: RouterRequest, response: RouterResponse) => {
-  const appRequest: AppRequest = {
-    ...request, 
-    currentUser
-  }
-  return appRouter(appRequest, response)
-}, [currentUser])
-```
-
-
-### `RouterDelta`
-
-An object used to represent a change (or *delta*) from the current path. `undefined` values represent no change from the current value.
-
-```tsx
-interface RouterDelta {
-  hash?: string
-  pathname?: string
-  query?: { [key: string]: string | string[] }
-  search?: string
-  state?: object
-}
-```
-
-### `RouterNavigation`
-
-An object providing functions to control the router programmatically.
-
-The promises returned by some functions in this object will resolve once navigation and routing has completed.
-
-```tsx
-interface RouterNavigation {
-  back(): Promise<void>
-  block(blockerFn): () => void
-  navigate(delta, options?): Promise<void>
-  prefetch(delta, options?): Promise<Route>
-  reload(): Promise<void>
-}
-```
+You can then use the `transformRequest` option to [`useRouter`](#userouter) to ensure that the router receives a correctly shaped request.
 
 
 ### `RouterRequest`
@@ -669,7 +700,6 @@ interface RouterResponse {
   error?: any
   head: ReactElement[]
   headers: { [name: string]: string }
-  pendingCommits: PromiseLike<any>[]
   pendingSuspenses: PromiseLike<any>[]
   status?: number
 ```

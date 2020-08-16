@@ -24,7 +24,7 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  serviceOrInitialSnapshot:
+  serviceOrSnapshot:
     | RouterSource<Ext, State, Response>
     | RouterSnapshot<Ext, State, Response>,
   options: UseRouterSourceOptions = {},
@@ -35,12 +35,12 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
     [transitionTimeoutMs],
   )
   const [startTransition, pending] = useTransition(transitionOptions)
-  const initialSnapshot = (Array.isArray(serviceOrInitialSnapshot)
+  const initialSnapshot = (Array.isArray(serviceOrSnapshot)
     ? null
-    : serviceOrInitialSnapshot) as null | RouterSnapshot<Ext, State, Response>
+    : serviceOrSnapshot) as null | RouterSnapshot<Ext, State, Response>
   const routerSource = initialSnapshot
     ? null
-    : (serviceOrInitialSnapshot as RouterSource<Ext, State, Response>)
+    : (serviceOrSnapshot as RouterSource<Ext, State, Response>)
   const snapshot =
     useSource(routerSource, {
       defaultValue: null,

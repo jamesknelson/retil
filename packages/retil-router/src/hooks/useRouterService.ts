@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Deferred } from 'retil-common'
 import {
-  Route,
+  RouterState,
   RouterController,
   RouterHistoryState,
   RouterRequest,
@@ -36,11 +36,11 @@ export function useRouterService<
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  routerServiceOrInitialSnapshot:
+  routerServiceOrState:
     | RouterService<Ext, State, Response>
-    | RouterSnapshot<Ext, State, Response>,
+    | RouterState<Ext, State>,
   options: UseRouterServiceOptions<Ext, State, Response> = {},
-): readonly [Route<Ext, State>, RouterController<Ext, State, Response>] {
+): RouterState<Ext, State> {
   const {
     onResponseComplete,
     transitionTimeoutMs,
@@ -59,21 +59,20 @@ export function useRouterService<
     routerController = noopController,
   ] = useMemo(
     () =>
-      Array.isArray(routerServiceOrInitialSnapshot)
-        ? (routerServiceOrInitialSnapshot as RouterService<
-            Ext,
-            State,
-            Response
-          >)
+      Array.isArray(routerServiceOrState)
+        ? (routerServiceOrState as RouterService<Ext, State, Response>)
         : ([
-            routerServiceOrInitialSnapshot as RouterSnapshot<
-              Ext,
-              State,
-              Response
-            >,
+            {
+              ...routerServiceOrState,
+              response: ({
+                head: [],
+                headers: {},
+                pendingSuspenses: [],
+              } as any) as Response,
+            } as RouterSnapshot<Ext, State, Response>,
             undefined,
           ] as const),
-    [routerServiceOrInitialSnapshot],
+    [routerServiceOrState],
   )
   const [routerSnapshot, pending] = useRouterSource(
     routerSourceOrInitialSnapshot,
@@ -144,14 +143,15 @@ export function useRouterService<
     }
   }, [request, response])
 
-  const route = useMemo(
+  const state = useMemo(
     () => ({
       content,
+      controller,
       pending,
       request,
     }),
-    [content, pending, request],
+    [content, controller, pending, request],
   )
 
-  return [route, controller]
+  return state
 }

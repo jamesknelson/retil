@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react'
 import { applyLocationAction, createHref } from 'retil-history'
 
 import { useRouterController } from './useRouterController'
-import { useRequest } from './useRequest'
+import { useRouterRequest } from './useRouterRequest'
 import { RouterAction, RouterHistoryState } from '../routerTypes'
 
 export interface UseLinkOptions {
@@ -20,7 +20,7 @@ export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
 ) => {
   const { disabled, prefetch, replace, state, onClick, onMouseEnter } = options
   const controller = useRouterController()
-  const request = useRequest()
+  const request = useRouterRequest()
   const nextLocation = applyLocationAction(request, to, state)
 
   // Memoize the delta so we don't create new handler callbacks on every

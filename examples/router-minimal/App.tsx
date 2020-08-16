@@ -21,10 +21,10 @@ function appRouter(req: RouterRequest) {
 }
 
 export function App() {
-  const [route, controller] = useRouter(appRouter)
+  const route = useRouter(appRouter)
 
   return (
-    <RouterProvider route={route} controller={controller}>
+    <RouterProvider state={route}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
