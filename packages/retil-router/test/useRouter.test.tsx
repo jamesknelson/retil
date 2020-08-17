@@ -48,7 +48,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('james')
   })
 
-  test.only(`can change routers`, () => {
+  test(`can change routers`, () => {
     const router1: RouterFunction = () => 'router-1'
     const router2: RouterFunction = () => 'router-2'
     let setState!: any
@@ -63,6 +63,24 @@ function testUseRouter(useRouter: typeof _useRouter) {
       setState({ router: router2 })
     })
     expect(container).toHaveTextContent('router-2')
+  })
+
+  test.only(`changing histories immediately recomputes synchronous routes`, () => {
+    const history1 = createMemoryHistory('/test-1')
+    const history2 = createMemoryHistory('/test-2')
+    const router: RouterFunction = (request) => request.pathname
+    let setState!: any
+    const Test = () => {
+      const [state, _setState] = useState({ history: history1 })
+      setState = _setState
+      return <>{useRouter(router, state).content}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('/test-1')
+    act(() => {
+      setState({ history: history2 })
+    })
+    expect(container).toHaveTextContent('/test-2')
   })
 }
 

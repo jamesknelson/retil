@@ -50,7 +50,7 @@ export function useRouter<
 ): RouterState<Ext, State> {
   const {
     basename,
-    history,
+    history: historyProp,
     initialState,
     onResponseComplete,
     transformRequest,
@@ -63,19 +63,23 @@ export function useRouter<
 
   const [snapshotToUse, setSnapshotToUse] = useState(initialState || null)
 
-  const historyRef = useRef<HistoryService<State> | null>(history || null)
+  const historyRef = useRef<HistoryService<State> | null>(null)
+  if (historyProp) {
+    historyRef.current = historyProp
+  }
   if (!historyRef.current && !snapshotToUse) {
     historyRef.current = getDefaultBrowserHistory() as HistoryService<State>
   }
+  const history = historyRef.current!
 
   const routerServiceOrSnapshot = useMemo(
     () =>
       snapshotToUse ||
-      createRouter(routerFunction, historyRef.current!, {
+      createRouter(routerFunction, history, {
         basename,
         transformRequest,
       }),
-    [basename, routerFunction, snapshotToUse, transformRequest],
+    [basename, history, routerFunction, snapshotToUse, transformRequest],
   )
 
   useEffect(() => {
