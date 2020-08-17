@@ -25,7 +25,7 @@ describe(`createMemoryHistory`, () => {
     const done = await historyController.navigate('/')
 
     expect(snapshots[0].request.pathname).toEqual('/')
-    expect(snapshots[0].pendingLocation).toBe(null)
+    expect(snapshots[0].pendingBlocker).toBe(null)
     expect(snapshots.length).toBe(2)
     expect(done).toBe(true)
   })
@@ -83,10 +83,10 @@ describe(`createMemoryHistory`, () => {
 
     const navigatedPromise = historyController.navigate('/test-2')
 
-    expect(snapshots[0].pendingLocation!.pathname).toBe('/test-2')
+    expect(snapshots[0].pendingBlocker!.pathname).toBe('/test-2')
 
     await navigatedPromise
 
-    expect(snapshots[0].pendingLocation).toBe(null)
+    expect(snapshots[0].pendingBlocker).toBe(null)
   })
 })

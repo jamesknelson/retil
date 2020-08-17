@@ -106,5 +106,8 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     }
   }, [source, handleNewSnapshot])
 
-  return [state.currentSnapshot, !!state.pendingSnapshot]
+  return [
+    state.currentSnapshot,
+    !!state.pendingSnapshot || !!state.currentSnapshot.pendingRequestCreation,
+  ]
 }

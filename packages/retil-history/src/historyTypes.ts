@@ -32,7 +32,7 @@ export interface HistoryRequest<S extends HistoryState = HistoryState>
 }
 
 export interface HistorySnapshot<S extends HistoryState = HistoryState> {
-  pendingLocation: HistoryLocation<S> | null
+  pendingBlocker?: HistoryLocation<S>
   request: HistoryRequest<S>
   trigger: HistoryTrigger
 }

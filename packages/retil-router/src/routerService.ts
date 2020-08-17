@@ -1,8 +1,8 @@
 import {
+  HistoryRequest,
   HistoryService,
   applyLocationAction,
   createMemoryHistory,
-  getDefaultBrowserHistory,
   parseLocation,
 } from 'retil-history'
 import { fuse, getSnapshotPromise, getSnapshot } from 'retil-source'
@@ -54,12 +54,16 @@ export function createRouter<
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [historySource, historyController] = history
 
-  // Create a source for just the request, so that our fusor only produces new
-  // values when the request has changed (and not the pendingLocation).
-  const historyRequestSource = fuse((use) => use(historySource).request)
+  // Memoize creation of content/request/response, as it can have side effects
+  // like precaching data.
+  let last: null | [HistoryRequest<S>, RouterSnapshot<Ext, S, Response>] = null
+  const memoizedHandleRequest = (
+    historyRequest: HistoryRequest<S>,
+  ): RouterSnapshot<Ext, S, Response> => {
+    if (last && last[0] === historyRequest) {
+      return last[1]
+    }
 
-  const source = fuse<RouterSnapshot<Ext, S, Response>>((use, effect) => {
-    const historyRequest = use(historyRequestSource)
     const routerRequest: RouterRequest<S> = {
       basename,
       params: {},
@@ -77,6 +81,24 @@ export function createRouter<
     } as any) as Response
 
     const content = normalizedRouter(request, response)
+
+    return {
+      content,
+      response,
+      request,
+    }
+  }
+
+  const source = fuse<RouterSnapshot<Ext, S, Response>>((use, effect) => {
+    const historySnapshot = use(historySource)
+    const snapshot = {
+      ...memoizedHandleRequest(historySnapshot.request),
+      // FIXME: should allow for routers to be used as histories, with any
+      // content/response fed into the `transformRequest` function to be
+      // added to the request by the application.
+      pendingRequestCreation: (historySnapshot as any).pendingRequestCreation,
+    }
+    const response = snapshot.response
 
     if (followRedirects && isRedirect(response)) {
       return effect(() => {
@@ -96,12 +118,6 @@ export function createRouter<
     }
 
     redirectCounter = 0
-
-    const snapshot: RouterSnapshot<Ext, S, Response> = {
-      content,
-      response,
-      request,
-    }
 
     return snapshot
   })

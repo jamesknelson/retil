@@ -64,6 +64,8 @@ export interface RouterSnapshot<
   Response extends RouterResponse = RouterResponse
 > {
   content: ReactNode
+  pendingBlocker?: RouterLocation<S>
+  pendingRequestCreation?: RouterLocation<S>
   request: RouterRequest<S> & Ext
   response: Response
 }

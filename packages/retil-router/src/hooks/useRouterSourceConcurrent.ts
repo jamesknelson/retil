@@ -47,5 +47,5 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
       startTransition,
     }) || initialSnapshot!
 
-  return [snapshot, pending]
+  return [snapshot, pending || !!snapshot.pendingRequestCreation]
 }

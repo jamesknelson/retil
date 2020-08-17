@@ -55,26 +55,24 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
   } as HistoryRequest<S>
   let nextMethod: string = 'GET'
 
-  const source = observe<Omit<HistorySnapshot<S>, 'pendingLocation'>>(
-    (next) => {
-      next({ trigger: 'POP', request: lastRequest })
-      return history.listen(({ action, location }) => {
-        if (!ignoreChange) {
-          const method = nextMethod
-          nextMethod = 'GET'
-          lastRequest = {
-            ...parseLocation(location),
-            key: location.key,
-            method,
-          }
-          next({
-            trigger: action,
-            request: lastRequest,
-          })
+  const source = observe<HistorySnapshot<S>>((next) => {
+    next({ trigger: 'POP', request: lastRequest })
+    return history.listen(({ action, location }) => {
+      if (!ignoreChange) {
+        const method = nextMethod
+        nextMethod = 'GET'
+        lastRequest = {
+          ...parseLocation(location),
+          key: location.key,
+          method,
         }
-      })
-    },
-  )
+        next({
+          trigger: action,
+          request: lastRequest,
+        })
+      }
+    })
+  })
 
   const runMaybeBlockedAction = (callback: () => any): Promise<boolean> => {
     let action: Promise<boolean> | undefined
@@ -150,7 +148,7 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     source,
     (latestSnapshot, isActing) => ({
       ...latestSnapshot,
-      pendingLocation: isActing ? pendingLocation : null,
+      pendingBlocker: (isActing && pendingLocation) || undefined,
     }),
   )
 
