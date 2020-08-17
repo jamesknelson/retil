@@ -9,10 +9,11 @@
  * this hook provides.
  */
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { delay } from 'retil-common'
 import { getSnapshot, subscribe } from 'retil-source'
 
+import { UseRouterDefaultsContext } from '../routerContext'
 import {
   RouterHistoryState,
   RouterResponse,
@@ -26,8 +27,6 @@ import {
   UseRouterSourceOptions,
 } from './useRouterSourceCommon'
 
-const DefaultTransitionTimeoutMs = 3000
-
 export const useRouterSourceBlocking: UseRouterSourceFunction = <
   Ext = {},
   State extends RouterHistoryState = RouterHistoryState,
@@ -38,7 +37,9 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     | RouterSnapshot<Ext, State, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
-  const { transitionTimeoutMs = DefaultTransitionTimeoutMs } = options
+  const defaultTransitionTimeoutMs = useContext(UseRouterDefaultsContext)
+    .transitionTimeoutMs
+  const { transitionTimeoutMs = defaultTransitionTimeoutMs } = options
   const initialSnapshot = (Array.isArray(serviceOrSnapshot)
     ? null
     : serviceOrSnapshot) as null | RouterSnapshot<Ext, State, Response>

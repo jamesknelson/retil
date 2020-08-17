@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { HistoryService, getDefaultBrowserHistory } from 'retil-history'
 
+import { UseRouterDefaultsContext } from '../routerContext'
 import {
   RouterFunction,
   RouterHistoryState,
@@ -8,8 +9,8 @@ import {
   RouterResponse,
   RouterState,
 } from '../routerTypes'
-
 import { createRouter } from '../routerService'
+
 import { useRouterService } from './useRouterService'
 
 export interface UseRouterOptions<
@@ -48,13 +49,14 @@ export function useRouter<
   routerFunction: RouterFunction<RouterRequest<State> & Ext, Response>,
   options: UseRouterOptions<Ext, State, Response> = {},
 ): RouterState<Ext, State> {
+  const defaults = useContext(UseRouterDefaultsContext)
   const {
     basename,
-    history: historyProp,
-    initialState,
+    history: historyProp = defaults.history,
+    initialState = defaults.initialState,
     onResponseComplete,
     transformRequest,
-    transitionTimeoutMs,
+    transitionTimeoutMs = defaults.transitionTimeoutMs,
     unstable_isConcurrent,
   } = options
 

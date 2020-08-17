@@ -165,7 +165,7 @@ export interface GetRouteOptions<Ext> {
   basename?: string
   method?: string
   normalizePathname?: boolean
-  requestExtension?: Ext
+  transformRequest?: (request: RouterRequest<any>) => RouterRequest<any> & Ext
 }
 
 export async function getInitialStateAndResponse<
@@ -177,11 +177,11 @@ export async function getInitialStateAndResponse<
   action: RouterAction<S>,
   options: GetRouteOptions<Ext> = {},
 ): Promise<readonly [RouterState<Ext, S>, Response]> {
-  const method = options.method || 'GET'
+  const { method = 'GET', ...routerOptions } = options
   const history = createMemoryHistory(parseLocation(action), method)
-  const [routerSource] = createRouter(router, history, {
-    ...options,
+  const [routerSource] = createRouter<Ext, S, Response>(router, history, {
     followRedirects: false,
+    ...routerOptions,
   })
   const { content, request, response } = await getSnapshotPromise(routerSource)
   await waitForMutablePromiseList(response.pendingSuspenses)

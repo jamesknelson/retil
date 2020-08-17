@@ -10,6 +10,7 @@ export {
   parseLocation,
 } from 'retil-history'
 
+export { UseRouterDefaultsContext } from './routerContext'
 export * from './routerService'
 export * from './routerTypes'
 

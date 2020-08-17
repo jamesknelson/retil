@@ -1,9 +1,10 @@
 /// <reference types="react/experimental" />
 
 import * as React from 'react'
-import { useMemo } from 'react'
+import { useContext, useMemo } from 'react'
 import { useSource } from 'use-source'
 
+import { UseRouterDefaultsContext } from '../routerContext'
 import {
   RouterHistoryState,
   RouterResponse,
@@ -16,7 +17,6 @@ import {
   UseRouterSourceOptions,
 } from './useRouterSourceCommon'
 
-const DefaultTransitionTimeoutMs = 3000
 const { unstable_useTransition: useTransition } = React
 
 export const useRouterSourceConcurrent: UseRouterSourceFunction = <
@@ -29,7 +29,9 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
     | RouterSnapshot<Ext, State, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
-  const { transitionTimeoutMs = DefaultTransitionTimeoutMs } = options
+  const defaultTransitionTimeoutMs = useContext(UseRouterDefaultsContext)
+    .transitionTimeoutMs
+  const { transitionTimeoutMs = defaultTransitionTimeoutMs } = options
   const transitionOptions = useMemo(
     () => ({ timeoutMs: transitionTimeoutMs }),
     [transitionTimeoutMs],
