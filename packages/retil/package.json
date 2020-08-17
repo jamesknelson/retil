@@ -1,7 +1,7 @@
 {
   "name": "retil",
   "version": "0.9.0",
-  "description": "The react utility belt.",
+  "description": "Superpowers for React Developers.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -20,9 +20,11 @@
   },
   "dependencies": {
     "retil-common": "^0.9.0",
+    "retil-history": "^0.9.0",
+    "retil-router": "^0.9.0",
     "retil-source": "^0.9.0",
     "tslib": "2.0.1",
-    "use-source": "^0.7.1"
+    "use-source": "^0.9.0"
   },
   "devDependencies": {
     "typescript": "3.8.3"

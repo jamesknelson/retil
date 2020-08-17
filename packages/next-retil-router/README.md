@@ -1,4 +1,4 @@
-# next-retil-router
+# nextil
 
 **The missing piece of Next.js.**
 

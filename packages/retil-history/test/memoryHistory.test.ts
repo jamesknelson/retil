@@ -18,14 +18,14 @@ describe(`createMemoryHistory`, () => {
     expect(snapshots[0].request.pathname).toEqual('/test')
   })
 
-  test(`navigates without emitting a pendingLocation`, async () => {
+  test(`navigates without emitting a pendingBlocker`, async () => {
     const [historySource, historyController] = createMemoryHistory('/test')
     const snapshots = sendToArray(historySource)
 
     const done = await historyController.navigate('/')
 
     expect(snapshots[0].request.pathname).toEqual('/')
-    expect(snapshots[0].pendingBlocker).toBe(null)
+    expect(snapshots[0].pendingBlocker).toBe(undefined)
     expect(snapshots.length).toBe(2)
     expect(done).toBe(true)
   })
@@ -75,7 +75,7 @@ describe(`createMemoryHistory`, () => {
     expect(snapshots[0].request.pathname).toBe('/test-2')
   })
 
-  test(`emits pendingLocation while blocked`, async () => {
+  test(`emits pendingBlocker while blocked`, async () => {
     const [historySource, historyController] = createMemoryHistory('/test-1')
     const snapshots = sendToArray(historySource)
 
@@ -87,6 +87,6 @@ describe(`createMemoryHistory`, () => {
 
     await navigatedPromise
 
-    expect(snapshots[0].pendingBlocker).toBe(null)
+    expect(snapshots[0].pendingBlocker).toBe(undefined)
   })
 })
