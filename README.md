@@ -63,7 +63,7 @@ Provides helpers for `<Link>`s, redirects, 404 messages, and prefetching content
 
 - [retil-router](./packages/retil-router)
 - [retil-history](./packages/retil-history) -- *used internally by retil-router*
-- [next-retil-router](./packages/retil-router-next) -- *makes retil-router work with Next.js*
+- [nextil](./packages/nextil) -- *use retil-router with Next.js*
 
 #### api docs
 

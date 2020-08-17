@@ -1,8 +1,7 @@
 {
-  "name": "next-retil-router",
-  "private": true,
-  "version": "0.9.0",
-  "description": "Retil sources for consuming and interacting with browser history.",
+  "name": "nextil",
+  "version": "0.9.5",
+  "description": "The missing piece of Next.js.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -16,22 +15,21 @@
     "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types",
     "build:watch": "yarn run clean && yarn build:es -- --types --watch",
     "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn test && yarn build",
+    "prepare": "yarn build",
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "querystring": "^0.2.0",
-    "retil-common": "^0.9.0",
-    "retil-source": "^0.9.0",
+    "retil-history": "^0.9.4",
+    "retil-router": "^0.9.5",
     "tslib": "2.0.1"
   },
   "devDependencies": {
-    "next": "^9.5.2",
+    "@types/webpack": "^4.41.21",
+    "next": "^9.5.3-canary.3",
     "typescript": "3.8.3"
   },
   "files": [
     "dist"
-  ],
-  "gitHead": "bee2f6836ab48f258c42653df80381a84c328a31"
+  ]
 }
