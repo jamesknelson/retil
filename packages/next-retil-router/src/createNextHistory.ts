@@ -19,7 +19,6 @@ export function createNextHistory(
     // routers.
 
     next({
-      pendingLocation: null,
       request: {
         ...parseLocation(router.asPath),
         key: undefined as any,
@@ -30,7 +29,6 @@ export function createNextHistory(
 
     const handleRouteChange = (url: string) => {
       next({
-        pendingLocation: null,
         request: {
           ...parseLocation(url),
           // TODO: create a history-style unique key somehow
