@@ -34,12 +34,10 @@ const {
     subscribe: (core: SourceCore, callback: () => void) => () => void,
   ) => T
 }
-
 const MissingToken = Symbol()
-const mutableSources = new WeakMap<SourceCore, ReactMutableSource>([
-  [nullSource[0], createMutableSource(nullSource[0], nullSource[0][0])],
-])
 const subscribe = ([, subscribe]: SourceCore, cb: () => void) => subscribe(cb)
+
+let mutableSources: WeakMap<SourceCore, ReactMutableSource>
 
 export const useSourceModern: UseSourceFunction = <T = null, U = T>(
   maybeSource: Source<T> | null,
@@ -48,6 +46,12 @@ export const useSourceModern: UseSourceFunction = <T = null, U = T>(
   const hasDefaultValue = 'defaultValue' in options
   const { defaultValue, startTransition } = options
   const [core, select] = maybeSource || nullSource
+
+  if (!mutableSources) {
+    mutableSources = new WeakMap<SourceCore, ReactMutableSource>([
+      [nullSource[0], createMutableSource(nullSource[0], nullSource[0][0])],
+    ])
+  }
 
   const getSnapshot = useMemo(
     () =>
