@@ -56,10 +56,15 @@ export function createRouter<
 
   // Memoize creation of content/request/response, as it can have side effects
   // like precaching data.
-  let last: null | [HistoryRequest<S>, RouterSnapshot<Ext, S, Response>] = null
+  let last:
+    | null
+    | [
+        HistoryRequest<S>,
+        Omit<RouterSnapshot<Ext, S, Response>, 'trigger'>,
+      ] = null
   const memoizedHandleRequest = (
     historyRequest: HistoryRequest<S>,
-  ): RouterSnapshot<Ext, S, Response> => {
+  ): Omit<RouterSnapshot<Ext, S, Response>, 'trigger'> => {
     if (last && last[0] === historyRequest) {
       return last[1]
     }
@@ -81,12 +86,15 @@ export function createRouter<
     } as any) as Response
 
     const content = normalizedRouter(request, response)
-
-    return {
+    const result = {
       content,
       response,
       request,
     }
+
+    last = [historyRequest, result]
+
+    return result
   }
 
   const source = fuse<RouterSnapshot<Ext, S, Response>>((use, effect) => {
@@ -97,6 +105,7 @@ export function createRouter<
       // content/response fed into the `transformRequest` function to be
       // added to the request by the application.
       pendingRequestCreation: (historySnapshot as any).pendingRequestCreation,
+      trigger: historySnapshot.trigger,
     }
     const response = snapshot.response
 

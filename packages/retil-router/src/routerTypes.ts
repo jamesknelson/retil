@@ -4,6 +4,7 @@ import {
   HistoryController,
   HistoryLocation,
   HistoryRequest,
+  HistorySnapshot,
   HistoryState,
 } from 'retil-history'
 import { Source } from 'retil-source'
@@ -62,7 +63,7 @@ export interface RouterSnapshot<
   Ext = {},
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
-> {
+> extends HistorySnapshot<S> {
   content: ReactNode
   pendingBlocker?: RouterLocation<S>
   pendingRequestCreation?: RouterLocation<S>

@@ -64,6 +64,7 @@ export function useRouterService<
         : ([
             {
               ...routerServiceOrState,
+              trigger: 'POP',
               response: ({
                 head: [],
                 headers: {},
