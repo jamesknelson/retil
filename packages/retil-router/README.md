@@ -149,7 +149,7 @@ TODO
 -->
 
 
-## API
+## [API Docs](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md)
 
 [**Components**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#components)
 

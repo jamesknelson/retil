@@ -33,7 +33,7 @@ Helps you validate forms, display busy indicators, and keep track of any issues 
 
 #### examples
 
-- #TODO*
+- *TODO*
 
 
 ### Authentication
@@ -50,7 +50,7 @@ Provides a common interface for functions like `signOut()` and `signInWithRedire
 
 #### examples
 
-- #TODO*
+- *TODO*
 
 
 ### Routing
@@ -62,8 +62,7 @@ Provides helpers for `<Link>`s, redirects, 404 messages, and prefetching content
 #### npm packages
 
 - [retil-router](./packages/retil-router)
-- [retil-history](./packages/retil-history) -- *used internally by retil-router*
-- [nextil](./packages/nextil) -- *use retil-router with Next.js*
+- [nextil](./packages/nextil) -- *for using retil-router with Next.js*
 
 #### api docs
 
@@ -104,7 +103,7 @@ Useful in situations where you need to work with one or more **external** data s
 
 ## The Dream
 
-I want *you* to be able to start *and launch** a web app with authentication, routing and payments **in a single weekend**. Retil is the foundation for that app. It's designed to get you started with the minimum effort possible -- both in terms of writing code, *and* learning APIs -- so that you can focus your energy on building something amazing.
+I want *you* to be able to start *and launch* a web app with authentication, routing and payments **in a single weekend**. Retil is the foundation for that app. It's designed to get you started with the minimum effort possible -- both in terms of writing code, *and* learning APIs -- so that you can focus your energy on building something amazing.
 
 Retil is one half of the project, with [Frontend Armory](https://frontarm.com) being the other. Click the link and check it out!
 

@@ -9,9 +9,9 @@
 
 - [`useLink()`](/docs/router-api.md#uselink)
 - [`useLinkActive()`](/docs/router-api.md#uselinkactive)
-- [`useRouterRequest()`](/docs/router-api.md#userouterrequest)
 - [`useRouter()`](/docs/router-api.md#userouter)
 - [`useRouterController()`](/docs/router-api.md#useroutercontroller)
+- [`useRouterRequest()`](/docs/router-api.md#userouterrequest)
 
 [**Router function helpers**](/docs/router-api.md#router-function-helpers)
 
@@ -221,28 +221,6 @@ Returns `true` if the current request matches the specified `href`. If an `exact
   If `true`, the current route will only be considered active if it exactly matches the `href` passed as the first argument.
 
 
-### `useRouterRequest()`
-
-*`useRouterRequest()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
-
-```tsx
-const request = useRouterRequest()
-```
-
-Returns the [`RouterRequest`](#routerrequest) object associated with the current route.
-
-
-### `useRouterController()`
-
-*`useRouterController()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
-
-```tsx
-const { back, block, navigate, prefetch } = useRouterController()
-```
-
-Returns a [`RouterController`](#routercontroller) object, which you can use to prefetch routes, block navigation, and perform programmatic navigation.
-
-
 ### `useRouter()`
 
 ```tsx
@@ -311,6 +289,28 @@ export default function App() {
   Set this to `true` to opt into using React's concurrent mode internally for transitions (i.e. `useTransition()`). Note, this feature will only work when using React's experimental branch, and when rendering your app with `createRoot()`.
   
   The advantage to putting the router into concurrent mode is that it allows the router to wait for `React.lazy` components and suspense-based data fetching to complete before transitioning to the next route. It also allows the `route.pending` flag to track React's suspense state.
+
+
+### `useRouterController()`
+
+*`useRouterController()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
+
+```tsx
+const { back, block, navigate, prefetch } = useRouterController()
+```
+
+Returns a [`RouterController`](#routercontroller) object, which you can use to prefetch routes, block navigation, and perform programmatic navigation.
+
+
+### `useRouterRequest()`
+
+*`useRouterRequest()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
+
+```tsx
+const request = useRouterRequest()
+```
+
+Returns the [`RouterRequest`](#routerrequest) object associated with the current route. This is used internally by `<Link>` and `useLinkActive()` to check whether the given address corresponds to the active route.
 
 
 ## Router creators
@@ -691,7 +691,7 @@ It's also possible to manually specify a method by passing a `method` option to 
 
 ### `RouterResponse`
 
-A mutable object used to pass metadata from `Router` functions to the router itself, and to the server when doing SSR.
+A mutable object used to pass metadata from a `RouterFunction` to the router itself, and to the server when doing SSR.
 
 *You probably don't need to touch this object directly, except when passing it to the second argument of your router functions.*
 
@@ -702,4 +702,5 @@ interface RouterResponse {
   headers: { [name: string]: string }
   pendingSuspenses: PromiseLike<any>[]
   status?: number
+}
 ```
