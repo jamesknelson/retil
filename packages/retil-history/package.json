@@ -1,6 +1,6 @@
 {
   "name": "retil-history",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "Retil sources for consuming and interacting with browser history.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
