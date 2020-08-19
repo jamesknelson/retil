@@ -116,12 +116,15 @@ export function parseAction<S extends HistoryState = HistoryState>(
   }
 
   if (action.search) {
-    if (action.query) {
-      console.error(
-        `A path was provided with both "search" and "query" parameters. Ignoring "search" in favor of "query".`,
-      )
-    } else {
+    if (!action.query) {
       action.query = parseQuery(action.search.slice(1))
+    } else if (process.env.NODE_ENV !== 'production') {
+      const actionQuery = parseQuery(action.search.slice(1))
+      if (actionQuery !== action.query) {
+        console.error(
+          `A path was provided with differing "search" and "query" parameters. Ignoring "search" in favor of "query".`,
+        )
+      }
     }
   } else if (action.query) {
     const stringifiedQuery = stringifyQuery(action.query)
