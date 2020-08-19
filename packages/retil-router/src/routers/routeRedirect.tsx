@@ -1,5 +1,10 @@
 import * as React from 'react'
-import { createHref, parseAction } from 'retil-history'
+import {
+  applyLocationAction,
+  createHref,
+  parseAction,
+  parseLocation,
+} from 'retil-history'
 
 import { useRouterController } from '../hooks/useRouterController'
 import { RouterAction, RouterFunction, RouterRequest } from '../routerTypes'
@@ -18,10 +23,15 @@ export function routeRedirect<Request extends RouterRequest = RouterRequest>(
   status = 302,
 ): RouterFunction<Request> {
   return (fromRequest, response) => {
-    const toRequest = parseAction(
+    const toAction = parseAction(
       typeof to === 'function' ? to(fromRequest) : to,
     )
-    const href = createHref(toRequest)
+    const href = createHref(
+      applyLocationAction(
+        parseLocation({ pathname: fromRequest.basename }),
+        toAction,
+      ),
+    )
 
     response.headers.Location = href
     response.status = status
