@@ -47,7 +47,7 @@ export function createRouter<
   const {
     basename = '',
     followRedirects = true,
-    maxRedirects = 0,
+    maxRedirects = 5,
     normalizePathname = true,
     transformRequest,
   } = options
