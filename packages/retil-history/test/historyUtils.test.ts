@@ -12,8 +12,11 @@ describe(`history utils`, () => {
   })
 
   test(`parseAction() generates correct searches from queries`, () => {
-    const action = parseAction({ query: { param: '1', another: 'two' } })
-    expect(action.search).toBe('?param=1&another=two')
+    expect(parseAction({ query: { param: '1', another: 'two' } }).search).toBe(
+      '?param=1&another=two',
+    )
+
+    expect(parseAction({ query: {} }).search).toBe('')
   })
 
   test(`applyLocationAction() works in pathnames with no leadong . or /`, () => {

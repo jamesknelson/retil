@@ -124,7 +124,8 @@ export function parseAction<S extends HistoryState = HistoryState>(
       action.query = parseQuery(action.search.slice(1))
     }
   } else if (action.query) {
-    action.search = '?' + stringifyQuery(action.query)
+    const stringifiedQuery = stringifyQuery(action.query)
+    action.search = stringifiedQuery ? '?' + stringifiedQuery : ''
   }
 
   return action
