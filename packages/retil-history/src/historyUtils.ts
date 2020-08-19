@@ -78,24 +78,26 @@ export function applyLocationAction<S extends HistoryState = HistoryState>(
     )
   }
 
+  const parsedAction = parseAction(action, state)
+
+  let pathname = parsedAction.pathname
+
   // If no relativity specifier is provided, use the browser default of
   // replacing the last segment.
-  if (typeof action === 'string') {
-    action =
-      action[0] === '/'
-        ? action
+  if (pathname) {
+    pathname =
+      pathname[0] === '/'
+        ? pathname
         : joinPaths(
             location.pathname,
-            /^\.\.?\//.test(action) ? '.' : '..',
-            action,
+            /^\.\.?\//.test(pathname) ? '.' : '..',
+            pathname,
           )
   }
 
-  const parsedAction = parseAction(action, state)
-
   return {
     hash: parsedAction.hash || '',
-    pathname: parsedAction.pathname || location.pathname,
+    pathname: pathname || location.pathname,
     query: parsedAction.query || {},
     search: parsedAction.search || '',
     state: parsedAction.state || ({} as S),
@@ -106,26 +108,26 @@ export function parseAction<S extends HistoryState = HistoryState>(
   input: string | HistoryAction<S>,
   state?: S,
 ): Exclude<HistoryAction<S>, string> {
-  const delta: HistoryAction<S> =
+  const action: HistoryAction<S> =
     typeof input === 'string' ? parsePath(input) : { ...input }
 
   if (state) {
-    delta.state = state
+    action.state = state
   }
 
-  if (delta.search) {
-    if (delta.query) {
+  if (action.search) {
+    if (action.query) {
       console.error(
         `A path was provided with both "search" and "query" parameters. Ignoring "search" in favor of "query".`,
       )
     } else {
-      delta.query = parseQuery(delta.search.slice(1))
+      action.query = parseQuery(action.search.slice(1))
     }
-  } else if (delta.query) {
-    delta.search = stringifyQuery(delta.query)
+  } else if (action.query) {
+    action.search = '?' + stringifyQuery(action.query)
   }
 
-  return delta
+  return action
 }
 
 export function parseLocation<S extends HistoryState = HistoryState>(
