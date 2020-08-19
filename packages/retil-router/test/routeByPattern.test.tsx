@@ -44,8 +44,11 @@ describe('routeByPattern', () => {
     const [state, response] = await getInitialStateAndResponse(
       router,
       '/browse',
+      {
+        basename: '/test',
+      },
     )
     expect(response.status || 200).toBe(200)
-    expect((state.content as ReactElement).props.content).toBe('/browse')
+    expect((state.content as ReactElement).props.content).toBe('/test')
   })
 })
