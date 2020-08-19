@@ -89,7 +89,9 @@ export function routeByPattern<
             basename:
               test.pattern === '/(.*)?'
                 ? pathname
-                : pathname.slice(0, pathname.length - wildcard.length - 1),
+                : pathname
+                    .slice(0, pathname.length - wildcard.length)
+                    .replace(/\/$/, ''),
             params: { ...request, ...params },
           },
           response,

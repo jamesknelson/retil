@@ -18,12 +18,22 @@ describe('routeByPattern', () => {
     expect((state.content as ReactElement).props.content).toBe('acquisition')
   })
 
-  test(`sets nested basename correctly`, async () => {
+  test(`sets basename correctly when there is a nested path`, async () => {
     const router = routeByPattern({
       '/browse*': ({ basename }) => basename,
     })
     const [state] = await getInitialStateAndResponse(router, '/browse/deck')
     expect((state.content as ReactElement).props.content).toBe('/browse')
+  })
+
+  test(`sets basename correctly when there is no nested path`, async () => {
+    const router = routeByPattern({
+      '/deck*': ({ basename }) => basename,
+    })
+    const [state] = await getInitialStateAndResponse(router, '/browse/deck', {
+      basename: '/browse',
+    })
+    expect((state.content as ReactElement).props.content).toBe('/browse/deck')
   })
 
   test(`matches wildcards`, async () => {
