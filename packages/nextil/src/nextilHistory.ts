@@ -50,6 +50,7 @@ export function createNextHistory(
 
     const handleRouteChangeComplete = async (url: string) => {
       if (
+        nextilState.hasPageRouter &&
         latestNextilStateRef.current !== nextilState &&
         latestNextilStateRef.current!.hasPageRouter
       ) {
@@ -66,10 +67,15 @@ export function createNextHistory(
         } as any
 
         next(lastSnapshot as any)
+      } else {
+        next({
+          ...lastSnapshot,
+          pendingRequestCreation: null,
+        } as any)
       }
     }
 
-    const handleRouteError = (err: any) => {
+    const handleRouteError = (err: any, _url: string) => {
       // TODO: turn off pending state if necessary
       if (!err.cancelled) {
         error(err)
@@ -78,18 +84,12 @@ export function createNextHistory(
 
     router.events.on('routeChangeStart', handleRouteChangeStart)
     router.events.on('routeChangeError', handleRouteError)
-
-    if (nextilState.hasPageRouter) {
-      router.events.on('routeChangeComplete', handleRouteChangeComplete)
-    }
+    router.events.on('routeChangeComplete', handleRouteChangeComplete)
 
     return () => {
       router.events.off('routeChangeStart', handleRouteChangeStart)
       router.events.off('routeChangeError', handleRouteError)
-
-      if (nextilState.hasPageRouter) {
-        router.events.off('routeChangeComplete', handleRouteChangeComplete)
-      }
+      router.events.off('routeChangeComplete', handleRouteChangeComplete)
     }
   })
 

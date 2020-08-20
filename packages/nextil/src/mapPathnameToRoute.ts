@@ -23,6 +23,9 @@ function escapeRegex(str: string) {
 }
 function parseParameter(param: string) {
   const optional = param.startsWith('[') && param.endsWith(']')
+  if (optional) {
+    param = param.slice(1, -1)
+  }
   const repeat = param.startsWith('...')
   return { repeat, optional }
 }
