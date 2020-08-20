@@ -94,18 +94,22 @@ export function observe<T>(
     notifySubscribers()
   }
 
-  const handleError = (error: any) => {
+  const handleError = (err: any) => {
     if (!subscription) {
       return
     }
+    error = { value: err }
     const deferred = snapshot?.deferred
-    teardownSubscription()
     notifySubscribers()
+    teardownSubscription()
     callbacks.length = 0
+    if (actDeferred) {
+      actDeferred.reject(err)
+    }
     if (deferred) {
-      deferred.reject(error)
+      deferred.reject(err)
     } else {
-      throw error
+      throw err
     }
   }
 

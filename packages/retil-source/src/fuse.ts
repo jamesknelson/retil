@@ -89,7 +89,9 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
             ? Promise.resolve(result).then(() => effectResult)
             : effectResult
       }
-      return isPromiseLike(result) ? result.then(finishEffect) : finishEffect()
+      return isPromiseLike(result)
+        ? result.then(finishEffect, onError)
+        : finishEffect()
     })
   }
 
