@@ -9,9 +9,14 @@
  * this hook provides.
  */
 
-import { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { delay } from 'retil-common'
-import { getSnapshot, subscribe } from 'retil-source'
+import {
+  getSnapshot,
+  getSnapshotPromise,
+  hasSnapshot,
+  subscribe,
+} from 'retil-source'
 
 import { UseRouterDefaultsContext } from '../routerContext'
 import {
@@ -66,33 +71,53 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     [],
   )
 
-  const handleNewSnapshot = useCallback(() => {
-    if (source) {
-      const snapshot = getSnapshot(source)
-      if (
-        transitionTimeoutMs === 0 ||
-        !snapshot.response.pendingSuspenses.length
-      ) {
-        setState({ currentSnapshot: snapshot, pendingSnapshot: null, source })
-      } else {
-        setState(({ currentSnapshot }) => ({
-          currentSnapshot,
-          pendingSnapshot: snapshot,
-          source,
-        }))
+  const handleNewSnapshot = useMemo(() => {
+    let hasGotInitialSnapshot = false
 
-        Promise.race([
-          delay(transitionTimeoutMs),
-          waitForMutablePromiseList(snapshot.response.pendingSuspenses),
-        ]).then(() => {
-          if (!hasUnmountedRef.current) {
-            setState(({ currentSnapshot, pendingSnapshot }) =>
-              snapshot === pendingSnapshot
-                ? { currentSnapshot: snapshot, pendingSnapshot: null, source }
-                : { currentSnapshot, pendingSnapshot, source },
-            )
+    return () => {
+      if (source) {
+        hasGotInitialSnapshot = hasGotInitialSnapshot || hasSnapshot(source)
+        if (hasGotInitialSnapshot || transitionTimeoutMs === 0) {
+          const snapshot = getSnapshot(source)
+          if (
+            transitionTimeoutMs === 0 ||
+            !snapshot.response.pendingSuspenses.length
+          ) {
+            setState({
+              currentSnapshot: snapshot,
+              pendingSnapshot: null,
+              source,
+            })
+          } else {
+            setState(({ currentSnapshot }) => ({
+              currentSnapshot,
+              pendingSnapshot: snapshot,
+              source,
+            }))
+
+            Promise.race([
+              delay(transitionTimeoutMs),
+              waitForMutablePromiseList(snapshot.response.pendingSuspenses),
+            ]).then(() => {
+              if (!hasUnmountedRef.current) {
+                setState(({ currentSnapshot, pendingSnapshot }) =>
+                  snapshot === pendingSnapshot
+                    ? {
+                        currentSnapshot: snapshot,
+                        pendingSnapshot: null,
+                        source,
+                      }
+                    : { currentSnapshot, pendingSnapshot, source },
+                )
+              }
+            })
           }
-        })
+        } else {
+          Promise.race([
+            delay(transitionTimeoutMs),
+            getSnapshotPromise(source),
+          ]).then(handleNewSnapshot)
+        }
       }
     }
   }, [source, transitionTimeoutMs])

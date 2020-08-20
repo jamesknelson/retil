@@ -12,6 +12,7 @@ import {
   getInitialStateAndResponse,
   routeByPattern,
   routeLazy,
+  routeRedirect,
   useRouter as _useRouter,
 } from '../src'
 
@@ -65,7 +66,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('router-2')
   })
 
-  test.only(`changing histories immediately recomputes synchronous routes`, () => {
+  test(`changing histories immediately recomputes synchronous routes`, () => {
     const history1 = createMemoryHistory('/test-1')
     const history2 = createMemoryHistory('/test-2')
     const router: RouterFunction = (request) => request.pathname
@@ -81,6 +82,27 @@ function testUseRouter(useRouter: typeof _useRouter) {
       setState({ history: history2 })
     })
     expect(container).toHaveTextContent('/test-2')
+  })
+
+  test.only(`can change routers to an initial redirect without seeing a loading screen`, async () => {
+    const history = createMemoryHistory('/test')
+    const router1: RouterFunction = (request) => request.pathname
+    const router2 = routeByPattern({
+      '/test': routeRedirect('/success'),
+      '/success': router1,
+    })
+    let setState!: any
+    const Test = () => {
+      const [state, _setState] = useState({ router: router1 })
+      setState = _setState
+      return <>{useRouter(state.router, { history }).content}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('/test')
+    await act(async () => {
+      setState({ router: router2 })
+    })
+    expect(container).toHaveTextContent('/success')
   })
 }
 
