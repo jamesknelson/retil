@@ -54,7 +54,8 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
     pending ||
     (currentSnapshot
       ? !!currentSnapshot.pendingRequestCreation
-      : !!lastSnapshot)
+      : !!lastSnapshot.current)
+
   const snapshot = currentSnapshot || lastSnapshot.current || initialSnapshot!
 
   // Changing routers isn't covered by a transition, and we don't want an
