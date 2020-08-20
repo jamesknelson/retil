@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/extend-expect'
-import React, { Suspense, useState } from 'react'
+import React, { StrictMode, Suspense, useState } from 'react'
 import { delay } from 'retil-common'
 import { createMemoryHistory } from 'retil-history'
 import { act, render } from '@testing-library/react'
@@ -20,8 +20,27 @@ function testUseRouter(useRouter: typeof _useRouter) {
   test(`returns content`, () => {
     const router: RouterFunction = () => 'success'
     const Test = () => <>{useRouter(router).content}</>
-    const { container } = render(<Test />)
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
     expect(container).toHaveTextContent('success')
+  })
+
+  test(`only runs the router once`, () => {
+    let runCount = 0
+    const router: RouterFunction = () => {
+      runCount++
+      return 'test'
+    }
+    const Test = () => <>{useRouter(router).content}</>
+    render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
+    expect(runCount).toBe(1)
   })
 
   test(`accepts and transitions via custom history services`, () => {
@@ -58,7 +77,11 @@ function testUseRouter(useRouter: typeof _useRouter) {
       setState = _setState
       return <>{useRouter(state.router).content}</>
     }
-    const { container } = render(<Test />)
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
     expect(container).toHaveTextContent('router-1')
     act(() => {
       setState({ router: router2 })
@@ -76,7 +99,11 @@ function testUseRouter(useRouter: typeof _useRouter) {
       setState = _setState
       return <>{useRouter(router, state).content}</>
     }
-    const { container } = render(<Test />)
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
     expect(container).toHaveTextContent('/test-1')
     act(() => {
       setState({ history: history2 })
@@ -97,7 +124,11 @@ function testUseRouter(useRouter: typeof _useRouter) {
       setState = _setState
       return <>{useRouter(state.router, { history }).content}</>
     }
-    const { container } = render(<Test />)
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
     expect(container).toHaveTextContent('/test')
     await act(async () => {
       setState({ router: router2 })
@@ -176,6 +207,7 @@ describe('useRouter (in blocking mode)', () => {
   testUseRouter(useRouter as any)
 
   test(`can specify an initial snapshot to avoid initial loading`, async () => {
+    const history = createMemoryHistory('/test-1')
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeLazy(async () => {
       await delay(10)
@@ -184,10 +216,16 @@ describe('useRouter (in blocking mode)', () => {
 
     const [initialState] = await getInitialStateAndResponse(router, '/test-1')
     const Test = () => {
-      const route = useRouter(router, { initialState })
+      const route = useRouter(router, { history, initialState })
       return <>{route.content}</>
     }
-    const { container } = render(<Test />)
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
+    expect(container).toHaveTextContent('/test-1')
+    await act(async () => {})
     expect(container).toHaveTextContent('/test-1')
   })
 
