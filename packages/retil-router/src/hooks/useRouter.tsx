@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import { HistoryService, getDefaultBrowserHistory } from 'retil-history'
 
 import { UseRouterDefaultsContext } from '../routerContext'
@@ -7,6 +7,7 @@ import {
   RouterHistoryState,
   RouterRequest,
   RouterResponse,
+  RouterService,
   RouterState,
 } from '../routerTypes'
 import { createRouter } from '../routerService'
@@ -41,6 +42,11 @@ export interface UseRouterOptions<
   unstable_isConcurrent?: boolean
 }
 
+const historyRouterCache = new WeakMap<
+  HistoryService<any>,
+  readonly [any[], RouterService<any, any, any> | RouterState<any, any>]
+>()
+
 export function useRouter<
   Ext = {},
   State extends RouterHistoryState = RouterHistoryState,
@@ -74,15 +80,25 @@ export function useRouter<
   }
   const history = historyRef.current!
 
-  const routerServiceOrSnapshot = useMemo(
-    () =>
+  // Can't use a useMemo or useRef for this as `createRouter()` may have side
+  // effects, and can't use useEffect as we may need a router on the first
+  // render, so instead we use a custom cache.
+  const routerDeps = [basename, routerFunction, snapshotToUse, transformRequest]
+  let cache = history && historyRouterCache.get(history)
+  if (!cache || !cache[0].every((value, i) => value === routerDeps[i])) {
+    cache = [
+      routerDeps,
       snapshotToUse ||
-      createRouter(routerFunction, history, {
-        basename,
-        transformRequest,
-      }),
-    [basename, history, routerFunction, snapshotToUse, transformRequest],
-  )
+        createRouter(routerFunction, history, {
+          basename,
+          transformRequest,
+        }),
+    ] as const
+    if (!snapshotToUse) {
+      historyRouterCache.set(history, cache)
+    }
+  }
+  const routerServiceOrSnapshot = cache[1]
 
   useEffect(() => {
     if (initialState) {
