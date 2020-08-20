@@ -84,7 +84,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('/test-2')
   })
 
-  test.only(`can change routers to an initial redirect without seeing a loading screen`, async () => {
+  test(`can change routers to an initial redirect without seeing a loading screen`, async () => {
     const history = createMemoryHistory('/test')
     const router1: RouterFunction = (request) => request.pathname
     const router2 = routeByPattern({
