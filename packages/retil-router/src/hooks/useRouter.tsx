@@ -15,27 +15,28 @@ import { createRouter } from '../routerService'
 import { useRouterService } from './useRouterService'
 
 export interface UseRouterOptions<
-  Ext = {},
+  RouterRequestExt = {},
+  HistoryRequestExt = {},
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 > {
   basename?: string
 
-  history?: HistoryService<State>
+  history?: HistoryService<HistoryRequestExt, State>
 
-  initialState?: RouterState<Ext, State>
+  initialState?: RouterState<HistoryRequestExt & RouterRequestExt, State>
 
   /**
    * Called when a complete response object becomes available.
    */
   onResponseComplete?: (
     response: Response,
-    request: RouterRequest<State> & Ext,
+    request: RouterRequest<State> & HistoryRequestExt & RouterRequestExt,
   ) => void
 
   transformRequest?: (
-    request: RouterRequest<State>,
-  ) => RouterRequest<State> & Ext
+    request: RouterRequest<State> & HistoryRequestExt,
+  ) => RouterRequest<State> & HistoryRequestExt & RouterRequestExt
 
   transitionTimeoutMs?: number
 
@@ -48,17 +49,29 @@ const historyRouterCache = new WeakMap<
 >()
 
 export function useRouter<
-  Ext = {},
+  RouterRequestExt = {},
+  HistoryRequestExt = {},
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  routerFunction: RouterFunction<RouterRequest<State> & Ext, Response>,
-  options: UseRouterOptions<Ext, State, Response> = {},
-): RouterState<Ext, State> {
+  routerFunction: RouterFunction<
+    RouterRequest<State> & HistoryRequestExt & RouterRequestExt,
+    Response
+  >,
+  options: UseRouterOptions<
+    RouterRequestExt,
+    HistoryRequestExt,
+    State,
+    Response
+  > = {},
+): RouterState<HistoryRequestExt & RouterRequestExt, State> {
   const defaults = useContext(UseRouterDefaultsContext)
   const {
     basename,
-    history: historyProp = defaults.history,
+    history: historyProp = defaults.history as HistoryService<
+      HistoryRequestExt,
+      State
+    >,
     initialState = defaults.initialState,
     onResponseComplete,
     transformRequest,
@@ -71,12 +84,17 @@ export function useRouter<
 
   const [snapshotToUse, setSnapshotToUse] = useState(initialState || null)
 
-  const historyRef = useRef<HistoryService<State> | null>(null)
+  const historyRef = useRef<HistoryService<HistoryRequestExt, State> | null>(
+    null,
+  )
   if (historyProp) {
     historyRef.current = historyProp
   }
   if (!historyRef.current && !snapshotToUse) {
-    historyRef.current = getDefaultBrowserHistory() as HistoryService<State>
+    historyRef.current = getDefaultBrowserHistory() as HistoryService<
+      HistoryRequestExt,
+      State
+    >
   }
   const history = historyRef.current!
 

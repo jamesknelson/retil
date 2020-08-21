@@ -47,9 +47,7 @@ export function useRouterService<
     unstable_isConcurrent,
   } = options
 
-  const [noopController] = useState(() =>
-    getNoopController<Ext, State, Response>(),
-  )
+  const [noopController] = useState(() => getNoopController<Ext, State>())
 
   const onResponseCompleteRef = useRef(onResponseComplete)
   onResponseCompleteRef.current = onResponseComplete
@@ -64,7 +62,6 @@ export function useRouterService<
         : ([
             {
               ...routerServiceOrState,
-              trigger: 'POP',
               response: ({
                 head: [],
                 headers: {},
@@ -108,7 +105,7 @@ export function useRouterService<
     [],
   )
 
-  const controller = useMemo<RouterController<Ext, State, Response>>(
+  const controller = useMemo<RouterController<Ext, State>>(
     () => ({
       back: wrapRouterAction(routerController.back),
       block: routerController.block,

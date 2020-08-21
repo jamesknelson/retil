@@ -1,8 +1,4 @@
-import {
-  RouterController,
-  RouterHistoryState,
-  RouterResponse,
-} from './routerTypes'
+import { RouterController, RouterHistoryState } from './routerTypes'
 
 // Wait for a list of promises that may have grown by the time the first
 // promises resolves.
@@ -16,9 +12,8 @@ export async function waitForMutablePromiseList(promises: PromiseLike<any>[]) {
 
 export function getNoopController<
   Ext = {},
-  State extends RouterHistoryState = RouterHistoryState,
-  Response extends RouterResponse = RouterResponse
->(): RouterController<Ext, State, Response> {
+  State extends RouterHistoryState = RouterHistoryState
+>(): RouterController<Ext, State> {
   return {
     back: () => Promise.resolve(false),
     block: () => () => {},

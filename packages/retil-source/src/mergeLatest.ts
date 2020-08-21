@@ -4,10 +4,7 @@ import { Source } from './source'
 const defaultMerge = <T>(latestSnapshot: T) => latestSnapshot
 const MissingToken = Symbol()
 
-export type MergeLatest<T, U> = (
-  latestSnapshot: T,
-  hasCurrentSnapshot: boolean,
-) => U
+export type MergeLatest<T, U> = (latestSnapshot: T, isSuspended: boolean) => U
 
 export function mergeLatest<T, U = T>(
   source: Source<T>,
@@ -16,10 +13,11 @@ export function mergeLatest<T, U = T>(
   let fallback: [T] | [] = []
   // This needs a fuse instead of select, as there's no guarantee that a
   // select will actually be called with every value.
-  return fuse((use) => {
+  const [core, select] = fuse((use) => {
     const value = use(source, ...fallback)
     const valueOrFlag = use(source, MissingToken)
     fallback = [value]
     return merge(value, valueOrFlag === MissingToken)
   })
+  return [core, select, source[2]]
 }

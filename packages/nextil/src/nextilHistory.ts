@@ -1,16 +1,16 @@
 import { NextRouter } from 'next/router'
 import {
   HistoryController,
+  HistoryRequest,
   HistoryService,
   HistorySource,
   createHref,
   parseLocation,
 } from 'retil-history'
-import { act, mergeLatest, observe } from 'retil-source'
-import { RouterFunction, RouterSnapshot } from 'retil-router'
+import { act, observe } from 'retil-source'
 
 import { getPageMatchers, mapPathnameToRoute } from './mapPathnameToRoute'
-import { NextilState } from './nextilTypes'
+import { NextilRequestExtension, NextilState } from './nextilTypes'
 
 let hasCachedPageList = false
 
@@ -18,7 +18,7 @@ export function createNextHistory(
   router: NextRouter,
   nextilState: NextilState,
   latestNextilStateRef: { current?: NextilState },
-): HistoryService<any> {
+): HistoryService<NextilRequestExtension, any> {
   // Pre-cache the route list for faster navigation
   if (
     !hasCachedPageList &&
@@ -28,70 +28,60 @@ export function createNextHistory(
     getPageMatchers(router)
   }
 
-  const source: HistorySource = observe((next, error) => {
-    let lastSnapshot: RouterSnapshot<{ router: RouterFunction<any, any> }> = {
-      request: {
+  const source: HistorySource<NextilRequestExtension, any> = observe(
+    (next, error, clear) => {
+      let lastSnapshot: HistoryRequest & NextilRequestExtension = {
         ...parseLocation(router.asPath),
         ...nextilState,
         key: undefined as any,
         method: 'GET',
-      },
-      trigger: 'POP',
-    } as any
-
-    next(lastSnapshot as any)
-
-    const handleRouteChangeStart = (url: string) => {
-      next({
-        ...lastSnapshot,
-        pendingRequestCreation: parseLocation(url),
-      } as any)
-    }
-
-    const handleRouteChangeComplete = async (url: string) => {
-      if (
-        nextilState.hasPageRouter &&
-        latestNextilStateRef.current !== nextilState &&
-        latestNextilStateRef.current!.hasPageRouter
-      ) {
-        const location = parseLocation(url)
-        lastSnapshot = {
-          request: {
-            ...location,
-            ...latestNextilStateRef.current!,
-            // TODO: create a history-style unique key somehow
-            key: undefined as any,
-            method: 'GET',
-          },
-          trigger: 'POP',
-        } as any
-
-        next(lastSnapshot as any)
-      } else {
-        next({
-          ...lastSnapshot,
-          pendingRequestCreation: null,
-        } as any)
       }
-    }
 
-    const handleRouteError = (err: any, _url: string) => {
-      // TODO: turn off pending state if necessary
-      if (!err.cancelled) {
-        error(err)
+      next(lastSnapshot)
+
+      const handleRouteChangeComplete = async (url: string) => {
+        if (
+          nextilState.hasPageRouter &&
+          latestNextilStateRef.current !== nextilState &&
+          latestNextilStateRef.current!.hasPageRouter
+        ) {
+          const location = parseLocation(url)
+          lastSnapshot = {
+            request: {
+              ...location,
+              ...latestNextilStateRef.current!,
+              // TODO: create a history-style unique key somehow
+              key: undefined as any,
+              method: 'GET',
+            },
+            trigger: 'POP',
+          } as any
+
+          next(lastSnapshot)
+        } else {
+          next(lastSnapshot)
+        }
       }
-    }
 
-    router.events.on('routeChangeStart', handleRouteChangeStart)
-    router.events.on('routeChangeError', handleRouteError)
-    router.events.on('routeChangeComplete', handleRouteChangeComplete)
+      const handleRouteError = (err: any, _url: string) => {
+        if (!err.cancelled) {
+          error(err)
+        } else {
+          next(lastSnapshot)
+        }
+      }
 
-    return () => {
-      router.events.off('routeChangeStart', handleRouteChangeStart)
-      router.events.off('routeChangeError', handleRouteError)
-      router.events.off('routeChangeComplete', handleRouteChangeComplete)
-    }
-  })
+      router.events.on('routeChangeStart', clear)
+      router.events.on('routeChangeError', handleRouteError)
+      router.events.on('routeChangeComplete', handleRouteChangeComplete)
+
+      return () => {
+        router.events.off('routeChangeStart', clear)
+        router.events.off('routeChangeError', handleRouteError)
+        router.events.off('routeChangeComplete', handleRouteChangeComplete)
+      }
+    },
+  )
 
   const controller: HistoryController = {
     back: () => {
@@ -115,9 +105,5 @@ export function createNextHistory(
       }),
   }
 
-  const sourceWithBlocking = mergeLatest(source, (latestSnapshot) => ({
-    ...latestSnapshot,
-  }))
-
-  return [sourceWithBlocking, controller]
+  return [source, controller]
 }

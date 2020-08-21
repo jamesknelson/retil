@@ -1,11 +1,16 @@
+import { createMemo } from 'retil-common'
 import {
-  HistoryRequest,
   HistoryService,
   applyLocationAction,
   createMemoryHistory,
   parseLocation,
 } from 'retil-history'
-import { fuse, getSnapshotPromise, getSnapshot } from 'retil-source'
+import {
+  fuse,
+  getSnapshotPromise,
+  getSnapshot,
+  mergeLatest,
+} from 'retil-source'
 
 import {
   RouterAction,
@@ -23,25 +28,29 @@ import { getNoopController, waitForMutablePromiseList } from './routerUtils'
 import { routeNormalize } from './routers/routeNormalize'
 
 export interface RouterOptions<
-  Ext = {},
+  RouterRequestExt = {},
+  HistoryRequestExt = {},
   S extends RouterHistoryState = RouterHistoryState
 > {
   basename?: string
   followRedirects?: boolean
   maxRedirects?: number
   normalizePathname?: boolean
-  transformRequest?: (request: RouterRequest<S>) => RouterRequest<S> & Ext
+  transformRequest?: (
+    request: RouterRequest<S> & HistoryRequestExt,
+  ) => RouterRequest<S> & HistoryRequestExt & RouterRequestExt
 }
 
 export function createRouter<
-  Ext = {},
+  RouterRequestExt = {},
+  HistoryRequestExt = {},
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  router: RouterFunction<RouterRequest<S> & Ext, Response>,
-  history: HistoryService<S>,
-  options: RouterOptions<Ext, S>,
-): RouterService<Ext, S, Response> {
+  router: RouterFunction<RouterRequest<S> & RouterRequestExt, Response>,
+  history: HistoryService<HistoryRequestExt, S>,
+  options: RouterOptions<RouterRequestExt, HistoryRequestExt, S>,
+): RouterService<RouterRequestExt & HistoryRequestExt, S, Response> {
   let redirectCounter = 0
 
   const {
@@ -53,60 +62,42 @@ export function createRouter<
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [historySource, historyController] = history
+  const latestHistorySource = mergeLatest(historySource)
+  const snapshotMemo = createMemo<
+    RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
+  >()
 
-  // Memoize creation of content/request/response, as it can have side effects
-  // like precaching data.
-  let last:
-    | null
-    | [
-        HistoryRequest<S>,
-        Omit<RouterSnapshot<Ext, S, Response>, 'trigger'>,
-      ] = null
-  const memoizedHandleRequest = (
-    historyRequest: HistoryRequest<S>,
-  ): Omit<RouterSnapshot<Ext, S, Response>, 'trigger'> => {
-    if (last && last[0] === historyRequest) {
-      return last[1]
-    }
+  const source = fuse<
+    RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
+  >((use, effect) => {
+    const historyRequest = use(latestHistorySource)
+    const snapshot = snapshotMemo(() => {
+      const routerRequest: RouterRequest<S> & HistoryRequestExt = {
+        basename,
+        params: {},
+        ...historyRequest,
+      }
+      const request: RouterRequest<S> &
+        HistoryRequestExt &
+        RouterRequestExt = transformRequest
+        ? transformRequest(routerRequest)
+        : (routerRequest as RouterRequest<S> &
+            HistoryRequestExt &
+            RouterRequestExt)
 
-    const routerRequest: RouterRequest<S> = {
-      basename,
-      params: {},
-      ...historyRequest,
-    }
-    const request: RouterRequest<S> & Ext = transformRequest
-      ? transformRequest(routerRequest)
-      : (routerRequest as RouterRequest<S> & Ext)
+      const response = ({
+        head: [],
+        headers: {},
+        pendingCommits: [],
+        pendingSuspenses: [],
+      } as any) as Response
 
-    const response = ({
-      head: [],
-      headers: {},
-      pendingCommits: [],
-      pendingSuspenses: [],
-    } as any) as Response
-
-    const content = normalizedRouter(request, response)
-    const result = {
-      content,
-      response,
-      request,
-    }
-
-    last = [historyRequest, result]
-
-    return result
-  }
-
-  const source = fuse<RouterSnapshot<Ext, S, Response>>((use, effect) => {
-    const historySnapshot = use(historySource)
-    const snapshot = {
-      ...memoizedHandleRequest(historySnapshot.request),
-      // FIXME: should allow for routers to be used as histories, with any
-      // content/response fed into the `transformRequest` function to be
-      // added to the request by the application.
-      pendingRequestCreation: (historySnapshot as any).pendingRequestCreation,
-      trigger: historySnapshot.trigger,
-    }
+      return {
+        content: normalizedRouter(request, response),
+        response,
+        request,
+      }
+    }, [historyRequest])
     const response = snapshot.response
 
     if (followRedirects && isRedirect(response)) {
@@ -131,7 +122,10 @@ export function createRouter<
     return snapshot
   })
 
-  const controller: RouterController<Ext, S, Response> = {
+  const controller: RouterController<
+    HistoryRequestExt & RouterRequestExt,
+    S
+  > = {
     // TODO:
     // - prevent these controller methods form returning until the responses
     //   are complete
@@ -143,17 +137,21 @@ export function createRouter<
       options: {
         method?: string
       } = {},
-    ): Promise<RouterState<Ext, S>> {
-      const currentRequest = getSnapshot(historySource).request
+    ): Promise<RouterState<HistoryRequestExt & RouterRequestExt, S>> {
+      const currentRequest = getSnapshot(historySource)
       const location = applyLocationAction(currentRequest, action)
-      const [state] = await getInitialStateAndResponse(
-        normalizedRouter,
-        location,
-        {
-          basename,
-          method: options.method,
-        },
-      )
+      const [state] = await getInitialStateAndResponse<
+        HistoryRequestExt & RouterRequestExt,
+        S,
+        Response
+      >(normalizedRouter, location, {
+        basename,
+        method: options.method,
+        // FIXME: if there's a history request ext, there's probably also a
+        // prefetch function on the history controller, and we need to look
+        // for it and somehow call it.
+        transformRequest: transformRequest as any,
+      })
       return state
     },
   }
@@ -179,7 +177,7 @@ export async function getInitialStateAndResponse<
 ): Promise<readonly [RouterState<Ext, S>, Response]> {
   const { method = 'GET', ...routerOptions } = options
   const history = createMemoryHistory(parseLocation(action), method)
-  const [routerSource] = createRouter<Ext, S, Response>(router, history, {
+  const [routerSource] = createRouter<Ext, {}, S, Response>(router, history, {
     followRedirects: false,
     ...routerOptions,
   })
@@ -188,7 +186,7 @@ export async function getInitialStateAndResponse<
   return [
     {
       content,
-      controller: getNoopController<Ext, S, Response>(),
+      controller: getNoopController<Ext, S>(),
       pending: false,
       request,
     },

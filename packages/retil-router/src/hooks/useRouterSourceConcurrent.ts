@@ -2,6 +2,7 @@
 
 import * as React from 'react'
 import { useContext, useMemo, useRef } from 'react'
+import { mergeLatest } from 'retil-source'
 import { useSource } from 'use-source'
 
 import { UseRouterDefaultsContext } from '../routerContext'
@@ -40,21 +41,27 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
   const initialSnapshot = (Array.isArray(serviceOrSnapshot)
     ? null
     : serviceOrSnapshot) as null | RouterSnapshot<Ext, State, Response>
-  const routerSource = initialSnapshot
-    ? null
-    : (serviceOrSnapshot as RouterSource<Ext, State, Response>)
+  const routerSource = useMemo(
+    () =>
+      initialSnapshot
+        ? null
+        : mergeLatest(
+            serviceOrSnapshot as RouterSource<Ext, State, Response>,
+            (latestSnapshot, isSuspended) =>
+              [latestSnapshot, isSuspended] as const,
+          ),
+    [initialSnapshot, serviceOrSnapshot],
+  )
 
   const lastSnapshot = useRef<RouterSnapshot<Ext, State, Response> | null>(null)
-  const currentSnapshot = useSource(routerSource, {
-    defaultValue: null,
-    startTransition,
-  })
+  const [currentSnapshot, isSuspended] =
+    useSource(routerSource, {
+      defaultValue: null,
+      startTransition,
+    }) || ([null, false] as const)
 
   const snapshotPending =
-    pending ||
-    (currentSnapshot
-      ? !!currentSnapshot.pendingRequestCreation
-      : !!lastSnapshot.current)
+    pending || (currentSnapshot ? isSuspended : !!lastSnapshot.current)
 
   const snapshot = currentSnapshot || lastSnapshot.current || initialSnapshot!
 

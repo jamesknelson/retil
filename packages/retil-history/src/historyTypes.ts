@@ -31,20 +31,20 @@ export interface HistoryRequest<S extends HistoryState = HistoryState>
   method: string
 }
 
-export interface HistorySnapshot<S extends HistoryState = HistoryState> {
-  pendingBlocker?: HistoryLocation<S>
-  request: HistoryRequest<S>
-  trigger: HistoryTrigger
-}
+export type HistorySnapshot<
+  Ext = {},
+  S extends HistoryState = HistoryState
+> = HistoryRequest<S> & Ext
 
-export type HistorySource<S extends HistoryState = HistoryState> = Source<
-  HistorySnapshot<S>
->
+export type HistorySource<
+  Ext = {},
+  S extends HistoryState = HistoryState
+> = Source<HistorySnapshot<Ext, S>>
 
-export type HistoryService<S extends HistoryState = HistoryState> = readonly [
-  HistorySource<S>,
-  HistoryController<S>,
-]
+export type HistoryService<
+  Ext = {},
+  S extends HistoryState = HistoryState
+> = readonly [HistorySource<Ext, S>, HistoryController<S>]
 
 export interface HistoryController<S extends HistoryState = HistoryState> {
   back(): Promise<boolean>

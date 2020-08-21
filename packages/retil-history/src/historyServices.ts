@@ -6,7 +6,7 @@ import {
   createBrowserHistory as baseCreateBrowserHistory,
   createMemoryHistory as baseCreateMemoryHistory,
 } from 'history'
-import { act, mergeLatest, observe } from 'retil-source'
+import { act, observe } from 'retil-source'
 
 import {
   HistoryController,
@@ -21,7 +21,7 @@ import { applyLocationAction, parseLocation } from './historyUtils'
 
 export function createBrowserHistory<S extends HistoryState = HistoryState>(
   options: BrowserHistoryOptions,
-): HistoryService<S> {
+): HistoryService<{}, S> {
   return createHistoryService(
     baseCreateBrowserHistory(options) as BrowserHistory<S>,
   )
@@ -30,7 +30,7 @@ export function createBrowserHistory<S extends HistoryState = HistoryState>(
 export function createMemoryHistory<S extends HistoryState = HistoryState>(
   initialLocation: string | HistoryLocation<S>,
   initialMethod = 'GET',
-): HistoryService<S> {
+): HistoryService<{}, S> {
   return createHistoryService(
     baseCreateMemoryHistory({
       initialEntries: [parseLocation(initialLocation)],
@@ -43,11 +43,10 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
   history: History<S>,
   initialMethod = 'GET',
   locationReducer: HistoryLocationReducer<S> = applyLocationAction,
-): HistoryService<S> {
+): HistoryService<{}, S> {
   const actions = new Set<Promise<any>>()
 
   let ignoreChange = false
-  let pendingLocation: null | HistoryLocation<S> = null
   let lastRequest = {
     ...parseLocation(history.location),
     key: history.location.key,
@@ -55,8 +54,8 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
   } as HistoryRequest<S>
   let nextMethod: string = 'GET'
 
-  const source = observe<HistorySnapshot<S>>((next) => {
-    next({ trigger: 'POP', request: lastRequest })
+  const source = observe<HistorySnapshot<{}, S>>((next) => {
+    next(lastRequest)
     return history.listen(({ action, location }) => {
       if (!ignoreChange) {
         const method = nextMethod
@@ -66,10 +65,7 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
           key: location.key,
           method,
         }
-        next({
-          trigger: action,
-          request: lastRequest,
-        })
+        next(lastRequest)
       }
     })
   })
@@ -108,10 +104,8 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     block: (predicate) => {
       const unblock = history.block((tx) => {
         const location = parseLocation(tx.location)
-        pendingLocation = location
         act(source, () =>
           predicate(location, tx.action).then((shouldBlock) => {
-            pendingLocation = null
             if (!shouldBlock) {
               unblock()
               tx.retry()
@@ -144,13 +138,5 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     },
   }
 
-  const sourceWithBlocking = mergeLatest(
-    source,
-    (latestSnapshot, isActing) => ({
-      ...latestSnapshot,
-      pendingBlocker: (isActing && pendingLocation) || undefined,
-    }),
-  )
-
-  return [sourceWithBlocking, controller]
+  return [source, controller]
 }

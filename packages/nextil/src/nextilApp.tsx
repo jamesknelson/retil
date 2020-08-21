@@ -4,7 +4,8 @@ import {
   AppInitialProps as NextAppInitialProps,
 } from 'next/app'
 import * as React from 'react'
-import { useMemo } from 'react'
+import { memo, useMemo } from 'react'
+import { areShallowEqual } from 'retil-common'
 import {
   RouterFunction,
   RouterState,
@@ -54,6 +55,16 @@ export function nextilApp(
   appOptions: NextilAppOptions = {},
 ) {
   const originalGetInitialProps = App.getInitialProps
+
+  const MemoizedApp = memo(
+    App,
+    (
+      { pageProps: prevPageProps, ...prevProps },
+      { pageProps: nextPageProps, ...nextProps },
+    ) =>
+      areShallowEqual(prevPageProps, nextPageProps) &&
+      areShallowEqual(prevProps, nextProps),
+  )
 
   const NextilApp = (props: NextAppProps & NextilAppInitialProps) => {
     const { bypassSerializationWrapper, ...restProps } = props
@@ -111,7 +122,7 @@ export function nextilApp(
 
     return (
       <UseRouterDefaultsContext.Provider value={routerDefaults}>
-        <App {...restProps} {...nextilAppProps} />
+        <MemoizedApp {...restProps} {...nextilAppProps} />
       </UseRouterDefaultsContext.Provider>
     )
   }

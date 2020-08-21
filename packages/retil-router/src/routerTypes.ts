@@ -4,7 +4,6 @@ import {
   HistoryController,
   HistoryLocation,
   HistoryRequest,
-  HistorySnapshot,
   HistoryState,
 } from 'retil-history'
 import { Source } from 'retil-source'
@@ -63,10 +62,8 @@ export interface RouterSnapshot<
   Ext = {},
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
-> extends HistorySnapshot<S> {
+> {
   content: ReactNode
-  pendingBlocker?: RouterLocation<S>
-  pendingRequestCreation?: RouterLocation<S>
   request: RouterRequest<S> & Ext
   response: Response
 }
@@ -81,15 +78,11 @@ export type RouterService<
   Ext = {},
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
-> = readonly [
-  RouterSource<Ext, S, Response>,
-  RouterController<Ext, S, Response>,
-]
+> = readonly [RouterSource<Ext, S, Response>, RouterController<Ext, S>]
 
 export interface RouterController<
   Ext = {},
-  S extends RouterHistoryState = RouterHistoryState,
-  Response extends RouterResponse = RouterResponse
+  S extends RouterHistoryState = RouterHistoryState
 > extends HistoryController<S> {
   back(): Promise<boolean>
 
@@ -126,7 +119,7 @@ export interface RouterState<
 
   // While this isn't really router state, it's placed here so that `useRouter`
   // hook can return a single object which can be passed as-is to the provider.
-  controller: RouterController<Ext, State, any>
+  controller: RouterController<Ext, State>
 
   /**
    * If the browser location has changed but the request isn't ready to render

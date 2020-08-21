@@ -12,9 +12,11 @@
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { delay } from 'retil-common'
 import {
+  Source,
   getSnapshot,
   getSnapshotPromise,
   hasSnapshot,
+  mergeLatest,
   subscribe,
 } from 'retil-source'
 
@@ -48,19 +50,32 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
   const initialSnapshot = (Array.isArray(serviceOrSnapshot)
     ? null
     : serviceOrSnapshot) as null | RouterSnapshot<Ext, State, Response>
-  const source = initialSnapshot
-    ? null
-    : (serviceOrSnapshot as RouterSource<Ext, State, Response>)
+
+  const source = useMemo(
+    () =>
+      initialSnapshot
+        ? null
+        : mergeLatest(
+            serviceOrSnapshot as RouterSource<Ext, State, Response>,
+            (latestSnapshot, isSuspended) =>
+              [latestSnapshot, isSuspended] as const,
+          ),
+    [initialSnapshot, serviceOrSnapshot],
+  )
 
   const [state, setState] = useState<{
     currentSnapshot: RouterSnapshot<Ext, State, Response>
     pendingSnapshot: RouterSnapshot<Ext, State, Response> | null
-    source: RouterSource<Ext, State, Response> | null
-  }>(() => ({
-    currentSnapshot: initialSnapshot || getSnapshot(source!),
-    pendingSnapshot: null,
-    source,
-  }))
+    source: Source<any> | null
+    sourcePending: boolean
+  }>(() => {
+    return {
+      currentSnapshot: initialSnapshot! || getSnapshot(source!)[0],
+      pendingSnapshot: null,
+      source,
+      sourcePending: false,
+    }
+  })
 
   const hasUnmountedRef = useRef(false)
 
@@ -78,36 +93,45 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
       if (source) {
         hasGotInitialSnapshot = hasGotInitialSnapshot || hasSnapshot(source)
         if (hasGotInitialSnapshot || transitionTimeoutMs === 0) {
-          const snapshot = getSnapshot(source)
+          const [snapshot, isSuspended] = getSnapshot(source)
           if (
             transitionTimeoutMs === 0 ||
             !snapshot.response.pendingSuspenses.length
           ) {
+            // TODO: update these to only update if the snapshots have changed
             setState({
               currentSnapshot: snapshot,
               pendingSnapshot: null,
               source,
+              sourcePending: isSuspended,
             })
           } else {
             setState(({ currentSnapshot }) => ({
               currentSnapshot,
               pendingSnapshot: snapshot,
               source,
+              sourcePending: false,
             }))
 
-            Promise.race([
-              delay(transitionTimeoutMs),
-              waitForMutablePromiseList(snapshot.response.pendingSuspenses),
-            ]).then(() => {
+            Promise.race(
+              [
+                waitForMutablePromiseList(snapshot.response.pendingSuspenses),
+              ].concat(
+                transitionTimeoutMs === Infinity
+                  ? []
+                  : [delay(transitionTimeoutMs)],
+              ),
+            ).then(() => {
               if (!hasUnmountedRef.current) {
-                setState(({ currentSnapshot, pendingSnapshot }) =>
-                  snapshot === pendingSnapshot
+                setState((state) =>
+                  snapshot === state.pendingSnapshot
                     ? {
                         currentSnapshot: snapshot,
                         pendingSnapshot: null,
                         source,
+                        sourcePending: false,
                       }
-                    : { currentSnapshot, pendingSnapshot, source },
+                    : state,
                 )
               }
             })
@@ -132,8 +156,5 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     }
   }, [source, handleNewSnapshot])
 
-  return [
-    state.currentSnapshot,
-    !!state.pendingSnapshot || !!state.currentSnapshot.pendingRequestCreation,
-  ]
+  return [state.currentSnapshot, !!state.pendingSnapshot || state.sourcePending]
 }

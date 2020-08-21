@@ -4,7 +4,8 @@ import { RouterRequestContext } from '../routerContext'
 import { RouterHistoryState, RouterRequest } from '../routerTypes'
 
 export function useRouterRequest<
+  Ext = {},
   State extends RouterHistoryState = RouterHistoryState
->(): RouterRequest<State> {
-  return useContext(RouterRequestContext) as RouterRequest<State>
+>(): RouterRequest<State> & Ext {
+  return useContext(RouterRequestContext) as RouterRequest<State> & Ext
 }

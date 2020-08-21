@@ -1,7 +1,7 @@
 import { RouterFunction, RouterRequest } from 'retil-router'
 
 export interface NextilAppProps {
-  nextilRouter: RouterFunction
+  nextilRouter: RouterFunction<RouterRequest<any> & NextilRequestExtension>
 }
 
 export interface NextilAppOptions {
