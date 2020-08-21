@@ -29,7 +29,7 @@ export function createNextHistory(
   }
 
   const source: HistorySource<NextilRequestExtension, any> = observe(
-    (next, error, clear) => {
+    (next, error, _complete, clear) => {
       let lastSnapshot: HistoryRequest & NextilRequestExtension = {
         ...parseLocation(router.asPath),
         ...nextilState,
@@ -47,15 +47,12 @@ export function createNextHistory(
         ) {
           const location = parseLocation(url)
           lastSnapshot = {
-            request: {
-              ...location,
-              ...latestNextilStateRef.current!,
-              // TODO: create a history-style unique key somehow
-              key: undefined as any,
-              method: 'GET',
-            },
-            trigger: 'POP',
-          } as any
+            ...location,
+            ...latestNextilStateRef.current!,
+            // TODO: create a history-style unique key somehow
+            key: undefined as any,
+            method: 'GET',
+          }
 
           next(lastSnapshot)
         } else {
