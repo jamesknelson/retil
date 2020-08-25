@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo } from 'react'
-import { applyLocationAction, createHref } from 'retil-history'
+import { createHref } from 'retil-history'
 
+import { useResolve } from './useResolve'
 import { useRouterController } from './useRouterController'
-import { useRouterRequest } from './useRouterRequest'
 import { RouterAction, RouterHistoryState } from '../routerTypes'
 
 export interface UseLinkOptions {
@@ -20,37 +20,24 @@ export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
 ) => {
   const { disabled, prefetch, replace, state, onClick, onMouseEnter } = options
   const controller = useRouterController()
-  const request = useRouterRequest()
-  const nextLocation = applyLocationAction(request, to, state)
-
-  // Memoize the delta so we don't create new handler callbacks on every
-  // render. This is important for this component, as its not unusual for there
-  // to be hundreds of links on a page.
-  const deps = [
-    nextLocation?.pathname,
-    nextLocation?.search,
-    nextLocation?.hash,
-    nextLocation?.state,
-  ]
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const memoizedDelta = useMemo(() => nextLocation, deps)
+  const action = useResolve(to, state)
 
   const doPrefetch = useMemo(() => {
     let hasPrefetched = false
 
     return () => {
-      if (!hasPrefetched && memoizedDelta && controller) {
+      if (!hasPrefetched && action && controller) {
         hasPrefetched = true
-        controller.prefetch(memoizedDelta).catch((e) => {
+        controller.prefetch(action).catch((e) => {
           console.warn(
             `A routing link tried to prefetch "${
-              memoizedDelta!.pathname
+              action!.pathname
             }", but the router was unable to fetch this path.`,
           )
         })
       }
     }
-  }, [memoizedDelta, controller])
+  }, [action, controller])
 
   // Prefetch on mount if required, or if `prefetch` becomes `true`.
   useEffect(() => {
@@ -99,18 +86,18 @@ export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
           onClick(event)
         }
 
-        if (!event.defaultPrevented && memoizedDelta) {
+        if (!event.defaultPrevented && action) {
           event.preventDefault()
-          controller.navigate(memoizedDelta, { replace })
+          controller.navigate(action, { replace })
         }
       }
     },
-    [disabled, memoizedDelta, controller, onClick, replace],
+    [disabled, action, controller, onClick, replace],
   )
 
   return {
     onClick: handleClick,
     onMouseEnter: handleMouseEnter,
-    href: nextLocation ? createHref(nextLocation) : (to as string),
+    href: action ? createHref(action) : (to as string),
   }
 }

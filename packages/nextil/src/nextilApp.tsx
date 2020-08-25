@@ -5,7 +5,7 @@ import {
 } from 'next/app'
 import * as React from 'react'
 import { memo, useMemo } from 'react'
-import { areShallowEqual } from 'retil-common'
+import { areShallowEqual } from 'retil-support'
 import {
   RouterFunction,
   RouterState,

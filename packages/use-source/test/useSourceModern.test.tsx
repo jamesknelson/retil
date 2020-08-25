@@ -3,7 +3,7 @@ import React, { Suspense, unstable_useTransition as useTransition } from 'react'
 import ReactDOM from 'react-dom'
 import { act } from 'react-dom/test-utils'
 
-import { delay } from 'retil-common'
+import { delay } from 'retil-support'
 import { createState } from 'retil-source'
 
 import { useSourceModern as useSource } from '../src'

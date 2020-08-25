@@ -8,7 +8,6 @@ import {
   RouterController,
   RouterFunction,
   RouterRequest,
-  RouterProvider,
   UseRouterOptions,
   getInitialStateAndResponse,
   routeByPattern,
@@ -57,7 +56,6 @@ function testUseRouter(useRouter: typeof _useRouter) {
   })
 
   test(`can transform the request with a transformRequest option`, () => {
-    const history = createMemoryHistory('/test-1')
     const router: RouterFunction<RouterRequest & { currentUser: string }> = (
       request,
     ) => request.currentUser
@@ -65,9 +63,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
       ...request,
       currentUser: 'james',
     })
-    const Test = () => (
-      <>{useRouter(router, { history, transformRequest }).content}</>
-    )
+    const Test = () => <>{useRouter(router, { transformRequest }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
   })
@@ -142,10 +138,8 @@ function testUseRouter(useRouter: typeof _useRouter) {
 }
 
 describe('useRouter (in concurrent mode)', () => {
-  const useRouter = (
-    router: RouterFunction,
-    options: UseRouterOptions<any, any>,
-  ) => _useRouter(router, { ...options, unstable_isConcurrent: true })
+  const useRouter = (router: RouterFunction, options: UseRouterOptions) =>
+    _useRouter(router, { ...options, unstable_isConcurrent: true })
 
   testUseRouter(useRouter as any)
 
@@ -207,10 +201,8 @@ describe('useRouter (in concurrent mode)', () => {
 })
 
 describe('useRouter (in blocking mode)', () => {
-  const useRouter = (
-    router: RouterFunction,
-    options: UseRouterOptions<any, any>,
-  ) => _useRouter(router, { ...options, unstable_isConcurrent: false })
+  const useRouter = (router: RouterFunction, options: UseRouterOptions) =>
+    _useRouter(router, { ...options, unstable_isConcurrent: false })
 
   testUseRouter(useRouter as any)
 
@@ -272,39 +264,5 @@ describe('useRouter (in blocking mode)', () => {
     })
     expect(didNavigate).toBe(true)
     expect(container).toHaveTextContent('/test-2')
-  })
-
-  test(`supports waitUntilStable() with redirects`, async () => {
-    const history = createMemoryHistory('/test-1')
-    const innerRouter: RouterFunction = (request) => request.pathname
-    const router = routeByPattern({
-      '/test-1': innerRouter,
-      '/test-2': routeLazy(async () => {
-        await delay(10)
-        return { default: routeRedirect('/test-1') }
-      }),
-    })
-    let controller!: RouterController
-
-    const Test = () => {
-      const route = useRouter(router, { history })
-      controller = route.controller
-      return (
-        <RouterProvider value={route}>
-          {route.pending ? 'pending' : ''}
-          <Suspense fallback="loading">{route.content}</Suspense>
-        </RouterProvider>
-      )
-    }
-    const { container } = render(<Test />)
-    expect(container).toHaveTextContent('/test-1')
-    act(() => {
-      controller.navigate('/test-2')
-    })
-    expect(container).toHaveTextContent('pending/test-1')
-    await act(async () => {
-      await controller.waitUntilStable()
-    })
-    expect(container).toHaveTextContent('/test-1')
   })
 })

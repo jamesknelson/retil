@@ -1,4 +1,4 @@
-import { isPromiseLike } from 'retil-common'
+import { isPromiseLike } from 'retil-support'
 
 import { observe } from './observe'
 import { Source, SourceSubscribe, hasSnapshot } from './source'

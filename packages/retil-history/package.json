@@ -22,7 +22,7 @@
   "dependencies": {
     "history": "^5.0.0",
     "querystring": "^0.2.0",
-    "retil-common": "^0.10.1",
+    "retil-support": "^0.10.1",
     "retil-source": "^0.10.1",
     "tslib": "2.0.1"
   },

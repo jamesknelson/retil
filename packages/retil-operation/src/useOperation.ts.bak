@@ -1,0 +1,40 @@
+import { ReactElement } from 'react'
+
+export type UseOperationResult<Input, Output> = readonly [
+  act: (data: Input) => Promise<Output>,
+  pending: boolean,
+  result?: Output
+]
+
+export type Operation<Input, Output> = (
+  data: Input,
+  getHasUnmounted: () => boolean,
+  abortSignal: AbortSignal
+) => Promise<Output>
+
+// TODO: typed types
+export interface Issue {
+  type: string,
+  message?: string | ReactElement
+}
+
+// TODO: typed types per key
+export type Issues = Record<string, Issue>
+
+export interface Validator<> {
+  setError: (name: string, issue: Issue) => void
+  setErrors: (issues: { [name: string]: Issue }) => void
+  clearErrors: (names?: string | string[]) => void
+
+  // I kinda want trigger to receive the input instead of a list of fields
+  trigger: (names?: string | string[]) => boolean | Promise<boolean>
+}
+
+export function use
+
+export function useOperation<Input, Output>(
+  operation: Operation<Input, Output>,
+  formOrValidator?: Form<> | Validator<>
+): UseOperationResult<Input, Result> {
+
+}

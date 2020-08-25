@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Deferred } from 'retil-common'
+import { Deferred } from 'retil-support'
 import {
   RouterState,
   RouterController,
@@ -111,6 +111,7 @@ export function useRouterService<
       block: routerController.block,
       prefetch: routerController.prefetch,
       navigate: wrapRouterAction(routerController.navigate),
+      waitUntilStable: wrapRouterAction(routerController.waitUntilStable),
     }),
     [wrapRouterAction, routerController],
   )

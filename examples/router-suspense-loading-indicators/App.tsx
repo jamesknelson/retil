@@ -31,7 +31,7 @@ export function App() {
   })
 
   return (
-    <RouterProvider state={route}>
+    <RouterProvider value={route}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;

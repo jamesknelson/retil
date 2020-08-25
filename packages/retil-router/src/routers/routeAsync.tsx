@@ -1,6 +1,6 @@
 import * as React from 'react'
 import { ReactNode } from 'react'
-import { isPromiseLike } from 'retil-common'
+import { isPromiseLike } from 'retil-support'
 
 import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
 

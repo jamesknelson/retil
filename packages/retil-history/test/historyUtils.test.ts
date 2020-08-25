@@ -1,9 +1,4 @@
-import {
-  applyLocationAction,
-  createHref,
-  parseAction,
-  parseLocation,
-} from '../src'
+import { resolveAction, createHref, parseAction } from '../src'
 
 describe(`history utils`, () => {
   test(`createHref(parseAction()) is a noop`, () => {
@@ -19,13 +14,11 @@ describe(`history utils`, () => {
     expect(parseAction({ query: {} }).search).toBe('')
   })
 
-  test(`applyLocationAction() works in pathnames with no leadong . or /`, () => {
-    const location = parseLocation({ pathname: '/browse/deck/word' })
+  test(`resolveAction() works in pathnames with no leading . or /`, () => {
+    const pathname = '/browse/deck/word'
 
-    expect(applyLocationAction(location, 'test').pathname).toBe(
-      '/browse/deck/test',
-    )
-    expect(applyLocationAction(location, { pathname: 'test' }).pathname).toBe(
+    expect(resolveAction('test', pathname).pathname).toBe('/browse/deck/test')
+    expect(resolveAction({ pathname: 'test' }, pathname).pathname).toBe(
       '/browse/deck/test',
     )
   })

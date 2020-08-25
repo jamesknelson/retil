@@ -26,12 +26,12 @@ export function isExternalHref(href: string | HistoryAction<any>) {
   )
 }
 
-// users/789/, profile      => users/789/profile/
+// users/789/, profile     => users/789/profile/
 // /users/123, .           => /users/123
 // /users/123, ..          => /users
 // /users/123, ../..       => /
 // /a/b/c/d,   ../../one   => /a/b/one
-// /a/b/c/d,   .././one/    => /a/b/c/one/
+// /a/b/c/d,   .././one/   => /a/b/c/one/
 export function joinPaths(base: string, ...paths: string[]): string {
   let allSegments = splitPath(base)
   for (let i = 0; i < paths.length; i++) {
@@ -45,12 +45,9 @@ export function joinPaths(base: string, ...paths: string[]): string {
     if (segment === '..') {
       pathSegments.pop()
     }
-    // Allow empty segments on the first and final characters, so that leading
-    // and trailing slashes will not be affected.
-    else if (
-      segment !== '.' &&
-      (segment !== '' || i === 0 || i === lastSegmentIndex)
-    ) {
+    // Allow empty segments on the first character, so that leading
+    // slashes will not be affected.
+    else if (segment !== '.' && (segment !== '' || i === 0)) {
       pathSegments.push(segment)
     }
   }
@@ -69,10 +66,9 @@ export function normalizePathname(pathname: string): string {
   return decodeURI(pathname.replace(/\/+/g, '/').replace(/\/$/, '').normalize())
 }
 
-export function applyLocationAction<S extends HistoryState = HistoryState>(
-  location: HistoryLocation<S>,
+export function resolveAction<S extends HistoryState = HistoryState>(
   action: string | HistoryAction<S>,
-  state?: S,
+  currentPathname: string,
 ): HistoryLocation<S> {
   if (isExternalHref(action)) {
     throw new Error(
@@ -80,7 +76,7 @@ export function applyLocationAction<S extends HistoryState = HistoryState>(
     )
   }
 
-  const parsedAction = parseAction(action, state)
+  const parsedAction = parseAction(action)
 
   let pathname = parsedAction.pathname
 
@@ -91,7 +87,7 @@ export function applyLocationAction<S extends HistoryState = HistoryState>(
       pathname[0] === '/'
         ? pathname
         : joinPaths(
-            location.pathname,
+            currentPathname,
             /^\.\.?\//.test(pathname) ? '.' : '..',
             pathname,
           )
@@ -99,7 +95,7 @@ export function applyLocationAction<S extends HistoryState = HistoryState>(
 
   return {
     hash: parsedAction.hash || '',
-    pathname: pathname || location.pathname,
+    pathname: normalizePathname(pathname || currentPathname),
     query: parsedAction.query || {},
     search: parsedAction.search || '',
     state: parsedAction.state || ({} as S),

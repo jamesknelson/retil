@@ -8,10 +8,10 @@
 [**Hooks**](/docs/router-api.md#hooks)
 
 - [`useLink()`](/docs/router-api.md#uselink)
-- [`useLinkActive()`](/docs/router-api.md#uselinkactive)
+- [`useMatch()`](/docs/router-api.md#usematch)
+- [`useRequest()`](/docs/router-api.md#userequest)
 - [`useRouter()`](/docs/router-api.md#userouter)
 - [`useRouterController()`](/docs/router-api.md#useroutercontroller)
-- [`useRouterRequest()`](/docs/router-api.md#userouterrequest)
 
 [**Router function helpers**](/docs/router-api.md#router-function-helpers)
 
@@ -24,10 +24,10 @@
 
 [**Functions**](/docs/router-api.md#functions)
 
-- [`applyAction()`](/docs/router-api.md#applyaction)
 - [`createHref()`](/docs/router-api.md#createhref)
 - [`getInitialStateAndResponse()`](/docs/router-api.md#getinitialstateandresponse)
 - [`parseAction()`](/docs/router-api.md#parseaction)
+- [`resolveAction()`](/docs/router-api.md#resolveaction)
 
 [**Types**](/docs/router-api.md#types)
 
@@ -125,7 +125,7 @@ export default function App() {
   const route = useRouter(appRouter)
   
   return (
-    <RouterProvider state={route}>
+    <RouterProvider value={route}>
       {route.content}
     </RouterProvider>
   )
@@ -134,13 +134,9 @@ export default function App() {
 
 #### Props
 
-- `controller` - *required* - [`RouterController`](#routercontroller)
+- `value` - *optional* - [`RouterState`](#routerstate)
 
-  Configures how your `<Link>` components and `routeRedirect()` routers will navigate between pages.
-
-- `route` - *optional* - [`RouterState`](#routerstate)
-
-  Configures the currently active route, as returned by [`useRouterRequest()`](#userouterrequest) and used by [`useLinkActive()`](#uselinkactive).
+  Configures the router request and controller functions that will be used by hooks and components, including [`useRequest()`](#userequest), [`useMatch()`](#usematch), `<Link>` and `routeRedirect()`.
 
 
 ## Hooks
@@ -204,21 +200,26 @@ export function ButtonLink({ href, onClick, onMouseEnter, ...restProps }) {
 ```
 
 
-### `useLinkActive()`
+### `useMatch()`
 
-*`useLinkActive()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
+*`useMatch()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
 
 ```tsx
-const isActive = useLinkActive(href, options?)
+const isActive = useMatch(pattern)
 ```
 
-Returns `true` if the current request matches the specified `href`. If an `exact` option is passed, an exact match is required. Otherwise, any child of the specified `href` will also be considered a match.
+Returns `true` if the current request's pathname matches that specified by `pattern`. To match nested patterns, you can append a '*' chararcter to the pattern.
 
-#### Options
 
-- `exact` - *optional* - `boolean`
+### `useRequest()`
 
-  If `true`, the current route will only be considered active if it exactly matches the `href` passed as the first argument.
+*`useRequest()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
+
+```tsx
+const request = useRequest()
+```
+
+Returns the [`RouterRequest`](#routerrequest) object associated with the current route. This is used internally by `<Link>` and `useMatch()` to check whether the given address corresponds to the active route.
 
 
 ### `useRouter()`
@@ -240,7 +241,7 @@ export default function App() {
   const route = useRouter(router)
 
   return (
-    <RouterProvider state={route}>
+    <RouterProvider value={route}>
       <AppLayout>
         {route.pending && <AppLoadingBar />}
         <React.Suspense fallback={<AppSpinner />}>
@@ -300,17 +301,6 @@ const { back, block, navigate, prefetch } = useRouterController()
 ```
 
 Returns a [`RouterController`](#routercontroller) object, which you can use to prefetch routes, block navigation, and perform programmatic navigation.
-
-
-### `useRouterRequest()`
-
-*`useRouterRequest()` requires that your app is wrapped with a [`<RouterProvider>`](#routerprovider) component.*
-
-```tsx
-const request = useRouterRequest()
-```
-
-Returns the [`RouterRequest`](#routerrequest) object associated with the current route. This is used internally by `<Link>` and `useLinkActive()` to check whether the given address corresponds to the active route.
 
 
 ## Router creators
@@ -471,24 +461,13 @@ const stepRouter = routeByPattern({
 
 ## Functions
 
-### `applyAction()`
-
-```tsx
-const location = applyAction(request, action, state?)
-```
-
-Applies a [`RouterAction`](#routeraction) to an existing [`RouterRequest`](#routerrequest) -- e.g. as returned from [`useRouterRequest()`](#userouterrequest), returning the new location.
-
-This function is used to compute where links will take the user. It supports relative paths (i.e. those starting with `./` and `../`), absolute paths (those starting with `/`), and follows the browser's default behavior for all other paths.
-
-
 ### `createHref()`
 
 ```tsx
 const href = createHref({ pathname, search, hash })
 ```
 
-Joins the argument URL components together into a string href.
+Joins the argument URL components together into a normalized string href, as expected by `<a>` tags.
 
 
 ### `getInitialStateAndResponse()`
@@ -517,6 +496,17 @@ const action = parseAction(href, state?)
 Takes a string or object `href`, and optionally a `state` object, and returns a [`RouterAction`](#routeraction) object containing the `pathname`, `query`, `search`, `hash` and `state` for the provided inputs. Properties which are not defined in the inputs will be `undefined`.
 
 
+### `resolveAction()`
+
+```tsx
+const location = resolveAction(action, request)
+```
+
+Applies a [`RouterAction`](#routeraction) to an existing [`RouterRequest`](#routerrequest) -- e.g. as returned from [`useRequest()`](#userequest) -- and returns the new location.
+
+This function is used to compute where links will take the user. It supports relative paths (i.e. those starting with `./` and `../`), absolute paths (those starting with `/`), and follows the browser's default behavior for all other paths.
+
+
 ## Types
 
 Retil Router is built with TypeScript. It exports the following types for public use.
@@ -543,7 +533,7 @@ export default function App() {
   const route = useRouter(router)
 
   return (
-    <RouterProvider state={route}>
+    <RouterProvider value={route}>
       <AppLayout>
         <React.Suspense fallback={<AppSpinner />}>
           {route.content}
@@ -567,7 +557,7 @@ export default function App() {
   const route = useRouter(router)
 
   return (
-    <RouterProvider state={route}>
+    <RouterProvider value={route}>
       <AppLayout>
         {route.pending && <AppLoadingBar />}
         <React.Suspense fallback={<AppSpinner />}>

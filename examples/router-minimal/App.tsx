@@ -24,7 +24,7 @@ export function App() {
   const route = useRouter(appRouter)
 
   return (
-    <RouterProvider state={route}>
+    <RouterProvider value={route}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;

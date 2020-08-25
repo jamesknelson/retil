@@ -1,7 +1,7 @@
-import { createMemo } from 'retil-common'
+import { createMemo, delay } from 'retil-support'
 import {
   HistoryService,
-  applyLocationAction,
+  resolveAction,
   createMemoryHistory,
   parseLocation,
 } from 'retil-history'
@@ -10,6 +10,7 @@ import {
   getSnapshotPromise,
   getSnapshot,
   mergeLatest,
+  wait,
 } from 'retil-source'
 
 import {
@@ -22,34 +23,38 @@ import {
   RouterService,
   RouterSnapshot,
   RouterState,
+  TransformRequestFunction,
 } from './routerTypes'
 import { getNoopController, waitForMutablePromiseList } from './routerUtils'
 
 import { routeNormalize } from './routers/routeNormalize'
 
 export interface RouterOptions<
-  RouterRequestExt = {},
-  HistoryRequestExt = {},
-  S extends RouterHistoryState = RouterHistoryState
+  RouterRequestExt extends object = {},
+  HistoryRequestExt extends object = {}
 > {
   basename?: string
   followRedirects?: boolean
   maxRedirects?: number
   normalizePathname?: boolean
-  transformRequest?: (
-    request: RouterRequest<S> & HistoryRequestExt,
-  ) => RouterRequest<S> & HistoryRequestExt & RouterRequestExt
+  transformRequest?: TransformRequestFunction<
+    RouterRequestExt,
+    HistoryRequestExt
+  >
 }
 
 export function createRouter<
-  RouterRequestExt = {},
-  HistoryRequestExt = {},
+  RouterRequestExt extends object = {},
+  HistoryRequestExt extends object = {},
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(
-  router: RouterFunction<RouterRequest<S> & RouterRequestExt, Response>,
+  router: RouterFunction<
+    RouterRequest<S> & HistoryRequestExt & RouterRequestExt,
+    Response
+  >,
   history: HistoryService<HistoryRequestExt, S>,
-  options: RouterOptions<RouterRequestExt, HistoryRequestExt, S>,
+  options: RouterOptions<RouterRequestExt, HistoryRequestExt>,
 ): RouterService<RouterRequestExt & HistoryRequestExt, S, Response> {
   let redirectCounter = 0
 
@@ -122,6 +127,16 @@ export function createRouter<
     return snapshot
   })
 
+  const waitUntilStable = async (): Promise<void> => {
+    const { response } = await getSnapshotPromise(source)
+    await waitForMutablePromiseList(response.pendingSuspenses)
+    const status = response.status || 200
+    if (status >= 300 && status < 400) {
+      await delay(0)
+      return waitUntilStable()
+    }
+  }
+
   const controller: RouterController<
     HistoryRequestExt & RouterRequestExt,
     S
@@ -139,7 +154,7 @@ export function createRouter<
       } = {},
     ): Promise<RouterState<HistoryRequestExt & RouterRequestExt, S>> {
       const currentRequest = getSnapshot(historySource)
-      const location = applyLocationAction(currentRequest, action)
+      const location = resolveAction(action, currentRequest.pathname)
       const [state] = await getInitialStateAndResponse<
         HistoryRequestExt & RouterRequestExt,
         S,
@@ -154,20 +169,21 @@ export function createRouter<
       })
       return state
     },
+    waitUntilStable,
   }
 
   return [source, controller]
 }
 
-export interface GetRouteOptions<Ext> {
+export interface GetRouteOptions<Ext extends object = {}> {
   basename?: string
   method?: string
   normalizePathname?: boolean
-  transformRequest?: (request: RouterRequest<any>) => RouterRequest<any> & Ext
+  transformRequest?: TransformRequestFunction<Ext>
 }
 
 export async function getInitialStateAndResponse<
-  Ext,
+  Ext extends object = {},
   S extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(

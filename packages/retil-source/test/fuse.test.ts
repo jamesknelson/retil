@@ -1,4 +1,4 @@
-import { delay } from 'retil-common'
+import { delay } from 'retil-support'
 import { act, createState, fuse, hasSnapshot, subscribe, wait } from '../src'
 import { sendToArray } from './utils/sendToArray'
 

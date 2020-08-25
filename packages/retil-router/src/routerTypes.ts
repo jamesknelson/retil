@@ -18,7 +18,7 @@ export type RouterLocation<State extends RouterHistoryState> = HistoryLocation<
 >
 
 export type RouterFunction<
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRequest<any> = RouterRequest,
   Response extends RouterResponse = RouterResponse
 > = (request: Request, response: Response) => ReactNode
 
@@ -103,6 +103,8 @@ export interface RouterController<
       method?: string
     },
   ): Promise<RouterState<Ext, S>>
+
+  waitUntilStable(): Promise<void>
 }
 
 export interface RouterState<
@@ -141,3 +143,15 @@ export interface RouterState<
    */
   response?: never
 }
+
+export type TransformRequestFunction<
+  RouterRequestExt extends object,
+  HistoryRequestExt extends object = {},
+  Request extends RouterRequest<any> &
+    {
+      [K in keyof HistoryRequestExt]: HistoryRequestExt[K]
+    } = RouterRequest<any> &
+    {
+      [K in keyof HistoryRequestExt]: HistoryRequestExt[K]
+    }
+> = (request: Request) => Request & RouterRequestExt

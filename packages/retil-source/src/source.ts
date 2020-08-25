@@ -1,4 +1,4 @@
-import { isPromiseLike } from 'retil-common'
+import { isPromiseLike } from 'retil-support'
 
 /**
  * Note, there's no need for a version, as snapshots are immutable. A change

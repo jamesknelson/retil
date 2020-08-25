@@ -1,5 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react'
-import { createWeakMemo } from 'retil-common'
+import { createWeakMemo } from 'retil-support'
 import { HistoryService, getDefaultBrowserHistory } from 'retil-history'
 
 import { UseRouterDefaultsContext } from '../routerContext'
@@ -10,14 +10,15 @@ import {
   RouterResponse,
   RouterService,
   RouterState,
+  TransformRequestFunction,
 } from '../routerTypes'
 import { createRouter } from '../routerService'
 
 import { useRouterService } from './useRouterService'
 
 export interface UseRouterOptions<
-  RouterRequestExt = {},
-  HistoryRequestExt = {},
+  RouterRequestExt extends object = {},
+  HistoryRequestExt extends object = {},
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 > {
@@ -32,12 +33,13 @@ export interface UseRouterOptions<
    */
   onResponseComplete?: (
     response: Response,
-    request: RouterRequest<State> & HistoryRequestExt & RouterRequestExt,
+    request: RouterRequest<any> & HistoryRequestExt & RouterRequestExt,
   ) => void
 
-  transformRequest?: (
-    request: RouterRequest<State> & HistoryRequestExt,
-  ) => RouterRequest<State> & HistoryRequestExt & RouterRequestExt
+  transformRequest?: TransformRequestFunction<
+    RouterRequestExt,
+    HistoryRequestExt
+  >
 
   transitionTimeoutMs?: number
 
@@ -47,8 +49,8 @@ export interface UseRouterOptions<
 const routerMemo = createWeakMemo<RouterService<any, any, any>>()
 
 export function useRouter<
-  RouterRequestExt = {},
-  HistoryRequestExt = {},
+  RouterRequestExt extends object = {},
+  HistoryRequestExt extends object = {},
   State extends RouterHistoryState = RouterHistoryState,
   Response extends RouterResponse = RouterResponse
 >(

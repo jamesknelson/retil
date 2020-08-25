@@ -22,7 +22,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-common": "^0.10.1",
+    "retil-support": "^0.10.1",
     "tslib": "2.0.1"
   },
   "devDependencies": {

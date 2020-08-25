@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/extend-expect'
 import React from 'react'
 import { renderToString } from 'react-dom/server'
-import { delay } from 'retil-common'
+import { delay } from 'retil-support'
 
 import {
   getInitialStateAndResponse,

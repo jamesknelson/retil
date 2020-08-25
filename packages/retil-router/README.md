@@ -82,7 +82,7 @@ export default function App() {
   const route = useRouter(router)
   
   return (
-    <RouterProvider route={route}>
+    <RouterProvider value={route}>
       {route.content}
     </RouterProvider>
   )
@@ -114,7 +114,7 @@ export default function App() {
   const route = useRouter(router)
   
   return (
-    <RouterProvider route={route}>
+    <RouterProvider value={route}>
       <AppLayout>
         {route.content}
       </AppLayout>
@@ -159,8 +159,8 @@ TODO
 [**Hooks**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#hooks)
 
 - [`useLink()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#uselink)
-- [`useLinkActive()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#uselinkactive)
-- [`useRouterRequest()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#userouterrequest)
+- [`useMatch()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#usematch)
+- [`useRequest()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#userequest)
 - [`useRouter()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#userouter)
 - [`useRouterController()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#useroutercontroller)
 
@@ -175,10 +175,10 @@ TODO
 
 [**Functions**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#functions)
 
-- [`applyAction()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#applyaction)
 - [`createHref()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#createhref)
 - [`getInitialStateAndResponse()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#getinitialstateandresponse)
 - [`parseAction()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#parseaction)
+- [`resolveAction()`](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#resolveaction)
 
 [**Types**](https://github.com/jamesknelson/retil/blob/master/docs/router-api.md#types)
 

@@ -1,4 +1,4 @@
-import { Deferred, isPromiseLike, noop } from 'retil-common'
+import { Deferred, isPromiseLike, noop } from 'retil-support'
 
 import { Source, identitySelector } from './source'
 

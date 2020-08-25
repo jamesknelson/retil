@@ -1,5 +1,5 @@
 {
-  "name": "retil-router",
+  "name": "retil-operation",
   "version": "0.10.1",
   "description": "Simple, powerful routing that grows with your app.",
   "author": "James K Nelson <james@jamesknelson.com>",

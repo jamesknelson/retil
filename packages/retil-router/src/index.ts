@@ -1,5 +1,5 @@
 export {
-  applyLocationAction as applyAction,
+  resolveAction,
   createBrowserHistory,
   createHref,
   createMemoryHistory,
@@ -18,8 +18,9 @@ export * from './components/link'
 export * from './components/routerProvider'
 
 export * from './hooks/useLink'
-export * from './hooks/useLinkActive'
-export * from './hooks/useRouterRequest'
+export * from './hooks/useMatch'
+export * from './hooks/useRequest'
+export * from './hooks/useResolve'
 export * from './hooks/useRouter'
 export * from './hooks/useRouterController'
 export * from './hooks/useRouterService'

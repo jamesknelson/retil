@@ -17,7 +17,12 @@ import {
   HistoryState,
   HistoryRequest,
 } from './historyTypes'
-import { applyLocationAction, parseLocation } from './historyUtils'
+import { resolveAction, parseLocation } from './historyUtils'
+
+const defaultLocationReducer: HistoryLocationReducer<any> = (
+  location,
+  action,
+) => resolveAction(action, location.pathname)
 
 export function createBrowserHistory<S extends HistoryState = HistoryState>(
   options: BrowserHistoryOptions,
@@ -42,7 +47,7 @@ export function createMemoryHistory<S extends HistoryState = HistoryState>(
 export function createHistoryService<S extends HistoryState = HistoryState>(
   history: History<S>,
   initialMethod = 'GET',
-  locationReducer: HistoryLocationReducer<S> = applyLocationAction,
+  locationReducer: HistoryLocationReducer<S> = defaultLocationReducer,
 ): HistoryService<{}, S> {
   const actions = new Set<Promise<any>>()
 

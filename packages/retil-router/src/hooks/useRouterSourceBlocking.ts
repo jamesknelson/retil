@@ -10,7 +10,7 @@
  */
 
 import { useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { delay } from 'retil-common'
+import { delay } from 'retil-support'
 import {
   Source,
   getSnapshot,

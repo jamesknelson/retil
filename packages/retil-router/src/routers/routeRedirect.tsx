@@ -1,10 +1,5 @@
 import * as React from 'react'
-import {
-  applyLocationAction,
-  createHref,
-  parseAction,
-  parseLocation,
-} from 'retil-history'
+import { resolveAction, createHref, parseAction } from 'retil-history'
 
 import { useRouterController } from '../hooks/useRouterController'
 import { RouterAction, RouterFunction, RouterRequest } from '../routerTypes'
@@ -15,7 +10,11 @@ export interface RedirectProps {
 
 export const Redirect: React.SFC<RedirectProps> = (props) => {
   const controller = useRouterController()
-  throw controller.navigate(props.href, { replace: true })
+  // Navigate in a microtask so that we don't cause any synchronous updates to
+  // components listening to the history.
+  throw Promise.resolve().then(() =>
+    controller.navigate(props.href, { replace: true }),
+  )
 }
 
 export function routeRedirect<Request extends RouterRequest = RouterRequest>(
@@ -26,12 +25,7 @@ export function routeRedirect<Request extends RouterRequest = RouterRequest>(
     const toAction = parseAction(
       typeof to === 'function' ? to(fromRequest) : to,
     )
-    const href = createHref(
-      applyLocationAction(
-        parseLocation({ pathname: fromRequest.basename }),
-        toAction,
-      ),
-    )
+    const href = createHref(resolveAction(toAction, fromRequest.basename))
 
     response.headers.Location = href
     response.status = status
