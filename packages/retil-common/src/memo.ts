@@ -21,3 +21,42 @@ export function createMemo<T>(): Memo<T> {
   }
   return memo
 }
+
+export interface WeakMemo<T = any> {
+  <U extends T = T, K extends object = object>(
+    compute: () => U,
+    weakDeps: readonly K[],
+    singleDeps?: any[],
+  ): U
+}
+
+export function createWeakMemo<T>(): WeakMemo<T> {
+  const weakMap = new WeakMap<any, WeakMemo<T> | Memo<T>>()
+
+  const memo: WeakMemo<T> = <U extends T = T>(
+    compute: () => U,
+    weakDeps: readonly object[],
+    deps: any[] = [],
+  ) => {
+    const [head, ...tail] = weakDeps
+    if (process.env.NODE_ENV !== 'production') {
+      const headType = typeof head
+      if (head === null || !['object', 'function'].includes(headType)) {
+        throw new Error(
+          `The memo function returned by createWeakMemo() must receive only objects or functions in its first deps array. Instead received: "${headType}".`,
+        )
+      }
+    }
+
+    let childMemo = weakMap.get(head) as WeakMemo<T>
+    if (!childMemo) {
+      childMemo = tail.length
+        ? createWeakMemo<T>()
+        : (createMemo<T>() as WeakMemo<T>)
+      weakMap.set(head, childMemo)
+    }
+    return childMemo(compute, tail.length ? tail : deps, deps)
+  }
+
+  return memo
+}
