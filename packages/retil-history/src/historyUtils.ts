@@ -122,16 +122,21 @@ export function parseAction<S extends HistoryState = HistoryState>(
     if (!action.query) {
       action.query = parseQuery(action.search.slice(1))
     } else if (process.env.NODE_ENV !== 'production') {
-      const actionQuery = parseQuery(action.search.slice(1))
-      if (actionQuery !== action.query) {
+      const stringifiedActionQuery = stringifyQuery(action.query)
+      if (stringifiedActionQuery !== action.search.slice(1)) {
         console.error(
           `A path was provided with differing "search" and "query" parameters. Ignoring "search" in favor of "query".`,
         )
       }
     }
-  } else if (action.query) {
+  }
+  if (action.query) {
     const stringifiedQuery = stringifyQuery(action.query)
     action.search = stringifiedQuery ? '?' + stringifiedQuery : ''
+  }
+
+  if (action.pathname) {
+    action.pathname = decodeURI(action.pathname)
   }
 
   return action

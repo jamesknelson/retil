@@ -2,6 +2,7 @@ import * as React from 'react'
 
 import { useMatch } from '../hooks/useMatch'
 import { UseLinkOptions, useLink } from '../hooks/useLink'
+import { useResolve } from '../hooks/useResolve'
 import { RouterHistoryState, RouterAction } from '../routerTypes'
 
 export interface LinkProps<S extends RouterHistoryState = RouterHistoryState>
@@ -20,8 +21,8 @@ export interface LinkProps<S extends RouterHistoryState = RouterHistoryState>
 // is incompatible with some versions of the react typings.
 export const Link: React.FunctionComponent<LinkProps> = React.forwardRef(
   (props: LinkProps, anchorRef: React.Ref<HTMLAnchorElement>) => {
-    let {
-      active,
+    const {
+      active: activeProp,
       activeClassName = '',
       activeStyle = {},
       children,
@@ -38,19 +39,18 @@ export const Link: React.FunctionComponent<LinkProps> = React.forwardRef(
       ...rest
     } = props
 
-    let { onClick, onMouseEnter, href } = useLink(to, {
+    const action = useResolve(to, state)
+
+    const { onClick, onMouseEnter, href } = useLink(action, {
       disabled,
       onClick: onClickProp,
       onMouseEnter: onMouseEnterProp,
       prefetch,
       replace,
-      state,
     })
 
-    let activeMatch = useMatch(exact ? href : href + '/*')
-    if (active === undefined) {
-      active = activeMatch
-    }
+    const activeMatch = useMatch(action.pathname + (exact ? '' : '*'))
+    const active = activeProp ?? activeMatch
 
     return (
       <a
