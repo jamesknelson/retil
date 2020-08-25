@@ -63,7 +63,12 @@ function splitPath(path: string): string[] {
 }
 
 export function normalizePathname(pathname: string): string {
-  return decodeURI(pathname.replace(/\/+/g, '/').replace(/\/$/, '').normalize())
+  return decodeURI(
+    pathname
+      .replace(/\/+/g, '/')
+      .replace(/(.)\/$/, '$1')
+      .normalize(),
+  )
 }
 
 export function resolveAction<S extends HistoryState = HistoryState>(
