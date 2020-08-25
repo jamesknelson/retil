@@ -23,12 +23,14 @@ export const useLinkActive = (
 ) => {
   const request = useRouterRequest()
   const delta = applyLocationAction(request, href)
+  const normalizedDeltaPathname = normalizePathname(delta.pathname)
+  const normalizedCurrentPathname = normalizePathname(request.pathname)
 
   return (
     delta &&
     (!delta.pathname ||
       (exact
-        ? normalizePathname(delta.pathname) === request.pathname
-        : request.pathname.indexOf(normalizePathname(delta.pathname)) === 0))
+        ? normalizedDeltaPathname === normalizedCurrentPathname
+        : normalizedCurrentPathname.indexOf(normalizedDeltaPathname) === 0))
   )
 }
