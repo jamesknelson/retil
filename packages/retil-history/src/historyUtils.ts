@@ -10,7 +10,9 @@ import {
 
 export function createHref(request: HistoryActionObject<any>): string {
   return (
-    (request.pathname || '') + (request.search || '') + (request.hash || '')
+    encodeURI(normalizePathname(request.pathname || '')) +
+    (request.search || '') +
+    (request.hash || '')
   )
 }
 
@@ -64,7 +66,7 @@ function splitPath(path: string): string[] {
 }
 
 export function normalizePathname(pathname: string): string {
-  return decodeURI(pathname).replace(/\/+/g, '/').replace(/\/$/, '').normalize()
+  return decodeURI(pathname.replace(/\/+/g, '/').replace(/\/$/, '').normalize())
 }
 
 export function applyLocationAction<S extends HistoryState = HistoryState>(
