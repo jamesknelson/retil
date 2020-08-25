@@ -54,10 +54,10 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
     if (!hasDefaultValue) {
       return subscribe(() => {
         if (!hasSnapshot([core, select])) {
-          setState(() => {
-            // Because hasSnapshot returns false, this'll return a promise.
+          setState((() => {
+            // Because hasSnapshot returns false, this'll throw a promise.
             select(core)
-          })
+          }) as any)
         }
       })
     }
