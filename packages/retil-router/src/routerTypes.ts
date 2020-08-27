@@ -8,14 +8,14 @@ import {
 } from 'retil-history'
 import { Source } from 'retil-source'
 
-export type RouterAction<State extends RouterHistoryState> = HistoryAction<
-  State
->
+export type RouterAction<
+  State extends RouterHistoryState = RouterHistoryState
+> = HistoryAction<State>
 export type RouterHistoryState = HistoryState
 
-export type RouterLocation<State extends RouterHistoryState> = HistoryLocation<
-  State
->
+export type RouterLocation<
+  State extends RouterHistoryState = RouterHistoryState
+> = HistoryLocation<State>
 
 export type RouterFunction<
   Request extends RouterRequest<any> = RouterRequest,
