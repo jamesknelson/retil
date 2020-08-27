@@ -4,19 +4,24 @@ import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
 
 import { NotFoundError } from './routeNotFound'
 
-export interface NotFoundBoundaryProps {
-  request: RouterRequest
-  response: RouterResponse
-  notFoundRouter: RouterFunction
+export interface NotFoundBoundaryProps<
+  Request extends RouterRequest,
+  Response extends RouterResponse
+> {
+  children: React.ReactNode
+  request: Request
+  response: Response
+  notFoundRouter: RouterFunction<Request, Response>
 }
 
-export const NotFoundBoundary: React.FunctionComponent<NotFoundBoundaryProps> = function NotFoundBoundary(
-  props: NotFoundBoundaryProps,
-) {
+function NotFoundBoundary<
+  Request extends RouterRequest,
+  Response extends RouterResponse
+>(props: NotFoundBoundaryProps<Request, Response>) {
   return <InnerNotFoundBoundary {...props} />
 }
 
-interface InnerNotFoundBoundaryProps extends NotFoundBoundaryProps {
+interface InnerNotFoundBoundaryProps extends NotFoundBoundaryProps<any, any> {
   request: RouterRequest
 }
 
@@ -76,8 +81,8 @@ export const routeNotFoundBoundary = <
   Request extends RouterRequest,
   Response extends RouterResponse
 >(
-  initialRouter: RouterFunction,
-  notFoundRouter: RouterFunction,
+  initialRouter: RouterFunction<Request, Response>,
+  notFoundRouter: RouterFunction<Request, Response>,
 ): RouterFunction<Request, Response> => {
   return (request, response) => (
     <NotFoundBoundary
