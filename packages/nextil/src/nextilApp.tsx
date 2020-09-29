@@ -148,6 +148,7 @@ export function nextilApp(
     latestNextilStateRef.current = getNextilState({
       appOptions,
       pageDetails: {
+        ctx,
         url,
         params: ctx.query,
         pageName: ctx.pathname,

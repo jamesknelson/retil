@@ -1,3 +1,4 @@
+import { NextPageContext } from 'next'
 import { RouterFunction, RouterRequest } from 'retil-router'
 
 export interface NextilAppProps {
@@ -29,6 +30,7 @@ export interface NextilRequestExtension {
 }
 
 export interface NextilPageDetails {
+  ctx?: NextPageContext
   defaultExport: any
   getInitialPropsResult: any
   pageName: string
