@@ -307,4 +307,35 @@ describe('useRouter (in blocking mode)', () => {
     })
     expect(container).toHaveTextContent('/test-1')
   })
+
+  test(`calls onResponseComplete when response is complete`, async () => {
+    const history = createMemoryHistory('/test-1')
+    const innerRouter: RouterFunction = (request) => request.pathname
+    const router = routeByPattern({
+      '/test-1': innerRouter,
+      '/test-2': routeLazy(async () => {
+        await delay(10)
+        return { default: routeRedirect('/test-1') }
+      }),
+    })
+    let controller!: RouterController
+
+    const onResponseComplete = jest.fn()
+
+    const Test = () => {
+      const route = useRouter(router, { history, onResponseComplete })
+      controller = route.controller
+      return (
+        <RouterProvider value={route}>
+          {route.pending ? 'pending' : ''}
+          <Suspense fallback="loading">{route.content}</Suspense>
+        </RouterProvider>
+      )
+    }
+    render(<Test />)
+    await act(async () => {
+      await controller.waitUntilStable()
+    })
+    expect(onResponseComplete).toBeCalled()
+  })
 })

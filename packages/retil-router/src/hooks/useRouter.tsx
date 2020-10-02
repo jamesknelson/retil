@@ -79,9 +79,6 @@ export function useRouter<
     unstable_isConcurrent,
   } = options
 
-  const onResponseCompleteRef = useRef(onResponseComplete)
-  onResponseCompleteRef.current = onResponseComplete
-
   const [snapshotToUse, setSnapshotToUse] = useState(initialState || null)
 
   const historyRef = useRef<HistoryService<HistoryRequestExt, State> | null>(
@@ -119,6 +116,7 @@ export function useRouter<
   }, [])
 
   return useRouterService(routerServiceOrSnapshot, {
+    onResponseComplete,
     transitionTimeoutMs,
     unstable_isConcurrent,
   })
