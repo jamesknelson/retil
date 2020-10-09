@@ -51,7 +51,7 @@ export function routeByPattern<
           {
             ...request,
             basename: joinPaths(basename, match.pathname),
-            params: { ...request, ...match.params },
+            params: { ...request.params, ...match.params },
           },
           response,
         )
