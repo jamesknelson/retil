@@ -10,7 +10,7 @@ export interface NotFoundProps {
   error: NotFoundError
 }
 
-export const NotFound: React.SFC<NotFoundProps> = (props) => {
+export const NotFound: React.FunctionComponent<NotFoundProps> = (props) => {
   throw props.error
 }
 

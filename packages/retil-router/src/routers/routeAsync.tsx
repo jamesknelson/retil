@@ -24,7 +24,7 @@ export interface AsyncResponseContentProps {
   resultRef: ResultRef
 }
 
-export const AsyncContentWrapper: React.SFC<AsyncResponseContentProps> = ({
+export const AsyncContentWrapper: React.FunctionComponent<AsyncResponseContentProps> = ({
   promisedContent,
   resultRef,
 }) => {

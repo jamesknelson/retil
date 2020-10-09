@@ -8,7 +8,7 @@ export interface RedirectProps {
   href: string
 }
 
-export const Redirect: React.SFC<RedirectProps> = (props) => {
+export const Redirect: React.FunctionComponent<RedirectProps> = (props) => {
   const controller = useRouterController()
   // Navigate in a microtask so that we don't cause any synchronous updates to
   // components listening to the history.
