@@ -70,7 +70,13 @@ const defaultGetPageBasenameAndRouter = (
 
   // TODO: need to convert pageName to a pattern, and use that to match
   // the part of the `asPath` that is the basename
-  const basename = pageDetails.pageName.replace(NextilWildcardPattern, '')
+  let basename = pageDetails.pageName.replace(NextilWildcardPattern, '')
+
+  for (const [param, value] of Object.entries(pageDetails.params)) {
+    if (!Array.isArray(value)) {
+      basename = basename.replace('[' + param + ']', value as string)
+    }
+  }
 
   return {
     basename,
