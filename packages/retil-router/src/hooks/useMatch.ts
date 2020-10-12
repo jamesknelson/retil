@@ -9,8 +9,17 @@ import { useRequest } from './useRequest'
  * viewing the specified pattern.
  * @param pattern
  */
-export const useMatch = (pattern: string): boolean => {
-  const matcher = useMemo(() => createMatcher(pattern), [pattern])
+export const useMatch = (patterns: string | string[]): boolean => {
+  const matcher = useMemo(
+    () =>
+      typeof patterns === 'string'
+        ? createMatcher(patterns)
+        : (pathname: string) => {
+            const matchers = patterns.map(createMatcher)
+            return matchers.some((matcher) => matcher(pathname))
+          },
+    [patterns],
+  )
   const request = useRequest()
   return useMemo(() => !!matcher(request.pathname), [matcher, request])
 }
