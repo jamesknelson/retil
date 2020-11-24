@@ -1,5 +1,6 @@
 import { Deferred, isPromiseLike, noop } from 'retil-support'
 
+import { callListener } from './callListener'
 import { Source, identitySelector } from './source'
 
 export interface ObserveSubscribeFunction<T> {
@@ -246,16 +247,4 @@ export function observe<T>(
   }
 
   return [[get, subscribe], identitySelector, act]
-}
-
-const callListener = (listener: () => void) => {
-  try {
-    listener()
-  } catch (errorOrPromise) {
-    // Given callbacks will call `getSnapshot()`, which often throws a promise,
-    // let's ignore thrown promises so that the callback don't have to.
-    if (!isPromiseLike(errorOrPromise)) {
-      throw errorOrPromise
-    }
-  }
 }

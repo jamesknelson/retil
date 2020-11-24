@@ -10,7 +10,7 @@ import {
   getSnapshotPromise,
   getSnapshot,
   mergeLatest,
-  wait,
+  onlyNotifyLatestSubscriber,
 } from 'retil-source'
 
 import {
@@ -67,7 +67,9 @@ export function createRouter<
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [historySource, historyController] = history
-  const latestHistorySource = mergeLatest(historySource)
+  const latestHistorySource = onlyNotifyLatestSubscriber(
+    mergeLatest(historySource),
+  )
   const snapshotMemo = createMemo<
     RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
   >()

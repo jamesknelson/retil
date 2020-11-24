@@ -58,7 +58,7 @@ const defaultGetFallbackComponentRouter = ({
   <Component {...pageProps} />
 )
 
-const defaultGetPageBasenameAndRouter = (
+export const defaultGetPageBasenameAndRouter = (
   pageDetails: NextilPageDetails,
 ): null | {
   basename: string

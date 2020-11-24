@@ -1,6 +1,7 @@
 export * from './fuse'
 export * from './mergeLatest'
 export * from './observe'
+export * from './onlyNotifyLatestSubscriber'
 export * from './select'
 export * from './selectDefault'
 export * from './source'

@@ -338,4 +338,10 @@ describe('useRouter (in blocking mode)', () => {
     })
     expect(onResponseComplete).toBeCalled()
   })
+
+  test.skip(`doens't cause redirects on outdated routers`, () => {
+    // TODO: set up a login and dashboard route, both redirecting
+    // to each other based on presence/absense of currentUser. Then
+    // update the requestTransformer.
+  })
 })
