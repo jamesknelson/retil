@@ -339,9 +339,34 @@ describe('useRouter (in blocking mode)', () => {
     expect(onResponseComplete).toBeCalled()
   })
 
-  test.skip(`doens't cause redirects on outdated routers`, () => {
-    // TODO: set up a login and dashboard route, both redirecting
-    // to each other based on presence/absense of currentUser. Then
-    // update the requestTransformer.
+  test(`doens't cause redirects on outdated routers`, () => {
+    const history = createMemoryHistory('/login')
+    const router = routeByPattern({
+      '/login': (req: { auth: boolean }, res) =>
+        req.auth ? routeRedirect('/dashboard')(req as any, res) : 'login',
+      '/dashboard': (req: { auth: boolean }, res) =>
+        req.auth ? 'dashboard' : routeRedirect('/login')(req as any, res),
+    })
+
+    let setTransformRequest!: any
+    const Test = () => {
+      const [transformRequest, _setTransformRequest] = useState(
+        () => (request: any) => ({
+          ...request,
+          auth: false,
+        }),
+      )
+      setTransformRequest = _setTransformRequest
+      return <>{useRouter(router, { history, transformRequest }).content}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('login')
+    act(() => {
+      setTransformRequest(() => (request: any) => ({
+        ...request,
+        auth: true,
+      }))
+    })
+    expect(container).toHaveTextContent('dashboard')
   })
 })
