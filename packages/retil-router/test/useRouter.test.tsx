@@ -339,7 +339,7 @@ describe('useRouter (in blocking mode)', () => {
     expect(onResponseComplete).toBeCalled()
   })
 
-  test(`doens't cause redirects on outdated routers`, () => {
+  test(`doens't cause redirects on outdated routers`, async () => {
     const history = createMemoryHistory('/login')
     const router = routeByPattern({
       '/login': (req: { auth: boolean }, res) =>
@@ -367,6 +367,7 @@ describe('useRouter (in blocking mode)', () => {
         auth: true,
       }))
     })
+    await new Promise((resolve) => setTimeout(resolve))
     expect(container).toHaveTextContent('dashboard')
   })
 })

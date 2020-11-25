@@ -1,4 +1,5 @@
 import { useContext, useEffect, useRef, useState } from 'react'
+import { onlyNotifyLatestSubscriber } from 'retil-source'
 import { createWeakMemo } from 'retil-support'
 import { HistoryService, getDefaultBrowserHistory } from 'retil-history'
 
@@ -46,6 +47,7 @@ export interface UseRouterOptions<
   unstable_isConcurrent?: boolean
 }
 
+const historyMemo = createWeakMemo<HistoryService<any, any>>()
 const routerMemo = createWeakMemo<RouterService<any, any, any>>()
 
 export function useRouter<
@@ -93,7 +95,16 @@ export function useRouter<
       State
     >
   }
-  const history = historyRef.current!
+
+  const history = historyMemo(
+    () =>
+      historyRef.current &&
+      ([
+        onlyNotifyLatestSubscriber(historyRef.current![0]),
+        historyRef.current![1],
+      ] as any),
+    [historyRef.current! || {}],
+  )
 
   const routerServiceOrSnapshot =
     snapshotToUse ||
