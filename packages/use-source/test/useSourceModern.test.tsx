@@ -23,7 +23,9 @@ describe(`useSource (concurrent implementation)`, () => {
     container = null as any
   })
 
-  test(`supports concurrent mode transitions`, async () => {
+  // TODO: implement concurrent mode transitions in library code, as they've
+  // been removed from React.
+  test.skip(`supports concurrent mode transitions`, async () => {
     let busyCount = 0
 
     const [stateSource, setState] = createState(1)

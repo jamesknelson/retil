@@ -2,7 +2,7 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
 import { delay } from 'retil-support'
 import { createMemoryHistory } from 'retil-history'
-import { act, render } from '@testing-library/react'
+import { act, render, waitFor } from '@testing-library/react'
 
 import {
   RouterController,
@@ -367,7 +367,8 @@ describe('useRouter (in blocking mode)', () => {
         auth: true,
       }))
     })
-    await new Promise((resolve) => setTimeout(resolve))
-    expect(container).toHaveTextContent('dashboard')
+    await waitFor(() => {
+      expect(container).toHaveTextContent('dashboard')
+    })
   })
 })
