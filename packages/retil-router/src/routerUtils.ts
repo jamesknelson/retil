@@ -24,6 +24,7 @@ export function getNoopController<
     back: () => Promise.resolve(false),
     block: () => () => {},
     navigate: () => Promise.resolve(false),
+    forceNavigate: () => {},
     prefetch: () => Promise.reject(undefined),
     waitUntilStable: () => Promise.resolve(),
   }
