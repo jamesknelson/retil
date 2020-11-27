@@ -51,6 +51,7 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
 ): HistoryService<{}, S> {
   const actions = new Set<Promise<any>>()
 
+  let forceChange = false
   let ignoreChange = false
   let lastRequest = {
     ...parseLocation(history.location),
@@ -61,7 +62,7 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
 
   const source = observe<HistorySnapshot<{}, S>>((next) => {
     next(lastRequest)
-    return history.listen(({ action, location }) => {
+    return history.listen(({ location }) => {
       if (!ignoreChange) {
         const method = nextMethod
         nextMethod = 'GET'
@@ -108,17 +109,28 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
 
     block: (predicate) => {
       const unblock = history.block((tx) => {
-        const location = parseLocation(tx.location)
-        act(source, () =>
-          predicate(location, tx.action).then((shouldBlock) => {
-            if (!shouldBlock) {
-              unblock()
-              tx.retry()
-            }
-          }),
-        )
+        if (forceChange) {
+          unblock()
+          tx.retry()
+        } else {
+          const location = parseLocation(tx.location)
+          act(source, () =>
+            predicate(location, tx.action).then((shouldBlock) => {
+              if (!shouldBlock) {
+                unblock()
+                tx.retry()
+              }
+            }),
+          )
+        }
       })
       return unblock
+    },
+
+    forceNavigate: (action, options): void => {
+      forceChange = true
+      controller.navigate(action, options)
+      forceChange = false
     },
 
     navigate: (action, options): Promise<boolean> => {

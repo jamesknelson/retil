@@ -117,7 +117,10 @@ export function createRouter<
           throw new Error('Redirect responses require a "Location" header')
         }
 
-        return historyController.navigate(redirectTo, { replace: true })
+        // Redirects should never be blocked, so we'll force immediate
+        // navigation. This has the advantage of allowing the effect to resolve
+        // synchronously.
+        historyController.forceNavigate(redirectTo, { replace: true })
       })
     }
 

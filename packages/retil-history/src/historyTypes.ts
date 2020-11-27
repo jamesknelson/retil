@@ -51,6 +51,18 @@ export interface HistoryController<S extends HistoryState = HistoryState> {
 
   block(blocker: HistoryBlockPredicate<S>): Unblock
 
+  /**
+   * Bypass any blocks and navigate immediately. Useful for redirects, which
+   * should not be blocked.
+   */
+  forceNavigate(
+    action: HistoryAction<S>,
+    options?: {
+      method?: string
+      replace?: boolean
+    },
+  ): void
+
   navigate(
     action: HistoryAction<S>,
     options?: {

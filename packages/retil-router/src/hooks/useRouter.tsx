@@ -47,8 +47,8 @@ export interface UseRouterOptions<
   unstable_isConcurrent?: boolean
 }
 
-const historyMemo = createWeakMemo<HistoryService<any, any>>()
-const routerMemo = createWeakMemo<RouterService<any, any, any>>()
+const historyWeakMemo = createWeakMemo<HistoryService<any, any>>()
+const routerWeakMemo = createWeakMemo<RouterService<any, any, any>>()
 
 export function useRouter<
   RouterRequestExt extends object = {},
@@ -96,10 +96,15 @@ export function useRouter<
     >
   }
 
-  const history = historyMemo(
+  const history = historyWeakMemo(
     () =>
       historyRef.current &&
       ([
+        // When a new router is created due to an update to basename,
+        // routerFunction or transformRequest, the previous router will stay
+        // subscribed for a brief period -- and we don't want to notify it
+        // of any redirects caused by the new router (in case it causes a
+        // redirect loop).
         onlyNotifyLatestSubscriber(historyRef.current![0]),
         historyRef.current![1],
       ] as any),
@@ -108,7 +113,7 @@ export function useRouter<
 
   const routerServiceOrSnapshot =
     snapshotToUse ||
-    routerMemo(
+    routerWeakMemo(
       () =>
         createRouter(routerFunction, history, {
           basename,

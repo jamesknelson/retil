@@ -82,14 +82,14 @@ export function useRouterService<
   const { content, request, response } = routerSnapshot
 
   const controllerActionDeferreds = useRef<Deferred<void>[]>([])
-  const wrapRouterAction = useCallback(
-    <T, U extends any[]>(
-      fn: (...args: U) => Promise<T>,
-    ): ((...args: U) => Promise<T>) => {
+  const wrapNavigationAction = useCallback(
+    <U extends any[]>(
+      fn: (...args: U) => Promise<boolean> | void,
+    ): ((...args: U) => Promise<boolean>) => {
       return (...args: U) => {
         const deferred = new Deferred<void>()
         controllerActionDeferreds.current.push(deferred)
-        const result = fn(...args)
+        const result = fn(...args) || Promise.resolve(true)
         // If the request has been cancelled by the user, manually resolve
         // the deferred.
         result
@@ -105,16 +105,44 @@ export function useRouterService<
     [],
   )
 
+  // TODO:
+  // - there's an issue here where waitUntilStable only waits until the current
+  //   router is stable. if the current router changes, it'll resolve before
+  //   the route is actually stable.
+  // - we need to create separate routers for separate configs; we unfortunately
+  //   can't store configs in non-react state, as modern React doesn't allow us
+  //   to assume that the last rendered props are the currently desired props,
+  //   and we don't want to use effects to trigger updates to router config as
+  //   it'll require a full render/commit between changing the config, and
+  //   rendering an updated route.
+  // - => we need to create our own waitUntilStable function and patch it in,
+  //      so that if we're in the middle of a render, it waits until an effect,
+  //      and *then* delegates to the latest router's waitUntilStable (and
+  //      checks that no subsequent renders have occurred after that completes).
+
+  const waitUntilStable = useCallback(async (routerController: any) => {
+    await routerController.waitUntilStable()
+    if (routerController !== latestRouterControllerRef.current) {
+      await waitUntilStable(latestRouterControllerRef.current)
+    }
+  }, [])
+
   const controller = useMemo<RouterController<Ext, State>>(
     () => ({
-      back: wrapRouterAction(routerController.back),
+      back: wrapNavigationAction(routerController.back),
       block: routerController.block,
       prefetch: routerController.prefetch,
-      navigate: wrapRouterAction(routerController.navigate),
-      waitUntilStable: wrapRouterAction(routerController.waitUntilStable),
+      navigate: wrapNavigationAction(routerController.navigate),
+      forceNavigate: wrapNavigationAction(routerController.forceNavigate),
+      waitUntilStable: () => waitUntilStable(routerController),
     }),
-    [wrapRouterAction, routerController],
+    [routerController, wrapNavigationAction, waitUntilStable],
   )
+
+  const latestRouterControllerRef = useRef(routerController)
+  useEffect(() => {
+    latestRouterControllerRef.current = routerController
+  }, [routerController])
 
   // This effect will be called whenever the displayed route changes
   useEffect(() => {

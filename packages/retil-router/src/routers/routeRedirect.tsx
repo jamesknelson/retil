@@ -13,7 +13,10 @@ export const Redirect: React.FunctionComponent<RedirectProps> = (props) => {
   // Navigate in a microtask so that we don't cause any synchronous updates to
   // components listening to the history.
   throw Promise.resolve().then(() =>
-    controller.navigate(props.href, { replace: true }),
+    // Redirects should never be blocked, so we'll force immediate
+    // navigation. This has the advantage of allowing the effect to resolve
+    // synchronously.
+    controller.forceNavigate(props.href, { replace: true }),
   )
 }
 
