@@ -46,30 +46,31 @@ function LoginForm() {
   // - your validation function needs access to more than one field
   // - you want to see the pending state of an async validation
   // - you want a synchronous result from `trigger` when possible.
-  const { errors } = useValidator(data, {
+  const [issues, validator, pending] = useValidator(data, {
     validate,
   })
-
-  const loginOperation = useCallback(
-    async (data, getHasUnmounted, signal) => {
-      const issues = await auth.login(data.email, data.password)
-      if (issues) {
-        return issues
-      } else {
-        return routingController.waitUntilStable()
-      }
-    },
-    [routingController]
-  )
 
   // - pending only goes true if the operation doesn't complete before a short
   //   timeout
   // - the third argument is only returned if you don't pass a validator as
   //   the second argument. if you do, any truthy return will be treated as an
   //   error.
-  const [login, loginPending, loginError] = useOperation(
-    loginOperation,
-    loginValidator // or loginForm
+  const [login, loginPending] = useOperation(
+    async data => {
+      if (await validator.trigger(data)) {
+        const issues = await authController.loginWithPassword({
+          email: data.email,
+          password: data.password
+        }
+        )
+        if (issues) {
+          validator.addIssues(issues)
+        } else {
+          return routingController.waitUntilStable()
+        }
+      }
+    },
+    [routingController, validator]
   )
 
   return (
