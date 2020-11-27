@@ -1,6 +1,6 @@
 {
   "name": "use-source",
-  "version": "0.11.8",
+  "version": "0.11.10",
   "description": "React integration for Retil sources",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
