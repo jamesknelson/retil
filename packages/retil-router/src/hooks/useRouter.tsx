@@ -11,7 +11,7 @@ import {
   RouterResponse,
   RouterService,
   RouterState,
-  TransformRequestFunction,
+  TransformRequestSourceFunction,
 } from '../routerTypes'
 import { createRouter } from '../routerService'
 
@@ -37,7 +37,7 @@ export interface UseRouterOptions<
     request: RouterRequest<any> & HistoryRequestExt & RouterRequestExt,
   ) => void
 
-  transformRequest?: TransformRequestFunction<
+  transformRequestSource?: TransformRequestSourceFunction<
     RouterRequestExt,
     HistoryRequestExt
   >
@@ -76,7 +76,7 @@ export function useRouter<
     >,
     initialState = defaults.initialState,
     onResponseComplete,
-    transformRequest,
+    transformRequestSource,
     transitionTimeoutMs = defaults.transitionTimeoutMs,
     unstable_isConcurrent,
   } = options
@@ -117,10 +117,10 @@ export function useRouter<
       () =>
         createRouter(routerFunction, history, {
           basename,
-          transformRequest,
+          transformRequestSource,
         }),
       [history],
-      [basename, routerFunction, transformRequest],
+      [basename, routerFunction, transformRequestSource],
     )
 
   useEffect(() => {

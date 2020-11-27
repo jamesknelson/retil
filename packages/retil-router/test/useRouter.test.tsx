@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
+import { map } from 'retil-source'
 import { delay } from 'retil-support'
 import { createMemoryHistory } from 'retil-history'
 import { act, render, waitFor } from '@testing-library/react'
@@ -8,6 +9,7 @@ import {
   RouterController,
   RouterFunction,
   RouterRequest,
+  RouterRequestSource,
   RouterProvider,
   UseRouterOptions,
   getInitialStateAndResponse,
@@ -56,17 +58,18 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('/test-2')
   })
 
-  test(`can transform the request with a transformRequest option`, () => {
+  test(`can transform the request with a transformRequestSource option`, () => {
     const history = createMemoryHistory('/test-1')
     const router: RouterFunction<RouterRequest & { currentUser: string }> = (
       request,
     ) => request.currentUser
-    const transformRequest = (request: RouterRequest) => ({
-      ...request,
-      currentUser: 'james',
-    })
+    const transformRequestSource = (requestSource: RouterRequestSource) =>
+      map(requestSource, (request) => ({
+        ...request,
+        currentUser: 'james',
+      }))
     const Test = () => (
-      <>{useRouter(router, { history, transformRequest }).content}</>
+      <>{useRouter(router, { history, transformRequestSource }).content}</>
     )
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
@@ -348,24 +351,36 @@ describe('useRouter (in blocking mode)', () => {
         req.auth ? 'dashboard' : routeRedirect('/login')(req as any, res),
     })
 
-    let setTransformRequest!: any
+    let setTransformRequestSource!: any
     const Test = () => {
-      const [transformRequest, _setTransformRequest] = useState(
-        () => (request: any) => ({
-          ...request,
-          auth: false,
-        }),
+      const [transformRequestSource, _setTransformRequestSource] = useState(
+        () => (requestSource: RouterRequestSource) =>
+          map(requestSource, (request) => ({
+            ...request,
+            auth: false,
+          })),
       )
-      setTransformRequest = _setTransformRequest
-      return <>{useRouter(router, { history, transformRequest }).content}</>
+      setTransformRequestSource = _setTransformRequestSource
+      return (
+        <>
+          {
+            useRouter(router, {
+              history,
+              transformRequestSource,
+            }).content
+          }
+        </>
+      )
     }
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('login')
     act(() => {
-      setTransformRequest(() => (request: any) => ({
-        ...request,
-        auth: true,
-      }))
+      setTransformRequestSource(() => (requestSource: RouterRequestSource) =>
+        map(requestSource, (request) => ({
+          ...request,
+          auth: true,
+        })),
+      )
     })
     await waitFor(() => {
       expect(container).toHaveTextContent('dashboard')

@@ -5,12 +5,7 @@ import {
   createMemoryHistory,
   parseLocation,
 } from 'retil-history'
-import {
-  fuse,
-  getSnapshotPromise,
-  getSnapshot,
-  mergeLatest,
-} from 'retil-source'
+import { Source, fuse, getSnapshotPromise, getSnapshot } from 'retil-source'
 
 import {
   RouterAction,
@@ -22,7 +17,7 @@ import {
   RouterService,
   RouterSnapshot,
   RouterState,
-  TransformRequestFunction,
+  TransformRequestSourceFunction,
 } from './routerTypes'
 import { getNoopController, waitForMutablePromiseList } from './routerUtils'
 
@@ -36,7 +31,7 @@ export interface RouterOptions<
   followRedirects?: boolean
   maxRedirects?: number
   normalizePathname?: boolean
-  transformRequest?: TransformRequestFunction<
+  transformRequestSource?: TransformRequestSourceFunction<
     RouterRequestExt,
     HistoryRequestExt
   >
@@ -62,11 +57,27 @@ export function createRouter<
     followRedirects = true,
     maxRedirects = 5,
     normalizePathname = true,
-    transformRequest,
+    transformRequestSource,
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [historySource, historyController] = history
-  const latestHistorySource = mergeLatest(historySource)
+  const baseRequestSource = fuse((use) => {
+    const historyRequest = use(historySource)
+    const routerRequest: RouterRequest<S> & HistoryRequestExt = {
+      basename,
+      params: {},
+      ...historyRequest,
+    }
+    return routerRequest
+  })
+  const requestSource = transformRequestSource
+    ? (transformRequestSource(baseRequestSource) as Source<
+        RouterRequest<S> & HistoryRequestExt & RouterRequestExt
+      >)
+    : (baseRequestSource as Source<
+        RouterRequest<S> & HistoryRequestExt & RouterRequestExt
+      >)
+
   const snapshotMemo = createMemo<
     RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
   >()
@@ -74,21 +85,8 @@ export function createRouter<
   const source = fuse<
     RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
   >((use, effect) => {
-    const historyRequest = use(latestHistorySource)
+    const request = use(requestSource)
     const snapshot = snapshotMemo(() => {
-      const routerRequest: RouterRequest<S> & HistoryRequestExt = {
-        basename,
-        params: {},
-        ...historyRequest,
-      }
-      const request: RouterRequest<S> &
-        HistoryRequestExt &
-        RouterRequestExt = transformRequest
-        ? transformRequest(routerRequest)
-        : (routerRequest as RouterRequest<S> &
-            HistoryRequestExt &
-            RouterRequestExt)
-
       const response = ({
         head: [],
         headers: {},
@@ -101,7 +99,7 @@ export function createRouter<
         response,
         request,
       }
-    }, [historyRequest])
+    }, [request])
     const response = snapshot.response
 
     if (followRedirects && isRedirect(response)) {
@@ -167,7 +165,7 @@ export function createRouter<
         // FIXME: if there's a history request ext, there's probably also a
         // prefetch function on the history controller, and we need to look
         // for it and somehow call it.
-        transformRequest: transformRequest as any,
+        transformRequestSource: transformRequestSource as any,
       })
       return state
     },
@@ -181,7 +179,7 @@ export interface GetRouteOptions<Ext extends object = {}> {
   basename?: string
   method?: string
   normalizePathname?: boolean
-  transformRequest?: TransformRequestFunction<Ext>
+  transformRequestSource?: TransformRequestSourceFunction<Ext>
 }
 
 export async function getInitialStateAndResponse<

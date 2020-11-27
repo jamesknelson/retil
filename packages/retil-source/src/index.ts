@@ -1,4 +1,5 @@
 export * from './fuse'
+export * from './map'
 export * from './mergeLatest'
 export * from './observe'
 export * from './onlyNotifyLatestSubscriber'
