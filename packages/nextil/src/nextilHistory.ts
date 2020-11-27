@@ -90,6 +90,9 @@ export function createNextHistory(
       // see: https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
       throw new Error('historyController.block is unimplemented')
     },
+    forceNavigate: (action, options) => {
+      controller.navigate(action, options)
+    },
     navigate: (action, options = {}) =>
       act(source, async () => {
         const location = parseLocation(action)
