@@ -37,7 +37,8 @@ const BypassSerializationHack = Symbol()
 interface UnserializedAppProps {
   // This will *only* be available on the server
   initialRouterState?: RouterState<NextilRequestExtension>
-  // This will only be available *after* the initial render on the client
+  // This will only be available on the server, and *after* the initial render
+  // on the client
   nextilState?: NextilState
 }
 
@@ -72,8 +73,8 @@ export function nextilApp(
     const { initialRouterState, nextilState: nextilStateProp } =
       bypassSerializationWrapper[BypassSerializationHack] || {}
 
-    // This is computed in gIP but again we can't pass it via props because it
-    // can't be serialized. Pls stop serializing my goddamn props Next.
+    // On the initial render on the client, gIP won't be run, so we'll need
+    // to compute this within the component.
     const nextilState = useMemo(
       () =>
         nextilStateProp ||
@@ -91,6 +92,8 @@ export function nextilApp(
       [nextilStateProp],
     )
 
+    // Only re-use the history object when switching between retil routes.
+    // Create a new history object for each new Next.js page.
     const history = useMemo(
       () => createNextHistory(nextRouter, nextilState, latestNextilStateRef),
       // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -165,13 +168,18 @@ export function nextilApp(
 
     // Only get the full response before returning on the server
     if (ctx.req && ctx.res) {
-      const [initialRouterState, response] = await getInitialStateAndResponse<
-        NextilRequestExtension
-      >(router, url, {
-        basename,
-        transformRequest: (request) =>
-          Object.assign({}, request, latestNextilStateRef.current),
-      })
+      const [
+        initialRouterState,
+        response,
+      ] = await getInitialStateAndResponse<NextilRequestExtension>(
+        router,
+        url,
+        {
+          basename,
+          transformRequest: (request) =>
+            Object.assign({}, request, latestNextilStateRef.current),
+        },
+      )
 
       unserializedProps.initialRouterState = initialRouterState
 
