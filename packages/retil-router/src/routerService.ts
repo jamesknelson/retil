@@ -5,7 +5,7 @@ import {
   createMemoryHistory,
   parseLocation,
 } from 'retil-history'
-import { Source, fuse, getSnapshotPromise, getSnapshot } from 'retil-source'
+import { fuse, getSnapshotPromise, getSnapshot, map } from 'retil-source'
 
 import {
   RouterAction,
@@ -58,26 +58,15 @@ export function createRouter<
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [historySource, historyController] = history
-  const baseRequestSource = fuse((use) => {
-    const historyRequest = use(historySource)
-    const routerRequest: RouterRequest<S> & HistoryRequestExt = {
-      basename,
-      params: {},
-      ...historyRequest,
-    }
-    return routerRequest
-  })
-  const requestSource = extendRequest
-    ? (fuse((use) => {
-        const baseRequest = use(baseRequestSource)
-        return {
-          ...baseRequest,
-          ...extendRequest(baseRequest, use),
-        }
-      }) as Source<RouterRequest<S> & HistoryRequestExt & RouterRequestExt>)
-    : (baseRequestSource as Source<
-        RouterRequest<S> & HistoryRequestExt & RouterRequestExt
-      >)
+  const baseRequestSource = map(
+    historySource,
+    (historyRequest) =>
+      ({
+        basename,
+        params: {},
+        ...historyRequest,
+      } as RouterRequest<S> & HistoryRequestExt),
+  )
 
   const snapshotMemo = createMemo<
     RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
@@ -86,8 +75,17 @@ export function createRouter<
   const source = fuse<
     RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
   >((use, effect) => {
-    const request = use(requestSource)
+    const baseRequest = use(baseRequestSource)
+    const requestExtension = extendRequest
+      ? extendRequest(baseRequest, use)
+      : null
+
     const snapshot = snapshotMemo(() => {
+      const request = {
+        ...baseRequest,
+        ...requestExtension,
+      }
+
       const response = ({
         head: [],
         headers: {},
@@ -100,7 +98,7 @@ export function createRouter<
         response,
         request,
       }
-    }, [request])
+    }, [baseRequest, requestExtension])
     const response = snapshot.response
 
     if (followRedirects && isRedirect(response)) {
