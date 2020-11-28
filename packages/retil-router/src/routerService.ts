@@ -17,7 +17,7 @@ import {
   RouterService,
   RouterSnapshot,
   RouterState,
-  TransformRequestSourceFunction,
+  RouterRequestExtender,
 } from './routerTypes'
 import { getNoopController, waitForMutablePromiseList } from './routerUtils'
 
@@ -31,10 +31,7 @@ export interface RouterOptions<
   followRedirects?: boolean
   maxRedirects?: number
   normalizePathname?: boolean
-  transformRequestSource?: TransformRequestSourceFunction<
-    RouterRequestExt,
-    HistoryRequestExt
-  >
+  extendRequest?: RouterRequestExtender<RouterRequestExt, HistoryRequestExt>
 }
 
 export function createRouter<
@@ -57,7 +54,7 @@ export function createRouter<
     followRedirects = true,
     maxRedirects = 5,
     normalizePathname = true,
-    transformRequestSource,
+    extendRequest,
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [historySource, historyController] = history
@@ -70,10 +67,14 @@ export function createRouter<
     }
     return routerRequest
   })
-  const requestSource = transformRequestSource
-    ? (transformRequestSource(baseRequestSource) as Source<
-        RouterRequest<S> & HistoryRequestExt & RouterRequestExt
-      >)
+  const requestSource = extendRequest
+    ? (fuse((use) => {
+        const baseRequest = use(baseRequestSource)
+        return {
+          ...baseRequest,
+          ...extendRequest(baseRequest, use),
+        }
+      }) as Source<RouterRequest<S> & HistoryRequestExt & RouterRequestExt>)
     : (baseRequestSource as Source<
         RouterRequest<S> & HistoryRequestExt & RouterRequestExt
       >)
@@ -165,7 +166,7 @@ export function createRouter<
         // FIXME: if there's a history request ext, there's probably also a
         // prefetch function on the history controller, and we need to look
         // for it and somehow call it.
-        transformRequestSource: transformRequestSource as any,
+        extendRequest: extendRequest as any,
       })
       return state
     },
@@ -179,7 +180,7 @@ export interface GetRouteOptions<Ext extends object = {}> {
   basename?: string
   method?: string
   normalizePathname?: boolean
-  transformRequestSource?: TransformRequestSourceFunction<Ext>
+  extendRequest?: RouterRequestExtender<Ext>
 }
 
 export async function getInitialStateAndResponse<

@@ -176,8 +176,7 @@ export function nextilApp(
         url,
         {
           basename,
-          transformRequest: (request) =>
-            Object.assign({}, request, latestNextilStateRef.current),
+          extendRequest: () => latestNextilStateRef.current!,
         },
       )
 

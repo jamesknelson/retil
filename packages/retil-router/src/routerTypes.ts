@@ -148,7 +148,7 @@ export interface RouterState<
   response?: never
 }
 
-export type TransformRequestSourceFunction<
+export type RouterRequestExtender<
   RouterRequestExt extends object,
   HistoryRequestExt extends object = {},
   Request extends RouterRequest<any> &
@@ -158,4 +158,7 @@ export type TransformRequestSourceFunction<
     {
       [K in keyof HistoryRequestExt]: HistoryRequestExt[K]
     }
-> = (requestSource: Source<Request>) => Source<Request & RouterRequestExt>
+> = (
+  request: Request,
+  use: <U, V = U>(source: Source<U>, ...defaultValues: [V] | []) => U | V,
+) => RouterRequestExt

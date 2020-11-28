@@ -1,6 +1,5 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
-import { map } from 'retil-source'
 import { delay } from 'retil-support'
 import { createMemoryHistory } from 'retil-history'
 import { act, render, waitFor } from '@testing-library/react'
@@ -9,7 +8,6 @@ import {
   RouterController,
   RouterFunction,
   RouterRequest,
-  RouterRequestSource,
   RouterProvider,
   UseRouterOptions,
   getInitialStateAndResponse,
@@ -63,13 +61,11 @@ function testUseRouter(useRouter: typeof _useRouter) {
     const router: RouterFunction<RouterRequest & { currentUser: string }> = (
       request,
     ) => request.currentUser
-    const transformRequestSource = (requestSource: RouterRequestSource) =>
-      map(requestSource, (request) => ({
-        ...request,
-        currentUser: 'james',
-      }))
+    const extendRequest = () => ({
+      currentUser: 'james',
+    })
     const Test = () => (
-      <>{useRouter(router, { history, transformRequestSource }).content}</>
+      <>{useRouter(router, { history, extendRequest }).content}</>
     )
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
@@ -353,20 +349,16 @@ describe('useRouter (in blocking mode)', () => {
 
     let setTransformRequestSource!: any
     const Test = () => {
-      const [transformRequestSource, _setTransformRequestSource] = useState(
-        () => (requestSource: RouterRequestSource) =>
-          map(requestSource, (request) => ({
-            ...request,
-            auth: false,
-          })),
-      )
-      setTransformRequestSource = _setTransformRequestSource
+      const [extendRequest, _setExtendRequest] = useState(() => () => ({
+        auth: false,
+      }))
+      setTransformRequestSource = _setExtendRequest
       return (
         <>
           {
             useRouter(router, {
               history,
-              transformRequestSource,
+              extendRequest,
             }).content
           }
         </>
@@ -375,12 +367,9 @@ describe('useRouter (in blocking mode)', () => {
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('login')
     act(() => {
-      setTransformRequestSource(() => (requestSource: RouterRequestSource) =>
-        map(requestSource, (request) => ({
-          ...request,
-          auth: true,
-        })),
-      )
+      setTransformRequestSource(() => () => ({
+        auth: true,
+      }))
     })
     await waitFor(() => {
       expect(container).toHaveTextContent('dashboard')
