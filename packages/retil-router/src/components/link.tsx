@@ -1,11 +1,11 @@
 import * as React from 'react'
 
-import { useMatch } from '../hooks/useMatch'
+import { useMatchRoute } from '../hooks/useMatchRoute'
 import { UseLinkOptions, useLink } from '../hooks/useLink'
-import { useResolve } from '../hooks/useResolve'
-import { RouterHistoryState, RouterAction } from '../routerTypes'
+import { useResolveRoute } from '../hooks/useResolveRoute'
+import { RouterAction } from '../routerTypes'
 
-export interface LinkProps<S extends RouterHistoryState = RouterHistoryState>
+export interface LinkProps
   extends UseLinkOptions,
     Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   active?: boolean
@@ -14,7 +14,7 @@ export interface LinkProps<S extends RouterHistoryState = RouterHistoryState>
   children: React.ReactNode
   exact?: boolean
   ref?: React.Ref<HTMLAnchorElement>
-  to: RouterAction<S>
+  to: RouterAction
 }
 
 // Need to include this type definition, as the automatically generated one
@@ -31,7 +31,7 @@ export const Link: React.FunctionComponent<LinkProps> = React.forwardRef(
       exact,
       onClick: onClickProp,
       onMouseEnter: onMouseEnterProp,
-      prefetch,
+      prefetchOn,
       replace,
       state,
       style = {},
@@ -39,17 +39,17 @@ export const Link: React.FunctionComponent<LinkProps> = React.forwardRef(
       ...rest
     } = props
 
-    const action = useResolve(to, state)
+    const action = useResolveRoute(to, state)
 
     const { onClick, onMouseEnter, href } = useLink(action, {
       disabled,
       onClick: onClickProp,
       onMouseEnter: onMouseEnterProp,
-      prefetch,
+      prefetchOn,
       replace,
     })
 
-    const activeMatch = useMatch(action.pathname + (exact ? '' : '*'))
+    const activeMatch = useMatchRoute(action.pathname + (exact ? '' : '*'))
     const active = activeProp ?? activeMatch
 
     return (

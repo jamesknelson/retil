@@ -1,214 +1,153 @@
-import { createMemo, delay } from 'retil-support'
-import {
-  HistoryService,
-  resolveAction,
-  createMemoryHistory,
-  parseLocation,
-} from 'retil-history'
-import { fuse, getSnapshotPromise, getSnapshot, map } from 'retil-source'
+import { createMemo } from 'retil-support'
+import { createState, fuse, getSnapshotPromise } from 'retil-source'
 
 import {
-  RouterAction,
   RouterController,
   RouterFunction,
-  RouterHistoryState,
   RouterRequest,
+  RouterRequestExtension,
+  RouterRequestService,
   RouterResponse,
   RouterService,
   RouterSnapshot,
-  RouterState,
-  RouterRequestExtender,
 } from './routerTypes'
-import { getNoopController, waitForMutablePromiseList } from './routerUtils'
+import { isRedirect, waitForResponse } from './routerUtils'
 
 import { routeNormalize } from './routers/routeNormalize'
 
 export interface RouterOptions<
-  RouterRequestExt extends object = {},
-  HistoryRequestExt extends object = {}
+  Request extends RouterRequest = RouterRequest,
+  Response extends RouterResponse = RouterResponse
 > {
-  basename?: string
   followRedirects?: boolean
   maxRedirects?: number
   normalizePathname?: boolean
-  extendRequest?: RouterRequestExtender<RouterRequestExt, HistoryRequestExt>
+  initialSnapshot?: RouterSnapshot<Request, Response>
 }
 
 export function createRouter<
-  RouterRequestExt extends object = {},
-  HistoryRequestExt extends object = {},
-  S extends RouterHistoryState = RouterHistoryState,
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
 >(
-  router: RouterFunction<
-    RouterRequest<S> & HistoryRequestExt & RouterRequestExt,
-    Response
-  >,
-  history: HistoryService<HistoryRequestExt, S>,
-  options: RouterOptions<RouterRequestExt, HistoryRequestExt>,
-): RouterService<RouterRequestExt & HistoryRequestExt, S, Response> {
-  let redirectCounter = 0
-
+  router: RouterFunction<Request & RouterRequestExtension, Response>,
+  requestService: RouterRequestService<Request>,
+  options: RouterOptions<Request, Response> = {},
+): RouterService<Request, Response> {
   const {
-    basename = '',
     followRedirects = true,
     maxRedirects = 5,
     normalizePathname = true,
-    extendRequest,
+    initialSnapshot,
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
-  const [historySource, historyController] = history
-  const baseRequestSource = map(
-    historySource,
-    (historyRequest) =>
-      ({
-        basename,
-        params: {},
-        ...historyRequest,
-      } as RouterRequest<S> & HistoryRequestExt),
-  )
+  const [requestSource, requestController] = requestService
 
-  const snapshotMemo = createMemo<
-    RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
-  >()
+  const snapshotMemo = createMemo<RouterSnapshot<Request, Response>>()
 
-  const source = fuse<
-    RouterSnapshot<RouterRequestExt & HistoryRequestExt, S, Response>
-  >((use, effect) => {
-    const baseRequest = use(baseRequestSource)
-    const requestExtension = extendRequest
-      ? extendRequest(baseRequest, use)
-      : null
+  let initialRequest: Request | null = null
 
-    const snapshot = snapshotMemo(() => {
-      const request = {
-        ...baseRequest,
-        ...requestExtension,
+  let redirectCounter = 0
+  const redirect = async (
+    response: Response,
+    statusOrURL: number | string,
+    url?: string,
+  ): Promise<void> => {
+    const location = url || (statusOrURL as string)
+
+    response.headers.Location = location
+    response.status = typeof statusOrURL === 'number' ? statusOrURL : 302
+
+    if (followRedirects) {
+      if (++redirectCounter > maxRedirects) {
+        throw new Error('Possible redirect loop detected')
       }
 
-      const response = ({
-        head: [],
+      // Navigate in a microtask so that we don't cause any synchronous updates to
+      // components listening to the history.
+      await Promise.resolve()
+
+      // Redirects should never be blocked, so we'll force immediate
+      // navigation.
+      await requestController.navigate(location, {
+        force: true,
+        replace: true,
+      })
+    }
+  }
+
+  const source = fuse<RouterSnapshot<Request, Response>>((use) => {
+    const request = use(requestSource)
+
+    // If an initial snapshot is provided, use it until a new request is
+    // available.
+    if (initialSnapshot && (!initialRequest || initialRequest === request)) {
+      initialRequest = request
+      return initialSnapshot
+    }
+
+    // There's no guarantee that a fusor function won't be run multiple times
+    // for the same request, so let's memoize it.
+    const snapshot = snapshotMemo(() => {
+      const response: Response = {
+        head: [] as any[],
         headers: {},
-        pendingCommits: [],
-        pendingSuspenses: [],
-      } as any) as Response
+        pendingSuspenses: [] as PromiseLike<any>[],
+      } as Response
+
+      response.redirect = redirect.bind(null, response)
 
       return {
         content: normalizedRouter(request, response),
         response,
         request,
       }
-    }, [baseRequest, requestExtension])
-    const response = snapshot.response
+    }, [request])
 
-    if (followRedirects && isRedirect(response)) {
-      return effect(() => {
-        if (++redirectCounter > maxRedirects) {
-          throw new Error('Possible redirect loop detected')
-        }
-
-        const redirectTo =
-          response.headers?.Location || response.headers?.location
-
-        if (redirectTo === undefined) {
-          throw new Error('Redirect responses require a "Location" header')
-        }
-
-        // Redirects should never be blocked, so we'll force immediate
-        // navigation. This has the advantage of allowing the effect to resolve
-        // synchronously.
-        historyController.forceNavigate(redirectTo, { replace: true })
-      })
+    if (!isRedirect(snapshot.response)) {
+      redirectCounter = 0
     }
-
-    redirectCounter = 0
 
     return snapshot
   })
 
-  const waitUntilStable = async (): Promise<void> => {
-    const { response } = await getSnapshotPromise(source)
-    await waitForMutablePromiseList(response.pendingSuspenses)
-    const status = response.status || 200
-    if (status >= 300 && status < 400) {
-      await delay(0)
-      return waitUntilStable()
-    }
-  }
-
-  const controller: RouterController<
-    HistoryRequestExt & RouterRequestExt,
-    S
-  > = {
-    // TODO:
-    // - prevent these controller methods form returning until the responses
-    //   are complete
-    // - when the responses aren't complete, add a `pendingRoute` prop to the
-    //   snapshot
-    ...historyController,
-    async prefetch(
-      action: RouterAction<S>,
-      options: {
-        method?: string
-      } = {},
-    ): Promise<RouterState<HistoryRequestExt & RouterRequestExt, S>> {
-      const currentRequest = getSnapshot(historySource)
-      const location = resolveAction(action, currentRequest.pathname)
-      const [state] = await getInitialStateAndResponse<
-        HistoryRequestExt & RouterRequestExt,
-        S,
-        Response
-      >(normalizedRouter, location, {
-        basename,
-        method: options.method,
-        // FIXME: if there's a history request ext, there's probably also a
-        // prefetch function on the history controller, and we need to look
-        // for it and somehow call it.
-        extendRequest: extendRequest as any,
-      })
-      return state
+  const controller: RouterController = {
+    block: requestController.block,
+    // We don't wrap `navigate` in an `act()`, as we want in-progress results
+    // to be immediately available so they can be handled by suspense.
+    navigate: requestController.navigate,
+    prefetch(action): void {
+      // TODO: call `requestController.plan`, then create a snapshot using
+      // the returned request and add it to cache.
+      throw new Error('Unimplemented')
     },
-    waitUntilStable,
   }
 
   return [source, controller]
 }
 
-export interface GetRouteOptions<Ext extends object = {}> {
-  basename?: string
-  method?: string
+export interface GetRouteOptions {
   normalizePathname?: boolean
-  extendRequest?: RouterRequestExtender<Ext>
 }
 
-export async function getInitialStateAndResponse<
-  Ext extends object = {},
-  S extends RouterHistoryState = RouterHistoryState,
+export async function getInitialSnapshot<
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
 >(
-  router: RouterFunction<RouterRequest<S> & Ext, Response>,
-  action: RouterAction<S>,
-  options: GetRouteOptions<Ext> = {},
-): Promise<readonly [RouterState<Ext, S>, Response]> {
-  const { method = 'GET', ...routerOptions } = options
-  const history = createMemoryHistory(parseLocation(action), method)
-  const [routerSource] = createRouter<Ext, {}, S, Response>(router, history, {
-    followRedirects: false,
-    ...routerOptions,
-  })
-  const { content, request, response } = await getSnapshotPromise(routerSource)
-  await waitForMutablePromiseList(response.pendingSuspenses)
-  return [
+  router: RouterFunction<Request, Response>,
+  request: Request,
+  options: GetRouteOptions = {},
+): Promise<RouterSnapshot<Request, Response>> {
+  const [requestSource] = createState(request)
+  const requestService = [requestSource, {} as any] as const
+  const [routerSource] = createRouter<Request, Response>(
+    router,
+    requestService,
     {
-      content,
-      controller: getNoopController<Ext, S>(),
-      pending: false,
-      request,
+      followRedirects: false,
+      ...options,
     },
-    response,
-  ] as const
-}
-
-function isRedirect(response: RouterResponse) {
-  return response.status && response.status >= 300 && response.status < 400
+  )
+  const snapshot = await getSnapshotPromise(routerSource)
+  await waitForResponse(snapshot.response)
+  return snapshot
 }

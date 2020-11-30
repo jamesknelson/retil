@@ -8,11 +8,13 @@ import { memo, useMemo } from 'react'
 import { areShallowEqual } from 'retil-support'
 import {
   RouterFunction,
-  RouterState,
+  RouterSnapshot,
   RouterRequest,
   RouterResponse,
   UseRouterDefaultsContext,
-  getInitialStateAndResponse,
+  getInitialSnapshot,
+  createRequest,
+  createRouterRequestService,
 } from 'retil-router'
 
 import { createNextHistory } from './nextilHistory'
@@ -20,6 +22,7 @@ import { getNextilState } from './nextilState'
 import {
   NextilAppOptions,
   NextilAppProps,
+  NextilRequest,
   NextilRequestExtension,
   NextilState,
 } from './nextilTypes'
@@ -36,7 +39,7 @@ const BypassSerializationHack = Symbol()
 
 interface UnserializedAppProps {
   // This will *only* be available on the server
-  initialRouterState?: RouterState<NextilRequestExtension>
+  initialSnapshot?: RouterSnapshot<NextilRequest>
   // This will only be available on the server, and *after* the initial render
   // on the client
   nextilState?: NextilState
@@ -70,7 +73,7 @@ export function nextilApp(
   const NextilApp = (props: NextAppProps & NextilAppInitialProps) => {
     const { bypassSerializationWrapper, ...restProps } = props
     const { Component, router: nextRouter, pageProps } = props
-    const { initialRouterState, nextilState: nextilStateProp } =
+    const { initialSnapshot, nextilState: nextilStateProp } =
       bypassSerializationWrapper[BypassSerializationHack] || {}
 
     // On the initial render on the client, gIP won't be run, so we'll need
@@ -94,8 +97,15 @@ export function nextilApp(
 
     // Only re-use the history object when switching between retil routes.
     // Create a new history object for each new Next.js page.
-    const history = useMemo(
-      () => createNextHistory(nextRouter, nextilState, latestNextilStateRef),
+    const requestService = useMemo(
+      () =>
+        createRouterRequestService<NextilRequest>({
+          baseService: createNextHistory(
+            nextRouter,
+            nextilState,
+            latestNextilStateRef,
+          ),
+        }),
       // eslint-disable-next-line react-hooks/exhaustive-deps
       [nextRouter, nextilState.hasPageRouter || nextRouter.asPath],
     )
@@ -112,11 +122,11 @@ export function nextilApp(
 
     const routerDefaults = useMemo(
       () => ({
-        history,
-        initialState: initialRouterState,
+        requestService,
+        initialSnapshot,
         transitionTimeoutMs: Infinity,
       }),
-      [history, initialRouterState],
+      [requestService, initialSnapshot],
     )
 
     const nextilAppProps: NextilAppProps = {
@@ -164,25 +174,20 @@ export function nextilApp(
       nextilState: latestNextilStateRef.current,
     }
 
-    const { basename, router } = latestNextilStateRef.current
+    const { router } = latestNextilStateRef.current
 
     // Only get the full response before returning on the server
     if (ctx.req && ctx.res) {
-      const [
-        initialRouterState,
-        response,
-      ] = await getInitialStateAndResponse<NextilRequestExtension>(
+      const initialSnapshot = await getInitialSnapshot<NextilRequest>(
         router,
-        url,
-        {
-          basename,
-          extendRequest: () => latestNextilStateRef.current!,
-        },
+        createRequest(url, {
+          ...latestNextilStateRef.current!,
+        }),
       )
 
-      unserializedProps.initialRouterState = initialRouterState
+      unserializedProps.initialSnapshot = initialSnapshot
 
-      const { status = 200, headers } = response
+      const { status = 200, headers } = initialSnapshot.response
       if (status >= 300 && status < 400) {
         ctx.res.writeHead(status, {
           ...headers,

@@ -103,7 +103,7 @@ export function resolveAction<S extends HistoryState = HistoryState>(
     pathname: normalizePathname(pathname || currentPathname),
     query: parsedAction.query || {},
     search: parsedAction.search || '',
-    state: parsedAction.state || ({} as S),
+    state: parsedAction.state || null,
   }
 }
 
@@ -150,7 +150,54 @@ export function parseLocation<S extends HistoryState = HistoryState>(
     pathname: '',
     query: {},
     search: '',
-    state: {} as S,
+    state: null,
     ...parseAction(input),
   }
+}
+
+export function getActionKey(action: HistoryAction<any>): [any, string] {
+  const parsedAction = parseAction(action)
+  return [parsedAction.state, createHref(parsedAction)]
+}
+
+export interface ActionMap<T> {
+  clear(): void
+  delete(action: HistoryAction<any>): void
+  get(action: HistoryAction<any>): T | undefined
+  set(action: HistoryAction<any>, value: T): void
+}
+
+export function createActionMap<T>(): ActionMap<T> {
+  const map = new Map<any, { [url: string]: T }>()
+
+  const clear = () => map.clear()
+
+  const del = (action: HistoryAction<any>): void => {
+    const [state, url] = getActionKey(action)
+    const innerMap = map.get(state)
+    if (innerMap) {
+      delete innerMap[url]
+      if (!Object.keys(innerMap).length) {
+        map.delete(state)
+      }
+    }
+  }
+
+  const get = (action: HistoryAction<any>): T | undefined => {
+    const [state, url] = getActionKey(action)
+    const innerMap = map.get(state)
+    return innerMap && innerMap[url]
+  }
+
+  const set = (action: HistoryAction<any>, value: T): void => {
+    const [state, url] = getActionKey(action)
+    const innerMap = map.get(state)
+    if (!innerMap) {
+      map.set(state, { [url]: value })
+    } else {
+      innerMap[url] = value
+    }
+  }
+
+  return { clear, delete: del, get, set }
 }

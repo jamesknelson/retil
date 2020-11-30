@@ -1,9 +1,14 @@
-import { RouterFunction, getInitialStateAndResponse, routeAsync } from '../src'
+import {
+  RouterFunction,
+  createRequest,
+  getInitialSnapshot,
+  routeAsync,
+} from '../src'
 
-describe('getInitialStateAndResponse()', () => {
+describe('getInitialSnapshot()', () => {
   test('works', async () => {
     const router: RouterFunction = (request) => request.pathname
-    const [route] = await getInitialStateAndResponse(router, '/test')
+    const route = await getInitialSnapshot(router, createRequest('/test'))
 
     expect(route.content).toBe('/test')
   })
@@ -14,8 +19,8 @@ describe('getInitialStateAndResponse()', () => {
       return 'done'
     })
 
-    const [, response] = await getInitialStateAndResponse(router, '/test')
+    const route = await getInitialSnapshot(router, createRequest('/test'))
 
-    expect(response.headers['async-test']).toBe('async-test')
+    expect(route.response.headers['async-test']).toBe('async-test')
   })
 })

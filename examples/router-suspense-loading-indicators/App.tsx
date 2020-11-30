@@ -1,12 +1,13 @@
 import * as React from 'react'
 
-import { delay } from '../../packages/retil-common/src'
+import { delay } from '../../packages/retil-support/src'
 import {
   Link,
-  RouterProvider,
+  Router,
+  RouterContent,
   routeAsync,
   routeByPattern,
-  useRouter,
+  useRouterPending,
 } from '../../packages/retil-router/src'
 
 const homeRouter = routeAsync(async () => {
@@ -25,24 +26,24 @@ const appRouter = routeByPattern({
 })
 
 export function App() {
-  const route = useRouter(appRouter, {
-    transitionTimeoutMs: 500,
-    unstable_isConcurrent: true,
-  })
-
   return (
-    <RouterProvider value={route}>
+    <Router fn={appRouter} transitionTimeoutMs={500}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
         <Link to="/about">About</Link>
       </nav>
       <main>
-        {route.pending && 'loading concurrently...'}
         <React.Suspense fallback="loading fallback...">
-          {route.content}
+          <RouterPendingIndicator />
+          <RouterContent />
         </React.Suspense>
       </main>
-    </RouterProvider>
+    </Router>
   )
+}
+
+function RouterPendingIndicator() {
+  const pending = useRouterPending()
+  return <>{pending && 'loading concurrently...'}</>
 }

@@ -1,5 +1,13 @@
 import { delay } from 'retil-support'
-import { act, createState, fuse, hasSnapshot, subscribe, wait } from '../src'
+import {
+  act,
+  createState,
+  fuse,
+  getSnapshotPromise,
+  hasSnapshot,
+  subscribe,
+  wait,
+} from '../src'
 import { sendToArray } from './utils/sendToArray'
 
 describe(`fuse`, () => {

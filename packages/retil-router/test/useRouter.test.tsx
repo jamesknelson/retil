@@ -5,17 +5,32 @@ import { createMemoryHistory } from 'retil-history'
 import { act, render, waitFor } from '@testing-library/react'
 
 import {
-  RouterController,
+  CreateRouterRequestServiceOptions,
   RouterFunction,
-  RouterRequest,
   RouterProvider,
+  RouterRequest,
+  RouterState,
   UseRouterOptions,
-  getInitialStateAndResponse,
+  createRequest,
+  createRouterRequestService,
+  getInitialSnapshot,
+  routeAsync,
   routeByPattern,
   routeLazy,
   routeRedirect,
   useRouter as _useRouter,
 } from '../src'
+
+function createTestRequestService<Ext = {}>(
+  path: string,
+  options: CreateRouterRequestServiceOptions<Ext> = {},
+) {
+  const baseService = createMemoryHistory(path)
+  return createRouterRequestService({
+    baseService,
+    ...options,
+  })
+}
 
 function testUseRouter(useRouter: typeof _useRouter) {
   test(`returns content`, () => {
@@ -36,37 +51,75 @@ function testUseRouter(useRouter: typeof _useRouter) {
       return 'test'
     }
     const Test = () => <>{useRouter(router).content}</>
-    render(
+    render(<Test />)
+    expect(runCount).toBe(1)
+  })
+
+  test(`only runs async routes once even in strict mode`, async () => {
+    let runCount = 0
+    const router: RouterFunction = routeAsync(async () => {
+      runCount++
+      return 'test'
+    })
+    const Test = () => <>{useRouter(router).content}</>
+    const { container } = render(
+      <StrictMode>
+        <Suspense fallback={'loading'}>
+          <Test />
+        </Suspense>
+      </StrictMode>,
+    )
+    expect(container).toHaveTextContent('loading')
+    await waitFor(() => {
+      expect(runCount).toBe(1)
+      expect(container).toHaveTextContent('test')
+    })
+  })
+
+  test(`can redirect at startup`, async () => {
+    const requestService = createTestRequestService('/test-1')
+    const router = routeByPattern({
+      '/test-1': routeRedirect('/test-2'),
+      '/test-2': () => 'done',
+    })
+    const Test = () => (
+      <Suspense fallback={'loading'}>
+        {useRouter(router, { requestService }).content}
+      </Suspense>
+    )
+    const { container } = render(
       <StrictMode>
         <Test />
       </StrictMode>,
     )
-    expect(runCount).toBe(1)
+    expect(container).toHaveTextContent('loading')
+    await waitFor(() => {
+      expect(container).toHaveTextContent('done')
+    })
   })
 
   test(`accepts and transitions via custom history services`, () => {
-    const history = createMemoryHistory('/test-1')
+    const requestService = createTestRequestService('/test-1')
     const router: RouterFunction = (request) => request.pathname
-    const Test = () => <>{useRouter(router, { history }).content}</>
+    const Test = () => <>{useRouter(router, { requestService }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('/test-1')
     act(() => {
-      history[1].navigate('/test-2')
+      requestService[1].navigate('/test-2')
     })
     expect(container).toHaveTextContent('/test-2')
   })
 
-  test(`can transform the request with a transformRequestSource option`, () => {
-    const history = createMemoryHistory('/test-1')
+  test(`can use an extended request`, () => {
+    const requestService = createTestRequestService('/test-1', {
+      extend: () => ({
+        currentUser: 'james',
+      }),
+    })
     const router: RouterFunction<RouterRequest & { currentUser: string }> = (
       request,
     ) => request.currentUser
-    const extendRequest = () => ({
-      currentUser: 'james',
-    })
-    const Test = () => (
-      <>{useRouter(router, { history, extendRequest }).content}</>
-    )
+    const Test = () => <>{useRouter(router, { requestService }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
   })
@@ -92,13 +145,13 @@ function testUseRouter(useRouter: typeof _useRouter) {
     expect(container).toHaveTextContent('router-2')
   })
 
-  test(`changing histories immediately recomputes synchronous routes`, () => {
-    const history1 = createMemoryHistory('/test-1')
-    const history2 = createMemoryHistory('/test-2')
+  test(`changing request services immediately recomputes synchronous routes`, () => {
+    const requestService1 = createTestRequestService('/test-1')
+    const requestService2 = createTestRequestService('/test-2')
     const router: RouterFunction = (request) => request.pathname
     let setState!: any
     const Test = () => {
-      const [state, _setState] = useState({ history: history1 })
+      const [state, _setState] = useState({ requestService: requestService1 })
       setState = _setState
       return <>{useRouter(router, state).content}</>
     }
@@ -109,34 +162,9 @@ function testUseRouter(useRouter: typeof _useRouter) {
     )
     expect(container).toHaveTextContent('/test-1')
     act(() => {
-      setState({ history: history2 })
+      setState({ requestService: requestService2 })
     })
     expect(container).toHaveTextContent('/test-2')
-  })
-
-  test(`can change routers to an initial redirect without seeing a loading screen`, async () => {
-    const history = createMemoryHistory('/test')
-    const router1: RouterFunction = (request) => request.pathname
-    const router2 = routeByPattern({
-      '/test': routeRedirect('/success'),
-      '/success': router1,
-    })
-    let setState!: any
-    const Test = () => {
-      const [state, _setState] = useState({ router: router1 })
-      setState = _setState
-      return <>{useRouter(state.router, { history }).content}</>
-    }
-    const { container } = render(
-      <StrictMode>
-        <Test />
-      </StrictMode>,
-    )
-    expect(container).toHaveTextContent('/test')
-    await act(async () => {
-      setState({ router: router2 })
-    })
-    expect(container).toHaveTextContent('/success')
   })
 }
 
@@ -148,18 +176,19 @@ describe('useRouter (in concurrent mode)', () => {
 
   testUseRouter(useRouter as any)
 
-  // FIXME: Doesn't work right now because the test environment doesn't support
-  // concurrent mode
-  test.skip(`can specify an initial snapshot to avoid initial loading`, async () => {
+  test(`can specify an initial snapshot to avoid initial loading`, async () => {
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeLazy(async () => {
       await delay(10)
       return { default: innerRouter }
     })
 
-    const [initialState] = await getInitialStateAndResponse(router, '/test-1')
+    const initialSnapshot = await getInitialSnapshot(
+      router,
+      createRequest('/test-1'),
+    )
     const Test = () => {
-      const route = useRouter(router, { initialState })
+      const route = useRouter(router, { initialSnapshot })
       return <>{route.content}</>
     }
     const { container } = render(<Test />)
@@ -169,7 +198,7 @@ describe('useRouter (in concurrent mode)', () => {
   // FIXME: Doesn't work right now because the test environment doesn't support
   // concurrent mode
   test.skip(`doesn't resolve controller actions until the new route is loaded`, async () => {
-    const history = createMemoryHistory('/test-1')
+    const requestService = createTestRequestService('/test-1')
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeByPattern({
       '/test-1': innerRouter,
@@ -178,10 +207,9 @@ describe('useRouter (in concurrent mode)', () => {
         return { default: innerRouter }
       }),
     })
-    let controller!: RouterController
+    let route!: RouterState
     const Test = () => {
-      const route = useRouter(router, { history })
-      controller = route.controller
+      route = useRouter(router, { requestService })
       return (
         <>
           {route.pending ? 'pending' : ''}
@@ -193,7 +221,7 @@ describe('useRouter (in concurrent mode)', () => {
     let didNavigatePromise!: Promise<boolean>
     expect(container).toHaveTextContent('/test-1')
     act(() => {
-      didNavigatePromise = controller.navigate('/test-2')
+      didNavigatePromise = route.navigate('/test-2')
     })
     expect(container).toHaveTextContent('pending/test-1')
     let didNavigate!: boolean
@@ -214,16 +242,22 @@ describe('useRouter (in blocking mode)', () => {
   testUseRouter(useRouter as any)
 
   test(`can specify an initial snapshot to avoid initial loading`, async () => {
-    const history = createMemoryHistory('/test-1')
+    const requestService = createTestRequestService('/test-1')
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeLazy(async () => {
       await delay(10)
       return { default: innerRouter }
     })
 
-    const [initialState] = await getInitialStateAndResponse(router, '/test-1')
+    const initialSnapshot = await getInitialSnapshot(
+      router,
+      createRequest('/test-1'),
+    )
     const Test = () => {
-      const route = useRouter(router, { history, initialState })
+      const route = useRouter(router, {
+        requestService,
+        initialSnapshot,
+      })
       return <>{route.content}</>
     }
     const { container } = render(
@@ -237,7 +271,7 @@ describe('useRouter (in blocking mode)', () => {
   })
 
   test(`doesn't resolve controller actions until the new route is loaded`, async () => {
-    const history = createMemoryHistory('/test-1')
+    const requestService = createTestRequestService('/test-1')
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeByPattern({
       '/test-1': innerRouter,
@@ -246,11 +280,10 @@ describe('useRouter (in blocking mode)', () => {
         return { default: innerRouter }
       }),
     })
-    let controller!: RouterController
+    let route!: RouterState
 
     const Test = () => {
-      const route = useRouter(router, { history })
-      controller = route.controller
+      route = useRouter(router, { requestService })
       return (
         <>
           {route.pending ? 'pending' : ''}
@@ -262,7 +295,7 @@ describe('useRouter (in blocking mode)', () => {
     let didNavigatePromise!: Promise<boolean>
     expect(container).toHaveTextContent('/test-1')
     act(() => {
-      didNavigatePromise = controller.navigate('/test-2')
+      didNavigatePromise = route.navigate('/test-2')
     })
     expect(container).toHaveTextContent('pending/test-1')
     let didNavigate!: boolean
@@ -273,8 +306,80 @@ describe('useRouter (in blocking mode)', () => {
     expect(container).toHaveTextContent('/test-2')
   })
 
+  test(`can change routers to an initial redirect without seeing a loading screen`, async () => {
+    const requestService = createTestRequestService('/test')
+    const router1: RouterFunction = (request) => request.pathname
+    const router2 = routeByPattern({
+      '/test': routeRedirect('/success'),
+      '/success': router1,
+    })
+    let setState!: any
+    const Test = () => {
+      const [state, _setState] = useState({ router: router1 })
+      setState = _setState
+      return <>{useRouter(state.router, { requestService }).content}</>
+    }
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
+    expect(container).toHaveTextContent('/test')
+    await act(async () => {
+      setState({ router: router2 })
+    })
+    expect(container).toHaveTextContent('/success')
+  })
+
+  test(`doesn't cause redirects on outdated routers`, async () => {
+    const baseService = createMemoryHistory('/login')
+    const router = routeByPattern({
+      '/login': (req: { auth: boolean }, res) =>
+        req.auth ? routeRedirect('/dashboard')(req as any, res) : 'login',
+      '/dashboard': (req: { auth: boolean }, res) =>
+        req.auth ? 'dashboard' : routeRedirect('/login')(req as any, res),
+    })
+
+    let setRequestService!: any
+    const TestRedirectLoop = () => {
+      const [requestService, _setRequestService] = useState(() =>
+        createRouterRequestService({
+          baseService,
+          extend: () => ({ auth: false }),
+        }),
+      )
+      setRequestService = _setRequestService
+      return (
+        <>
+          {
+            useRouter(router, {
+              requestService,
+            }).content
+          }
+        </>
+      )
+    }
+    const { container } = render(
+      <StrictMode>
+        <TestRedirectLoop />
+      </StrictMode>,
+    )
+    expect(container).toHaveTextContent('login')
+    act(() => {
+      setRequestService(() =>
+        createRouterRequestService({
+          baseService,
+          extend: () => ({ auth: true }),
+        }),
+      )
+    })
+    await waitFor(() => {
+      expect(container).toHaveTextContent('dashboard')
+    })
+  })
+
   test(`supports waitUntilStable() with redirects`, async () => {
-    const history = createMemoryHistory('/test-1')
+    const requestService = createTestRequestService('/test-1')
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeByPattern({
       '/test-1': innerRouter,
@@ -283,11 +388,10 @@ describe('useRouter (in blocking mode)', () => {
         return { default: routeRedirect('/test-1') }
       }),
     })
-    let controller!: RouterController
+    let route!: RouterState
 
     const Test = () => {
-      const route = useRouter(router, { history })
-      controller = route.controller
+      route = useRouter(router, { requestService })
       return (
         <RouterProvider value={route}>
           {route.pending ? 'pending' : ''}
@@ -296,19 +400,19 @@ describe('useRouter (in blocking mode)', () => {
       )
     }
     const { container } = render(<Test />)
-    expect(container).toHaveTextContent('/test-1')
+    expect(container).toHaveTextContent(/^\/test-1/)
     act(() => {
-      controller.navigate('/test-2')
+      route.navigate('/test-2')
     })
-    expect(container).toHaveTextContent('pending/test-1')
     await act(async () => {
-      await controller.waitUntilStable()
+      expect(container).toHaveTextContent('pending/test-1')
+      await route.waitUntilNavigationCompletes()
+      expect(container).toHaveTextContent(/^\/test-1/)
     })
-    expect(container).toHaveTextContent('/test-1')
   })
 
   test(`calls onResponseComplete when response is complete`, async () => {
-    const history = createMemoryHistory('/test-1')
+    const requestService = createTestRequestService('/test-1')
     const innerRouter: RouterFunction = (request) => request.pathname
     const router = routeByPattern({
       '/test-1': innerRouter,
@@ -317,13 +421,11 @@ describe('useRouter (in blocking mode)', () => {
         return { default: routeRedirect('/test-1') }
       }),
     })
-    let controller!: RouterController
 
     const onResponseComplete = jest.fn()
 
     const Test = () => {
-      const route = useRouter(router, { history, onResponseComplete })
-      controller = route.controller
+      const route = useRouter(router, { requestService, onResponseComplete })
       return (
         <RouterProvider value={route}>
           {route.pending ? 'pending' : ''}
@@ -332,47 +434,8 @@ describe('useRouter (in blocking mode)', () => {
       )
     }
     render(<Test />)
-    await act(async () => {
-      await controller.waitUntilStable()
-    })
-    expect(onResponseComplete).toBeCalled()
-  })
-
-  test(`doens't cause redirects on outdated routers`, async () => {
-    const history = createMemoryHistory('/login')
-    const router = routeByPattern({
-      '/login': (req: { auth: boolean }, res) =>
-        req.auth ? routeRedirect('/dashboard')(req as any, res) : 'login',
-      '/dashboard': (req: { auth: boolean }, res) =>
-        req.auth ? 'dashboard' : routeRedirect('/login')(req as any, res),
-    })
-
-    let setTransformRequestSource!: any
-    const Test = () => {
-      const [extendRequest, _setExtendRequest] = useState(() => () => ({
-        auth: false,
-      }))
-      setTransformRequestSource = _setExtendRequest
-      return (
-        <>
-          {
-            useRouter(router, {
-              history,
-              extendRequest,
-            }).content
-          }
-        </>
-      )
-    }
-    const { container } = render(<Test />)
-    expect(container).toHaveTextContent('login')
-    act(() => {
-      setTransformRequestSource(() => () => ({
-        auth: true,
-      }))
-    })
     await waitFor(() => {
-      expect(container).toHaveTextContent('dashboard')
+      expect(onResponseComplete).toBeCalled()
     })
   })
 })

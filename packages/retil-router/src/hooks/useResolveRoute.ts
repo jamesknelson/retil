@@ -1,19 +1,15 @@
 import { useMemo } from 'react'
 import { parseAction, resolveAction } from 'retil-history'
 
-import {
-  RouterAction,
-  RouterHistoryState,
-  RouterLocation,
-} from '../routerTypes'
+import { RouterAction, RouterLocation } from '../routerTypes'
 
-import { useRequest } from './useRequest'
+import { useRouterRequest } from './useRouterRequest'
 
-export const useResolve = <S extends RouterHistoryState>(
-  action: RouterAction<S>,
-  state?: S,
-): RouterLocation<S> => {
-  const { pathname } = useRequest()
+export const useResolveRoute = (
+  action: RouterAction,
+  state?: object,
+): RouterLocation => {
+  const { pathname } = useRouterRequest()
   const resolved = useMemo(
     () => resolveAction(parseAction(action, state), pathname),
     [action, pathname, state],

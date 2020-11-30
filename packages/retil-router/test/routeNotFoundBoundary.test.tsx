@@ -4,7 +4,8 @@ import { renderToString } from 'react-dom/server'
 import { delay } from 'retil-support'
 
 import {
-  getInitialStateAndResponse,
+  createRequest,
+  getInitialSnapshot,
   routeByPattern,
   routeLazy,
   routeNotFoundBoundary,
@@ -24,9 +25,12 @@ describe('routeNotFoundBoundary', () => {
       (request) => 'not-found' + request.pathname,
     )
 
-    const [initialState] = await getInitialStateAndResponse(router, '/test-1')
+    const initialSnapshot = await getInitialSnapshot(
+      router,
+      createRequest('/test-1'),
+    )
     const Test = () => {
-      const route = useRouter(router, { initialState })
+      const route = useRouter(router, { initialSnapshot })
       return <>{route.content}</>
     }
 

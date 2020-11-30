@@ -1,5 +1,5 @@
 import {
-  RouterHistoryState,
+  RouterRequest,
   RouterResponse,
   RouterSource,
   RouterSnapshot,
@@ -12,13 +12,10 @@ export interface UseRouterSourceOptions {
 
 export interface UseRouterSourceFunction {
   <
-    Ext = {},
-    State extends RouterHistoryState = RouterHistoryState,
+    Request extends RouterRequest = RouterRequest,
     Response extends RouterResponse = RouterResponse
   >(
-    serviceOrSnapshot:
-      | RouterSource<Ext, State, Response>
-      | RouterSnapshot<Ext, State, Response>,
+    source: RouterSource<Request, Response>,
     options?: UseRouterSourceOptions,
-  ): readonly [RouterSnapshot<Ext, State, Response>, boolean]
+  ): readonly [RouterSnapshot<Request, Response>, boolean]
 }

@@ -1,54 +1,54 @@
 import { useCallback, useEffect, useMemo } from 'react'
 import { createHref } from 'retil-history'
 
-import { useResolve } from './useResolve'
-import { useRouterController } from './useRouterController'
-import { RouterAction, RouterHistoryState } from '../routerTypes'
+import { useResolveRoute } from './useResolveRoute'
+import { useNavigate } from './useNavigate'
+import { usePrefetch } from './usePrefetch'
+import { RouterAction } from '../routerTypes'
 
 export interface UseLinkOptions {
   disabled?: boolean
   replace?: boolean
-  prefetch?: 'hover' | 'mount'
+  prefetchOn?: 'hover' | 'mount'
   state?: object
   onClick?: React.MouseEventHandler<HTMLAnchorElement>
   onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
-export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
-  to: RouterAction<S>,
-  options: UseLinkOptions,
-) => {
-  const { disabled, prefetch, replace, state, onClick, onMouseEnter } = options
-  const controller = useRouterController()
-  const action = useResolve(to, state)
+export const useLink = (to: RouterAction, options: UseLinkOptions) => {
+  const {
+    disabled,
+    prefetchOn,
+    replace,
+    state,
+    onClick,
+    onMouseEnter,
+  } = options
+  const navigate = useNavigate()
+  const prefetch = usePrefetch()
+  const action = useResolveRoute(to, state)
 
   const doPrefetch = useMemo(() => {
     let hasPrefetched = false
 
     return () => {
-      if (!hasPrefetched && action && controller) {
+      if (!hasPrefetched && action && prefetch) {
         hasPrefetched = true
-        controller.prefetch(action).catch((e) => {
-          console.warn(
-            `A routing link tried to prefetch "${
-              action!.pathname
-            }", but the router was unable to fetch this path.`,
-          )
-        })
+        prefetch(action)
       }
     }
-  }, [action, controller])
+  }, [action, prefetch])
 
   // Prefetch on mount if required, or if `prefetch` becomes `true`.
   useEffect(() => {
-    if (prefetch === 'mount') {
+    if (prefetchOn === 'mount') {
       doPrefetch()
     }
-  }, [prefetch, doPrefetch])
+  }, [prefetchOn, doPrefetch])
 
   let handleMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (prefetch === 'hover') {
+      if (prefetchOn === 'hover') {
         if (onMouseEnter) {
           onMouseEnter(event)
         }
@@ -63,7 +63,7 @@ export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
         }
       }
     },
-    [disabled, doPrefetch, onMouseEnter, prefetch],
+    [disabled, doPrefetch, onMouseEnter, prefetchOn],
   )
 
   let handleClick = useCallback(
@@ -88,11 +88,11 @@ export const useLink = <S extends RouterHistoryState = RouterHistoryState>(
 
         if (!event.defaultPrevented && action) {
           event.preventDefault()
-          controller.navigate(action, { replace })
+          navigate(action, { replace })
         }
       }
     },
-    [disabled, action, controller, onClick, replace],
+    [disabled, action, navigate, onClick, replace],
   )
 
   return {

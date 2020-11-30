@@ -34,7 +34,6 @@ export function createNextHistory(
         ...parseLocation(router.asPath),
         ...nextilState,
         key: undefined as any,
-        method: 'GET',
       }
 
       next(lastSnapshot)
@@ -51,7 +50,6 @@ export function createNextHistory(
             ...latestNextilStateRef.current!,
             // TODO: create a history-style unique key somehow
             key: undefined as any,
-            method: 'GET',
           }
 
           next(lastSnapshot)
@@ -90,8 +88,8 @@ export function createNextHistory(
       // see: https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
       throw new Error('historyController.block is unimplemented')
     },
-    forceNavigate: (action, options) => {
-      controller.navigate(action, options)
+    plan: (action) => {
+      throw new Error('historyController.plan is unimplemented')
     },
     navigate: (action, options = {}) =>
       act(source, async () => {

@@ -2,7 +2,7 @@ import { NextPageContext } from 'next'
 import { RouterFunction, RouterRequest } from 'retil-router'
 
 export interface NextilAppProps {
-  nextilRouter: RouterFunction<RouterRequest<any> & NextilRequestExtension>
+  nextilRouter: RouterFunction<NextilRequest>
 }
 
 export interface NextilAppOptions {
@@ -21,7 +21,7 @@ export interface NextilAppOptions {
   }
 }
 
-export type NextilRequest = RouterRequest<any> & NextilRequestExtension
+export interface NextilRequest extends RouterRequest, NextilRequestExtension {}
 
 export interface NextilRequestExtension {
   hasPageRouter: boolean

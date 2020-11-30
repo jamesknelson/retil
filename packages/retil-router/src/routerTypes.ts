@@ -1,30 +1,30 @@
 import { ReactElement, ReactNode } from 'react'
 import {
   HistoryAction,
-  HistoryController,
+  HistoryBlockPredicate,
   HistoryLocation,
   HistoryRequest,
-  HistoryState,
 } from 'retil-history'
 import { Source } from 'retil-source'
 
-export type RouterAction<
-  State extends RouterHistoryState = RouterHistoryState
-> = HistoryAction<State>
-export type RouterHistoryState = HistoryState
+export interface MaybePlannedRequest {
+  planId?: symbol
+}
 
-export type RouterLocation<
-  State extends RouterHistoryState = RouterHistoryState
-> = HistoryLocation<State>
+export interface PlannedRequest {
+  planId: symbol
+}
+
+export type RouterAction = HistoryAction<object>
+export type RouterBlockPredicate = HistoryBlockPredicate<object>
+export type RouterLocation = HistoryLocation<object>
 
 export type RouterFunction<
-  Request extends RouterRequest<any> = RouterRequest,
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
 > = (request: Request, response: Response) => ReactNode
 
-export interface RouterRequest<
-  S extends RouterHistoryState = RouterHistoryState
-> extends HistoryRequest<S> {
+export interface RouterRequestExtension {
   /**
    * Contains the parts of the url that are not meand to be matched on,
    * either because they've been matched by a previous router or because the
@@ -34,9 +34,16 @@ export interface RouterRequest<
   params: { [name: string]: string | string[] }
 }
 
-export type RouterRequestSource<
-  S extends RouterHistoryState = RouterHistoryState
-> = Source<RouterRequest<S>>
+export interface RouterRequest
+  extends HistoryRequest<object>,
+    RouterRequestExtension {}
+
+export type RouterRequestSource = Source<RouterRequest>
+
+export interface RouterResponseRedirect {
+  (url: string): Promise<void>
+  (statusCode: number, url: string): Promise<void>
+}
 
 export interface RouterResponse {
   content?: never
@@ -45,7 +52,6 @@ export interface RouterResponse {
 
   head: ReactElement[]
 
-  // when redirecting, the redirect location is stored on the `Location` key
   headers: { [name: string]: string }
 
   /**
@@ -58,42 +64,59 @@ export interface RouterResponse {
    */
   pendingSuspenses: PromiseLike<any>[]
 
+  /**
+   * Calling this will navigate the underlying history to a new url, so long
+   * as the router is still active.
+   */
+  redirect: RouterResponseRedirect
+
   // can be used to specify redirects, not found, etc.
   status?: number
 }
 
 export interface RouterSnapshot<
-  Ext = {},
-  S extends RouterHistoryState = RouterHistoryState,
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
 > {
   content: ReactNode
-  request: RouterRequest<S> & Ext
+  request: Request
   response: Response
 }
 
 export type RouterSource<
-  Ext = {},
-  S extends RouterHistoryState = RouterHistoryState,
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
-> = Source<RouterSnapshot<Ext, S, Response>>
+> = Source<RouterSnapshot<Request, Response>>
 
 export type RouterService<
-  Ext = {},
-  S extends RouterHistoryState = RouterHistoryState,
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
-> = readonly [RouterSource<Ext, S, Response>, RouterController<Ext, S>]
+> = readonly [RouterSource<Request, Response>, RouterController]
 
-export interface RouterController<
-  Ext = {},
-  S extends RouterHistoryState = RouterHistoryState
-> extends HistoryController<S> {
-  back(): Promise<boolean>
+export type RouterRequestService<
+  Request extends MaybePlannedRequest
+> = readonly [Source<Request>, RouterRequestController<Request>]
 
+export interface RouterRequestController<
+  Request extends MaybePlannedRequest = HistoryRequest
+> {
+  block(predicate: RouterBlockPredicate): () => void
   navigate(
-    action: RouterAction<S>,
+    action: RouterAction,
     options?: {
-      method?: string
+      force?: boolean
+      replace?: boolean
+    },
+  ): Promise<boolean>
+  plan(action: RouterAction): Promise<Request & PlannedRequest>
+}
+
+export interface RouterController {
+  block(predicate: RouterBlockPredicate): () => void
+  navigate(
+    action: RouterAction,
+    options?: {
+      force?: boolean
       replace?: boolean
     },
   ): Promise<boolean>
@@ -101,20 +124,24 @@ export interface RouterController<
   /**
    * Allows you to fetch a route response without actually rendering it.
    */
-  prefetch(
-    action: RouterAction<S>,
-    options?: {
-      method?: string
-    },
-  ): Promise<RouterState<Ext, S>>
+  prefetch(action: RouterAction): void
+}
 
-  waitUntilStable(): Promise<void>
+export interface RouterReactController<
+  Request extends RouterRequest = RouterRequest,
+  Response extends RouterResponse = RouterResponse
+> extends RouterController {
+  /**
+   * Waits until navigation is no longer in progress, and return the snapshot
+   * at that time.
+   */
+  waitUntilNavigationCompletes: () => Promise<RouterSnapshot<Request, Response>>
 }
 
 export interface RouterState<
-  Ext = {},
-  State extends RouterHistoryState = RouterHistoryState
-> {
+  Request extends RouterRequest = RouterRequest,
+  Response extends RouterResponse = RouterResponse
+> extends RouterReactController<Request, Response> {
   /**
    * In concurrent mode, this will return the latest content -- and if the
    * current route is pending, it'll return the pending content.
@@ -123,14 +150,6 @@ export interface RouterState<
    */
   content: React.ReactNode
 
-  // While this isn't really router state, it's placed here so that `useRouter`
-  // hook can return a single object which can be passed as-is to the provider.
-  controller: RouterController<Ext, State>
-
-  /**
-   * If the browser location has changed but the request isn't ready to render
-   * yet, this flag will be true.
-   */
   pending: boolean
 
   /**
@@ -138,27 +157,13 @@ export interface RouterState<
    * the initial request. In concurrent mode, the two trees will contain
    * different values for this.
    */
-  request: RouterRequest<State> & Ext
+  request: Request
 
   /**
    * The response is not provided, as it is a mutable object that can be
    * updated in ways that can't be properly rendered by React. To access the
-   * response, pass an `onResponse` option.
+   * response, pass an `onResponse` option, or call
+   * `waitUntilNavigationCompletes`.
    */
   response?: never
 }
-
-export type RouterRequestExtender<
-  RouterRequestExt extends object,
-  HistoryRequestExt extends object = {},
-  Request extends RouterRequest<any> &
-    {
-      [K in keyof HistoryRequestExt]: HistoryRequestExt[K]
-    } = RouterRequest<any> &
-    {
-      [K in keyof HistoryRequestExt]: HistoryRequestExt[K]
-    }
-> = (
-  request: Request,
-  use: <U, V = U>(source: Source<U>, ...defaultValues: [V] | []) => U | V,
-) => RouterRequestExt

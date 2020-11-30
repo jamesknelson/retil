@@ -80,7 +80,7 @@ export const defaultGetPageBasenameAndRouter = (
 
   return {
     basename,
-    router: (req: RouterRequest<any>, res: RouterResponse) =>
+    router: (req: RouterRequest, res: RouterResponse) =>
       (pageDetails.defaultExport as any)(
         {
           ...req,

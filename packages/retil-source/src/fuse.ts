@@ -4,10 +4,12 @@ import { observe } from './observe'
 import { Source, SourceSubscribe, hasSnapshot } from './source'
 
 export type FuseEffect = typeof FuseEffect
-export type Fusor<T> = (
-  use: <U, V = U>(source: Source<U>, ...defaultValues: [V] | []) => U | V,
-  effect: (callback: () => any) => FuseEffect,
-) => T | FuseEffect
+export type Fusor<T> = (use: FusorUse, effect: FusorEffect) => T | FuseEffect
+export type FusorUse = <U, V = U>(
+  source: Source<U>,
+  ...defaultValues: [V] | []
+) => U | V
+export type FusorEffect = (callback: () => any) => FuseEffect
 
 const FuseEffect = Symbol()
 

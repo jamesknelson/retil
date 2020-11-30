@@ -1,27 +1,18 @@
 import * as React from 'react'
 import { resolveAction, createHref, parseAction } from 'retil-history'
 
-import { useRouterController } from '../hooks/useRouterController'
 import { RouterAction, RouterFunction, RouterRequest } from '../routerTypes'
 
 export interface RedirectProps {
-  href: string
+  redirectPromise: PromiseLike<any>
 }
 
 export const Redirect: React.FunctionComponent<RedirectProps> = (props) => {
-  const controller = useRouterController()
-  // Navigate in a microtask so that we don't cause any synchronous updates to
-  // components listening to the history.
-  throw Promise.resolve().then(() =>
-    // Redirects should never be blocked, so we'll force immediate
-    // navigation. This has the advantage of allowing the effect to resolve
-    // synchronously.
-    controller.forceNavigate(props.href, { replace: true }),
-  )
+  throw Promise.resolve(props.redirectPromise)
 }
 
 export function routeRedirect<Request extends RouterRequest = RouterRequest>(
-  to: RouterAction<any> | ((request: Request) => RouterAction<any>),
+  to: RouterAction | ((request: Request) => RouterAction),
   status = 302,
 ): RouterFunction<Request> {
   return (fromRequest, response) => {
@@ -30,9 +21,18 @@ export function routeRedirect<Request extends RouterRequest = RouterRequest>(
     )
     const href = createHref(resolveAction(toAction, fromRequest.basename))
 
-    response.headers.Location = href
-    response.status = status
+    // Defer this promise until we're ready to actually render the content
+    // that would have existed at this page.
+    let redirectPromise: Promise<any> | undefined
+    const lazyPromise: PromiseLike<void> = {
+      then: (...args) => {
+        redirectPromise = redirectPromise || response.redirect(status, href)
+        return redirectPromise.then(...args)
+      },
+    }
 
-    return <Redirect href={href} />
+    response.pendingSuspenses.push(lazyPromise)
+
+    return <Redirect redirectPromise={lazyPromise} />
   }
 }

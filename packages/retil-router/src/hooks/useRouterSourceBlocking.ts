@@ -14,7 +14,6 @@ import { delay } from 'retil-support'
 import {
   Source,
   getSnapshot,
-  getSnapshotPromise,
   hasSnapshot,
   mergeLatest,
   subscribe,
@@ -22,12 +21,12 @@ import {
 
 import { UseRouterDefaultsContext } from '../routerContext'
 import {
-  RouterHistoryState,
+  RouterRequest,
   RouterResponse,
   RouterSnapshot,
   RouterSource,
 } from '../routerTypes'
-import { waitForMutablePromiseList } from '../routerUtils'
+import { waitForResponse } from '../routerUtils'
 
 import {
   UseRouterSourceFunction,
@@ -35,47 +34,36 @@ import {
 } from './useRouterSourceCommon'
 
 export const useRouterSourceBlocking: UseRouterSourceFunction = <
-  Ext = {},
-  State extends RouterHistoryState = RouterHistoryState,
+  Request extends RouterRequest = RouterRequest,
   Response extends RouterResponse = RouterResponse
 >(
-  serviceOrSnapshot:
-    | RouterSource<Ext, State, Response>
-    | RouterSnapshot<Ext, State, Response>,
+  source: RouterSource<Request, Response>,
   options: UseRouterSourceOptions = {},
-): readonly [RouterSnapshot<Ext, State, Response>, boolean] => {
+): readonly [RouterSnapshot<Request, Response>, boolean] => {
   const defaultTransitionTimeoutMs = useContext(UseRouterDefaultsContext)
     .transitionTimeoutMs
   const { transitionTimeoutMs = defaultTransitionTimeoutMs } = options
-  const initialSnapshot = (Array.isArray(serviceOrSnapshot)
-    ? null
-    : serviceOrSnapshot) as null | RouterSnapshot<Ext, State, Response>
 
-  const source = useMemo(
+  const latestSource = useMemo(
     () =>
-      initialSnapshot
-        ? null
-        : mergeLatest(
-            serviceOrSnapshot as RouterSource<Ext, State, Response>,
-            (latestSnapshot, isSuspended) =>
-              [latestSnapshot, isSuspended] as const,
-          ),
-    [initialSnapshot, serviceOrSnapshot],
+      mergeLatest(
+        source,
+        (latestSnapshot, isSuspended) => [latestSnapshot, isSuspended] as const,
+      ),
+    [source],
   )
 
   const [state, setState] = useState<{
-    currentSnapshot: RouterSnapshot<Ext, State, Response>
-    pendingSnapshot: RouterSnapshot<Ext, State, Response> | null
+    currentSnapshot: RouterSnapshot<Request, Response>
+    pendingSnapshot: RouterSnapshot<Request, Response> | null
     source: Source<any> | null
     sourcePending: boolean
-  }>(() => {
-    return {
-      currentSnapshot: initialSnapshot! || getSnapshot(source!)[0],
-      pendingSnapshot: null,
-      source,
-      sourcePending: false,
-    }
-  })
+  }>(() => ({
+    currentSnapshot: getSnapshot(latestSource)[0],
+    pendingSnapshot: null,
+    source: latestSource,
+    sourcePending: false,
+  }))
 
   const hasUnmountedRef = useRef(false)
 
@@ -89,72 +77,89 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
   const handleNewSnapshot = useMemo(() => {
     let hasGotInitialSnapshot = false
 
-    return () => {
-      if (source) {
-        hasGotInitialSnapshot = hasGotInitialSnapshot || hasSnapshot(source)
-        if (hasGotInitialSnapshot || transitionTimeoutMs === 0) {
-          const [snapshot, isSuspended] = getSnapshot(source)
-          if (
-            transitionTimeoutMs === 0 ||
-            !snapshot.response.pendingSuspenses.length
-          ) {
-            // TODO: update these to only update if the snapshots have changed
-            setState({
-              currentSnapshot: snapshot,
-              pendingSnapshot: null,
-              source,
-              sourcePending: isSuspended,
-            })
-          } else {
-            setState(({ currentSnapshot }) => ({
-              currentSnapshot,
-              pendingSnapshot: snapshot,
-              source,
-              sourcePending: false,
-            }))
+    return (force?: boolean) => {
+      hasGotInitialSnapshot =
+        !!force || hasGotInitialSnapshot || hasSnapshot(latestSource)
+      if (hasGotInitialSnapshot || transitionTimeoutMs === 0) {
+        const [snapshot, isSuspended] = getSnapshot(latestSource)
 
-            Promise.race(
-              [
-                waitForMutablePromiseList(snapshot.response.pendingSuspenses),
-              ].concat(
-                transitionTimeoutMs === Infinity
-                  ? []
-                  : [delay(transitionTimeoutMs)],
-              ),
-            ).then(() => {
-              if (!hasUnmountedRef.current) {
-                setState((state) =>
-                  snapshot === state.pendingSnapshot
-                    ? {
-                        currentSnapshot: snapshot,
-                        pendingSnapshot: null,
-                        source,
-                        sourcePending: false,
-                      }
-                    : state,
-                )
-              }
-            })
-          }
+        if (
+          transitionTimeoutMs === 0 ||
+          !snapshot.response.pendingSuspenses.length
+        ) {
+          // TODO: update these to only update if the snapshots have changed
+          setState({
+            currentSnapshot: snapshot,
+            pendingSnapshot: null,
+            source: latestSource,
+            sourcePending: isSuspended,
+          })
         } else {
-          Promise.race([
-            delay(transitionTimeoutMs),
-            getSnapshotPromise(source),
-          ]).then(handleNewSnapshot)
+          setState(({ currentSnapshot }) => ({
+            currentSnapshot,
+            pendingSnapshot: snapshot,
+            source: latestSource,
+            sourcePending: false,
+          }))
+
+          Promise.race(
+            [waitForResponse(snapshot.response)].concat(
+              transitionTimeoutMs === Infinity
+                ? []
+                : [delay(transitionTimeoutMs)],
+            ),
+          ).then(() => {
+            if (!hasUnmountedRef.current) {
+              setState((state) =>
+                snapshot === state.pendingSnapshot
+                  ? {
+                      currentSnapshot: snapshot,
+                      pendingSnapshot: null,
+                      source: latestSource,
+                      sourcePending: false,
+                    }
+                  : state,
+              )
+            }
+          })
         }
+      } else {
+        setState(({ currentSnapshot }) => ({
+          currentSnapshot,
+          pendingSnapshot: null,
+          source: latestSource,
+          sourcePending: true,
+        }))
       }
     }
-  }, [source, transitionTimeoutMs])
+  }, [latestSource, transitionTimeoutMs])
 
-  if (source !== state.source) {
+  if (latestSource !== state.source) {
     handleNewSnapshot()
   }
 
   useEffect(() => {
-    if (source) {
-      return subscribe(source, handleNewSnapshot)
+    let unsubscribed = false
+
+    if (
+      !hasSnapshot(latestSource) &&
+      transitionTimeoutMs !== Infinity &&
+      transitionTimeoutMs === 0
+    ) {
+      delay(transitionTimeoutMs).then(() => {
+        if (!unsubscribed) {
+          handleNewSnapshot(true)
+        }
+      })
     }
-  }, [source, handleNewSnapshot])
+
+    const unsubscribe = subscribe(latestSource, handleNewSnapshot)
+
+    return () => {
+      unsubscribed = true
+      unsubscribe()
+    }
+  }, [latestSource, handleNewSnapshot, transitionTimeoutMs])
 
   return [state.currentSnapshot, !!state.pendingSnapshot || state.sourcePending]
 }

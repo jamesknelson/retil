@@ -2,32 +2,33 @@ import {
   match as createMatchFunction,
   parse as parsePattern,
 } from 'path-to-regexp'
-import { normalizePathname } from 'retil-history'
+import { normalizePathname, parseLocation } from 'retil-history'
 
-import { RouterController, RouterHistoryState } from './routerTypes'
+import { RouterAction, RouterRequest, RouterResponse } from './routerTypes'
 
 // Wait for a list of promises that may have grown by the time the first
 // promises resolves.
-export async function waitForMutablePromiseList(promises: PromiseLike<any>[]) {
-  let count = 0
-  while (count < promises.length) {
-    await promises[count++]
+export async function waitForResponse(response: RouterResponse) {
+  const promises = response.pendingSuspenses
+  while (promises.length) {
+    const waitingPromises = promises.slice(0)
+    // Use `Promise.all` to eagerly start any lazy promises
+    await Promise.all(waitingPromises)
+    for (let i = 0; i < waitingPromises.length; i++) {
+      const promise = waitingPromises[i]
+      const pendingIndex = promises.indexOf(promise)
+      if (pendingIndex !== -1) {
+        promises.splice(pendingIndex, 1)
+      }
+    }
   }
-  promises.length = 0
 }
 
-export function getNoopController<
-  Ext = {},
-  State extends RouterHistoryState = RouterHistoryState
->(): RouterController<Ext, State> {
-  return {
-    back: () => Promise.resolve(false),
-    block: () => () => {},
-    navigate: () => Promise.resolve(false),
-    forceNavigate: () => {},
-    prefetch: () => Promise.reject(undefined),
-    waitUntilStable: () => Promise.resolve(),
-  }
+export function createRequest<Ext extends object = {}>(
+  action: RouterAction,
+  ext?: Ext,
+): RouterRequest & Ext {
+  return Object.assign(parseLocation(action), { basename: '', params: {} }, ext)
 }
 
 export type Matcher = (pathname: string) => MatcherResult
@@ -84,4 +85,8 @@ export function createMatcher(rawPattern: string): Matcher {
   }
 
   return matcher
+}
+
+export function isRedirect(response: RouterResponse) {
+  return response.status && response.status >= 300 && response.status < 400
 }

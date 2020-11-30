@@ -1,4 +1,4 @@
-import { getInitialStateAndResponse, routeByPattern } from '../src'
+import { createRequest, getInitialSnapshot, routeByPattern } from '../src'
 import { ReactElement } from 'react'
 
 describe('routeByPattern', () => {
@@ -7,33 +7,38 @@ describe('routeByPattern', () => {
       '/': () => 'fail',
       '/:word': ({ params }) => params.word,
     })
-    const [state, response] = await getInitialStateAndResponse(
+    const route = await getInitialSnapshot(
       router,
-      '/browse/deck/acquisition',
-      {
+      createRequest('/browse/deck/acquisition', {
         basename: '/browse/deck',
-      },
+      }),
     )
-    expect(response.status || 200).toBe(200)
-    expect((state.content as ReactElement).props.content).toBe('acquisition')
+    expect(route.response.status || 200).toBe(200)
+    expect((route.content as ReactElement).props.content).toBe('acquisition')
   })
 
   test(`sets basename correctly when there is a nested path`, async () => {
     const router = routeByPattern({
       '/browse*': ({ basename }) => basename,
     })
-    const [state] = await getInitialStateAndResponse(router, '/browse/deck')
-    expect((state.content as ReactElement).props.content).toBe('/browse')
+    const route = await getInitialSnapshot(
+      router,
+      createRequest('/browse/deck'),
+    )
+    expect((route.content as ReactElement).props.content).toBe('/browse')
   })
 
   test(`sets basename correctly when there is no nested path`, async () => {
     const router = routeByPattern({
       '/deck*': ({ basename }) => basename,
     })
-    const [state] = await getInitialStateAndResponse(router, '/browse/deck', {
-      basename: '/browse',
-    })
-    expect((state.content as ReactElement).props.content).toBe('/browse/deck')
+    const route = await getInitialSnapshot(
+      router,
+      createRequest('/browse/deck', {
+        basename: '/browse',
+      }),
+    )
+    expect((route.content as ReactElement).props.content).toBe('/browse/deck')
   })
 
   test(`matches wildcards`, async () => {
@@ -41,14 +46,13 @@ describe('routeByPattern', () => {
       '/': () => 'fail',
       '*': ({ basename }) => basename,
     })
-    const [state, response] = await getInitialStateAndResponse(
+    const route = await getInitialSnapshot(
       router,
-      '/browse',
-      {
+      createRequest('/browse', {
         basename: '/test',
-      },
+      }),
     )
-    expect(response.status || 200).toBe(200)
-    expect((state.content as ReactElement).props.content).toBe('/test')
+    expect(route.response.status || 200).toBe(200)
+    expect((route.content as ReactElement).props.content).toBe('/test')
   })
 })

@@ -1,6 +1,5 @@
 import * as React from 'react'
 import { ReactNode } from 'react'
-import { isPromiseLike } from 'retil-support'
 
 import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
 
@@ -30,7 +29,7 @@ export const AsyncContentWrapper: React.FunctionComponent<AsyncResponseContentPr
 }) => {
   const result = resultRef.current
   if (!result) {
-    throw promisedContent
+    throw Promise.resolve(promisedContent)
   } else if (result.type === 'error') {
     throw result.error
   }
@@ -44,42 +43,51 @@ export function routeAsync<
   asyncRouter: (request: Request, response: Response) => PromiseLike<ReactNode>,
 ): RouterFunction<Request, Response> {
   return routeProvide<Request, Response>((request, response) => {
-    const promisedContent = asyncRouter(request, response)
-
-    if (!isPromiseLike(promisedContent)) {
-      return promisedContent
-    }
-
     const resultRef: ResultRef = {
       current: null,
     }
 
-    promisedContent
-      .then((value) => {
-        resultRef.current = {
-          type: 'value',
-          value,
+    // Defer this promise until we're ready to actually render the content
+    // that would have existed at this page.
+    let promisedContent: Promise<ReactNode> | undefined
+    const lazyPromise: PromiseLike<ReactNode> = {
+      then: (...args) => {
+        if (!promisedContent) {
+          promisedContent = Promise.resolve(asyncRouter(request, response))
+          promisedContent
+            .then((value) => {
+              resultRef.current = {
+                type: 'value',
+                value,
+              }
+            })
+            .catch((error) => {
+              resultRef.current = {
+                type: 'error',
+                error,
+              }
+
+              response.error = error
+              response.status = 500
+
+              console.error(
+                'An async router failed with the following error:',
+                error,
+              )
+
+              throw error
+            })
         }
-      })
-      .then(undefined, (error) => {
-        resultRef.current = {
-          type: 'error',
-          error,
-        }
 
-        response.error = error
-        response.status = 500
+        return promisedContent.then(...args)
+      },
+    }
 
-        console.error('An async router failed with the following error:', error)
-
-        throw error
-      })
-
-    response.pendingSuspenses.push(promisedContent)
+    response.pendingSuspenses.push(lazyPromise)
 
     return (
       <AsyncContentWrapper
-        promisedContent={promisedContent}
+        promisedContent={lazyPromise}
         resultRef={resultRef}
       />
     )

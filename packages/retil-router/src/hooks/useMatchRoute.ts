@@ -2,14 +2,14 @@ import { useMemo } from 'react'
 
 import { createMatcher } from '../routerUtils'
 
-import { useRequest } from './useRequest'
+import { useRouterRequest } from './useRouterRequest'
 
 /**
  * Returns a boolean that indicates whether the user is currently
  * viewing the specified pattern.
  * @param pattern
  */
-export const useMatch = (patterns: string | string[]): boolean => {
+export const useMatchRoute = (patterns: string | string[]): boolean => {
   const matcher = useMemo(
     () =>
       typeof patterns === 'string'
@@ -20,6 +20,6 @@ export const useMatch = (patterns: string | string[]): boolean => {
           },
     [patterns],
   )
-  const request = useRequest()
+  const request = useRouterRequest()
   return useMemo(() => !!matcher(request.pathname), [matcher, request])
 }

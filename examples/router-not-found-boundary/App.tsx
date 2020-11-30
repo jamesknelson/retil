@@ -2,10 +2,10 @@ import * as React from 'react'
 
 import {
   Link,
-  RouterProvider,
+  Router,
+  RouterContent,
   routeByPattern,
   routeNotFoundBoundary,
-  useRouter,
 } from '../../packages/retil-router/src'
 
 const appRouter = routeNotFoundBoundary(
@@ -17,10 +17,8 @@ const appRouter = routeNotFoundBoundary(
 )
 
 export function App() {
-  const route = useRouter(appRouter)
-
   return (
-    <RouterProvider value={route}>
+    <Router fn={appRouter}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
@@ -28,8 +26,10 @@ export function App() {
         &nbsp;&middot;&nbsp;
         <Link to="/not-found">Not Found</Link>
       </nav>
-      <main>{route.content}</main>
-    </RouterProvider>
+      <main>
+        <RouterContent />
+      </main>
+    </Router>
   )
 }
 

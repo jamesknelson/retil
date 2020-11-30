@@ -2,23 +2,28 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode } from 'react'
 import { render } from '@testing-library/react'
 
-import { getInitialStateAndResponse, RouterProvider, useMatch } from '../src'
+import {
+  createRequest,
+  getInitialSnapshot,
+  RouterProvider,
+  useMatchRoute,
+} from '../src'
 
-function testUseMatch(
+function testUseMatchRoute(
   description: string,
   pattern: string,
   pathname: string,
   expectedResult: boolean,
 ) {
   test(description, async () => {
-    const [state] = await getInitialStateAndResponse(
+    const snapshot = await getInitialSnapshot(
       ({ pathname }) => pathname,
-      pathname,
+      createRequest(pathname),
     )
-    const Test = () => <>{useMatch(pattern) ? 'match' : 'miss'}</>
+    const Test = () => <>{useMatchRoute(pattern) ? 'match' : 'miss'}</>
     const { container } = render(
       <StrictMode>
-        <RouterProvider value={state}>
+        <RouterProvider value={snapshot as any}>
           <Test />
         </RouterProvider>
       </StrictMode>,
@@ -28,21 +33,26 @@ function testUseMatch(
 }
 
 describe('useMatch', () => {
-  testUseMatch(
+  testUseMatchRoute(
     'matches nested paths on wildcard patterns',
     '/test*',
     '/test/nested',
     true,
   )
 
-  testUseMatch(
+  testUseMatchRoute(
     'matches exact paths on wildcard patterns',
     '/test*',
     '/test',
     true,
   )
 
-  testUseMatch('matches exact paths on exact patterns', '/test', '/test', true)
+  testUseMatchRoute(
+    'matches exact paths on exact patterns',
+    '/test',
+    '/test',
+    true,
+  )
 
-  testUseMatch('does not match parent paths', '/test*', '/', false)
+  testUseMatchRoute('does not match parent paths', '/test*', '/', false)
 })

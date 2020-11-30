@@ -53,6 +53,7 @@ export function observe<T>(
     if (!snapshot.deferred) {
       return snapshot.value
     }
+    // TODO: throw an object with a `then` that calls `subscribe`
     throw snapshot.deferred!.promise
   }
 
@@ -208,6 +209,9 @@ export function observe<T>(
     }
   }
 
+  // TODO: queue until the first subscriber is added - include listeners to the
+  // promise returned by this function as listeners. All callbacks become async
+  // if there's no listeners, and require any value to be cleared.
   const act = <U>(callback: () => PromiseLike<U> | U): Promise<U> => {
     const isTopLevelAct = ++actDepth === 1
     const batch = (actDeferred = actDeferred || new Deferred())

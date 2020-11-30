@@ -14,7 +14,7 @@ export interface HistoryActionObject<S extends HistoryState = HistoryState> {
   pathname?: string
   query?: ParsedUrlQuery
   search?: string
-  state?: S
+  state?: S | null
 }
 
 export interface HistoryLocation<S extends HistoryState = HistoryState> {
@@ -22,13 +22,28 @@ export interface HistoryLocation<S extends HistoryState = HistoryState> {
   pathname: string
   query: ParsedUrlQuery
   search: string
-  state: S
+  state: S | null
 }
 
 export interface HistoryRequest<S extends HistoryState = HistoryState>
   extends HistoryLocation<S> {
-  key: string
-  method: string
+  /**
+   * This is applied to individual requests that have actually been added to
+   * the browser history.
+   */
+  key?: string
+
+  /**
+   * If this request was pre-planned by calling the `plan` function, this
+   * will always contain an object that is referentially equal to the
+   * original `plan`.
+   */
+  planId?: symbol
+}
+
+export interface HistoryRequestPlan<S extends HistoryState = HistoryState>
+  extends HistoryRequest<S> {
+  planId: symbol
 }
 
 export type HistorySnapshot<
@@ -51,25 +66,19 @@ export interface HistoryController<S extends HistoryState = HistoryState> {
 
   block(blocker: HistoryBlockPredicate<S>): Unblock
 
-  /**
-   * Bypass any blocks and navigate immediately. Useful for redirects, which
-   * should not be blocked.
-   */
-  forceNavigate(
-    action: HistoryAction<S>,
-    options?: {
-      method?: string
-      replace?: boolean
-    },
-  ): void
-
   navigate(
     action: HistoryAction<S>,
     options?: {
-      method?: string
+      /**
+       * Bypass any blocks and navigate immediately. Useful for redirects, which
+       * should not be blocked.
+       */
+      force?: boolean
       replace?: boolean
     },
   ): Promise<boolean>
+
+  plan(action: HistoryAction<S>): Promise<HistoryRequestPlan<S>>
 }
 
 export type HistoryBlockPredicate<S extends HistoryState = HistoryState> = (
