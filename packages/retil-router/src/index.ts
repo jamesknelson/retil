@@ -10,8 +10,8 @@ export {
   parseLocation,
 } from 'retil-history'
 
+export * from './requestService'
 export { UseRouterDefaultsContext } from './routerContext'
-export * from './routerRequestService'
 export * from './routerService'
 export * from './routerTypes'
 export * from './routerUtils'
@@ -31,6 +31,7 @@ export * from './hooks/useRouter'
 export * from './hooks/useRouterContent'
 export * from './hooks/useRouterPending'
 export * from './hooks/useRouterRequest'
+export * from './hooks/useWaitUntilNavigationCompletes'
 
 export * from './routers/routeAsync'
 export * from './routers/routeByPattern'

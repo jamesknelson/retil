@@ -26,14 +26,14 @@ export interface CreateRouterRequestServiceOptions<
   Request extends MaybePlannedRequest = HistoryRequest
 > {
   basename?: string
-  baseService?: RouterRequestService<Request>
   extend?: (request: Request, use: FusorUse) => Ext
+  historyService?: RouterRequestService<Request>
 
   // TODO: configurable getActionKey, which returns an array of keys, and use
   // a more flexible keyed cache which should probably go in retil-support.
 }
 
-export function createRouterRequestService<
+export function createRequestService<
   Ext,
   Request extends MaybePlannedRequest = HistoryRequest
 >(
@@ -41,7 +41,7 @@ export function createRouterRequestService<
 ): RouterRequestService<Request & RouterRequestExtension & Ext> {
   const {
     basename = '',
-    baseService = (getDefaultBrowserHistory() as any) as [
+    historyService: baseService = (getDefaultBrowserHistory() as any) as [
       Source<Request>,
       RouterRequestController<Request>,
     ],

@@ -12,7 +12,7 @@ import {
   RouterState,
   UseRouterOptions,
   createRequest,
-  createRouterRequestService,
+  createRequestService,
   getInitialSnapshot,
   routeAsync,
   routeByPattern,
@@ -25,9 +25,9 @@ function createTestRequestService<Ext = {}>(
   path: string,
   options: CreateRouterRequestServiceOptions<Ext> = {},
 ) {
-  const baseService = createMemoryHistory(path)
-  return createRouterRequestService({
-    baseService,
+  const historyService = createMemoryHistory(path)
+  return createRequestService({
+    historyService,
     ...options,
   })
 }
@@ -332,7 +332,7 @@ describe('useRouter (in blocking mode)', () => {
   })
 
   test(`doesn't cause redirects on outdated routers`, async () => {
-    const baseService = createMemoryHistory('/login')
+    const historyService = createMemoryHistory('/login')
     const router = routeByPattern({
       '/login': (req: { auth: boolean }, res) =>
         req.auth ? routeRedirect('/dashboard')(req as any, res) : 'login',
@@ -343,8 +343,8 @@ describe('useRouter (in blocking mode)', () => {
     let setRequestService!: any
     const TestRedirectLoop = () => {
       const [requestService, _setRequestService] = useState(() =>
-        createRouterRequestService({
-          baseService,
+        createRequestService({
+          historyService,
           extend: () => ({ auth: false }),
         }),
       )
@@ -367,8 +367,8 @@ describe('useRouter (in blocking mode)', () => {
     expect(container).toHaveTextContent('login')
     act(() => {
       setRequestService(() =>
-        createRouterRequestService({
-          baseService,
+        createRequestService({
+          historyService,
           extend: () => ({ auth: true }),
         }),
       )

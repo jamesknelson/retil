@@ -1,7 +1,7 @@
 import { useContext, useMemo, useRef } from 'react'
 
 import { UseRouterDefaultsContext } from '../routerContext'
-import { createRouterRequestService } from '../routerRequestService'
+import { createRequestService } from '../requestService'
 import {
   RouterFunction,
   RouterRequest,
@@ -51,7 +51,7 @@ export function useRouter<
     requestServiceRef.current = requestServiceProp
   }
   if (!requestServiceRef.current && typeof window !== 'undefined') {
-    requestServiceRef.current = createRouterRequestService() as RouterRequestService<Request>
+    requestServiceRef.current = createRequestService() as RouterRequestService<Request>
   }
   if (!requestServiceRef.current) {
     throw new Error(
