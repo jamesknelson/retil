@@ -14,7 +14,7 @@ import {
   UseRouterDefaultsContext,
   getInitialSnapshot,
   createRequest,
-  createRouterRequestService,
+  createRequestService,
 } from 'retil-router'
 
 import { createNextHistory } from './nextilHistory'
@@ -99,8 +99,8 @@ export function nextilApp(
     // Create a new history object for each new Next.js page.
     const requestService = useMemo(
       () =>
-        createRouterRequestService<NextilRequest>({
-          baseService: createNextHistory(
+        createRequestService<NextilRequest>({
+          historyService: createNextHistory(
             nextRouter,
             nextilState,
             latestNextilStateRef,
