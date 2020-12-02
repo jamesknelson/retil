@@ -11,7 +11,6 @@ export {
 } from 'retil-history'
 
 export * from './requestService'
-export { UseRouterDefaultsContext } from './routerContext'
 export * from './routerService'
 export * from './routerTypes'
 export * from './routerUtils'

@@ -59,9 +59,12 @@ export type HistorySource<
 export type HistoryService<
   Ext = {},
   S extends HistoryState = HistoryState
-> = readonly [HistorySource<Ext, S>, HistoryController<S>]
+> = readonly [HistorySource<Ext, S>, HistoryController<{}, S>]
 
-export interface HistoryController<S extends HistoryState = HistoryState> {
+export interface HistoryController<
+  Ext = {},
+  S extends HistoryState = HistoryState
+> {
   back(): Promise<boolean>
 
   block(blocker: HistoryBlockPredicate<S>): Unblock
@@ -78,7 +81,7 @@ export interface HistoryController<S extends HistoryState = HistoryState> {
     },
   ): Promise<boolean>
 
-  plan(action: HistoryAction<S>): Promise<HistoryRequestPlan<S>>
+  plan(action: HistoryAction<S>): Promise<HistoryRequestPlan<S> & Ext>
 }
 
 export type HistoryBlockPredicate<S extends HistoryState = HistoryState> = (

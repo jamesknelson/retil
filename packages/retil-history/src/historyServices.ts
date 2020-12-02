@@ -78,7 +78,7 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     )
   }
 
-  const controller: HistoryController<S> = {
+  const controller: HistoryController<{}, S> = {
     back: (): Promise<boolean> =>
       runMaybeBlockedAction(() => {
         history.back()

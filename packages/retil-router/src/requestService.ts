@@ -41,13 +41,13 @@ export function createRequestService<
 ): RouterRequestService<Request & RouterRequestExtension & Ext> {
   const {
     basename = '',
-    historyService: baseService = (getDefaultBrowserHistory() as any) as [
+    historyService = (getDefaultBrowserHistory() as any) as [
       Source<Request>,
       RouterRequestController<Request>,
     ],
     extend,
   } = options
-  const [baseSource, baseController] = baseService
+  const [baseSource, baseController] = historyService
 
   const planningActions = createActionMap<{
     promise: Promise<Request & RouterRequestExtension & Ext & PlannedRequest>
@@ -136,7 +136,7 @@ export function createRequestService<
   > = {
     block: baseController.block,
 
-    navigate: async (action) => {
+    navigate: async (action, options) => {
       // If we're currently planning this action, then wait until planning is
       // complete before navigating, as otherwise we'll need to start the plan
       // from scratch.
@@ -156,7 +156,7 @@ export function createRequestService<
         }
       }
 
-      return baseController.navigate(action)
+      return baseController.navigate(action, options)
     },
 
     plan: (action) => {

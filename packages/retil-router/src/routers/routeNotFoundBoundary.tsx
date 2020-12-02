@@ -21,9 +21,7 @@ function NotFoundBoundary<
   return <InnerNotFoundBoundary {...props} />
 }
 
-interface InnerNotFoundBoundaryProps extends NotFoundBoundaryProps<any, any> {
-  request: RouterRequest
-}
+interface InnerNotFoundBoundaryProps extends NotFoundBoundaryProps<any, any> {}
 
 interface InnerNotFoundBoundaryState {
   error?: NotFoundError

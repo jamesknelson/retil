@@ -7,30 +7,49 @@ import {
   createHref,
   parseLocation,
 } from 'retil-history'
-import { act, observe } from 'retil-source'
+import { act, createState, observe } from 'retil-source'
 
 import { getPageMatchers, mapPathnameToRoute } from './mapPathnameToRoute'
-import { NextilRequestExtension, NextilState } from './nextilTypes'
+import { NextilState } from './nextilTypes'
 
 let hasCachedPageList = false
+
+// getInitialProps completes before the router's routeChangeComplete event runs.
+// As a result, on the client, we can use global state to pass the result of
+// each page's getInitialProps, along with params and other info, to the router
+// service.
+export let latestNextilStateRef = {} as {
+  current?: NextilState
+}
 
 export function createNextHistory(
   router: NextRouter,
   nextilState: NextilState,
-  latestNextilStateRef: { current?: NextilState },
-): HistoryService<NextilRequestExtension, any> {
+): HistoryService<NextilState, any> {
+  // If we're on the server, return a constant source
+  if (!router.events) {
+    const [source] = createState<HistoryRequest & NextilState>({
+      ...parseLocation(router.asPath),
+      ...nextilState,
+      key: undefined as any,
+    })
+    return [source, {} as any]
+  }
+
   // Pre-cache the route list for faster navigation
-  if (
-    !hasCachedPageList &&
-    process.env.NODE_ENV === 'production' &&
-    typeof window !== 'undefined'
-  ) {
+  if (!hasCachedPageList && process.env.NODE_ENV === 'production') {
     getPageMatchers(router)
   }
 
-  const source: HistorySource<NextilRequestExtension, any> = observe(
+  const source: HistorySource<NextilState, any> = observe(
     (next, error, _complete, clear) => {
-      let lastSnapshot: HistoryRequest & NextilRequestExtension = {
+      if (!router.events) {
+        throw new Error(
+          `Nextil error: trying to listen for router events on the server. Did you correctly pass initialSnapshot to your router?`,
+        )
+      }
+
+      let lastSnapshot: HistoryRequest & NextilState = {
         ...parseLocation(router.asPath),
         ...nextilState,
         key: undefined as any,
@@ -40,9 +59,9 @@ export function createNextHistory(
 
       const handleRouteChangeComplete = async (url: string) => {
         if (
-          nextilState.hasPageRouter &&
+          nextilState.isRoutedPage &&
           latestNextilStateRef.current !== nextilState &&
-          latestNextilStateRef.current!.hasPageRouter
+          latestNextilStateRef.current!.isRoutedPage
         ) {
           const location = parseLocation(url)
           lastSnapshot = {
@@ -88,7 +107,7 @@ export function createNextHistory(
       // see: https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
       throw new Error('historyController.block is unimplemented')
     },
-    plan: (action) => {
+    plan: () => {
       throw new Error('historyController.plan is unimplemented')
     },
     navigate: (action, options = {}) =>

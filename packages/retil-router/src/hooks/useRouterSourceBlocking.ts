@@ -9,7 +9,7 @@
  * this hook provides.
  */
 
-import { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { delay } from 'retil-support'
 import {
   Source,
@@ -19,7 +19,6 @@ import {
   subscribe,
 } from 'retil-source'
 
-import { UseRouterDefaultsContext } from '../routerContext'
 import {
   RouterRequest,
   RouterResponse,
@@ -40,11 +39,9 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
   source: RouterSource<Request, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [RouterSnapshot<Request, Response>, boolean] => {
-  const defaultTransitionTimeoutMs = useContext(UseRouterDefaultsContext)
-    .transitionTimeoutMs
-  const { transitionTimeoutMs = defaultTransitionTimeoutMs } = options
+  const { transitionTimeoutMs = Infinity } = options
 
-  const latestSource = useMemo(
+  const mergedSource = useMemo(
     () =>
       mergeLatest(
         source,
@@ -56,93 +53,88 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
   const [state, setState] = useState<{
     currentSnapshot: RouterSnapshot<Request, Response>
     pendingSnapshot: RouterSnapshot<Request, Response> | null
-    source: Source<any> | null
+    mergedSource: Source<any> | null
     sourcePending: boolean
   }>(() => ({
-    currentSnapshot: getSnapshot(latestSource)[0],
+    currentSnapshot: getSnapshot(mergedSource)[0],
     pendingSnapshot: null,
-    source: latestSource,
+    mergedSource,
     sourcePending: false,
   }))
-
-  const hasUnmountedRef = useRef(false)
-
-  useEffect(
-    () => () => {
-      hasUnmountedRef.current = true
-    },
-    [],
-  )
 
   const handleNewSnapshot = useMemo(() => {
     let hasGotInitialSnapshot = false
 
-    return (force?: boolean) => {
+    return (force?: boolean, newSource?: Source<any>) => {
       hasGotInitialSnapshot =
-        !!force || hasGotInitialSnapshot || hasSnapshot(latestSource)
-      if (hasGotInitialSnapshot || transitionTimeoutMs === 0) {
-        const [snapshot, isSuspended] = getSnapshot(latestSource)
-
-        if (
-          transitionTimeoutMs === 0 ||
-          !snapshot.response.pendingSuspenses.length
-        ) {
-          // TODO: update these to only update if the snapshots have changed
-          setState({
-            currentSnapshot: snapshot,
-            pendingSnapshot: null,
-            source: latestSource,
-            sourcePending: isSuspended,
-          })
-        } else {
-          setState(({ currentSnapshot }) => ({
-            currentSnapshot,
-            pendingSnapshot: snapshot,
-            source: latestSource,
-            sourcePending: false,
-          }))
-
-          Promise.race(
-            [waitForResponse(snapshot.response)].concat(
-              transitionTimeoutMs === Infinity
-                ? []
-                : [delay(transitionTimeoutMs)],
-            ),
-          ).then(() => {
-            if (!hasUnmountedRef.current) {
-              setState((state) =>
-                snapshot === state.pendingSnapshot
-                  ? {
-                      currentSnapshot: snapshot,
-                      pendingSnapshot: null,
-                      source: latestSource,
-                      sourcePending: false,
-                    }
-                  : state,
-              )
+        !!force || hasGotInitialSnapshot || hasSnapshot(mergedSource)
+      let [newSnapshot, sourcePending] =
+        hasGotInitialSnapshot || transitionTimeoutMs === 0
+          ? getSnapshot(mergedSource)
+          : [undefined, true]
+      const pendingSnapshot =
+        newSnapshot?.response.pendingSuspenses.length &&
+        transitionTimeoutMs !== 0
+          ? newSnapshot
+          : null
+      setState((state) =>
+        newSource || state.mergedSource === mergedSource
+          ? {
+              currentSnapshot:
+                !sourcePending && !pendingSnapshot
+                  ? newSnapshot!
+                  : state.currentSnapshot,
+              pendingSnapshot,
+              mergedSource: newSource || state.mergedSource,
+              sourcePending,
             }
-          })
-        }
-      } else {
-        setState(({ currentSnapshot }) => ({
-          currentSnapshot,
-          pendingSnapshot: null,
-          source: latestSource,
-          sourcePending: true,
-        }))
-      }
+          : state,
+      )
     }
-  }, [latestSource, transitionTimeoutMs])
+  }, [mergedSource, transitionTimeoutMs])
 
-  if (latestSource !== state.source) {
-    handleNewSnapshot()
+  if (mergedSource !== state.mergedSource) {
+    handleNewSnapshot(false, mergedSource)
   }
+
+  // Don't waitForResponse until an effect has run, as this can trigger
+  // lazily loaded promises that we only want to run once.
+  const pendingSnapshot = state.pendingSnapshot
+  useEffect(() => {
+    let unsubscribed = false
+    if (pendingSnapshot) {
+      Promise.race(
+        [waitForResponse(pendingSnapshot.response)].concat(
+          transitionTimeoutMs === Infinity ? [] : [delay(transitionTimeoutMs)],
+        ),
+      ).then(() => {
+        if (!unsubscribed) {
+          setState((state) =>
+            pendingSnapshot === state.pendingSnapshot
+              ? {
+                  currentSnapshot: pendingSnapshot,
+                  pendingSnapshot: null,
+                  mergedSource,
+                  sourcePending: false,
+                }
+              : state,
+          )
+        }
+      })
+    }
+
+    return () => {
+      unsubscribed = true
+    }
+  }, [pendingSnapshot, mergedSource, transitionTimeoutMs])
 
   useEffect(() => {
     let unsubscribed = false
 
+    // If there's no initial snapshot, then calling getSnapshot() will throw
+    // a Suspense. But if we've given a transition timeout, we'll do it anyway.
     if (
-      !hasSnapshot(latestSource) &&
+      !hasSnapshot(mergedSource) &&
       transitionTimeoutMs !== Infinity &&
       transitionTimeoutMs === 0
     ) {
@@ -153,13 +145,13 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
       })
     }
 
-    const unsubscribe = subscribe(latestSource, handleNewSnapshot)
+    const unsubscribe = subscribe(mergedSource, handleNewSnapshot)
 
     return () => {
       unsubscribed = true
       unsubscribe()
     }
-  }, [latestSource, handleNewSnapshot, transitionTimeoutMs])
+  }, [mergedSource, handleNewSnapshot, transitionTimeoutMs])
 
-  return [state.currentSnapshot, !!state.pendingSnapshot || state.sourcePending]
+  return [state.currentSnapshot, !!pendingSnapshot || state.sourcePending]
 }

@@ -1,47 +1,51 @@
-import { NextPageContext } from 'next'
-import { RouterFunction, RouterRequest } from 'retil-router'
+import { IncomingMessage, ServerResponse } from 'http'
+import {
+  RouterFunction,
+  RouterRequest,
+  RouterResponse,
+  RouterSnapshot,
+} from 'retil-router'
+import { FusorUse } from 'retil-source'
 
-export interface NextilAppProps {
-  nextilRouter: RouterFunction<NextilRequest>
-}
+import type { BypassSerializationHack } from './nextilConstants'
 
-export interface NextilAppOptions {
-  getAppRouter?: (
-    router: RouterFunction,
-    pageDetails: NextilPageDetails,
-  ) => RouterFunction<any, any>
-  getFallbackComponentRouter?: (
-    pageDetails: NextilPageDetails,
-  ) => RouterFunction<any, any>
-  getPageBasenameAndRouter?: (
-    pageDetails: NextilPageDetails,
-  ) => null | {
-    basename: string
-    router: RouterFunction<any, any>
-  }
-}
+export type NextilRequest = RouterRequest & NextilState<any>
 
-export interface NextilRequest extends RouterRequest, NextilRequestExtension {}
+export type NextilResponse = RouterResponse
 
-export interface NextilRequestExtension {
-  hasPageRouter: boolean
-  getInitialPropsResult: any
-  router: RouterFunction<any, any>
-}
-
-export interface NextilPageDetails {
-  ctx?: NextPageContext
-  defaultExport: any
-  getInitialPropsResult: any
-  pageName: string
-  params: any
-  url: string
-}
-
-export interface NextilState {
+export interface NextilState<Ext = any> {
   basename: string
-  hasPageRouter: boolean
-  getInitialPropsResult: any
-  params: any
-  router: RouterFunction<any, any>
+  extendRequest?: NextilExtendRequestFunction<Ext>
+  isRoutedPage: boolean
+  isSSR: boolean
+  serverRequest?: IncomingMessage
+  serverResponse?: ServerResponse
+  params: {
+    [name: string]: string | string[]
+  }
+  router: RouterFunction<NextilRequest & Ext, NextilResponse>
+  serializedData?: any
+}
+
+export type NextilExtendRequestFunction<Ext> = (
+  request: NextilRequest,
+  use: FusorUse,
+) => Ext
+
+export interface NextilRoutedPageUnserializedAppProps {
+  // This will *only* be available on the server
+  initialSnapshot?: RouterSnapshot<NextilRequest>
+  // This will only be available on the server, and *after* the initial render
+  // on the client
+  nextilState?: NextilState
+}
+
+export interface NextilRoutedPageInitialProps {
+  // By passing an object with a symbol, we can bypass serialization and pass
+  // in raw objects from getInitialProps -- while ensuring they're not
+  // serialized on the server.
+  bypassSerializationWrapper: {
+    [BypassSerializationHack]: NextilRoutedPageUnserializedAppProps
+  }
+  serializedData?: any
 }

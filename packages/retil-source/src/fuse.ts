@@ -134,7 +134,7 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
         errorOrPromise.then(() => {
           // It's possible a source update has caused a run to complete in the
           // intervening time.
-          if (isInvalidated && !isInEffect) {
+          if (onNext && isInvalidated && !isInEffect) {
             runFusor()
           }
         }, onError)

@@ -1,65 +1,40 @@
-import {
-  AppContext,
-  AppProps as NextAppProps,
-  AppInitialProps as NextAppInitialProps,
-} from 'next/app'
+import { AppProps as NextAppProps } from 'next/app'
 import * as React from 'react'
 import { memo, useMemo } from 'react'
-import { areShallowEqual } from 'retil-support'
 import {
   RouterFunction,
-  RouterSnapshot,
-  RouterRequest,
-  RouterResponse,
-  UseRouterDefaultsContext,
-  getInitialSnapshot,
-  createRequest,
   createRequestService,
+  parseLocation,
+  routeNotFoundBoundary,
 } from 'retil-router'
+import { FusorUse } from 'retil-source'
+import { areShallowEqual } from 'retil-support'
 
-import { createNextHistory } from './nextilHistory'
-import { getNextilState } from './nextilState'
-import {
-  NextilAppOptions,
-  NextilAppProps,
-  NextilRequest,
-  NextilRequestExtension,
-  NextilState,
-} from './nextilTypes'
+import { BypassSerializationHack } from './nextilConstants'
+import { createNextHistory, latestNextilStateRef } from './nextilHistory'
+import { NextilRouterDefaultsContext } from './nextilRouter'
+import { notFoundRouterRef } from './nextilNotFound'
+import { NextilRequest, NextilResponse, NextilState } from './nextilTypes'
 
-// getInitialProps completes before the router's routeChangeComplete event runs.
-// As a result, on the client, we can use global state to pass the result of
-// each page's getInitialProps, along with params and other info, to the router
-// service.
-let latestNextilStateRef = {} as {
-  current?: NextilState
+export interface NextilAppProps {
+  routerFunction: RouterFunction<NextilRequest>
 }
 
-const BypassSerializationHack = Symbol()
-
-interface UnserializedAppProps {
-  // This will *only* be available on the server
-  initialSnapshot?: RouterSnapshot<NextilRequest>
-  // This will only be available on the server, and *after* the initial render
-  // on the client
-  nextilState?: NextilState
-}
-
-interface NextilAppInitialProps {
-  // By passing an object with a symbol, we can bypass serialization and pass
-  // in raw objects from getInitialProps -- while ensuring they're not
-  // serialized on the server.
-  bypassSerializationWrapper: {
-    [BypassSerializationHack]: UnserializedAppProps
-  }
+export interface NextilAppOptions {
+  extendRequest?: (request: NextilRequest, use: FusorUse) => any
+  notFoundRouter?: RouterFunction<NextilRequest, NextilResponse>
 }
 
 export function nextilApp(
   App: React.ComponentType<any> & { getInitialProps?: Function },
-  appOptions: NextilAppOptions = {},
+  { extendRequest, notFoundRouter }: NextilAppOptions = {},
 ) {
-  const originalGetInitialProps = App.getInitialProps
+  // Store this in global state so that nextilRoutedPage can find it.
+  if (notFoundRouter) {
+    notFoundRouterRef.current = notFoundRouter
+  }
 
+  const originalGetInitialProps = App.getInitialProps
   const MemoizedApp = memo(
     App,
     (
@@ -70,144 +45,107 @@ export function nextilApp(
       areShallowEqual(prevProps, nextProps),
   )
 
-  const NextilApp = (props: NextAppProps & NextilAppInitialProps) => {
-    const { bypassSerializationWrapper, ...restProps } = props
-    const { Component, router: nextRouter, pageProps } = props
+  const NextilApp = (props: NextAppProps) => {
+    const {
+      Component,
+      router: nextRouter,
+      pageProps: { bypassSerializationWrapper = {}, ...pageProps },
+      ...restProps
+    } = props
+    const meomizedAppProps = {
+      Component,
+      router: nextRouter,
+      pageProps,
+      ...restProps,
+    }
     const { initialSnapshot, nextilState: nextilStateProp } =
       bypassSerializationWrapper[BypassSerializationHack] || {}
 
+    const getNextilState:
+      | undefined
+      | ((
+          pageName: string,
+          params: object,
+          pageProps: any,
+        ) => NextilState) = (Component as any).getNextilState
+    const isRoutedPage = !!getNextilState
+
     // On the initial render on the client, gIP won't be run, so we'll need
     // to compute this within the component.
-    const nextilState = useMemo(
-      () =>
-        nextilStateProp ||
-        getNextilState({
-          appOptions,
-          pageDetails: {
-            url: nextRouter.asPath,
-            params: nextRouter.query,
-            pageName: nextRouter.pathname,
-            defaultExport: Component,
-            getInitialPropsResult: pageProps,
-          },
-        }),
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-      [nextilStateProp],
-    )
+    if (getNextilState) {
+      if (!nextilStateProp && !latestNextilStateRef.current) {
+        latestNextilStateRef.current = getNextilState(
+          nextRouter.pathname,
+          nextRouter.query,
+          props.pageProps,
+        )
+      }
+    } else {
+      latestNextilStateRef.current = {
+        basename: parseLocation(nextRouter.asPath).pathname,
+        isRoutedPage: false,
+        isSSR: typeof window === 'undefined',
+        params: nextRouter.query,
+        router: () => <Component {...pageProps} />,
+      }
+    }
 
-    // Only re-use the history object when switching between retil routes.
-    // Create a new history object for each new Next.js page.
+    // Only re-use the request service when switching between retil routes.
+    // Create a new request service for each new Next.js page.
     const requestService = useMemo(
       () =>
-        createRequestService<NextilRequest>({
+        createRequestService<any, NextilRequest>({
+          extend: (request, use) => {
+            if (request.extendRequest) {
+              request = { ...request, ...request.extendRequest(request, use) }
+            }
+            // Apply the app extendRequest *after* the page one
+            if (extendRequest) {
+              request = { ...request, ...extendRequest(request, use) }
+            }
+            return request
+          },
           historyService: createNextHistory(
             nextRouter,
-            nextilState,
-            latestNextilStateRef,
-          ),
+            nextilStateProp || latestNextilStateRef.current!,
+          ) as any,
         }),
       // eslint-disable-next-line react-hooks/exhaustive-deps
-      [nextRouter, nextilState.hasPageRouter || nextRouter.asPath],
+      [nextRouter, isRoutedPage || nextRouter.asPath],
     )
 
-    const router = useMemo(() => {
-      return nextilState.hasPageRouter
-        ? (
-            request: RouterRequest & NextilRequestExtension,
-            response: RouterResponse,
-          ) => request.router(request, response)
-        : nextilState.router
-      // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [nextRouter, nextilState.hasPageRouter || nextRouter.asPath])
+    const routerFunction = useMemo(() => {
+      return (request: NextilRequest, response: NextilResponse) => {
+        // nextilRoutedPage handles the not found boundary itself when doing
+        // server rendering
+        const router = request.serverRequest
+          ? request.router
+          : routeNotFoundBoundary(request.router, notFoundRouterRef.current)
+        return router(request, response)
+      }
+    }, [])
 
     const routerDefaults = useMemo(
       () => ({
+        routerFunction,
         requestService,
         initialSnapshot,
-        transitionTimeoutMs: Infinity,
       }),
-      [requestService, initialSnapshot],
+      [routerFunction, requestService, initialSnapshot],
     )
 
     const nextilAppProps: NextilAppProps = {
-      nextilRouter: router as RouterFunction,
+      routerFunction,
     }
 
     return (
-      <UseRouterDefaultsContext.Provider value={routerDefaults}>
-        <MemoizedApp {...restProps} {...nextilAppProps} />
-      </UseRouterDefaultsContext.Provider>
+      <NextilRouterDefaultsContext.Provider value={routerDefaults}>
+        <MemoizedApp {...meomizedAppProps} {...nextilAppProps} />
+      </NextilRouterDefaultsContext.Provider>
     )
   }
 
-  NextilApp.getInitialProps = async (
-    appContext: AppContext,
-  ): Promise<(NextilAppInitialProps & NextAppInitialProps) | void> => {
-    const { Component, ctx } = appContext
-
-    let originalProps: any
-    let pageProps: any
-    if (originalGetInitialProps) {
-      originalProps = await originalGetInitialProps()
-      pageProps = originalProps.pageProps || {}
-    } else {
-      pageProps = Component.getInitialProps
-        ? await Component.getInitialProps(ctx)
-        : {}
-    }
-
-    const url = ctx.asPath!
-
-    latestNextilStateRef.current = getNextilState({
-      appOptions,
-      pageDetails: {
-        ctx,
-        url,
-        params: ctx.query,
-        pageName: ctx.pathname,
-        defaultExport: Component,
-        getInitialPropsResult: pageProps,
-      },
-    })
-
-    const unserializedProps: UnserializedAppProps = {
-      nextilState: latestNextilStateRef.current,
-    }
-
-    const { router } = latestNextilStateRef.current
-
-    // Only get the full response before returning on the server
-    if (ctx.req && ctx.res) {
-      const initialSnapshot = await getInitialSnapshot<NextilRequest>(
-        router,
-        createRequest(url, {
-          ...latestNextilStateRef.current!,
-        }),
-      )
-
-      unserializedProps.initialSnapshot = initialSnapshot
-
-      const { status = 200, headers } = initialSnapshot.response
-      if (status >= 300 && status < 400) {
-        ctx.res.writeHead(status, {
-          ...headers,
-          // Add the content-type for SEO considerations
-          'Content-Type': 'text/html; charset=utf-8',
-        })
-        ctx.res.end()
-        return
-      }
-      ctx.res.statusCode = status
-    }
-
-    return {
-      ...originalProps,
-      pageProps,
-      bypassSerializationWrapper: {
-        [BypassSerializationHack]: unserializedProps,
-      },
-    }
-  }
+  NextilApp.getInitialProps = originalGetInitialProps
 
   return NextilApp
 }

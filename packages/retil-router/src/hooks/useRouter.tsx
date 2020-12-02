@@ -1,6 +1,5 @@
-import { useContext, useMemo, useRef } from 'react'
+import { useMemo, useRef } from 'react'
 
-import { UseRouterDefaultsContext } from '../routerContext'
 import { createRequestService } from '../requestService'
 import {
   RouterFunction,
@@ -32,20 +31,16 @@ export function useRouter<
   routerFunction: RouterFunction<Request, Response>,
   options: UseRouterOptions<Request, Response> = {},
 ): RouterState<Request, Response> {
-  const defaults = useContext(UseRouterDefaultsContext)
   const {
-    requestService: requestServiceProp = defaults.requestService as RouterRequestService<Request>,
-    initialSnapshot = defaults.initialSnapshot as RouterSnapshot<
-      Request,
-      Response
-    >,
+    requestService: requestServiceProp,
+    initialSnapshot,
     onResponseComplete,
-    transitionTimeoutMs = defaults.transitionTimeoutMs,
+    transitionTimeoutMs = Infinity,
     unstable_isConcurrent,
   } = options
 
   const requestServiceRef = useRef<RouterRequestService<Request>>(
-    requestServiceProp,
+    requestServiceProp!,
   )
   if (requestServiceProp) {
     requestServiceRef.current = requestServiceProp
