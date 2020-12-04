@@ -71,10 +71,14 @@ export function useOperation<Input = void, Output = void>(
         if (probeResult !== instantProbe) {
           // If the result promise resolves before a newly created promise, then
           // let's skip the pending state and immediately set the result on state.
-          setState([false, probeResult])
+          if (abortControllerRef.current === abortController) {
+            setState([false, probeResult])
+          }
           return probeResult
         } else {
-          setState([true])
+          if (abortControllerRef.current === abortController) {
+            setState([true])
+          }
           const result = await resultPromise
           if (abortControllerRef.current === abortController) {
             abortControllerRef.current = null

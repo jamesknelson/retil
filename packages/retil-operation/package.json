@@ -1,7 +1,7 @@
 {
   "name": "retil-operation",
-  "version": "0.10.1",
-  "description": "Simple, powerful routing that grows with your app.",
+  "version": "0.16.0",
+  "description": "Super-powers for asynchronous operations with React.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -20,24 +20,13 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "path-to-regexp": "^6.1.0",
-    "retil-support": "^0.10.1",
-    "retil-history": "^0.10.1",
-    "retil-source": "^0.10.1",
-    "tslib": "2.0.1",
-    "use-source": "^0.10.1"
+    "retil-support": "^0.16.0",
+    "tslib": "2.0.1"
   },
   "devDependencies": {
     "typescript": "4.0.2"
   },
   "files": [
     "dist"
-  ],
-  "keywords": [
-    "react",
-    "routing",
-    "router",
-    "navigation"
-  ],
-  "gitHead": "dad4652ebdf5ca1ba8c699cb8782200ab9f20a46"
+  ]
 }
