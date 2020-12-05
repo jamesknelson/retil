@@ -138,12 +138,12 @@ describe('useOperation', () => {
     const deferred2 = new Deferred()
     await act(async () => {
       trigger(deferred1.promise)
+      await delay(100)
     })
-    await delay(100)
     await act(async () => {
       trigger(deferred2.promise)
+      await delay(100)
     })
-    await delay(100)
     await act(async () => {
       deferred2.resolve('test-2')
     })
@@ -154,11 +154,12 @@ describe('useOperation', () => {
     expect(result.current[2]).toBe('test-2')
   })
 
-  test.todo(
-    `returns the operation result via the promise returned from trigger`,
-  )
-
-  test.todo(
-    `the promise returned by trigger doesn't resolve until an effect following the update`,
-  )
+  test(`returns the operation result via the promise returned from trigger`, async () => {
+    const { result } = renderUseOperation(() => Promise.resolve('test'))
+    const [trigger] = result.current
+    await act(async () => {
+      const value = await trigger()
+      expect(value).toBe('test')
+    })
+  })
 })

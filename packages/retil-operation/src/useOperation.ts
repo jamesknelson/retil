@@ -17,7 +17,7 @@ export type OperationAct<Input = void, Output = void> = (
 ) => Promise<Output>
 
 export type UseOperationResult<Input = void, Output = void> = readonly [
-  act: (data: Input) => Promise<Output>,
+  trigger: (data: Input) => Promise<Output>,
   pending: boolean,
   output?: Output,
 ]
@@ -44,11 +44,7 @@ export function useOperation<Input = void, Output = void>(
     [],
   )
 
-  // TODO: if the promise returned by the operation resolves successfully,
-  // and no new effects have been run since, then wait until an effect runs to
-  // resolve it.
-
-  const act = useCallback<OperationAct<Input, Output>>(
+  const trigger = useCallback<OperationAct<Input, Output>>(
     async (data: Input) => {
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
@@ -94,5 +90,5 @@ export function useOperation<Input = void, Output = void>(
     [memoizedOperation],
   )
 
-  return ([act] as any).concat(state) as UseOperationResult<Input, Output>
+  return ([trigger] as any).concat(state) as UseOperationResult<Input, Output>
 }
