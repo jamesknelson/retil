@@ -24,11 +24,6 @@ Then import and use within your React components:
 ```tsx
 import { useOperation } from 'retil-operation'
 
-// - issues should use the same format at react-hook-form errors
-// - a hook or function that takes a react-hook-form errors object and
-//   an error messages object and returns error messages would probably
-//   make sense.
-
 function LoginForm() {
   // useIssues should return an object compatible with useForm from
   // react-hook-form, w/:
