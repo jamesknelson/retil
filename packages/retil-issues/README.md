@@ -45,23 +45,20 @@ But where do these issues come from? That's a great question, and it's entirely 
 
 ### `useValidator()`
 
-The first, and simplest, is to use the `useValidator` hook.
+The first, and simplest, is to use the `useValidator` hook. This hook accepts an `issues` object (as returned by `useIssues`) as its first argument, and a validator function as its second argument.
+
+The validator function is simple - it takes the data to be validated, and returns an object mapping paths to arrays of issues.
 
 ```tsx
-const validate = useValidator(issues, ({ email, password }) => [
-  !email && {
-    message: "Please enter your email",
-    path: 'email'
-  },
-  !isValidEmail(email) && {
-    message: "That doesn't look like a valid email",
-    path: 'email'
-  },
-  !password && {
-    message: "Please enter your password",
-    path: 'password'
-  },
-])
+const validate = useValidator(issues, ({ email, password }) => ({
+  email: [
+    !email && "Please enter your email",
+    !isValidEmail(email) && "That doesn't look like a valid email",
+  ],
+  password: [
+    !password && "Please enter your password",
+  ]
+}))
 ```
 
 This hook returns a `validate` function, which you can call to run the validator and add any resulting issues to your `issues` object. This function returns a promise to a boolean, which will resolve to `true` if the data looks good and issue-free.

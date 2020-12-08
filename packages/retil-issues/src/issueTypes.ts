@@ -15,23 +15,20 @@ export type AsyncValidator<
   Codes extends { [path in Path]: string } = { [path in Path]: string }
 > = (data: Data, paths?: Path[]) => Promise<ValidatorIssues<Path, Codes>>
 
-export interface ValidatorIssue<
+export type ValidatorIssue<
   Path extends string | number | symbol = string | number | symbol,
   Codes extends { [path in Path]: string } = { [path in Path]: string }
-> {
-  message: string
-  code?: Codes[Path]
-
-  path?: Path
-}
+> =
+  | { message: string; code?: Codes[Path]; path?: Path }
+  | { message?: string; code: Codes[Path]; path?: Path }
 
 export type ValidatorIssues<
   Path extends string | number | symbol = string | number | symbol,
   Codes extends { [path in Path]: string } = { [path in Path]: string }
 > =
   | null
-  | ValidatorIssue<Path, Codes>
-  | (ValidatorIssue<Path, Codes> | false | null | undefined)[]
+  | (ValidatorIssue<Path, Codes> | string | false | null | undefined)[]
+  | { [P in Path]: ValidatorIssues<P, Pick<Codes, P>> }
 
 export interface Issue<
   Data,
@@ -39,8 +36,7 @@ export interface Issue<
   Codes extends { [path in Path]: string } = { [path in Path]: string }
 > {
   message: string
-  code?: Codes[Path]
-
+  code: Codes[Path]
   data: Data
   key: IssueKey
   path?: Path
@@ -91,19 +87,23 @@ export interface Issues<
   ): Promise<boolean>
 
   /**
-   * Runs unresolved validators and returns `true` in  case of valid data,
-   * removing any validators that no longer return an issues.
+   * Clears any validators and results associated with the given key. If no key
+   * or validator is given, all validators and results will be cleared.
+   */
+  clear(key?: object | Validator<Data, Path, Codes>): void
+
+  /**
+   * Runs unresolved validators, removing any that no longer return issues.
    *
    * You can optionally specify the data you'd like to validate in place of
    * the latest value, in which case this new value will be used until the
    * data argument changes, or until a new value is passed to
    * `attemptResolution()`.
+   *
+   * This method is also useful when you'd like to trigger a validator with
+   * specific data, e.g. when using form libraries like react-hook-form. In
+   * this case, you can call `update(data)` immediately before triggering
+   * the validation.
    */
-  resolve(data: Data): void
-
-  /**
-   * Clears any validators and results associated with the given key. If no key
-   * or validator is given, all validators and results will be cleared.
-   */
-  clear(key?: object | Validator<Data, Path, Codes>): void
+  update(data: Data): void
 }

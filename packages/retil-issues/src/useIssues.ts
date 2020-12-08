@@ -9,6 +9,7 @@ import {
   TBase,
   Validator,
   ValidatorIssue,
+  ValidatorIssues,
 } from './issueTypes'
 
 export interface UseIssuesOptions<Data> {
@@ -86,7 +87,7 @@ export function useIssues<
         const filteredIssues = state.issues.filter(
           (issue) => issue.key !== key || (path && issue.path !== path),
         )
-        const currentIssues = runValidator(validator, data, path && [path])
+        const currentIssues = runValidator(key, validator, data, path && [path])
 
         // If we're using an identical validator function then there's a good
         // possibility that nothing has changed, but we'll still make an update
@@ -94,9 +95,7 @@ export function useIssues<
         // promise.
         return {
           ...state,
-          issues: filteredIssues.concat(
-            currentIssues.map((issue) => ({ ...issue, key, data })),
-          ),
+          issues: filteredIssues.concat(currentIssues),
           validators: filteredValidators,
         }
       })
@@ -143,7 +142,7 @@ export function useIssues<
 
   // TODO: wrap validators in a proxy and track the parts of the data actually
   // used, so we can only re-run validators whose results may have changed.
-  const resolveIssues = useCallback(
+  const updateIssues = useCallback(
     (data?: Data) => {
       // Bail if the component has already unmounted
       if (!stateRef.current) {
@@ -184,6 +183,7 @@ export function useIssues<
         for (let i = 0; i < queueMapEntries.length; i++) {
           const [key, paths] = queueMapEntries[i]
           const currentIssues = runValidator(
+            key,
             state.validators.get(key)!,
             attemptData,
             paths === true ? undefined : paths,
@@ -219,7 +219,7 @@ export function useIssues<
 
   if (!compareData(state.data, data)) {
     if (attemptResolutionOnChange) {
-      resolveIssues(data)
+      updateIssues(data)
     } else {
       setState((state) => ({ ...state, data }))
     }
@@ -232,7 +232,7 @@ export function useIssues<
 
     add: addIssues,
     clear: clearIssues,
-    resolve: resolveIssues,
+    update: updateIssues,
   }
 }
 
@@ -271,21 +271,58 @@ function runValidator<
   Path extends string | number | symbol = keyof Data,
   Codes extends { [path in Path]: string } = { [path in Path]: string }
 >(
+  key: IssueKey,
   validator: Validator<Data, Path, Codes>,
   data: Data,
-  paths?: Path[],
-): ValidatorIssue<Path, Codes>[] {
-  const validatorResult = validator(data, paths)
-  const validatorIssues =
-    validatorResult === null
-      ? []
-      : Array.isArray(validatorResult)
-      ? (validatorResult.filter(Boolean) as ValidatorIssue<Path, Codes>[])
-      : [validatorResult]
+  paths: Path[] | undefined,
+): Issue<Data, Path, Codes>[] {
+  const validatorIssues = validator(data, paths)
+  const issues = normalizeIssues(key, data, validatorIssues)
+
+  // .map((issue) => ({ ...issue, key, data }))
 
   // Validators don't have to respect the paths argument, so we'll need
   // to filter their return in case they don't.
   return paths
-    ? validatorIssues.filter((issue) => paths.indexOf(issue.path!) !== -1)
-    : validatorIssues
+    ? issues.filter((issue) => paths.indexOf(issue.path!) !== -1)
+    : issues
+}
+
+function normalizeIssues<
+  Data,
+  Path extends string | number | symbol = keyof Data,
+  Codes extends { [path in Path]: string } = { [path in Path]: string }
+>(
+  key: IssueKey,
+  data: Data,
+  validatorIssues: ValidatorIssues<Path, Codes>,
+  defaultPath: Path = Base as Path,
+): Issue<Data, Path, Codes>[] {
+  if (!validatorIssues) {
+    return []
+  } else if (!Array.isArray(validatorIssues)) {
+    return ([] as Issue<Data, Path, Codes>[]).concat(
+      ...(Object.keys(validatorIssues).map((path) =>
+        normalizeIssues(
+          key,
+          data,
+          validatorIssues[path as Path],
+          (defaultPath === Base ? path : defaultPath + path + '.') as Path,
+        ),
+      ) as any),
+    )
+  } else {
+    return (validatorIssues.filter(Boolean) as ValidatorIssue<
+      Path,
+      Codes
+    >[]).map((issue) => ({
+      code: ((typeof issue === 'string' ? issue : issue.code) ||
+        issue.message) as any,
+      message: ((typeof issue === 'string' ? issue : issue.code) ||
+        issue.message)!,
+      path: issue.path || defaultPath,
+      data,
+      key,
+    }))
+  }
 }
