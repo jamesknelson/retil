@@ -306,7 +306,7 @@ function normalizeIssues<
         normalizeIssues(
           key,
           data,
-          validatorIssues[path as Path],
+          validatorIssues[path as Path]!,
           (defaultPath === Base ? path : defaultPath + path + '.') as Path,
         ),
       ) as any),

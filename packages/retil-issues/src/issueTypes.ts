@@ -28,7 +28,7 @@ export type ValidatorIssues<
 > =
   | null
   | (ValidatorIssue<Path, Codes> | string | false | null | undefined)[]
-  | { [P in Path]: ValidatorIssues<P, Pick<Codes, P>> }
+  | { [P in Path]?: ValidatorIssues<P, Pick<Codes, P>> }
 
 export interface Issue<
   Data,
