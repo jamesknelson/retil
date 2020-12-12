@@ -20,11 +20,12 @@
   },
   "dependencies": {
     "retil-history": "^0.17.0",
+    "retil-issues": "^0.17.0",
+    "retil-operation": "^0.17.0",
     "retil-router": "^0.17.0",
     "retil-source": "^0.17.0",
     "retil-support": "^0.17.0",
-    "tslib": "2.0.1",
-    "use-source": "^0.16.0"
+    "tslib": "2.0.1"
   },
   "devDependencies": {
     "typescript": "4.0.2"
@@ -32,5 +33,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "8a52bae50f69a745291a3b1c9e19b9eb2212e051"
+  "gitHead": "aebd6a292d0da56c3a65d325f944250694496d68"
 }

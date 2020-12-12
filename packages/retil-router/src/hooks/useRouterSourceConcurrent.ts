@@ -2,8 +2,7 @@
 
 import * as React from 'react'
 import { useMemo, useRef } from 'react'
-import { mergeLatest } from 'retil-source'
-import { useSource } from 'use-source'
+import { mergeLatest, useSource } from 'retil-source'
 
 import {
   RouterRequest,
