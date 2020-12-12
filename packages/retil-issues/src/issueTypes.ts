@@ -1,8 +1,3 @@
-// This is a special field that is used to denote issues at a path that denotes
-// an object or array, which may itself have further issues at sub-paths.
-export const Base = Symbol('Base')
-export type TBase = typeof Base
-
 export type Validator<
   Data,
   Path extends string | number | symbol = keyof Data,
@@ -42,14 +37,17 @@ export interface Issue<
   path?: Path
 }
 
-export type IssueKey = object | Validator<any>
+export type IssueKey = string | number | symbol | object | Validator<any>
 
 export interface Issues<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [path in DataPath | BasePath]: string } = {
+    [path in DataPath | BasePath]: string
+  }
 > {
-  all: Issue<Data, Path, Codes>[]
+  all: Issue<Data, DataPath, Codes>[]
 
   exist: boolean
 
@@ -58,7 +56,22 @@ export interface Issues<
   // https://stackoverflow.com/a/58436959/2458707
   // Note: this will only contain the first issue, even if there are multiple
   // issues. To get all issues for a path, you'll need to use the `all` array.
-  on: { [path in Path | TBase]?: Issue<Data, Path, Codes> }
+  on: { [P in DataPath | BasePath]?: Issue<Data, P, Pick<Codes, P>> }
+
+  /**
+   * Add issues imperatively, optionally associated with a specific data
+   * value.
+   *
+   * Issues with a path will be removed when the data at that path changes,
+   * while issues without a path will stay in place until this key is cleared.
+   */
+  add(
+    issues: ValidatorIssues<DataPath, Codes>,
+    options?: {
+      data?: Data
+      key?: IssueKey
+    },
+  ): Promise<boolean>
 
   /**
    * Add issues specified as a function of the current data. Any issues will
@@ -71,18 +84,18 @@ export interface Issues<
    * called due to the component unmountind, the returned promise will be
    * rejected.
    */
-  add(
-    validator: Validator<Data, Path, Codes>,
+  addValidator(
+    validator: Validator<Data, DataPath, Codes>,
     options?: {
       // If provided, the result of this validator for this path will override
       // the result of any previous validator with the same key. By default,
       // the validator itself will be used as the key.
-      key?: object
+      key?: IssueKey
 
       // If provided, the path will be provided to the validator, and the result
       // of the validator will be filtered such that only issues with this path
       // are handled.
-      path?: Path
+      path?: DataPath
     },
   ): Promise<boolean>
 
@@ -90,7 +103,7 @@ export interface Issues<
    * Clears any validators and results associated with the given key. If no key
    * or validator is given, all validators and results will be cleared.
    */
-  clear(key?: object | Validator<Data, Path, Codes>): void
+  clear(key?: IssueKey): void
 
   /**
    * Runs unresolved validators, removing any that no longer return issues.
@@ -105,5 +118,10 @@ export interface Issues<
    * this case, you can call `update(data)` immediately before triggering
    * the validation.
    */
-  update(data: Data): void
+  update(
+    data: Data,
+    options?: {
+      key?: IssueKey
+    },
+  ): void
 }

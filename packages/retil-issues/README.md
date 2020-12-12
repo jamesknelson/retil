@@ -45,12 +45,12 @@ But where do these issues come from? That's a great question, and it's entirely 
 
 ### `useValidator()`
 
-The first, and simplest, is to use the `useValidator` hook. This hook accepts an `issues` object (as returned by `useIssues`) as its first argument, and a validator function as its second argument.
+The first, and simplest, is to use the `useValidator` hook. This hook accepts an `issues` object (as returned by `useIssues`) as its first argument, and a validator function as its second argument. It returns two functions to trigger validation.
 
 The validator function is simple - it takes the data to be validated, and returns an object mapping paths to arrays of issues.
 
 ```tsx
-const validate = useValidator(issues, ({ email, password }) => ({
+const [validateAll, validatePath] = useValidator(issues, ({ email, password }) => ({
   email: [
     !email && "Please enter your email",
     !isValidEmail(email) && "That doesn't look like a valid email",
@@ -67,7 +67,7 @@ This is great for form handlers, where you'll want validate your data before hit
 
 ```tsx
 const handleSubmit = async () => {
-  const isValid = await validate()
+  const isValid = await validateAll()
   if (isValid) {
     // ...
   }
@@ -82,7 +82,7 @@ This makes it perfect for use in the `onBlur` handler or an input -- it allows y
 const input = (
   <input
     // Validate just the `email` field whenever focus moves somewhere else
-    onBlur={() => validate('email')}
+    onBlur={() => validatePath('email')}
     onChange={event => setEmail(event.target.value)}
     value={email}
   >
@@ -99,8 +99,8 @@ If your server returns a message saying "that email has already been used", then
 const handleSubmit = async () => {
   const serverIssues = await submitToServer(data)
 
-  // Add the issues returned from the server, but remove them once the user
-  // updates the input.
-  issues.add(latestData => latestData === data ? serverIssues : null)
+  // Add the issues returned from the server. They'll be automatically removed
+  // as the relevant input data changes.
+  issues.add(serverIssues)
 }
 ```

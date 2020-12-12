@@ -4,17 +4,34 @@ import { Issues, Validator } from './issueTypes'
 
 export function useValidator<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [P in DataPath | BasePath]: string } = {
+    [P in DataPath | BasePath]: string
+  }
 >(
-  issues: Issues<Data, Path, Codes>,
-  validator: Validator<Data, Path, Codes>,
-): (path?: Path) => Promise<boolean> {
+  issues: Issues<Data, DataPath, BasePath, Codes>,
+  validator: Validator<Data, DataPath, Codes>,
+): readonly [
+  validate: (data?: Data) => Promise<boolean>,
+  validatePath: (path: DataPath) => Promise<boolean>,
+] {
   const key = useRef(issues)
-  const addIssue = issues.add
-  const trigger = useCallback(
-    (path?: Path): Promise<boolean> => addIssue(validator, { key, path }),
-    [addIssue, validator],
+  const { addValidator, update } = issues
+
+  const validateData = useCallback(
+    (...data: [Data?]): Promise<boolean> => {
+      if (data.length > 0) {
+        update(data[0]!)
+      }
+      return addValidator(validator, { key })
+    },
+    [addValidator, update, validator],
+  )
+  const validatePath = useCallback(
+    (path: DataPath): Promise<boolean> =>
+      addValidator(validator, { key, path }),
+    [addValidator, validator],
   )
 
   key.current = issues
@@ -25,5 +42,5 @@ export function useValidator<
     [],
   )
 
-  return trigger
+  return [validateData, validatePath]
 }

@@ -13,11 +13,14 @@ export interface UseAsyncValidatorOptions<Data> {
 // pending.
 export function useAynscValidator<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [P in DataPath | BasePath]: string } = {
+    [P in DataPath | BasePath]: string
+  }
 >(
-  issues: Issues<Data, Path, Codes>,
-  validator: AsyncValidator<Data, Path, Codes>,
+  issues: Issues<Data, DataPath, BasePath, Codes>,
+  validator: AsyncValidator<Data, DataPath, Codes>,
   options: UseAsyncValidatorOptions<Data> = {},
 ): readonly [trigger: () => Promise<boolean>, valid?: boolean | null] {
   throw new Error('unimplemented')

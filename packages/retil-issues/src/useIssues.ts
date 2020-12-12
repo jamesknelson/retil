@@ -2,47 +2,66 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Deferred, areShallowEqual } from 'retil-support'
 
 import {
-  Base,
   Issue,
   Issues,
   IssueKey,
-  TBase,
   Validator,
   ValidatorIssue,
   ValidatorIssues,
 } from './issueTypes'
 
-export interface UseIssuesOptions<Data> {
+export interface UseIssuesOptions<
+  Data,
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base'
+> {
   attemptResolutionOnChange?: boolean
-  compareData?: (x: Data, y: Data) => boolean
+  basePath?: BasePath
+  areDatasEqual?: (x: Data, y: Data) => boolean
+  areDataPathsEqual?: (x: Data, y: Data, path: DataPath) => boolean
 }
 
 interface IssuesState<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [P in DataPath | BasePath]: string } = {
+    [P in DataPath | BasePath]: string
+  }
 > {
   data: Data
-  issues: Issue<Data, Path, Codes>[]
-  validators: ReadonlyMap<IssueKey, Validator<Data, Path, Codes>>
+  issues: Issue<Data, DataPath, Codes>[]
+  validators: ReadonlyMap<IssueKey, Validator<Data, DataPath, Codes>>
 }
 
 export function useIssues<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
->(data: Data, options: UseIssuesOptions<Data> = {}): Issues<Data, Path, Codes> {
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [P in DataPath | BasePath]: string } = {
+    [P in DataPath | BasePath]: string
+  }
+>(
+  data: Data,
+  options: UseIssuesOptions<Data, DataPath, BasePath> = {},
+): Issues<Data, DataPath, BasePath, Codes> {
   const {
     attemptResolutionOnChange = true,
-    compareData = areShallowEqual,
+    basePath = 'base' as BasePath,
+    areDatasEqual = areShallowEqual,
+    areDataPathsEqual = areDataPropertiesEqual,
   } = options
 
   const [state, setState] = useState(() =>
-    getInitialState<Data, Path, Codes>(data),
+    getInitialState<Data, DataPath, BasePath, Codes>(data),
   )
 
-  const resultsRef = useRef<Deferred<IssuesState<Data, Path, Codes>>[]>([])
-  const stateRef = useRef<IssuesState<Data, Path, Codes> | null>(state)
+  const resultsRef = useRef<
+    Deferred<IssuesState<Data, DataPath, BasePath, Codes>>[]
+  >([])
+  const stateRef = useRef<IssuesState<Data, DataPath, BasePath, Codes> | null>(
+    state,
+  )
 
   stateRef.current = state
 
@@ -66,10 +85,10 @@ export function useIssues<
     }
   })
 
-  const addIssues = useCallback(
+  const addValidator = useCallback(
     (
-      validator: Validator<Data, Path, Codes>,
-      options: { key?: object; path?: Path } = {},
+      validator: Validator<Data, DataPath, Codes>,
+      options: { key?: IssueKey; path?: DataPath } = {},
     ): Promise<boolean> => {
       if (!stateRef.current) {
         return Promise.reject(
@@ -100,7 +119,9 @@ export function useIssues<
         }
       })
 
-      const result = new Deferred<IssuesState<Data, Path, Codes>>()
+      const result = new Deferred<
+        IssuesState<Data, DataPath, BasePath, Codes>
+      >()
 
       resultsRef.current.push(result)
 
@@ -114,36 +135,55 @@ export function useIssues<
     [],
   )
 
-  const clearIssues = useCallback(
-    (key?: object | Validator<Data, Path, Codes>) => {
-      // Bail if the component has already unmounted
-      if (!stateRef.current) {
-        return
+  const addIssues = useCallback(
+    (
+      issues: ValidatorIssues<DataPath, Codes>,
+      options: { data?: Data; key?: IssueKey } = {},
+    ): Promise<boolean> => {
+      if (!issues) {
+        return Promise.resolve(false)
       }
 
-      setState((state) => {
-        if (!key) {
-          return getInitialState(state.data)
-        } else if (!state.validators.has(key)) {
-          return state
-        } else {
-          const filteredValidators = new Map(state.validators)
-          filteredValidators.delete(key)
-          return {
-            ...state,
-            validators: filteredValidators,
-            issues: state.issues.filter((issue) => issue.key !== key),
-          }
-        }
-      })
+      const issuesData = options.data || data
+      const key = options.key || issues
+      const validator = createDifferenceValidator(
+        issuesData,
+        issues,
+        areDataPathsEqual,
+      )
+      return addValidator(validator, { key })
     },
-    [],
+    [addValidator, areDataPathsEqual, data],
   )
+
+  const clearIssues = useCallback((key?: IssueKey) => {
+    // Bail if the component has already unmounted
+    if (!stateRef.current) {
+      return
+    }
+
+    setState((state) => {
+      if (!key) {
+        return getInitialState(state.data)
+      } else if (!state.validators.has(key)) {
+        return state
+      } else {
+        const filteredValidators = new Map(state.validators)
+        filteredValidators.delete(key)
+        return {
+          ...state,
+          validators: filteredValidators,
+          issues: state.issues.filter((issue) => issue.key !== key),
+        }
+      }
+    })
+  }, [])
 
   // TODO: wrap validators in a proxy and track the parts of the data actually
   // used, so we can only re-run validators whose results may have changed.
-  const updateIssues = useCallback(
-    (data?: Data) => {
+  // This only removes previously added issues; it never adds new ones.
+  const updateDataAndIssues = useCallback(
+    (data?: Data, { key }: { key?: IssueKey } = {}) => {
       // Bail if the component has already unmounted
       if (!stateRef.current) {
         return
@@ -152,18 +192,20 @@ export function useIssues<
       setState((state) => {
         const attemptData = data ?? state.data
         const issuesToCheck = state.issues.filter(
-          (issue) => !compareData(attemptData, issue.data),
+          (issue) =>
+            (!key || issue.key === key) &&
+            !areDatasEqual(attemptData, issue.data),
         )
 
         if (!issuesToCheck.length) {
-          return !compareData(attemptData, state.data)
+          return !areDatasEqual(attemptData, state.data)
             ? { ...state, data: attemptData }
             : state
         }
 
         // Build a list of the validators that need to be called, and the
         // paths that they need to be called with.
-        const queueMap = new Map<IssueKey, Path[] | true>()
+        const queueMap = new Map<IssueKey, DataPath[] | true>()
         for (let i = 0; i < issuesToCheck.length; i++) {
           const issue = issuesToCheck[i]
           const current = queueMap.get(issue.key) || []
@@ -214,12 +256,12 @@ export function useIssues<
         }
       })
     },
-    [compareData],
+    [areDatasEqual],
   )
 
-  if (!compareData(state.data, data)) {
+  if (!areDatasEqual(state.data, data)) {
     if (attemptResolutionOnChange) {
-      updateIssues(data)
+      updateDataAndIssues(data)
     } else {
       setState((state) => ({ ...state, data }))
     }
@@ -227,20 +269,24 @@ export function useIssues<
 
   return {
     all: state.issues,
-    on: getIssuesOn(state),
+    on: getIssuesOn(state, basePath),
     exist: state.issues.length > 0,
 
+    addValidator,
     add: addIssues,
     clear: clearIssues,
-    update: updateIssues,
+    update: updateDataAndIssues,
   }
 }
 
 function getInitialState<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
->(data: Data): IssuesState<Data, Path, Codes> {
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [P in DataPath | BasePath]: string } = {
+    [P in DataPath | BasePath]: string
+  }
+>(data: Data): IssuesState<Data, DataPath, BasePath, Codes> {
   return {
     data,
     issues: [],
@@ -250,17 +296,21 @@ function getInitialState<
 
 function getIssuesOn<
   Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  DataPath extends string | number | symbol = keyof Data,
+  BasePath extends string | number | symbol = 'base',
+  Codes extends { [P in DataPath | BasePath]: string } = {
+    [P in DataPath | BasePath]: string
+  }
 >(
-  state: IssuesState<Data, Path, Codes>,
-): { [path in Path | TBase]?: Issue<Data, Path, Codes> } {
-  const at = {} as { [path in Path | TBase]?: Issue<Data, Path, Codes> }
+  state: IssuesState<Data, DataPath, BasePath, Codes>,
+  basePath: BasePath,
+): { [P in DataPath | BasePath]?: Issue<Data, P, Codes> } {
+  const at = {} as { [P in DataPath | BasePath]?: Issue<Data, P, Codes> }
   for (let i = 0; i < state.issues.length; i++) {
     const issue = state.issues[i]
-    const path = issue.path || Base
+    const path = issue.path || basePath
     if (!at[path]) {
-      at[path] = issue
+      at[path] = issue as Issue<Data, any, Codes>
     }
   }
   return at
@@ -269,7 +319,7 @@ function getIssuesOn<
 function runValidator<
   Data,
   Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  Codes extends { [P in Path]: string } = { [P in Path]: string }
 >(
   key: IssueKey,
   validator: Validator<Data, Path, Codes>,
@@ -278,8 +328,6 @@ function runValidator<
 ): Issue<Data, Path, Codes>[] {
   const validatorIssues = validator(data, paths)
   const issues = normalizeIssues(key, data, validatorIssues)
-
-  // .map((issue) => ({ ...issue, key, data }))
 
   // Validators don't have to respect the paths argument, so we'll need
   // to filter their return in case they don't.
@@ -291,12 +339,12 @@ function runValidator<
 function normalizeIssues<
   Data,
   Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  Codes extends { [P in Path]: string } = { [P in Path]: string }
 >(
   key: IssueKey,
   data: Data,
   validatorIssues: ValidatorIssues<Path, Codes>,
-  defaultPath: Path = Base as Path,
+  defaultPath?: Path,
 ): Issue<Data, Path, Codes>[] {
   if (!validatorIssues) {
     return []
@@ -307,7 +355,7 @@ function normalizeIssues<
           key,
           data,
           validatorIssues[path as Path]!,
-          (defaultPath === Base ? path : defaultPath + path + '.') as Path,
+          (defaultPath ? path : defaultPath + path + '.') as Path,
         ),
       ) as any),
     )
@@ -316,6 +364,7 @@ function normalizeIssues<
       Path,
       Codes
     >[]).map((issue) => ({
+      ...issue,
       code: ((typeof issue === 'string' ? issue : issue.code) ||
         issue.message) as any,
       message: ((typeof issue === 'string' ? issue : issue.code) ||
@@ -325,4 +374,30 @@ function normalizeIssues<
       key,
     }))
   }
+}
+
+function createDifferenceValidator<
+  Data,
+  Path extends string | number | symbol = keyof Data,
+  Codes extends { [P in Path]: string } = { [P in Path]: string }
+>(
+  issuesData: Data,
+  issues: ValidatorIssues<Path, Codes>,
+  areDataPathsEqual: (
+    x: Data,
+    y: Data,
+    path: Path,
+  ) => boolean = areDataPropertiesEqual,
+): Validator<Data, Path, Codes> {
+  const normalizedIssues = normalizeIssues({}, issuesData, issues)
+  return (latestData) =>
+    normalizedIssues.filter(
+      (issue) =>
+        !issue.path || areDataPathsEqual(issuesData, latestData, issue.path),
+    )
+}
+
+// TODO: nested paths
+function areDataPropertiesEqual(x: any, y: any, path: any): boolean {
+  return x[path] === y[path]
 }

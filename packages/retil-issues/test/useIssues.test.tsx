@@ -5,7 +5,10 @@ import { act, render } from '@testing-library/react'
 import { Issues, UseIssuesOptions, useIssues } from '../src'
 
 describe('useIssues', () => {
-  function renderUseIssues<Data>(data: Data, options?: UseIssuesOptions<Data>) {
+  function renderUseIssues<
+    Data,
+    BasePath extends string | number | symbol = 'base'
+  >(data: Data, options?: UseIssuesOptions<Data, BasePath>) {
     const result = {
       current: (undefined as any) as Issues<Data>,
     }
@@ -34,7 +37,7 @@ describe('useIssues', () => {
     const { result } = renderUseIssues({ username: null })
 
     act(() => {
-      result.current.add((data) => [
+      result.current.addValidator((data) => [
         data.username === null && { message: 'missing', path: 'username' },
       ])
     })
@@ -48,7 +51,7 @@ describe('useIssues', () => {
     const { result } = renderUseIssues({ username: 'test-1' })
 
     act(() => {
-      result.current.add((data) => [
+      result.current.addValidator((data) => [
         data.username === 'test-2' && { message: 'duplicate' },
       ])
     })
@@ -60,7 +63,7 @@ describe('useIssues', () => {
     const { result } = renderUseIssues({ username: 'test-1' })
     let valid: boolean
     await act(async () => {
-      valid = await result.current.add((data) => [
+      valid = await result.current.addValidator((data) => [
         data.username === 'test-2' && { message: 'duplicate' },
       ])
     })
@@ -71,7 +74,7 @@ describe('useIssues', () => {
     const { result } = renderUseIssues({ username: 'test-1' })
     let valid: boolean
     await act(async () => {
-      valid = await result.current.add((data) => [
+      valid = await result.current.addValidator((data) => [
         data.username === 'test-1' && { message: 'duplicate' },
       ])
     })
