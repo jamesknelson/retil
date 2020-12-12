@@ -3,6 +3,7 @@
 
 import * as React from 'react'
 import { useMemo } from 'react'
+
 import {
   GettableSourceCore,
   SourceCore,
@@ -11,7 +12,7 @@ import {
   hasSnapshot,
   identitySelector,
   nullSource,
-} from 'retil-source'
+} from '../source'
 
 import { UseSourceFunction, UseSourceOptions } from './useSourceType'
 

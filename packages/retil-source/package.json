@@ -22,11 +22,16 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "retil-source": "^0.16.0",
     "retil-support": "^0.16.0",
-    "tslib": "2.0.1"
+    "tslib": "2.0.1",
+    "use-subscription": "1.5.1"
   },
   "devDependencies": {
     "typescript": "4.0.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.1"
   },
   "files": [
     "dist"

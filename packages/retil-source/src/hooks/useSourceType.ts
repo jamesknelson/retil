@@ -1,4 +1,4 @@
-import { Source } from 'retil-source'
+import { Source } from '../source'
 
 export interface UseSourceOptions<U> {
   defaultValue?: U

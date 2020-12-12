@@ -2,9 +2,7 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { Suspense } from 'react'
 import { act, render } from '@testing-library/react'
 
-import { createState, fuse } from 'retil-source'
-
-import { useSourceModern, useSourceLegacy } from '../src'
+import { createState, fuse, useSourceModern, useSourceLegacy } from '../src'
 
 function testUseSource(useSource: typeof useSourceModern) {
   test(`accepts null sources`, () => {

@@ -1,11 +1,7 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
-import {
-  GettableSourceCore,
-  Source,
-  hasSnapshot,
-  nullSource,
-} from 'retil-source'
 import { useSubscription } from 'use-subscription'
+
+import { GettableSourceCore, Source, hasSnapshot, nullSource } from '../source'
 
 import { UseSourceFunction, UseSourceOptions } from './useSourceType'
 

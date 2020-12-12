@@ -4,9 +4,8 @@ import ReactDOM from 'react-dom'
 import { act } from 'react-dom/test-utils'
 
 import { delay } from 'retil-support'
-import { createState } from 'retil-source'
 
-import { useSourceModern as useSource } from '../src'
+import { createState, useSourceModern as useSource } from '../src'
 
 jest.mock('scheduler', () => require('scheduler/unstable_mock'))
 

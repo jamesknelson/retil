@@ -1,9 +1,25 @@
-# `@retil/source`
+<h1 align="center">
+  retil-source
+</h1>
+
+<h4 align="center">
+  Superpowers for React state management
+</h4>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/retil-source"><img alt="NPM" src="https://img.shields.io/npm/v/retil-source.svg"></a>
+</p>
 
 Create and combine asynchronous data sources that work great with React Concurrent Mode.
 
+## Installation
+
 ```bash
-npm install --save @retil/source
+# For npm users...
+npm install --save retil-source
+
+# For yarn users...
+yarn add retil-source
 ```
 
 ## Sources don't always have values
