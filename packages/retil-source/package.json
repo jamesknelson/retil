@@ -1,6 +1,6 @@
 {
   "name": "retil-source",
-  "version": "0.16.0",
+  "version": "0.17.0",
   "description": "Utilities to create and combine suspendable, reactive sources",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -22,8 +22,8 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-source": "^0.16.0",
-    "retil-support": "^0.16.0",
+    "retil-source": "^0.17.0",
+    "retil-support": "^0.17.0",
     "tslib": "2.0.1",
     "use-subscription": "1.5.1"
   },
