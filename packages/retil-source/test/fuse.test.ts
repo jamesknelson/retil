@@ -1,16 +1,15 @@
 import { delay } from 'retil-support'
-import {
-  act,
-  createState,
-  fuse,
-  getSnapshotPromise,
-  hasSnapshot,
-  subscribe,
-  wait,
-} from '../src'
+import { act, createState, fuse, hasSnapshot, subscribe, wait } from '../src'
 import { sendToArray } from './utils/sendToArray'
 
 describe(`fuse`, () => {
+  test(`can return a constant value without using any sources`, () => {
+    const source = fuse(() => 'constant')
+    const output = sendToArray(source)
+
+    expect(output).toEqual(['constant'])
+  })
+
   test(`can map values from a single source`, () => {
     const [stateSource, setState] = createState(1)
     const source = fuse((use) => use(stateSource) * 2)

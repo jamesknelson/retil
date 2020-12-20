@@ -109,10 +109,6 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
       const snapshot = fusor(use, effect)
       isFusing = false
 
-      if (usedSubscribes.size === 0) {
-        throw new Error("not using any sources doesn't make any sense.")
-      }
-
       if (snapshot === FuseEffect) {
         runEffects()
       } else if (isInvalidated && effectQueue.length === 0) {
