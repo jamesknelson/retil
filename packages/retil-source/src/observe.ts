@@ -3,6 +3,8 @@ import { Deferred, isPromiseLike, noop } from 'retil-support'
 import { callListener } from './callListener'
 import { Source, identitySelector } from './source'
 
+export const TEARDOWN_DELAY = 10
+
 export interface ObserveSubscribeFunction<T> {
   (
     next: (value: T) => void,
@@ -164,7 +166,10 @@ export function observe<T>(
 
   const scheduleTeardown = (subscription: Subscription) => {
     // TODO: use requestIdleCallback instead if possible.
-    subscription.teardownTimeout = setTimeout(teardownSubscription, 10)
+    subscription.teardownTimeout = setTimeout(
+      teardownSubscription,
+      TEARDOWN_DELAY,
+    )
   }
 
   const teardownSubscription = () => {

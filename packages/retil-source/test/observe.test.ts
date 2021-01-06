@@ -1,4 +1,12 @@
-import { act, mergeLatest, observe } from '../src'
+import { delay } from 'retil-support'
+import {
+  TEARDOWN_DELAY,
+  act,
+  fromPromise,
+  getSnapshotPromise,
+  mergeLatest,
+  observe,
+} from '../src'
 import { sendToArray } from './utils/sendToArray'
 
 describe(`observe`, () => {
@@ -29,5 +37,13 @@ describe(`observe`, () => {
       [1, true],
       [2, false],
     ])
+  })
+
+  test(`works with getSnapshotPromise() when a value takes longer than the default teardown period`, async () => {
+    const inputPromise = delay(TEARDOWN_DELAY + 50).then(() => 'test')
+    const source = fromPromise(inputPromise)
+    const snapshot = await getSnapshotPromise(source)
+
+    expect(snapshot).toBe('test')
   })
 })
