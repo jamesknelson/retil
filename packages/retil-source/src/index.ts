@@ -1,3 +1,4 @@
+export * from './fromPromise'
 export * from './fuse'
 export * from './map'
 export * from './mergeLatest'
