@@ -47,6 +47,22 @@ describe('useIssues', () => {
     expect(result.current.on.username?.message).toBe('missing')
   })
 
+  test(`can add an object containing arrays of messages`, () => {
+    const { result } = renderUseIssues({ email: null, password: null })
+
+    act(() => {
+      result.current.addValidator((data) => ({
+        email: ['missing'],
+        password: ['wrong'],
+      }))
+    })
+
+    expect(result.current.exist).toBe(true)
+    expect(result.current.all.length).toBe(2)
+    expect(result.current.on.email?.message).toBe('missing')
+    expect(result.current.on.password?.message).toBe('wrong')
+  })
+
   test(`adding resolved issues silently disappears them`, () => {
     const { result } = renderUseIssues({ username: 'test-1' })
 
