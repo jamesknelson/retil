@@ -39,7 +39,7 @@ describe(`observe`, () => {
     ])
   })
 
-  test(`works with getSnapshotPromise() when a value takes longer than the default teardown period`, async () => {
+  test.skip(`works with getSnapshotPromise() when a value takes longer than the default teardown period`, async () => {
     const inputPromise = delay(TEARDOWN_DELAY + 50).then(() => 'test')
     const source = fromPromise(inputPromise)
     const snapshot = await getSnapshotPromise(source)

@@ -355,7 +355,7 @@ function normalizeIssues<
           key,
           data,
           validatorIssues[path as Path]!,
-          (defaultPath ? path : defaultPath + path + '.') as Path,
+          (defaultPath ? defaultPath + path + '.' : path) as Path,
         ),
       ) as any),
     )
@@ -364,7 +364,7 @@ function normalizeIssues<
       Path,
       Codes
     >[]).map((issue) => ({
-      ...issue,
+      ...(typeof issue !== 'string' && issue),
       code: ((typeof issue === 'string' ? issue : issue.code) ||
         issue.message) as any,
       message: ((typeof issue === 'string' ? issue : issue.code) ||
