@@ -38,7 +38,7 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
 >(
   source: RouterSource<Request, Response>,
   options: UseRouterSourceOptions = {},
-): readonly [RouterSnapshot<Request, Response>, boolean] => {
+): readonly [RouterSnapshot<Request, Response>, Request | boolean] => {
   const { transitionTimeoutMs = Infinity } = options
 
   const mergedSource = useMemo(
@@ -55,12 +55,17 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     pendingSnapshot: RouterSnapshot<Request, Response> | null
     mergedSource: Source<any> | null
     sourcePending: boolean
-  }>(() => ({
-    currentSnapshot: getSnapshot(mergedSource)[0],
-    pendingSnapshot: null,
-    mergedSource,
-    sourcePending: false,
-  }))
+  }>(() => {
+    const initialSnapshot = getSnapshot(mergedSource)[0]
+    return {
+      currentSnapshot: initialSnapshot,
+      pendingSnapshot: initialSnapshot.response.pendingSuspenses.length
+        ? initialSnapshot
+        : null,
+      mergedSource,
+      sourcePending: false,
+    }
+  })
 
   const handleNewSnapshot = useMemo(() => {
     let hasGotInitialSnapshot = false
@@ -153,5 +158,8 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
     }
   }, [mergedSource, handleNewSnapshot, transitionTimeoutMs])
 
-  return [state.currentSnapshot, !!pendingSnapshot || state.sourcePending]
+  return [
+    state.currentSnapshot,
+    pendingSnapshot ? pendingSnapshot.request : state.sourcePending,
+  ]
 }

@@ -17,5 +17,5 @@ export interface UseRouterSourceFunction {
   >(
     source: RouterSource<Request, Response>,
     options?: UseRouterSourceOptions,
-  ): readonly [RouterSnapshot<Request, Response>, boolean]
+  ): readonly [RouterSnapshot<Request, Response>, Request | boolean]
 }

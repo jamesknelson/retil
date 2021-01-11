@@ -150,7 +150,7 @@ export interface RouterState<
    */
   content: React.ReactNode
 
-  pending: boolean
+  pending: Request | boolean
 
   /**
    * Contains the currently rendered request. Initially, this will contain

@@ -24,7 +24,7 @@ export const useRouterSource = <
   options: UseRouterSourceOptions = {},
 ): readonly [
   RouterSnapshot<Request, Response>,
-  boolean,
+  Request | boolean,
   () => Promise<RouterSnapshot<Request, Response>>,
 ] => {
   const [snapshot, pending] = options.unstable_isConcurrent

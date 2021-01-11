@@ -14,7 +14,7 @@ export interface RouterProviderProps {
 
   // Pending is optional, as passing pending will cause changes to context that
   // may be undesirable in some applications.
-  value: Omit<RouterState, 'pending'> & { pending?: boolean }
+  value: Omit<RouterState, 'pending'> & { pending?: RouterState['pending'] }
 }
 
 export function RouterProvider({ children, value }: RouterProviderProps) {
