@@ -9,7 +9,9 @@ import { FusorUse } from 'retil-source'
 
 import type { BypassSerializationHack } from './nextilConstants'
 
-export type NextilRequest = RouterRequest & NextilState<any>
+export interface NextilRequestExtension extends NextilState<any> {}
+
+export type NextilRequest = RouterRequest & NextilRequestExtension
 
 export type NextilResponse = RouterResponse
 

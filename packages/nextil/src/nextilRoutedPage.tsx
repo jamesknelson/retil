@@ -12,6 +12,7 @@ import { latestNextilStateRef } from './nextilHistory'
 import { notFoundRouterRef } from './nextilNotFound'
 import {
   NextilRequest,
+  NextilRequestExtension,
   NextilResponse,
   NextilRoutedPageInitialProps,
   NextilRoutedPageUnserializedAppProps,
@@ -75,7 +76,9 @@ export function nextilRoutedPage<Ext>(
       nextilState.serverRequest = ctx.req
       nextilState.serverResponse = ctx.res
 
-      const nextilRequest = createRequest<NextilState>(url, nextilState)
+      const nextilRequest = createRequest<NextilRequestExtension>(url, {
+        ...nextilState,
+      })
       const extendedRequest = options.extendRequest
         ? await getSnapshotPromise(
             fuse((use) => {

@@ -22,7 +22,7 @@ import {
 } from './routerTypes'
 
 export interface CreateRouterRequestServiceOptions<
-  Ext,
+  Ext extends object,
   Request extends MaybePlannedRequest = HistoryRequest
 > {
   basename?: string
@@ -34,7 +34,7 @@ export interface CreateRouterRequestServiceOptions<
 }
 
 export function createRequestService<
-  Ext,
+  Ext extends object,
   Request extends MaybePlannedRequest = HistoryRequest
 >(
   options: CreateRouterRequestServiceOptions<Ext, Request> = {},
@@ -89,7 +89,10 @@ export function createRequestService<
           ...extension,
           planId: undefined as any,
         },
-      [historyRequest, extension],
+      [
+        historyRequest,
+        ...([] as (string | any)[]).concat(...Object.entries(extension || {})),
+      ],
     )
   })
 

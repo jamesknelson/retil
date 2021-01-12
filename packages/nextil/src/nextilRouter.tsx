@@ -23,7 +23,7 @@ export const NextilRouterDefaultsContext = createContext<NextilRouterDefaultsCon
   undefined as any,
 )
 
-export interface NextilRouterProps<Ext>
+export interface NextilRouterProps<Ext extends object>
   extends Omit<
     UseRouterOptions<NextilRequest & Ext, NextilResponse>,
     'requestService'
@@ -37,7 +37,9 @@ export interface NextilRouterProps<Ext>
   ) => Partial<NextilRequest & Ext>
 }
 
-export function NextilRouter<Ext>(props: NextilRouterProps<Ext>) {
+export function NextilRouter<Ext extends object>(
+  props: NextilRouterProps<Ext>,
+) {
   const defaults = useContext(NextilRouterDefaultsContext)
   const appRequestService = defaults.requestService
 
@@ -56,8 +58,8 @@ export function NextilRouter<Ext>(props: NextilRouterProps<Ext>) {
     ...routerOptions
   } = props
 
-  // Only re-use the request service when switching between retil routes.
-  // Create a new request service for each new Next.js page.
+  // Wrap the app's request service to allow us to extend it via a prop on the
+  // router.
   const requestService = useMemo(
     () =>
       createRequestService<Ext, NextilRequest & Ext>({
