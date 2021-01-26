@@ -15,7 +15,7 @@ export interface UseLinkOptions {
   onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
-export const useLink = (to: RouterAction, options: UseLinkOptions) => {
+export const useLink = (to: RouterAction, options: UseLinkOptions = {}) => {
   const {
     disabled,
     prefetchOn,
