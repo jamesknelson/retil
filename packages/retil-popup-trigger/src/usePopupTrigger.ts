@@ -1,5 +1,5 @@
 import { useCallback, useState, useEffect, useMemo, useRef } from 'react'
-import { PopupTrigger, PopupTriggerOptions } from './PopupTrigger'
+import { PopupTrigger, PopupTriggerOptions } from './popupTrigger'
 
 export * from './popupTrigger'
 
