@@ -1,6 +1,8 @@
 import { useCallback, useState, useEffect, useMemo, useRef } from 'react'
 import { PopupTrigger, PopupTriggerOptions } from './PopupTrigger'
 
+export * from './popupTrigger'
+
 export interface PopupTriggerSnapshot {
   active: boolean
   focused: boolean
@@ -61,5 +63,3 @@ export function usePopupTrigger(options: PopupTriggerOptions = {}) {
     [state, trigger, popupRef],
   )
 }
-
-export default usePopupTrigger

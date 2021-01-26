@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import '@testing-library/jest-dom/extend-expect'
-import usePopupTrigger from '../src/usePopupTrigger'
+import { usePopupTrigger } from '../src/usePopupTrigger'
 
 function TestComponent() {
   let trigger = usePopupTrigger({
