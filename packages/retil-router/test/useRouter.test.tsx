@@ -21,7 +21,7 @@ import {
   useRouter as _useRouter,
 } from '../src'
 
-function createTestRequestService<Ext = {}>(
+function createTestRequestService<Ext extends object = {}>(
   path: string,
   options: CreateRouterRequestServiceOptions<Ext> = {},
 ) {
