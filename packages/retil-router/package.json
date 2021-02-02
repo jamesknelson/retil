@@ -1,6 +1,6 @@
 {
   "name": "retil-router",
-  "version": "0.17.9",
+  "version": "0.17.10",
   "description": "Simple, powerful routing that grows with your app.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",

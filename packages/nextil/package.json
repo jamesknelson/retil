@@ -1,6 +1,6 @@
 {
   "name": "nextil",
-  "version": "0.17.9",
+  "version": "0.17.10",
   "description": "The missing piece of Next.js.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "retil-history": "^0.17.9",
-    "retil-router": "^0.17.9",
+    "retil-router": "^0.17.10",
     "tslib": "2.0.1"
   },
   "devDependencies": {
