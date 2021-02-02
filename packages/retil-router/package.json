@@ -1,6 +1,6 @@
 {
   "name": "retil-router",
-  "version": "0.17.8",
+  "version": "0.17.9",
   "description": "Simple, powerful routing that grows with your app.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -21,9 +21,9 @@
   },
   "dependencies": {
     "path-to-regexp": "^6.1.0",
-    "retil-history": "^0.17.2",
-    "retil-source": "^0.17.2",
-    "retil-support": "^0.17.1",
+    "retil-history": "^0.17.9",
+    "retil-source": "^0.17.9",
+    "retil-support": "^0.17.9",
     "tslib": "2.0.1"
   },
   "devDependencies": {
