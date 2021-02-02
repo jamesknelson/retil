@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { noop } from 'retil-support'
 
-import { RouterRequest } from '../routerTypes'
+import { RouterRequest, RouterState } from '../routerTypes'
 
 import { useRouterRequest } from './useRouterRequest'
 import { useWaitUntilNavigationCompletes } from './useWaitUntilNavigationCompletes'
@@ -19,23 +19,24 @@ export interface UseRouterScrollerOptions<
 > {
   getRequestHash?: (request: Request) => string
   getRequestKey?: (request: Request) => string
-  request?: Request
+  router?: RouterState<Request>
   scrollToHashOrTop?: (hash: string | undefined | null) => boolean
 }
 
 export function useRouterScroller<
   Request extends RouterRequest = RouterRequest
 >(options: UseRouterScrollerOptions<Request> = {}) {
-  const contextRequest = useRouterRequest() as Request
-
   const {
     getRequestHash = defaultGetRequestHash,
     getRequestKey = defaultGetRequestKey,
-    request = contextRequest,
+    router,
     scrollToHashOrTop = defaultScrollToHashOrTop,
   } = options
 
-  const waitUntilNavigationCompletes = useWaitUntilNavigationCompletes()
+  const request = useRouterRequest(router?.request)
+  const waitUntilNavigationCompletes = useWaitUntilNavigationCompletes(
+    router?.waitUntilNavigationCompletes,
+  )
 
   // TODO: if we can't scroll to hash, then wait for any suspenses to resolve
   // and then try again

@@ -77,9 +77,7 @@ export function NextilRouter<Ext extends object>(
     ...routerOptions,
   })
 
-  useRouterScroller({
-    request: router.request,
-  })
+  useRouterScroller({ router })
 
   return <RouterProvider value={router}>{children}</RouterProvider>
 }
