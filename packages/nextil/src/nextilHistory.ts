@@ -67,7 +67,8 @@ export function createNextHistory(
           lastSnapshot = {
             ...location,
             ...latestNextilStateRef.current!,
-            // TODO: create a history-style unique key somehow
+            // TODO: create a history-style unique key somehow, as this would
+            // be helpful for remembering scroll position
             key: undefined as any,
           }
 
@@ -115,9 +116,9 @@ export function createNextHistory(
         const location = parseLocation(action)
         const route = await mapPathnameToRoute(router, location.pathname)
         if (options.replace) {
-          return router.replace(route, createHref(location))
+          return router.replace(route, createHref(location), { scroll: false })
         } else {
-          return router.push(route, createHref(location))
+          return router.push(route, createHref(location), { scroll: false })
         }
       }),
   }

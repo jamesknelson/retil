@@ -30,6 +30,7 @@ export * from './hooks/useRouter'
 export * from './hooks/useRouterContent'
 export * from './hooks/useRouterPending'
 export * from './hooks/useRouterRequest'
+export * from './hooks/useRouterScroller'
 export * from './hooks/useWaitUntilNavigationCompletes'
 
 export * from './routers/routeAsync'
