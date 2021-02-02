@@ -19,19 +19,22 @@ export interface UseRouterScrollerOptions<
 > {
   getRequestHash?: (request: Request) => string
   getRequestKey?: (request: Request) => string
+  request?: Request
   scrollToHashOrTop?: (hash: string | undefined | null) => boolean
 }
 
 export function useRouterScroller<
   Request extends RouterRequest = RouterRequest
->(options: UseRouterScrollerOptions<Request>) {
+>(options: UseRouterScrollerOptions<Request> = {}) {
+  const contextRequest = useRouterRequest() as Request
+
   const {
     getRequestHash = defaultGetRequestHash,
     getRequestKey = defaultGetRequestKey,
+    request = contextRequest,
     scrollToHashOrTop = defaultScrollToHashOrTop,
   } = options
 
-  const request = useRouterRequest() as Request
   const waitUntilNavigationCompletes = useWaitUntilNavigationCompletes()
 
   // TODO: if we can't scroll to hash, then wait for any suspenses to resolve

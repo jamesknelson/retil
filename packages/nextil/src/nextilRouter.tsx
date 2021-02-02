@@ -8,6 +8,7 @@ import {
   UseRouterOptions,
   createRequestService,
   useRouter,
+  useRouterScroller,
 } from 'retil-router'
 import { FusorUse } from 'retil-source'
 
@@ -74,6 +75,10 @@ export function NextilRouter<Ext extends object>(
     initialSnapshot,
     transitionTimeoutMs,
     ...routerOptions,
+  })
+
+  useRouterScroller({
+    request: router.request,
   })
 
   return <RouterProvider value={router}>{children}</RouterProvider>
