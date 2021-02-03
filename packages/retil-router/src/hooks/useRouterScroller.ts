@@ -38,13 +38,24 @@ export function useRouterScroller<
     router?.waitUntilNavigationCompletes,
   )
 
-  // TODO: if we can't scroll to hash, then wait for any suspenses to resolve
-  // and then try again
+  useClientSideOnlyLayoutEffect(() => {
+    // Use custom scroll restoration
+    window.history.scrollRestoration = 'manual'
+  }, [])
+
   let lastRequestRef = useRef<Request>(request)
   useClientSideOnlyLayoutEffect(() => {
+    let unmounted = false
+
     let nextRequest = request
     let prevRequest = lastRequestRef.current
     lastRequestRef.current = request
+
+    // FIXME: we can't just do this at the top level,
+    // because due to concurrent mode (yay concurrent mode),
+    // it's possible that a higher level route containing
+    // the layout will render before the actual new content
+    // renders. So this should
 
     const hasPathChanged =
       prevRequest && getRequestKey(nextRequest) !== getRequestKey(prevRequest)
@@ -55,9 +66,15 @@ export function useRouterScroller<
       const didScroll = scrollToHashOrTop(getRequestHash(nextRequest))
       if (!didScroll && !hasPathChanged && hasHashChanged) {
         waitUntilNavigationCompletes().then(() => {
-          scrollToHashOrTop(nextRequest.hash)
+          if (!unmounted) {
+            scrollToHashOrTop(nextRequest.hash)
+          }
         })
       }
+    }
+
+    return () => {
+      unmounted = true
     }
   }, [request])
 }
