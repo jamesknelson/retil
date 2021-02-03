@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { noop } from 'retil-support'
 
-import { RouterRequest, RouterState } from '../routerTypes'
+import { RouterRequest } from '../routerTypes'
 
 import { useRouterRequest } from './useRouterRequest'
 import { useWaitUntilNavigationCompletes } from './useWaitUntilNavigationCompletes'
@@ -17,82 +17,121 @@ const useClientSideOnlyLayoutEffect =
 export interface UseRouterScrollerOptions<
   Request extends RouterRequest = RouterRequest
 > {
-  getRequestHash?: (request: Request) => string
-  getRequestKey?: (request: Request) => string
-  router?: RouterState<Request>
-  scrollToHashOrTop?: (hash: string | undefined | null) => boolean
+  // Useful for nested layouts with suspense wrappers, where you might want
+  // to leave scrolling to be handled by a child component when the inner
+  // suspense finishes loading.
+  getWillChildHandleScroll?: () => boolean
+  getShouldScroll?: (prevRequest: Request, nextRequest: Request) => boolean
+  scrollToRequest?: (request: Request) => boolean
 }
+
+let hasHydrated = false
 
 export function useRouterScroller<
   Request extends RouterRequest = RouterRequest
 >(options: UseRouterScrollerOptions<Request> = {}) {
   const {
-    getRequestHash = defaultGetRequestHash,
-    getRequestKey = defaultGetRequestKey,
-    router,
-    scrollToHashOrTop = defaultScrollToHashOrTop,
+    getWillChildHandleScroll,
+    getShouldScroll = defaultGetShouldScroll,
+    scrollToRequest = defaultScrollToRequest,
   } = options
 
-  const request = useRouterRequest(router?.request)
-  const waitUntilNavigationCompletes = useWaitUntilNavigationCompletes(
-    router?.waitUntilNavigationCompletes,
-  )
+  const request = useRouterRequest<Request>()
+  const waitUntilNavigationCompletes = useWaitUntilNavigationCompletes()
+  const scrollRequestRef = useRef(request)
 
-  useClientSideOnlyLayoutEffect(() => {
-    // Use custom scroll restoration
-    window.history.scrollRestoration = 'manual'
-  }, [])
+  if (request !== scrollRequestRef.current) {
+    const nextRequest = request
+    const prevRequest = scrollRequestRef.current
+    const shouldScroll = getShouldScroll(prevRequest, nextRequest)
 
-  let lastRequestRef = useRef<Request>(request)
+    if (shouldScroll) {
+      scrollRequestRef.current = request
+
+      try {
+        // Save the scroll position before the update actually occurs
+        sessionStorage.setItem(
+          '__retil_scroll_' + prevRequest.key!,
+          JSON.stringify({ x: window.pageXOffset, y: window.pageYOffset }),
+        )
+      } catch {}
+    }
+  }
+
+  const scrollRequest = scrollRequestRef.current
+
   useClientSideOnlyLayoutEffect(() => {
     let unmounted = false
 
-    let nextRequest = request
-    let prevRequest = lastRequestRef.current
-    lastRequestRef.current = request
-
-    // FIXME: we can't just do this at the top level,
-    // because due to concurrent mode (yay concurrent mode),
-    // it's possible that a higher level route containing
-    // the layout will render before the actual new content
-    // renders. So this should
-
-    const hasPathChanged =
-      prevRequest && getRequestKey(nextRequest) !== getRequestKey(prevRequest)
-    const hasHashChanged =
-      prevRequest && getRequestHash(nextRequest) !== getRequestHash(prevRequest)
-
-    if (hasPathChanged || hasHashChanged) {
-      const didScroll = scrollToHashOrTop(getRequestHash(nextRequest))
-      if (!didScroll && !hasPathChanged && hasHashChanged) {
-        waitUntilNavigationCompletes().then(() => {
-          if (!unmounted) {
-            scrollToHashOrTop(nextRequest.hash)
-          }
-        })
+    if (!getWillChildHandleScroll || !getWillChildHandleScroll()) {
+      if (!hasHydrated) {
+        window.history.scrollRestoration = 'manual'
+        hasHydrated = true
+      } else {
+        const didScroll = scrollToRequest(scrollRequest)
+        if (!didScroll) {
+          waitUntilNavigationCompletes().then(() => {
+            if (
+              !unmounted &&
+              (!getWillChildHandleScroll || !getWillChildHandleScroll())
+            ) {
+              scrollToRequest(scrollRequest)
+            }
+          })
+        }
       }
     }
 
     return () => {
       unmounted = true
     }
-  }, [request])
+  }, [scrollRequest])
 }
 
-const defaultGetRequestHash = (request: RouterRequest) => request.hash
-const defaultGetRequestKey = (request: RouterRequest) => request.pathname
+const defaultGetShouldScroll = (prev: RouterRequest, next: RouterRequest) =>
+  prev.hash !== next.hash || prev.pathname !== next.pathname
 
-export const defaultScrollToHashOrTop = (hash: string | undefined | null) => {
-  if (hash) {
-    let id = document.getElementById(hash.slice(1))
-    if (id) {
-      let { top, left } = id.getBoundingClientRect()
-      window.scroll(left + window.pageXOffset, top + window.pageYOffset)
-      return true
+export const defaultScrollToRequest = (request: RouterRequest) => {
+  // TODO: if scrolling to a hash within the same page, ignore
+  // the scroll history and just scroll directly there
+
+  let scrollCoords: { x: number; y: number }
+  try {
+    scrollCoords = JSON.parse(
+      sessionStorage.getItem('__retil_scroll_' + request.key)!,
+    ) || { x: 0, y: 0 }
+  } catch {
+    if (!request.hash) {
+      scrollCoords = { x: 0, y: 0 }
+    } else {
+      const id = document.getElementById(request.hash.slice(1))
+      if (!id) {
+        return false
+      }
+      const { top, left } = id.getBoundingClientRect()
+      scrollCoords = {
+        x: left + window.pageXOffset,
+        y: top + window.pageYOffset,
+      }
     }
-    return false
-  } else {
-    window.scroll(0, 0)
-    return true
   }
+
+  // Check that the element we want to scroll to is in view
+  const maxScrollTop = Math.max(
+    0,
+    document.documentElement.scrollHeight -
+      document.documentElement.clientHeight,
+  )
+  const maxScrollLeft = Math.max(
+    0,
+    document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  )
+
+  if (scrollCoords.x > maxScrollLeft || scrollCoords.y > maxScrollTop) {
+    return false
+  }
+
+  window.scroll(scrollCoords.x, scrollCoords.y)
+
+  return true
 }

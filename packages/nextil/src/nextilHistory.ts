@@ -14,6 +14,10 @@ import { NextilState } from './nextilTypes'
 
 let hasCachedPageList = false
 
+function createRequestKey() {
+  return Math.random().toString(36).substr(2, 8)
+}
+
 // getInitialProps completes before the router's routeChangeComplete event runs.
 // As a result, on the client, we can use global state to pass the result of
 // each page's getInitialProps, along with params and other info, to the router
@@ -50,10 +54,24 @@ export function createNextHistory(
       }
 
       let lastSnapshot: HistoryRequest & NextilState = {
+        key: 'default',
         ...parseLocation(router.asPath),
         ...nextilState,
-        key: undefined as any,
       }
+
+      window.history.replaceState(
+        {
+          ...window.history.state,
+          options: {
+            // Set the default key
+            retilKey: 'default',
+            ...window.history.state.options,
+            // Disable auto-scroll when navigating back to the initial route
+            scroll: false,
+          },
+        },
+        '',
+      )
 
       next(lastSnapshot)
 
@@ -67,9 +85,8 @@ export function createNextHistory(
           lastSnapshot = {
             ...location,
             ...latestNextilStateRef.current!,
-            // TODO: create a history-style unique key somehow, as this would
-            // be helpful for remembering scroll position
-            key: undefined as any,
+
+            key: window.history.state.options.retilKey,
           }
 
           next(lastSnapshot)
@@ -98,14 +115,26 @@ export function createNextHistory(
     },
   )
 
+  // There's no way to remove the popState handler, but adding one removes
+  // the previous one.
+  router.beforePopState(() => {
+    // TODO: implement blocking
+    return true
+  })
+
   const controller: HistoryController = {
     back: () => {
       // TODO: this should keep track of whether the router was blocked.
       return Promise.resolve(true)
     },
-    block: () => {
+    block: (_predicate) => {
       // TODO: implement this with router.beforePopState
       // see: https://nextjs.org/docs/api-reference/next/router#routerbeforepopstate
+      //
+      // 1. block all transitions
+      // 2. call the shouldBlock predicate
+      // 3. await the shouldBlock response
+      // 4. if false, retry
       throw new Error('historyController.block is unimplemented')
     },
     plan: () => {
@@ -115,10 +144,18 @@ export function createNextHistory(
       act(source, async () => {
         const location = parseLocation(action)
         const route = await mapPathnameToRoute(router, location.pathname)
+
+        // Next.js just feeds these directly into window.history.state,
+        // allowing us
+        const options = {
+          retilKey: createRequestKey(),
+          scroll: false,
+        } as any
+
         if (options.replace) {
-          return router.replace(route, createHref(location), { scroll: false })
+          return router.replace(route, createHref(location), options)
         } else {
-          return router.push(route, createHref(location), { scroll: false })
+          return router.push(route, createHref(location), options)
         }
       }),
   }
