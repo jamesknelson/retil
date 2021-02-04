@@ -1,4 +1,9 @@
-import { AsyncValidator, Issues } from './issueTypes'
+import {
+  AddIssuesFunction,
+  AsyncValidator,
+  DefaultIssueCodes,
+  IssueCodes,
+} from './issueTypes'
 
 export interface UseAsyncValidatorOptions<Data> {
   debounceMs?: number
@@ -12,16 +17,12 @@ export interface UseAsyncValidatorOptions<Data> {
 // `valid` will be `null` before the first validation, and `undefined` while
 // pending.
 export function useAynscValidator<
-  Data,
-  DataPath extends string | number | symbol = keyof Data,
-  BasePath extends string | number | symbol = 'base',
-  Codes extends { [P in DataPath | BasePath]: string } = {
-    [P in DataPath | BasePath]: string
-  }
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
 >(
-  issues: Issues<Data, DataPath, BasePath, Codes>,
-  validator: AsyncValidator<Data, DataPath, Codes>,
-  options: UseAsyncValidatorOptions<Data> = {},
+  issues: AddIssuesFunction<Value, Codes>,
+  validator: AsyncValidator<Value, Codes>,
+  options: UseAsyncValidatorOptions<Value> = {},
 ): readonly [trigger: () => Promise<boolean>, valid?: boolean | null] {
   throw new Error('unimplemented')
 

@@ -1,77 +1,91 @@
+const basePath = Symbol('basePath')
+
+export type BasePath = typeof basePath
+
+// TODO: allow for nested types, using template literal types, e.g.
+// https://github.com/millsp/ts-toolbelt/blob/master/sources/Function/AutoPath.ts
+type ObjectPaths<Value extends object> = Extract<keyof Value, string>
+
+export type IssueCodes = Record<string | BasePath, string>
+
+export type DefaultIssueCodes<Value extends object> = Record<
+  ObjectPaths<Value> | BasePath,
+  string
+>
+
+export type IssuePath<Codes extends IssueCodes> = Extract<keyof Codes, string>
+
 export type Validator<
-  Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
-> = (data: Data, paths?: Path[]) => ValidatorIssues<Path, Codes>
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
+> = (data: Value, paths?: IssuePath<Codes>[]) => ValidatorIssues<Value, Codes>
 
 export type AsyncValidator<
-  Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
-> = (data: Data, paths?: Path[]) => Promise<ValidatorIssues<Path, Codes>>
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
+> = (
+  data: Value,
+  paths?: IssuePath<Codes>[],
+) => Promise<ValidatorIssues<Value, Codes>>
 
 export type ValidatorIssue<
-  Path extends string | number | symbol = string | number | symbol,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  Path extends IssuePath<Codes> = IssuePath<Codes>
 > =
-  | { message: string; code?: Codes[Path]; path?: Path }
-  | { message?: string; code: Codes[Path]; path?: Path }
+  | {
+      message: string
+      code?: Codes[Path]
+      path?: Extract<Path, string>
+    }
+  | {
+      message?: string
+      code: Codes[Path]
+      path?: Extract<Path, string>
+    }
 
 export type ValidatorIssues<
-  Path extends string | number | symbol = string | number | symbol,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  Path extends IssuePath<Codes> = IssuePath<Codes>
 > =
   | null
-  | (ValidatorIssue<Path, Codes> | string | false | null | undefined)[]
-  | { [P in Path]?: ValidatorIssues<P, Pick<Codes, P>> }
-
-export interface Issue<
-  Data,
-  Path extends string | number | symbol = keyof Data,
-  Codes extends { [path in Path]: string } = { [path in Path]: string }
-> {
-  message: string
-  code: Codes[Path]
-  data: Data
-  key: IssueKey
-  path?: Path
-}
+  | (ValidatorIssue<Value, Codes, Path> | string | false | null | undefined)[]
+  | { [P in Path]?: ValidatorIssues<Value, Codes, P> }
 
 export type IssueKey = string | number | symbol | object | Validator<any>
 
-export interface Issues<
-  Data,
-  DataPath extends string | number | symbol = keyof Data,
-  BasePath extends string | number | symbol = 'base',
-  Codes extends { [path in DataPath | BasePath]: string } = {
-    [path in DataPath | BasePath]: string
-  }
+export interface Issue<
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  Path extends IssuePath<Codes> = IssuePath<Codes>
 > {
-  all: Issue<Data, DataPath, Codes>[]
+  message: string
+  code: Codes[Path extends never ? BasePath : Path]
+  key: IssueKey
+  value: Value
 
-  exist: boolean
+  // This will be undefined in the case of a base path
+  path?: Path
+}
 
-  // TODO: created a nested structure under `at`, and use TS4.1's template
-  // literal types to convert our string keys into the correct structure.
-  // https://stackoverflow.com/a/58436959/2458707
-  // Note: this will only contain the first issue, even if there are multiple
-  // issues. To get all issues for a path, you'll need to use the `all` array.
-  on: { [P in DataPath | BasePath]?: Issue<Data, P, Pick<Codes, P>> }
-
-  /**
-   * Add issues imperatively, optionally associated with a specific data
-   * value.
-   *
-   * Issues with a path will be removed when the data at that path changes,
-   * while issues without a path will stay in place until this key is cleared.
-   */
-  add(
-    issues: ValidatorIssues<DataPath, Codes>,
+export interface AddIssuesFunction<
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
+> {
+  (
+    issues: Readonly<ValidatorIssues<Value, Codes>>,
     options?: {
-      data?: Data
+      // For individual issues, any change from this value will result in the
+      // issues being removed.
+      value?: Value
+
+      // If provided, the result of this validator for this path will override
+      // the result of any previous validator with the same key. By default,
+      // the validator itself will be used as the key.
       key?: IssueKey
     },
-  ): Promise<boolean>
+  ): readonly [removeIssues: () => void, resultPromise: Promise<boolean>]
 
   /**
    * Add issues specified as a function of the current data. Any issues will
@@ -84,8 +98,8 @@ export interface Issues<
    * called due to the component unmountind, the returned promise will be
    * rejected.
    */
-  addValidator(
-    validator: Validator<Data, DataPath, Codes>,
+  (
+    validator: Validator<Value, Codes>,
     options?: {
       // If provided, the result of this validator for this path will override
       // the result of any previous validator with the same key. By default,
@@ -95,33 +109,13 @@ export interface Issues<
       // If provided, the path will be provided to the validator, and the result
       // of the validator will be filtered such that only issues with this path
       // are handled.
-      path?: DataPath
+      path?: IssuePath<Codes>
     },
-  ): Promise<boolean>
-
-  /**
-   * Clears any validators and results associated with the given key. If no key
-   * or validator is given, all validators and results will be cleared.
-   */
-  clear(key?: IssueKey): void
-
-  /**
-   * Runs unresolved validators, removing any that no longer return issues.
-   *
-   * You can optionally specify the data you'd like to validate in place of
-   * the latest value, in which case this new value will be used until the
-   * data argument changes, or until a new value is passed to
-   * `attemptResolution()`.
-   *
-   * This method is also useful when you'd like to trigger a validator with
-   * specific data, e.g. when using form libraries like react-hook-form. In
-   * this case, you can call `update(data)` immediately before triggering
-   * the validation.
-   */
-  update(
-    data: Data,
-    options?: {
-      key?: IssueKey
-    },
-  ): void
+  ): readonly [removeIssues: () => void, resultPromise: Promise<boolean>]
 }
+
+/**
+ * Clears any validators and results associated with the given key. If no key
+ * or validator is given, all validators and results will be cleared.
+ */
+export type ClearIssuesFunction = (key?: IssueKey) => void

@@ -1,46 +1,62 @@
 import { useCallback, useEffect, useRef } from 'react'
 
-import { Issues, Validator } from './issueTypes'
+import {
+  AddIssuesFunction,
+  DefaultIssueCodes,
+  IssueCodes,
+  IssuePath,
+  Validator,
+} from './issueTypes'
+
+export type UseValidatorTuple<
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
+> = readonly [
+  validate: (path?: IssuePath<Codes>) => Promise<boolean>,
+  clear: () => void,
+]
 
 export function useValidator<
-  Data,
-  DataPath extends string | number | symbol = keyof Data,
-  BasePath extends string | number | symbol = 'base',
-  Codes extends { [P in DataPath | BasePath]: string } = {
-    [P in DataPath | BasePath]: string
-  }
+  Value extends object,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
 >(
-  issues: Issues<Data, DataPath, BasePath, Codes>,
-  validator: Validator<Data, DataPath, Codes>,
-): readonly [
-  validate: (data?: Data) => Promise<boolean>,
-  validatePath: (path: DataPath) => Promise<boolean>,
-] {
-  const key = useRef(issues)
-  const { addValidator, update } = issues
+  addIssues: AddIssuesFunction<Value, Codes>,
+  validator: Validator<Value, Codes>,
+): UseValidatorTuple<Value, Codes> {
+  // The key we use to identify this validator is the ref object itself,
+  // which stays the same between renders. The remove function inside is
+  // only used internally, it just seemed like a convenient place to put it.
+  const key = useRef<undefined | (() => void)>()
 
-  const validateData = useCallback(
-    (...data: [Data?]): Promise<boolean> => {
-      if (data.length > 0) {
-        update(data[0]!)
-      }
-      return addValidator(validator, { key })
+  const validate = useCallback(
+    (path?: IssuePath<Codes>): Promise<boolean> => {
+      const [remove, resultPromise] = addIssues(validator, { key, path })
+      key.current = remove
+      return resultPromise
     },
-    [addValidator, update, validator],
-  )
-  const validatePath = useCallback(
-    (path: DataPath): Promise<boolean> =>
-      addValidator(validator, { key, path }),
-    [addValidator, validator],
+    [addIssues, validator],
   )
 
-  key.current = issues
+  const clear = useCallback(() => {
+    if (key.current) {
+      key.current()
+      key.current = undefined
+    }
+  }, [])
+
   useEffect(
     () => () => {
-      key.current.clear(key)
+      if (key.current) {
+        key.current()
+      }
+      if (process.env.NODE_ENV !== 'production') {
+        // Lock the key to cause a warning in case `validate` is called after
+        // unmount.
+        Object.freeze(key)
+      }
     },
     [],
   )
 
-  return [validateData, validatePath]
+  return [validate, clear]
 }
