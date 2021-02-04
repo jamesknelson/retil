@@ -1,6 +1,6 @@
 {
   "name": "retil-issues",
-  "version": "0.17.9",
+  "version": "0.18.0",
   "description": "Super-powers for validation with React.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -20,7 +20,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-support": "^0.17.9",
+    "retil-support": "^0.18.0",
     "tslib": "2.0.1"
   },
   "devDependencies": {
