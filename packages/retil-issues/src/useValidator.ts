@@ -34,7 +34,7 @@ export function useValidator<
       key.current = remove
       return resultPromise
     },
-    [addIssues, validator],
+    [addIssues, key, validator],
   )
 
   const clear = useCallback(() => {
@@ -42,20 +42,16 @@ export function useValidator<
       key.current()
       key.current = undefined
     }
-  }, [])
+  }, [key])
 
   useEffect(
     () => () => {
       if (key.current) {
         key.current()
-      }
-      if (process.env.NODE_ENV !== 'production') {
-        // Lock the key to cause a warning in case `validate` is called after
-        // unmount.
-        Object.freeze(key)
+        key.current = undefined
       }
     },
-    [],
+    [key],
   )
 
   return [validate, clear]

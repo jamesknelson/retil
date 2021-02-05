@@ -202,4 +202,25 @@ describe('useIssues', () => {
 
     expect(issues.length).toBe(0)
   })
+
+  test(`allows configuration of messages via getMessage`, () => {
+    const { result } = renderUseIssues(
+      { username: null },
+      {
+        getMessage: (issue) =>
+          issue.code === 'missing'
+            ? `Please enter a ${issue.path}`
+            : 'Unknown error',
+      },
+    )
+
+    const addIssues = result.current[1]
+
+    act(() => {
+      addIssues({ username: ['missing'] })
+    })
+
+    const [issues] = result.current
+    expect(issues[0].message).toEqual('Please enter a username')
+  })
 })

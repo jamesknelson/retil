@@ -28,8 +28,8 @@ Helps you validate forms, display busy indicators, and keep track of any issues 
 
 #### npm packages
 
-- retil-operation -- *coming soon*
-- retil-validation -- *coming soon*
+- [retil-operation](./packages/retil-operation)
+- [retil-issues](./packages/retil-issues)
 
 #### examples
 
@@ -38,15 +38,13 @@ Helps you validate forms, display busy indicators, and keep track of any issues 
 
 ### Authentication
 
-Gives you a concurrent-mode-friendly `useCurrentUser()` hook, and integrations for popular authentication providers. Additionally allows you to connect it with user data from your own database.
+Easily integrate Firebase Auth into your retil-based app.
 
-Provides a common interface for functions like `signOut()` and `signInWithRedirect()` -- allowing you to reuse view components across apps with different backends.
+Provides a common interface for functions like `signOut()` and `signInWithPassword()`, allowing for easy use with other retil utilities.
 
 #### npm packages
 
-- retil-auth -- *coming soon*
 - retil-auth-firebase -- *coming soon*
-- retil-auth-aws-amplify -- *coming soon*
 
 #### examples
 
@@ -89,7 +87,6 @@ Useful in situations where you need to work with one or more **external** data s
 #### npm packages
 
 - [retil-source](./packages/retil-source)
-- [use-source](./packages/use-source)
 
 #### api docs
 

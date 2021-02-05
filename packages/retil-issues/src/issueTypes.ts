@@ -1,27 +1,29 @@
-const basePath = Symbol('basePath')
-
-export type BasePath = typeof basePath
+export const Root = Symbol('basePath')
+export type RootType = typeof Root
 
 // TODO: allow for nested types, using template literal types, e.g.
 // https://github.com/millsp/ts-toolbelt/blob/master/sources/Function/AutoPath.ts
-type ObjectPaths<Value extends object> = Extract<keyof Value, string>
+type ObjectPaths<Value extends object = any> = Extract<keyof Value, string>
 
-export type IssueCodes = Record<string | BasePath, string>
+export type IssueCodes = Record<string | RootType, string>
 
-export type DefaultIssueCodes<Value extends object> = Record<
-  ObjectPaths<Value> | BasePath,
+export type DefaultIssueCodes<Value extends object = any> = Record<
+  ObjectPaths<Value> | RootType,
   string
 >
 
-export type IssuePath<Codes extends IssueCodes> = Extract<keyof Codes, string>
+export type IssuePath<Codes extends IssueCodes = IssueCodes> = Extract<
+  keyof Codes,
+  string
+>
 
 export type Validator<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>
 > = (data: Value, paths?: IssuePath<Codes>[]) => ValidatorIssues<Value, Codes>
 
 export type AsyncValidator<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>
 > = (
   data: Value,
@@ -29,7 +31,7 @@ export type AsyncValidator<
 ) => Promise<ValidatorIssues<Value, Codes>>
 
 export type ValidatorIssue<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
   Path extends IssuePath<Codes> = IssuePath<Codes>
 > =
@@ -45,7 +47,7 @@ export type ValidatorIssue<
     }
 
 export type ValidatorIssues<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
   Path extends IssuePath<Codes> = IssuePath<Codes>
 > =
@@ -56,12 +58,12 @@ export type ValidatorIssues<
 export type IssueKey = string | number | symbol | object | Validator<any>
 
 export interface Issue<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
   Path extends IssuePath<Codes> = IssuePath<Codes>
 > {
   message: string
-  code: Codes[Path extends never ? BasePath : Path]
+  code: Codes[Path extends never ? RootType : Path]
   key: IssueKey
   value: Value
 
@@ -119,3 +121,10 @@ export interface AddIssuesFunction<
  * or validator is given, all validators and results will be cleared.
  */
 export type ClearIssuesFunction = (key?: IssueKey) => void
+
+export type GetIssueMessage<
+  Value extends object = any,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
+> = (
+  issue: Omit<Issue<Value, Codes>, 'message'> & { message?: string },
+) => string

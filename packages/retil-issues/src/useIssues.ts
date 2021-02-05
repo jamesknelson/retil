@@ -5,6 +5,7 @@ import {
   AddIssuesFunction,
   ClearIssuesFunction,
   DefaultIssueCodes,
+  GetIssueMessage,
   Issue,
   IssueCodes,
   IssueKey,
@@ -14,14 +15,18 @@ import {
   ValidatorIssues,
 } from './issueTypes'
 
-export interface UseIssuesOptions<Value extends object> {
-  attemptResolutionOnChange?: boolean
+export interface UseIssuesOptions<
+  Value extends object = any,
+  Codes extends IssueCodes = DefaultIssueCodes<Value>
+> {
   areValuesEqual?: (x: Value, y: Value) => boolean
   areValuePathsEqual?: (x: Value, y: Value, path: string) => boolean
+  attemptResolutionOnChange?: boolean
+  getMessage?: GetIssueMessage<Value, Codes>
 }
 
 export type UseIssuesTuple<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>
 > = [
   issues: Issue<Value, Codes>[],
@@ -29,17 +34,14 @@ export type UseIssuesTuple<
   clearIssues: ClearIssuesFunction,
 ]
 
-interface IssuesState<
-  Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
-> {
+interface IssuesState<Value extends object, Codes extends IssueCodes> {
   value: Value
   issues: Issue<Value, Codes>[]
   validators: ReadonlyMap<IssueKey, Validator<Value, Codes>>
 }
 
 export function useIssues<
-  Value extends object,
+  Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>
 >(
   value: Value,
@@ -50,6 +52,9 @@ export function useIssues<
     areValuesEqual = areShallowEqual,
     areValuePathsEqual = areValuePropertiesEqual,
   } = options
+
+  const getMessage = ((options.getMessage ||
+    defaultGetMessage) as unknown) as GetIssueMessage<Value, Codes>
 
   const [state, setState] = useState<IssuesState<Value, Codes>>(() =>
     getInitialState<Value, Codes>(value),
@@ -136,6 +141,7 @@ export function useIssues<
             : createDifferenceValidator(
                 options.value || state.value,
                 validatorOrIssues as ValidatorIssues<Value, Codes>,
+                getMessage,
                 areValuePathsEqual,
               )
 
@@ -151,6 +157,7 @@ export function useIssues<
           validator,
           value,
           path && [path],
+          getMessage,
         )
 
         // If we're using an identical validator function then there's a good
@@ -180,7 +187,7 @@ export function useIssues<
         ),
       ]
     },
-    [areValuePathsEqual, clearIssues],
+    [areValuePathsEqual, clearIssues, getMessage],
   )
 
   // TODO: wrap validators in a proxy and track the parts of the data actually
@@ -246,6 +253,7 @@ export function useIssues<
             state.validators.get(key)!,
             attemptValue,
             paths === true ? undefined : paths,
+            getMessage,
           )
 
           // Filter out any issues that are no longer present in the latest data.
@@ -273,7 +281,7 @@ export function useIssues<
         }
       })
     },
-    [areValuesEqual],
+    [areValuesEqual, getMessage],
   )
 
   if (!areValuesEqual(state.value, value)) {
@@ -306,9 +314,10 @@ function runValidator<
   validator: Validator<Value, Codes>,
   data: Value,
   paths: IssuePath<Codes>[] | undefined,
+  getMessage: GetIssueMessage<Value, Codes>,
 ): Issue<Value, Codes>[] {
   const validatorIssues = validator(data, paths)
-  const issues = normalizeIssues(key, data, validatorIssues)
+  const issues = normalizeIssues(key, data, validatorIssues, getMessage)
 
   // Validators don't have to respect the paths argument, so we'll need
   // to filter their return in case they don't.
@@ -324,6 +333,7 @@ function normalizeIssues<
   key: IssueKey,
   value: Value,
   validatorIssues: ValidatorIssues<Value, Codes>,
+  getMessage: GetIssueMessage<Value, Codes>,
   defaultPath?: IssuePath<Codes>,
 ): Issue<Value, Codes>[] {
   if (!validatorIssues) {
@@ -335,6 +345,7 @@ function normalizeIssues<
           key,
           value,
           validatorIssues[path] as ValidatorIssues<Value, Codes>,
+          getMessage,
           (defaultPath ? defaultPath + path + '.' : path) as IssuePath<Codes>,
         ),
       ),
@@ -343,18 +354,25 @@ function normalizeIssues<
     return (validatorIssues.filter(Boolean) as ValidatorIssue<
       Value,
       Codes
-    >[]).map((issue) => ({
-      ...(typeof issue !== 'string' && issue),
-      code: ((typeof issue === 'string' ? issue : issue.code) ||
-        issue.message) as any,
-      message: ((typeof issue === 'string' ? issue : issue.code) ||
-        issue.message)!,
-      path: issue.path || defaultPath,
-      value,
-      key,
-    }))
+    >[]).map((issue) => {
+      const partialIssue = {
+        ...(typeof issue !== 'string' && issue),
+        code: ((typeof issue === 'string' ? issue : issue.code) ||
+          issue.message) as any,
+        path: issue.path || defaultPath,
+        value,
+        key,
+      }
+      return {
+        ...partialIssue,
+        message: getMessage(partialIssue),
+      }
+    })
   }
 }
+
+const defaultGetMessage: GetIssueMessage = (issue) =>
+  ((typeof issue === 'string' ? issue : issue.code) || issue.message)!
 
 function createDifferenceValidator<
   Value extends object,
@@ -362,13 +380,19 @@ function createDifferenceValidator<
 >(
   issuesWithValue: Value,
   issues: ValidatorIssues<Value, Codes>,
+  getMessage: GetIssueMessage<Value, Codes>,
   areValuePathsEqual: (
     x: Value,
     y: Value,
     path: string,
   ) => boolean = areValuePropertiesEqual,
 ): Validator<Value, Codes> {
-  const normalizedIssues = normalizeIssues({}, issuesWithValue, issues)
+  const normalizedIssues = normalizeIssues(
+    {},
+    issuesWithValue,
+    issues,
+    getMessage,
+  )
   return (latestData) =>
     normalizedIssues.filter(
       (issue) =>
