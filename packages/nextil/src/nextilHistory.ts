@@ -140,7 +140,7 @@ export function createNextHistory(
     plan: () => {
       throw new Error('historyController.plan is unimplemented')
     },
-    navigate: (action, options = {}) =>
+    navigate: (action) =>
       act(source, async () => {
         const location = parseLocation(action)
         const route = await mapPathnameToRoute(router, location.pathname)

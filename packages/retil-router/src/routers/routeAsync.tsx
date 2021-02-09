@@ -54,12 +54,12 @@ export function routeAsync<
       then: (...args) => {
         if (!promisedContent) {
           promisedContent = Promise.resolve(asyncRouter(request, response))
-          promisedContent
             .then((value) => {
               resultRef.current = {
                 type: 'value',
                 value,
               }
+              return value
             })
             .catch((error) => {
               resultRef.current = {

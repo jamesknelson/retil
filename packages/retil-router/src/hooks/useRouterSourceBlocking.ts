@@ -10,7 +10,7 @@
  */
 
 import { useEffect, useMemo, useState } from 'react'
-import { delay } from 'retil-support'
+import { delay, areObjectsShallowEqual } from 'retil-support'
 import {
   Source,
   getSnapshot,
@@ -70,7 +70,7 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
   const handleNewSnapshot = useMemo(() => {
     let hasGotInitialSnapshot = false
 
-    return (force?: boolean, newSource?: Source<any>) => {
+    return (force?: boolean, newSource?: boolean) => {
       hasGotInitialSnapshot =
         !!force || hasGotInitialSnapshot || hasSnapshot(mergedSource)
       let [newSnapshot, sourcePending] =
@@ -82,24 +82,26 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
         transitionTimeoutMs !== 0
           ? newSnapshot
           : null
-      setState((state) =>
-        newSource || state.mergedSource === mergedSource
-          ? {
-              currentSnapshot:
-                !sourcePending && !pendingSnapshot
-                  ? newSnapshot!
-                  : state.currentSnapshot,
-              pendingSnapshot,
-              mergedSource: newSource || state.mergedSource,
-              sourcePending,
-            }
-          : state,
-      )
+      setState((state) => {
+        const nextState = {
+          currentSnapshot:
+            !sourcePending && !pendingSnapshot
+              ? newSnapshot!
+              : state.currentSnapshot,
+          pendingSnapshot,
+          mergedSource,
+          sourcePending,
+        }
+        return (newSource || state.mergedSource === mergedSource) &&
+          !areObjectsShallowEqual(state, nextState)
+          ? nextState
+          : state
+      })
     }
   }, [mergedSource, transitionTimeoutMs])
 
   if (mergedSource !== state.mergedSource) {
-    handleNewSnapshot(false, mergedSource)
+    handleNewSnapshot(false, true)
   }
 
   // Don't waitForResponse until an effect has run, as this can trigger
@@ -149,6 +151,11 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
         }
       })
     }
+
+    // It's possible that something has changed between the new source being
+    // first rendered, and React calling this effect. So we'll call this
+    // again just in case.
+    handleNewSnapshot()
 
     const unsubscribe = subscribe(mergedSource, handleNewSnapshot)
 
