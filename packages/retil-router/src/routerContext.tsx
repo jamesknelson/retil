@@ -7,9 +7,9 @@ export const RouterContentContext = createContext<React.ReactNode>(
 export const RouterControllerContext = createContext<RouterReactController>(
   undefined as any,
 )
-export const RouterPendingContext = createContext<RouterRequest | boolean>(
-  false,
-)
+export const RouterPendingContext = createContext<
+  RouterRequest | boolean | undefined
+>(false)
 export const RouterRequestContext = createContext<RouterRequest>(
   undefined as any,
 )

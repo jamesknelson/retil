@@ -7,12 +7,10 @@ import {
   createHref,
   parseLocation,
 } from 'retil-history'
-import { act, createState, observe } from 'retil-source'
+import { createState, observe } from 'retil-source'
 
 import { getPageMatchers, mapPathnameToRoute } from './mapPathnameToRoute'
 import { NextilState } from './nextilTypes'
-
-let hasCachedPageList = false
 
 function createRequestKey() {
   return Math.random().toString(36).substr(2, 8)
@@ -41,7 +39,7 @@ export function createNextHistory(
   }
 
   // Pre-cache the route list for faster navigation
-  if (!hasCachedPageList && process.env.NODE_ENV === 'production') {
+  if (getPageMatchers.cache && process.env.NODE_ENV === 'production') {
     getPageMatchers(router)
   }
 
@@ -103,6 +101,10 @@ export function createNextHistory(
         }
       }
 
+      // TODO: instead of clearing history, push a request with no "router".
+      // Then in the wrapper router in nextilApp, if "router" is missing, add a
+      // promise to pendingSuspenses that resolves after the full route is
+      // rendered.
       router.events.on('routeChangeStart', clear)
       router.events.on('routeChangeError', handleRouteError)
       router.events.on('routeChangeComplete', handleRouteChangeComplete)
@@ -140,24 +142,28 @@ export function createNextHistory(
     plan: () => {
       throw new Error('historyController.plan is unimplemented')
     },
-    navigate: (action) =>
-      act(source, async () => {
-        const location = parseLocation(action)
-        const route = await mapPathnameToRoute(router, location.pathname)
 
-        // Next.js just feeds these directly into window.history.state,
-        // allowing us
-        const options = {
-          retilKey: createRequestKey(),
-          scroll: false,
-        } as any
+    // NOTE: even though this is asynchronous, we don't wrap it in "act()" as
+    // we still want the history to have a value during navigation -- otherwise
+    // we don't have enough information to decide whether to display a loading
+    // bar or not.
+    navigate: async (action) => {
+      const location = parseLocation(action)
+      const route = await mapPathnameToRoute(router, location.pathname)
 
-        if (options.replace) {
-          return router.replace(route, createHref(location), options)
-        } else {
-          return router.push(route, createHref(location), options)
-        }
-      }),
+      // Next.js just feeds these directly into window.history.state,
+      // allowing us
+      const options = {
+        retilKey: createRequestKey(),
+        scroll: false,
+      } as any
+
+      if (options.replace) {
+        return router.replace(route, createHref(location), options)
+      } else {
+        return router.push(route, createHref(location), options)
+      }
+    },
   }
 
   return [source, controller]

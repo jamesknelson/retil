@@ -34,7 +34,7 @@ export function RouterProvider({ children, value }: RouterProviderProps) {
     <RouterControllerContext.Provider value={controller}>
       <RouterRequestContext.Provider value={value.request}>
         <RouterContentContext.Provider value={value.content}>
-          <RouterPendingContext.Provider value={!!value.pending}>
+          <RouterPendingContext.Provider value={value.pending}>
             {children}
           </RouterPendingContext.Provider>
         </RouterContentContext.Provider>
