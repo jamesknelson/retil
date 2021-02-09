@@ -1,6 +1,6 @@
 {
   "name": "retil",
-  "version": "0.18.1",
+  "version": "0.18.2",
   "description": "Superpowers for React Developers.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -22,7 +22,7 @@
     "retil-history": "^0.18.0",
     "retil-issues": "^0.18.1",
     "retil-operation": "^0.18.0",
-    "retil-router": "^0.18.0",
+    "retil-router": "^0.18.2",
     "retil-source": "^0.18.0",
     "retil-support": "^0.18.0",
     "tslib": "2.0.1"
