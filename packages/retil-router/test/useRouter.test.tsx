@@ -1,5 +1,6 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
+import { createState } from 'retil-source'
 import { delay } from 'retil-support'
 import { createMemoryHistory } from 'retil-history'
 import { act, render, waitFor } from '@testing-library/react'
@@ -165,6 +166,38 @@ function testUseRouter(useRouter: typeof _useRouter) {
       setState({ requestService: requestService2 })
     })
     expect(container).toHaveTextContent('/test-2')
+  })
+
+  test(`when changing to a pending source, if can detect a change non-pending before the first effect`, async () => {
+    const [pendingSource, setPendingSource] = createState()
+    const requestService1 = createTestRequestService('/test-1')
+    const requestService2 = createTestRequestService('/test-2', {
+      extend: (_request, use) => {
+        return {
+          asyncValue: use(pendingSource),
+        }
+      },
+    })
+    const router: RouterFunction = (request) => request.pathname
+    let setState!: any
+    const Test = () => {
+      const [state, _setState] = useState({ requestService: requestService1 })
+      setState = _setState
+      return <>{useRouter(router, state).content}</>
+    }
+    const { container } = render(
+      <StrictMode>
+        <Test />
+      </StrictMode>,
+    )
+    expect(container).toHaveTextContent('/test-1')
+    await act(async () => {
+      await setState({ requestService: requestService2 })
+      setPendingSource('received')
+    })
+    await waitFor(() => {
+      expect(container).toHaveTextContent('/test-2')
+    })
   })
 }
 
