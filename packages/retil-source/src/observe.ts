@@ -48,10 +48,12 @@ export function observe<T>(
       throw error.value
     }
     subscribeIfRequired()
-    scheduleTeardownIfRequired()
     if (!snapshot) {
       snapshot = { deferred: new Deferred() }
     }
+    // This must be called *after* the snapshot is created, as it checks if
+    // the snapshot is a deferred.
+    scheduleTeardownIfRequired()
     if (!snapshot.deferred) {
       return snapshot.value
     }

@@ -67,11 +67,22 @@ describe(`observe`, () => {
     ])
   })
 
-  test.skip(`works with getSnapshotPromise() when a value takes longer than the default teardown period`, async () => {
+  test(`works with getSnapshotPromise() when a value takes longer than the default teardown period`, async () => {
+    let tornDown = false
     const inputPromise = delay(TEARDOWN_DELAY + 100).then(() => 'test')
-    const source = fromPromise(inputPromise)
+    const source = observe((next, error, complete) => {
+      inputPromise.then((value) => {
+        next(value)
+        complete()
+      }, error)
+      return () => {
+        tornDown = true
+      }
+    })
     const snapshot = await getSnapshotPromise(source)
 
     expect(snapshot).toBe('test')
+    await delay(TEARDOWN_DELAY + 100)
+    expect(tornDown).toBe(true)
   })
 })
