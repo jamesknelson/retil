@@ -1,12 +1,12 @@
-import { delay } from 'retil-support'
+import { delay, noop } from 'retil-support'
 import {
   TEARDOWN_DELAY,
   act,
-  fromPromise,
   getSnapshot,
   getSnapshotPromise,
   mergeLatest,
   observe,
+  subscribe,
 } from '../src'
 import { sendToArray } from './utils/sendToArray'
 
@@ -84,5 +84,49 @@ describe(`observe`, () => {
     expect(snapshot).toBe('test')
     await delay(TEARDOWN_DELAY + 100)
     expect(tornDown).toBe(true)
+  })
+
+  test(`immediately observed errors are thrown when getSnapshot is called`, async () => {
+    const source = observe((next, error) => {
+      next(1)
+      error(new Error('test'))
+      return noop
+    })
+    expect(() => {
+      getSnapshot(source)
+    }).toThrowError('test')
+  })
+
+  test(`errors observed while a subscripion is in place are thrown when getSnapshot is called`, async () => {
+    let throwError: Function = noop
+    const source = observe((next, error) => {
+      next(1)
+      throwError = () => error(new Error('test'))
+      return noop
+    })
+    subscribe(source, noop)
+    expect(getSnapshot(source)).toBe(1)
+    throwError()
+    expect(() => {
+      getSnapshot(source)
+    }).toThrowError('test')
+  })
+
+  test(`observed errors result in rejected promises `, async () => {
+    const source = observe((next, error) => {
+      next(1)
+      error('test error')
+      return noop
+    })
+    expect(getSnapshotPromise(source)).rejects.toBe('test error')
+  })
+
+  test(`errors thrown within the observe function will be re-thrown when getSnapshot is called`, async () => {
+    const source = observe(() => {
+      throw new Error('test')
+    })
+    expect(() => {
+      getSnapshot(source)
+    }).toThrowError()
   })
 })

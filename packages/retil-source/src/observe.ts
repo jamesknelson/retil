@@ -44,10 +44,10 @@ export function observe<T>(
     typeof observable === 'function' ? observable : observable.subscribe
 
   const get = (): T => {
+    subscribeIfRequired()
     if (error) {
       throw error.value
     }
-    subscribeIfRequired()
     if (!snapshot) {
       snapshot = { deferred: new Deferred() }
     }
@@ -62,6 +62,9 @@ export function observe<T>(
   }
 
   const subscribe = (callback: () => void): (() => void) => {
+    if (error) {
+      return noop
+    }
     callbacks.push(callback)
     subscribeIfRequired()
     return () => {
@@ -104,6 +107,7 @@ export function observe<T>(
     if (!subscription) {
       return
     }
+
     error = { value: err }
     const deferred = snapshot?.deferred
     notifySubscribers()
@@ -114,8 +118,6 @@ export function observe<T>(
     }
     if (deferred) {
       deferred.reject(err)
-    } else {
-      throw err
     }
   }
 
@@ -135,7 +137,7 @@ export function observe<T>(
       if (subscription.teardownTimeout) {
         clearTimeout(subscription.teardownTimeout)
       }
-    } else {
+    } else if (!error) {
       subscription = {
         count: 1,
         isSubscribing: true,
@@ -221,6 +223,10 @@ export function observe<T>(
   // promise returned by this function as listeners. All callbacks become async
   // if there's no listeners, and require any value to be cleared.
   const act = <U>(callback: () => PromiseLike<U> | U): Promise<U> => {
+    if (error) {
+      throw error.value
+    }
+
     const isTopLevelAct = ++actDepth === 1
     const batch = (actDeferred = actDeferred || new Deferred())
 

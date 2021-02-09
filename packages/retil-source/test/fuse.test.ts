@@ -1,5 +1,14 @@
 import { delay } from 'retil-support'
-import { act, createState, fuse, hasSnapshot, subscribe, wait } from '../src'
+import {
+  act,
+  createState,
+  fuse,
+  getSnapshot,
+  hasSnapshot,
+  select,
+  subscribe,
+  wait,
+} from '../src'
 import { sendToArray } from './utils/sendToArray'
 
 describe(`fuse`, () => {
@@ -222,5 +231,40 @@ describe(`fuse`, () => {
     setState({ value: 3 })
 
     expect(output.reverse()).toEqual([1, 2, 3])
+  })
+
+  test("will not re-run the fusor when a used source emits a value, but it hasn't changed, e.g. due to a select()", () => {
+    let fuseCount = 0
+    const [stateSource, setState] = createState({ value: 1 })
+    const source = fuse((use) => {
+      fuseCount += 1
+      return use(select(stateSource, ({ value }) => value))
+    })
+
+    const output = sendToArray(source)
+
+    setState({ value: 1 })
+
+    expect(fuseCount).toBe(1)
+
+    setState({ value: 2 })
+
+    expect(fuseCount).toBe(2)
+
+    setState({ value: 2 })
+
+    expect(fuseCount).toBe(2)
+
+    expect(output.reverse()).toEqual([1, 2])
+  })
+
+  test('errors thrown within the fusor function will be re-thrown when getSnapshot() is called', () => {
+    const source = fuse((use) => {
+      throw new Error('test')
+    })
+
+    expect(() => {
+      getSnapshot(source)
+    }).toThrowError()
   })
 })

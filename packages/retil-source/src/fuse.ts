@@ -1,9 +1,16 @@
 import { isPromiseLike } from 'retil-support'
 
 import { observe } from './observe'
-import { Source, SourceSubscribe, hasSnapshot } from './source'
+import {
+  Source,
+  SourceCore,
+  SourceSelect,
+  SourceSubscribe,
+  hasSnapshot,
+  getSnapshot,
+} from './source'
 
-export type FuseEffect = typeof FuseEffect
+export type FuseEffect = typeof FuseEffectSymbol
 export type Fusor<T> = (use: FusorUse, effect: FusorEffect) => T | FuseEffect
 export type FusorUse = <U, V = U>(
   source: Source<U>,
@@ -11,11 +18,13 @@ export type FusorUse = <U, V = U>(
 ) => U | V
 export type FusorEffect = (callback: () => any) => FuseEffect
 
-const FuseEffect = Symbol()
+const FuseEffectSymbol = Symbol()
 
 const throwArg = (error: any) => {
   throw error
 }
+
+type UsedState = { select: SourceSelect<any>; snapshot?: any }
 
 export function fuse<T>(fusor: Fusor<T>): Source<T> {
   let onNext: null | ((value: T) => void) = null
@@ -26,13 +35,13 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
   let isInEffect = false
   let isInvalidated = false
 
-  const usedSubscribes = new Set<SourceSubscribe>()
-  const usedUnsubscribes = new Map<SourceSubscribe, () => void>()
+  const used = new Map<SourceCore, UsedState[]>()
+  const usedUnsubscribes = new Map<SourceCore, () => void>()
 
   const effectQueue = [] as (() => any)[]
   const effect = (callback: () => any): FuseEffect => {
     effectQueue.push(callback)
-    return FuseEffect
+    return FuseEffectSymbol
   }
 
   const use = <T, U = T>(
@@ -41,28 +50,48 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
   ): T | U => {
     const [core, select] = source
     const subscribe = core[1]
-    usedSubscribes.add(subscribe)
-    if (!usedUnsubscribes.has(subscribe)) {
-      usedUnsubscribes.set(subscribe, subscribe(invalidate))
+    if (!used.has(core)) {
+      used.set(core, [])
+    }
+    const doesSourceHaveSnapshot = hasSnapshot(source)
+    const usedState: UsedState = { select }
+    if (doesSourceHaveSnapshot) {
+      usedState.snapshot = select(core)
+    }
+    used.get(core)!.push(usedState)
+    if (!usedUnsubscribes.has(core)) {
+      usedUnsubscribes.set(core, subscribe(createInvalidator(core)))
     }
     return defaultValues.length === 0 || hasSnapshot(source)
       ? select(core)
       : defaultValues[0]
   }
 
-  const invalidate = () => {
-    isInvalidated = true
-    if (!isInEffect && !isFusing) {
-      runFusor()
+  const createInvalidator = (core: SourceCore) => {
+    return () => {
+      const usedStates = used.get(core)!
+      for (const usedState of usedStates) {
+        const source = [core, usedState.select] as const
+        const doesSourceHaveSnapshot = hasSnapshot(source)
+        const didSourceHaveSnapshot = 'snapshot' in usedState
+        if (
+          doesSourceHaveSnapshot !== didSourceHaveSnapshot ||
+          (doesSourceHaveSnapshot && getSnapshot(source) !== usedState.snapshot)
+        ) {
+          isInvalidated = true
+          if (!isInEffect && !isFusing) {
+            runFusor()
+          }
+          return
+        }
+      }
     }
   }
 
   const unsubscribeFromUnused = () => {
-    for (const [subscribe, unsubscribe] of Array.from(
-      usedUnsubscribes.entries(),
-    )) {
-      if (!usedSubscribes.has(subscribe)) {
-        usedUnsubscribes.delete(subscribe)
+    for (const [core, unsubscribe] of Array.from(usedUnsubscribes.entries())) {
+      if (!used.has(core)) {
+        usedUnsubscribes.delete(core)
         unsubscribe()
       }
     }
@@ -103,13 +132,13 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
     }
 
     try {
-      usedSubscribes.clear()
+      used.clear()
       isInvalidated = false
       isFusing = true
       const snapshot = fusor(use, effect)
       isFusing = false
 
-      if (snapshot === FuseEffect) {
+      if (snapshot === FuseEffectSymbol) {
         runEffects()
       } else if (isInvalidated && effectQueue.length === 0) {
         runFusor()
@@ -145,7 +174,9 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
     onError = error
     onClear = clear
 
-    invalidate()
+    isInvalidated = true
+
+    runFusor()
 
     return () => {
       onNext = null
@@ -155,7 +186,7 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
         unsubscribe()
       }
       usedUnsubscribes.clear()
-      usedSubscribes.clear()
+      used.clear()
     }
   })
 
