@@ -147,21 +147,21 @@ export function createNextHistory(
     // we still want the history to have a value during navigation -- otherwise
     // we don't have enough information to decide whether to display a loading
     // bar or not.
-    navigate: async (action) => {
+    navigate: async (action, options = {}) => {
       const location = parseLocation(action)
       const route = await mapPathnameToRoute(router, location.pathname)
 
       // Next.js just feeds these directly into window.history.state,
       // allowing us
-      const options = {
+      const nextOptions = {
         retilKey: createRequestKey(),
         scroll: false,
       } as any
 
       if (options.replace) {
-        return router.replace(route, createHref(location), options)
+        return router.replace(route, createHref(location), nextOptions)
       } else {
-        return router.push(route, createHref(location), options)
+        return router.push(route, createHref(location), nextOptions)
       }
     },
   }
