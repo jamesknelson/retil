@@ -173,7 +173,8 @@ export function observe<T>(
   }
 
   const teardownSubscription = () => {
-    if (subscription) {
+    // Avoid teardown if we've since resubscribed
+    if (subscription && subscription.count === 0) {
       const unsubscribe = subscription.unsubscribe!
       nextSnapshot = null
       snapshot = null
