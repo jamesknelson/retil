@@ -69,16 +69,25 @@ export function splitSurfaceProps<P extends SurfaceProps>(
   props: P,
 ): readonly [SurfaceProps, Omit<P, keyof SurfaceProps>] {
   const {
-    activated,
-    delegateFocus: delegateFocusRef,
-    disabled,
-    focusable,
-    interactions: interactionSelectors,
+    activated = false,
+    delegateFocus,
+    disabled = false,
+    focusable = true,
+    interactions,
 
     ...other
   } = props
 
-  return [props, other]
+  return [
+    {
+      activated,
+      delegateFocus,
+      disabled,
+      focusable,
+      interactions,
+    },
+    other,
+  ]
 }
 
 export const SurfaceDepthContext = createContext<number>(0)
