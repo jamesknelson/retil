@@ -1,6 +1,6 @@
 {
   "name": "retil-interactions",
-  "version": "0.18.3",
+  "version": "0.18.5",
   "description": "Utilities to create unstyled interactive components",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -20,9 +20,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "tslib": "2.0.1",
-    "retil-style": "^0.18.0",
-    "retil-support": "^0.18.0"
+    "retil-style": "^0.18.5",
+    "retil-support": "^0.18.5",
+    "tslib": "2.0.1"
   },
   "devDependencies": {
     "@types/styled-components": "^5.1.7",
