@@ -88,7 +88,7 @@ export function SurfaceController<E extends Element = HTMLElement>(
 ) {
   const {
     disabled: disabledContext = false,
-    focusable: focusableContext = false,
+    focusable: focusableContext = true,
   } = useContext(InteractionDefaultsContext)
 
   const { delegateFocus: delegateFocusContext } = useContext(
@@ -211,7 +211,7 @@ function joinEventHandlers<E extends React.SyntheticEvent>(
 ): React.EventHandler<E> | undefined {
   return !x || !y
     ? x || y
-    : () => (event: E): void => {
+    : (event: E): void => {
         x(event)
         if (!event.defaultPrevented) {
           y(event)
