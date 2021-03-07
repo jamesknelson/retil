@@ -6,7 +6,10 @@ export interface TInteractionDefaultsContext {
 }
 
 export const InteractionDefaultsContext = createContext<TInteractionDefaultsContext>(
-  {},
+  {
+    disabled: false,
+    focusable: true,
+  },
 )
 
 export interface InteractionDefaultsProviderProps
@@ -17,7 +20,7 @@ export interface InteractionDefaultsProviderProps
 export function InteractionDefaultsProvider(
   props: InteractionDefaultsProviderProps,
 ) {
-  const { children, disabled, focusable } = props
+  const { children, disabled = false, focusable = true } = props
 
   const context = useMemo(
     () => ({
