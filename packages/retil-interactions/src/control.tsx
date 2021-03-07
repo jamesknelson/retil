@@ -9,11 +9,9 @@ import { noop } from 'retil-support'
 
 import { SurfaceDefaultsProvider } from './surfaceDefaultsContext'
 
-const ControlContext = createContext<React.RefCallback<HTMLElement | null>>(
-  noop,
-)
-
 export type Focusable = Pick<HTMLElement, 'focus'>
+
+const ControlContext = createContext<React.RefCallback<Focusable | null>>(noop)
 
 export interface ControlProviderProps {
   children: React.ReactNode
@@ -47,6 +45,6 @@ export function ControlProvider(props: ControlProviderProps) {
  * Returns a ref which should be passed to the element within the control
  * which actually receives focus when any of its surfaces are clicked.
  */
-export function useControlFocusTargetRef(): React.RefCallback<Element | null> {
+export function useControlFocusTargetRef(): React.RefCallback<Focusable | null> {
   return useContext(ControlContext)
 }
