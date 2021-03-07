@@ -1,4 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http'
+import { ParsedUrlQuery } from 'querystring'
 import {
   RouterFunction,
   RouterRequest,
@@ -22,9 +23,7 @@ export interface NextilState<Ext = any> {
   isSSR: boolean
   serverRequest?: IncomingMessage
   serverResponse?: ServerResponse
-  params: {
-    [name: string]: string | string[]
-  }
+  params: ParsedUrlQuery
   router: RouterFunction<NextilRequest & Ext, NextilResponse>
   serializedData?: any
 }
