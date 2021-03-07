@@ -13,20 +13,22 @@ const ControlContext = createContext<React.RefCallback<HTMLElement | null>>(
   noop,
 )
 
+export type Focusable = Pick<HTMLElement, 'focus'>
+
 export interface ControlProviderProps {
   children: React.ReactNode
 }
 
 export function ControlProvider(props: ControlProviderProps) {
-  const focusTargetRef = useRef<HTMLElement | null>(null)
+  const focusTargetRef = useRef<Focusable | null>(null)
 
-  const setFocusTarget = useCallback((element: HTMLElement | null) => {
+  const setFocusTarget = useCallback((element: Focusable | null) => {
     focusTargetRef.current = element
   }, [])
 
   const delegateFocus = useCallback((event: SyntheticEvent) => {
     const target = focusTargetRef.current
-    if (target !== event.target) {
+    if (target !== ((event.target as unknown) as Focusable)) {
       event.preventDefault()
       target?.focus()
     }
