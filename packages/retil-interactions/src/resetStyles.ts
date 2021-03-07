@@ -1,0 +1,31 @@
+export const resetACSS = {
+  display: 'flex',
+  flexDirection: 'column',
+  alignItems: 'stretch',
+  justifyContent: 'stretch',
+  appearance: 'none',
+  color: 'inherit',
+  cursor: 'pointer',
+  outline: 'none',
+  textDecoration: 'none',
+}
+
+export const resetButtonCSS = {
+  display: 'flex',
+  alignItems: 'stretch',
+  flexDirection: 'column',
+  justifyContent: 'stretch',
+  appearance: 'none',
+  mozAppearance: 'none',
+  webkitAppearance: 'none',
+  backgroundColor: 'transparent',
+  borderRadius: 0,
+  borderWidth: 0,
+  color: 'inherit',
+  cursor: 'pointer',
+  fontFamily: 'inherit',
+  fontSize: 'inherit',
+  height: 'auto',
+  padding: 0,
+  outline: 'none',
+}

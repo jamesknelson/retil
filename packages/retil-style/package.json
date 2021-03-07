@@ -1,7 +1,7 @@
 {
-  "name": "retil-support",
-  "version": "0.18.0",
-  "description": "A reactive source",
+  "name": "retil-style",
+  "version": "0.18.3",
+  "description": "Superpowers for styling React components",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -15,18 +15,19 @@
     "build": "yarn run clean && yarn build:es && yarn build:commonjs && yarn build:types",
     "build:watch": "yarn run clean && yarn build:es -- --types --watch",
     "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn build",
+    "prepare": "yarn test && yarn build",
     "test": "jest",
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "lodash": "^4.17.21",
-    "memoize-one": "^5.1.1",
-    "tslib": "2.0.1"
+    "tslib": "2.0.1",
+    "retil-support": "^0.18.0"
   },
   "devDependencies": {
-    "@types/lodash": "^4.14.168",
     "typescript": "4.1.2"
+  },
+  "peerDependencies": {
+    "react": "^17.0.1"
   },
   "files": [
     "dist"
