@@ -4,7 +4,7 @@ import React, { forwardRef } from 'react'
 import { useHighStyle } from 'retil-style'
 import styled, { CSSProp } from 'styled-components'
 
-import { ButtonSurface, SurfaceController } from '../src'
+import { ButtonSurface, ConnectSurface } from '../src'
 
 afterEach(cleanup)
 
@@ -28,15 +28,13 @@ describe('Surfaces', () => {
     const { getByTestId } = render(
       // Use a raw SurfaceController so that we can set the surfaceClassName
       // prop, as we need to know what it is when looking for the selector.
-      <SurfaceController surfaceClassName="test-surface">
-        {(connect) =>
-          connect(
-            <button type="button">
-              <ButtonBody data-testid="body" />
-            </button>,
-          )
-        }
-      </SurfaceController>,
+      <ConnectSurface surfaceClassName="test-surface">
+        {(props) => (
+          <button {...props} type="button">
+            <ButtonBody data-testid="body" />
+          </button>
+        )}
+      </ConnectSurface>,
     )
 
     expect(getByTestId('body')).toHaveStyleRule('color', 'red', {

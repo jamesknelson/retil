@@ -7,18 +7,23 @@ import {
   waitFor,
 } from '@testing-library/react'
 import '@testing-library/jest-dom/extend-expect'
-import { usePopupTrigger } from '../src/usePopupTrigger'
+import {
+  popupTriggerServiceConfigurator,
+  useConfigurator,
+  useService,
+} from '../src'
 
 function TestComponent() {
-  let trigger = usePopupTrigger({
+  const triggerService = useConfigurator(popupTriggerServiceConfigurator, {
     triggerOnFocus: true,
     triggerOnHover: true,
-    triggerOnSelect: true,
+    triggerOnPress: true,
   })
+  const [triggered, controller] = useService(triggerService)
 
   return (
-    <button data-testid="trigger" ref={trigger.ref}>
-      {trigger.active ? 'open' : 'closed'}
+    <button data-testid="trigger" ref={controller.setTriggerElement}>
+      {triggered ? 'open' : 'closed'}
     </button>
   )
 }

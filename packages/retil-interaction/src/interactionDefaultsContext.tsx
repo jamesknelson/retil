@@ -1,4 +1,4 @@
-import React, { createContext, useMemo } from 'react'
+import React, { createContext, useContext, useMemo } from 'react'
 
 export interface TInteractionDefaultsContext {
   disabled?: boolean
@@ -20,7 +20,12 @@ export interface InteractionDefaultsProviderProps
 export function InteractionDefaultsProvider(
   props: InteractionDefaultsProviderProps,
 ) {
-  const { children, disabled = false, focusable = true } = props
+  const parentContext = useContext(InteractionDefaultsContext)
+  const {
+    children,
+    disabled = parentContext.disabled,
+    focusable = parentContext.focusable,
+  } = props
 
   const context = useMemo(
     () => ({

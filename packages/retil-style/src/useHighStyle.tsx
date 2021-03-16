@@ -45,7 +45,7 @@ export type CSSFunction<Theme = any> = (
 ) => CSSObject
 
 export function useHighStyle<Theme, HighSelector extends string>(
-  xStyle: HighStyle<Theme, HighSelector>,
+  highStyle: HighStyle<Theme, HighSelector>,
 ): CSSFunction<Theme> {
   const downSelect = useDownSelect()
 
@@ -53,10 +53,16 @@ export function useHighStyle<Theme, HighSelector extends string>(
     // Emotion passes in a theme directly, while styled-components passes it
     // on a proprety of the argument object.
     const theme = 'theme' in themeOrProps ? themeOrProps['theme'] : themeOrProps
-    const props = Object.keys(xStyle)
+    const props = Object.keys(highStyle)
     const output: CSSObject = {}
     for (const propName of props) {
-      mutableCompileStyle(theme, downSelect, output, propName, xStyle[propName])
+      mutableCompileStyle(
+        theme,
+        downSelect,
+        output,
+        propName,
+        highStyle[propName],
+      )
     }
 
     return output
@@ -70,14 +76,14 @@ function mutableCompileStyle<Theme, HighSelector extends string>(
   downSelect: DownSelect<HighSelector>,
   output: CSSObject,
   property: string,
-  xValue: HighStyleValue<Theme, HighSelector, any>,
+  highValue: HighStyleValue<Theme, HighSelector, any>,
 ): void {
-  if (typeof xValue === 'number' || typeof xValue === 'string') {
-    output[property] = xValue
-  } else if (typeof xValue === 'function') {
-    mutableCompileStyle(theme, downSelect, output, property, xValue(theme))
-  } else if (isPlainObject(xValue)) {
-    const selectorNames = Object.keys(xValue) as HighSelector[]
+  if (typeof highValue === 'number' || typeof highValue === 'string') {
+    output[property] = highValue
+  } else if (typeof highValue === 'function') {
+    mutableCompileStyle(theme, downSelect, output, property, highValue(theme))
+  } else if (isPlainObject(highValue)) {
+    const selectorNames = Object.keys(highValue) as HighSelector[]
     for (const selectorName of selectorNames) {
       const selector =
         selectorName === 'default' ? true : downSelect(selectorName)
@@ -101,7 +107,7 @@ function mutableCompileStyle<Theme, HighSelector extends string>(
           downSelect,
           selectorOutput,
           property,
-          xValue[selectorName],
+          highValue[selectorName],
         )
       }
     }

@@ -9,3 +9,5 @@ import { useSourceLegacy } from './useSourceLegacy'
 export const useSource = !!(React as any).unstable_useMutableSource
   ? useSourceModern
   : useSourceLegacy
+
+export * from './useSourceType'

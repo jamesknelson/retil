@@ -1,18 +1,15 @@
 import React, {
   SyntheticEvent,
-  cloneElement,
   createContext,
   useContext,
   useMemo,
 } from 'react'
 import { CSSSelector, ProvideDownSelector } from 'retil-style'
-import {
-  emptyObject,
-  memoizeOne,
-  preventDefaultEventHandler,
-} from 'retil-support'
+import { emptyObject, preventDefaultEventHandler } from 'retil-support'
 
 import { InteractionDefaultsContext } from './interactionDefaultsContext'
+import { joinClassNames } from './joinClassNames'
+import { useJoinEventHandlers } from './joinEventHandlers'
 import { InteractionType } from './interactionType'
 import { SurfaceDefaultsContext } from './surfaceDefaultsContext'
 
@@ -51,20 +48,6 @@ export interface SurfaceProps {
   interactions?: Partial<Record<InteractionType, boolean>>
 }
 
-// These props can be supplied by the extending surface themselves, and
-// should not be passed through.
-export interface SurfaceControllerProps<E extends Element = HTMLElement>
-  extends SurfaceProps {
-  children: (
-    connect: (element: React.ReactElement) => React.ReactElement,
-  ) => React.ReactElement
-
-  onClick?: (event: React.MouseEvent<E>) => void
-  onMouseDown?: (event: React.MouseEvent<E>) => void
-
-  surfaceClassName?: string
-}
-
 export function splitSurfaceProps<P extends SurfaceProps>(
   props: P,
 ): readonly [SurfaceProps, Omit<P, keyof SurfaceProps>] {
@@ -90,10 +73,52 @@ export function splitSurfaceProps<P extends SurfaceProps>(
   ]
 }
 
+// These props can be supplied by the extending surface themselves, and
+// should not be passed through.
+export interface ConnectSurfaceProps<
+  SurfaceElement extends HTMLElement,
+  MergeProps extends ConnectSurfaceMergeableProps<SurfaceElement>
+> extends SurfaceProps {
+  mergeProps?: MergeProps
+
+  children: (
+    props: ConnectSurfaceRenderProps<SurfaceElement>,
+  ) => React.ReactNode
+  surfaceClassName?: string
+}
+
+export interface ConnectSurfaceRenderProps<SurfaceElement extends HTMLElement> {
+  'aria-disabled': boolean
+  className: string
+  onClick?: (event: React.MouseEvent<SurfaceElement>) => void
+  onMouseDown?: (event: React.MouseEvent<SurfaceElement>) => void
+  tabIndex: number
+}
+
+export type ConnectSurfaceMergeableProps<SurfaceElement extends HTMLElement> = {
+  ref?: React.Ref<SurfaceElement | null>
+
+  className?: string
+  onClick?: (event: React.MouseEvent<SurfaceElement>) => void
+  onMouseDown?: (event: React.MouseEvent<SurfaceElement>) => void
+  tabIndex?: number
+} & {
+  [propName: string]: any
+}
+
 export const SurfaceDepthContext = createContext<number>(0)
 
-export function SurfaceController<E extends Element = HTMLElement>(
-  props: SurfaceControllerProps<E>,
+export function ConnectSurface<
+  SurfaceElement extends HTMLElement,
+  MergeProps extends ConnectSurfaceMergeableProps<SurfaceElement>
+>(
+  props: ConnectSurfaceProps<SurfaceElement, MergeProps> & {
+    mergeProps?: {
+      ref?: React.Ref<SurfaceElement | null>
+      onClick?: (event: React.MouseEvent<SurfaceElement>) => void
+      onMouseDown?: (event: React.MouseEvent<SurfaceElement>) => void
+    }
+  },
 ) {
   const {
     disabled: disabledContext = false,
@@ -112,9 +137,8 @@ export function SurfaceController<E extends Element = HTMLElement>(
     delegateFocus = delegateFocusContext,
     disabled = disabledContext,
     focusable = focusableContext,
-    onClick,
-    onMouseDown,
-    interactions: overrides = emptyObject,
+    interactions = emptyObject,
+    mergeProps,
     surfaceClassName = createDefaultSurfaceClassName(depth),
   } = props
 
@@ -132,49 +156,35 @@ export function SurfaceController<E extends Element = HTMLElement>(
       disabled,
       enabled: !disabled,
       ...disabledOverrides,
-      ...overrides,
+      ...interactions,
     })
-  }, [activated, disabled, overrides, surfaceClassName])
+  }, [activated, disabled, interactions, surfaceClassName])
 
-  const connectClickHandler = useMemo(() => {
-    // Prevent execuation of <SurfaceController onClick> when disabled.
-    const surfaceHandler = joinEventHandlers(
+  const joinClickHandler = useJoinEventHandlers()
+  const joinMouseDownHandler = useJoinEventHandlers()
+
+  const renderProps: ConnectSurfaceRenderProps<SurfaceElement> = {
+    ...mergeProps,
+    'aria-disabled': disabled,
+    className: joinClassNames(surfaceClassName, mergeProps?.className),
+    onClick: joinClickHandler(
+      // Prevent execuation of <SurfaceController onClick> when disabled.
       disabled ? preventDefaultEventHandler : undefined,
-      onClick,
-    )
-    return memoizeOne((connectedHandler: React.MouseEventHandler) =>
-      joinEventHandlers(connectedHandler, surfaceHandler),
-    )
-  }, [disabled, onClick])
-
-  // This handler handles focus delegation, prevents focus if focusable is set
-  // to false, and also calls any handler which was passed in via props.
-  const connectMouseDownHandler = useMemo(() => {
-    const delegateOrPreventFocusHandler = !focusable
-      ? preventDefaultEventHandler
-      : delegateFocus
-    const surfaceHandler = joinEventHandlers(
-      onMouseDown,
-      delegateOrPreventFocusHandler || undefined,
-    )
-    return memoizeOne((connectedHandler: React.MouseEventHandler) =>
-      joinEventHandlers(connectedHandler, surfaceHandler),
-    )
-  }, [onMouseDown, focusable, delegateFocus])
-
-  const connect = (element: React.ReactElement) =>
-    cloneElement(element, {
-      'aria-disabled': disabled,
-      className: joinClassNames(surfaceClassName, element.props.className),
-      onClick: connectClickHandler(element.props.onClick),
-      onMouseDown: connectMouseDownHandler(element.props.onMouseDown),
-      tabIndex: !!delegateFocus ? -1 : element.props.tabIndex,
-    })
+      mergeProps?.onClick,
+    ),
+    onMouseDown: joinMouseDownHandler(
+      // This handler handles focus delegation, prevents focus if focusable is set
+      // to false, and also calls any handler which was passed in via props.
+      mergeProps?.onMouseDown,
+      !focusable ? preventDefaultEventHandler : delegateFocus,
+    ),
+    tabIndex: !!delegateFocus ? -1 : mergeProps?.tabIndex ?? 0,
+  }
 
   return (
     <SurfaceDepthContext.Provider value={depth + 1}>
       <ProvideDownSelector downSelect={downSelect}>
-        {children(connect)}
+        {children(renderProps)}
       </ProvideDownSelector>
     </SurfaceDepthContext.Provider>
   )
@@ -204,26 +214,4 @@ function createDownSelect(
       ? overrideSelector
       : defaultSelectors[selectorName]
   }
-}
-
-function joinClassNames(x?: string, y?: string): string | undefined {
-  if (!x && !y) return undefined
-  return [x, y].filter(Boolean).join(' ')
-}
-
-// Execute two event handlers in sequence, unless the first event handler
-// prevents the default action, in which case the second handler will
-// be abandoned.
-function joinEventHandlers<E extends React.SyntheticEvent>(
-  x?: React.EventHandler<E>,
-  y?: React.EventHandler<E>,
-): React.EventHandler<E> | undefined {
-  return !x || !y
-    ? x || y
-    : (event: E): void => {
-        x(event)
-        if (!event.defaultPrevented) {
-          y(event)
-        }
-      }
 }
