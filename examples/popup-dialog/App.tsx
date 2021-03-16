@@ -7,7 +7,7 @@ import {
   PopupDialogArrowDiv,
   PopupDialogTriggerSurface,
   ConnectPopupDialog,
-} from '../../packages/retil-interactions/src'
+} from '../../packages/retil-interaction/src'
 
 const StyledTrigger = styled(PopupDialogTriggerSurface)`
   cursor: pointer;
