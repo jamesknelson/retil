@@ -1,4 +1,3 @@
-import * as CSS from 'csstype'
 import React, {
   CSSProperties,
   createContext,
@@ -96,7 +95,7 @@ export interface PopupDialogProps<PopupElement extends HTMLElement> {
   ref: (element: PopupElement | null) => void
   role: 'dialog'
   tabIndex: number
-  style: CSS.Properties
+  style: CSSProperties
 }
 
 export type PopupDialogMergeableProps<PopupElement extends HTMLElement> = {
@@ -105,7 +104,7 @@ export type PopupDialogMergeableProps<PopupElement extends HTMLElement> = {
   ref?: React.Ref<PopupElement | null>
   role?: never
   tabIndex?: never
-  style?: CSS.Properties
+  style?: CSSProperties
 } & {
   [propName: string]: any
 }
