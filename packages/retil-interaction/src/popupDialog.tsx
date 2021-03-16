@@ -82,9 +82,12 @@ export const ProvidePopupDialog = forwardRef<
   )
 })
 
-// Use this in your popup dialog to decide whether to render the popup at all
 export function usePopupDialogActive() {
   return useContext(PopupDialogActiveContext)
+}
+
+export function usePopupDialogHandle() {
+  return useContext(PopupDialogHandleContext)
 }
 
 // ---
