@@ -191,13 +191,19 @@ export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigura
   return [reconfigure, [source, controller]]
 }
 
+// Hide the popup until we have the styles to avoid a flash of incorrectly
+// positioned content.
+const hiddenStyles = {
+  position: 'absolute',
+  visibility: 'hidden',
+  zIndex: -999,
+}
+
 const createSnapshot = (
   config: PopupPositionerConfigWithDefaults,
   state?: PopperState,
 ): PopupPositionerSnapshot => ({
-  arrowStyles: (state?.styles.arrow as CSS.Properties) || {
-    visibility: 'hidden',
-  },
+  arrowStyles: (state?.styles.arrow as CSS.Properties) || hiddenStyles,
   placement: state?.placement || config.placement,
   hasPopupEscaped:
     state && state.modifiersData.hide
@@ -207,11 +213,7 @@ const createSnapshot = (
     state && state.modifiersData.hide
       ? !!state.modifiersData.hide.isReferenceHidden
       : false,
-  popupStyles: (state?.styles.popper as CSS.Properties) || {
-    // Hide the popup until we have the styles to avoid a flash of incorrectly
-    // positioned content.
-    visibility: 'hidden',
-  },
+  popupStyles: (state?.styles.popper as CSS.Properties) || hiddenStyles,
 })
 
 const getPopperOptions = (
