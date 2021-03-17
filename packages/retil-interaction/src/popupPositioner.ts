@@ -28,7 +28,9 @@ export type PopupPositionerServiceConfigurator = Configurator<
 
 const areConfigsEqual = isDeepEqual
 export interface PopupPositionerConfig {
-  defaultReference?: ClientRect | DOMRect
+  adaptive?: boolean
+  gpuAcceleration?: boolean
+  defaultReference?: ClientRect | DOMRect // TODO
   offset?: readonly [along: number, away: number]
   placement?: Placement
   strategy?: PositioningStrategy
@@ -42,6 +44,8 @@ type PopupPositionerConfigWithDefaults = Omit<
   Pick<PopupPositionerConfig, 'defaultReference'>
 
 export const popupPositionerConfigDefaults = {
+  adaptive: true,
+  gpuAcceleration: true,
   delayTeardownPopup: 500,
   offset: [0, 10] as const,
   placement: 'bottom' as const,
@@ -85,6 +89,11 @@ export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigura
   )
 
   const updateInstance = () => {
+    if (mutableTeardownPopupTimeout) {
+      clearTimeout(mutableTeardownPopupTimeout)
+      mutableTeardownPopupTimeout = undefined
+    }
+
     if (mutableInstance) {
       mutableInstance.destroy()
     }
@@ -108,9 +117,13 @@ export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigura
     if (element !== mutableArrowElement) {
       mutableArrowElement = element
       if (mutableInstance) {
-        mutableInstance.setOptions(
-          getPopperOptions(mutableConfig, setSnapshot, element),
-        )
+        if (mutablePopupElement) {
+          mutableInstance.setOptions(
+            getPopperOptions(mutableConfig, setSnapshot, element),
+          )
+        } else {
+          updateInstance()
+        }
       }
     }
   }
@@ -185,7 +198,7 @@ const createSnapshot = (
   arrowStyles: (state?.styles.arrow as CSS.Properties) || {
     visibility: 'hidden',
   },
-  placement: config.placement,
+  placement: state?.placement || config.placement,
   hasPopupEscaped:
     state && state.modifiersData.hide
       ? !!state.modifiersData.hide.hasPopperEscaped
@@ -225,10 +238,8 @@ const getPopperOptions = (
     {
       name: 'computeStyles',
       options: {
-        // We disable the built-in gpuAcceleration so that
-        // Popper.js will return us easy to interpolate values
-        // (top, left instead of transform: translate3d)
-        gpuAcceleration: false,
+        adaptive: config.adaptive,
+        gpuAcceleration: config.gpuAcceleration,
       },
     },
     {

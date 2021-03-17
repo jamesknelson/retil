@@ -51,12 +51,11 @@ export const ProvidePopupDialog = forwardRef<
     children,
     popupId = defaultPopupId,
     triggerId = defaultTriggerId,
-    triggerOnFocus = false,
     ...popupConfig
   } = props
 
+  const triggerOnFocus = popupConfig.triggerOnFocus ?? false
   const disabled = !!props.disabled
-
   const config = useMemo(
     () => ({
       disabled,
@@ -283,9 +282,10 @@ export function usePopupDialogArrowProps<
 ): PopupDialogArrowProps<ArrowElement> &
   Omit<MergeProps, keyof PopupDialogArrowProps<any>> {
   const handle = useContext(PopupDialogHandleContext)
+  const active = usePopupDialogActive()
   const position = usePopupPosition(handle)
   const joinRefs = useJoinRefs()
-  const isVisible = position.popupStyles?.visibility !== 'hidden'
+  const isVisible = active && position.popupStyles?.visibility !== 'hidden'
 
   // The positioner doesn't seem to know how to position the arrow until the
   // popup element itself is visible.

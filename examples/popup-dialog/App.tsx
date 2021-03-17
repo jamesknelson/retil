@@ -18,6 +18,7 @@ const StyledTrigger = styled(PopupDialogTriggerSurface)`
   border: 1px solid #d0d0d0;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   font-family: sans-serif;
+  user-select: none;
 `
 
 const StyledCard = styled.div`
@@ -26,7 +27,8 @@ const StyledCard = styled.div`
   line-height: 30px;
   width: 100px;
   text-align: center;
-  border: 1px solid #d0d0d0;
+  color: rgba(255, 255, 255, 0.93);
+  background-color: #333;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   font-family: sans-serif;
 `
@@ -36,13 +38,18 @@ const StyledPopupDialogArrow = styled(PopupDialogArrowDiv)`
   margin-top: -10px;
 
   &[data-placement*='bottom'] {
-    border-bottom-color: #d0d0d0;
+    border-bottom-color: #333;
   }
 `
 
 export function App() {
   return (
-    <ProvidePopupDialog placement="bottom-start">
+    <ProvidePopupDialog
+      offset={[0, 6]}
+      placement="top-start"
+      triggerOnHover
+      triggerOnFocus
+      triggerOnPress>
       <StyledTrigger data-testid="trigger">trigger</StyledTrigger>
       <ConnectPopupDialog>
         {(props) =>
