@@ -1,4 +1,5 @@
 import React from 'react'
+import { delay } from 'retil-support'
 import {
   act,
   render,
@@ -18,13 +19,17 @@ function TestComponent() {
     triggerOnFocus: true,
     triggerOnHover: true,
     triggerOnPress: true,
+    delayOut: 50,
   })
   const [triggered, controller] = useService(triggerService)
 
   return (
-    <button data-testid="trigger" ref={controller.setTriggerElement}>
-      {triggered ? 'open' : 'closed'}
-    </button>
+    <div>
+      <button data-testid="trigger" ref={controller.setTriggerElement}>
+        {triggered ? 'open' : 'closed'}
+      </button>
+      <div ref={controller.setPopupElement} />
+    </div>
   )
 }
 
@@ -67,10 +72,109 @@ describe('hook', () => {
     fireEvent.mouseUp(element)
     fireEvent.click(element)
 
+    expect(element).toHaveTextContent('open')
+
     fireEvent.mouseDown(element)
     fireEvent.mouseUp(element)
     fireEvent.click(element)
 
     expect(element).toHaveTextContent('closed')
+  })
+
+  test('is closed on outside click after delay', async () => {
+    const { container, getByTestId } = render(<TestComponent />)
+    const element = getByTestId('trigger')
+
+    await act(async () => {
+      fireEvent.mouseDown(element)
+      element.focus()
+      fireEvent.mouseUp(element)
+      fireEvent.click(element)
+    })
+
+    expect(element).toHaveTextContent('open')
+
+    await delay(500)
+
+    await act(async () => {
+      fireEvent.mouseDown(container)
+      fireEvent.mouseUp(container)
+      fireEvent.click(container)
+    })
+
+    expect(element).toHaveTextContent('closed')
+  })
+
+  test('is not closed on outside click immediately after open', async () => {
+    const { container, getByTestId } = render(<TestComponent />)
+    const element = getByTestId('trigger')
+
+    await act(async () => {
+      fireEvent.mouseDown(element)
+      element.focus()
+      fireEvent.mouseUp(element)
+      fireEvent.click(element)
+    })
+
+    expect(element).toHaveTextContent('open')
+
+    await act(async () => {
+      fireEvent.mouseDown(container)
+      fireEvent.mouseUp(container)
+      fireEvent.click(container)
+    })
+
+    await delay(500)
+
+    expect(element).toHaveTextContent('open')
+  })
+
+  test('is closed on outside click after popup node is nulled out and immediately re set', async () => {
+    let controller: any
+
+    function TestComponent() {
+      const triggerService = useConfigurator(popupTriggerServiceConfigurator, {
+        triggerOnFocus: true,
+        triggerOnHover: true,
+        triggerOnPress: true,
+        delayOut: 50,
+      })
+      const [triggered, _controller] = useService(triggerService)
+
+      controller = _controller
+
+      return (
+        <div>
+          <button data-testid="trigger" ref={controller.setTriggerElement}>
+            {triggered ? 'open' : 'closed'}
+          </button>
+          <div data-testid="popup" ref={controller.setPopupElement} />
+        </div>
+      )
+    }
+
+    const { container, getByTestId } = render(<TestComponent />)
+    const trigger = getByTestId('trigger')
+    const popup = getByTestId('popup')
+
+    await act(async () => {
+      fireEvent.mouseDown(trigger)
+      trigger.focus()
+      fireEvent.mouseUp(trigger)
+      fireEvent.click(trigger)
+    })
+
+    controller.setPopupElement(null)
+    controller.setPopupElement(popup)
+
+    await delay(500)
+
+    await act(async () => {
+      fireEvent.mouseDown(container)
+      fireEvent.mouseUp(container)
+      fireEvent.click(container)
+    })
+
+    expect(trigger).toHaveTextContent('closed')
   })
 })

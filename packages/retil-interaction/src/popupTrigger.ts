@@ -438,35 +438,33 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator = 
 
   let mutableTeardownPopupTimeout: any | undefined
   const setPopupElement = (element: HTMLElement | null) => {
-    if (element !== mutablePopupElement) {
-      if (mutableTeardownPopupTimeout) {
-        clearTimeout(mutableTeardownPopupTimeout)
-        mutableTeardownPopupTimeout = undefined
-      }
+    const perform = () => {
+      teardownPopupEvents()
+      mutablePopupElement = element
+      setState((state) => changePopupElementReducer(state))
 
-      const perform = () => {
-        teardownPopupEvents()
-        mutablePopupElement = element
-        setState((state) => changePopupElementReducer(state))
-
-        // Only set up events once the popup becomes active
-        if (element && getSnapshot(source)) {
-          setupPopupEvents()
-        } else if (!element) {
-          clearTimeouts(mutableTimeouts.popup)
-        }
+      // Only set up events once the popup becomes active
+      if (element && getSnapshot(source)) {
+        setupPopupEvents()
+      } else if (!element) {
+        clearTimeouts(mutableTimeouts.popup)
       }
+    }
 
-      if (element !== null) {
-        perform()
-      } else {
-        // Delay popup teardowns to avoid closing popups due to badly
-        // written libraries nulling out elements in the wrong order.
-        mutableTeardownPopupTimeout = setTimeout(
-          perform,
-          mutableConfig.delayTeardownPopup,
-        )
-      }
+    if (mutableTeardownPopupTimeout) {
+      clearTimeout(mutableTeardownPopupTimeout)
+      mutableTeardownPopupTimeout = undefined
+    }
+
+    if (element === null) {
+      // Delay popup teardowns to avoid closing popups due to badly
+      // written libraries nulling out elements in the wrong order.
+      mutableTeardownPopupTimeout = setTimeout(
+        perform,
+        mutableConfig.delayTeardownPopup,
+      )
+    } else if (element !== mutablePopupElement) {
+      perform()
     }
   }
 

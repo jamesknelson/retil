@@ -34,7 +34,7 @@ const PopupDialogConfigContext = createContext<PopupDialogConfig>(
 const PopupDialogHandleContext = createContext<PopupHandle>(undefined as any)
 const PopupDialogActiveContext = createContext(false)
 
-interface ProvidePopupDialogProps
+export interface ProvidePopupDialogProps
   extends UsePopupConfig,
     Partial<PopupDialogConfig> {
   children: React.ReactNode
