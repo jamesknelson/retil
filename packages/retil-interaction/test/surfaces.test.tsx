@@ -15,7 +15,7 @@ describe('Surfaces', () => {
     <TestDiv
       {...props}
       ref={ref}
-      css={useHighStyle({
+      css={useHighStyle()({
         color: {
           default: 'black',
           hover: 'red',
