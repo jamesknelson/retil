@@ -200,16 +200,19 @@ describe('useHighStyle()', () => {
     })
   })
 
-  test('ignores unknown selectors', () => {
+  test('passes through unknown selectors', () => {
     const theme = { borderColor: 'black' }
     const fn = renderHighStyle({
       borderColor: {
-        active: (theme: any) => theme.borderColor,
+        ':active': (theme: any) => theme.borderColor,
       },
       borderWidth: 1,
     })
 
     expect(fn(theme)).toEqual({
+      ':active': {
+        borderColor: 'black',
+      },
       borderWidth: 1,
     })
   })
