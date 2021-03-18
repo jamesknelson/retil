@@ -99,21 +99,21 @@ How it works
 
 There's three parts to making the above demo work:
 
-- `useStyle()`
-- `<StyleSelectorProvider>`
+- `useHighStyle()`
+- `<ProvideDownSelector>`
 - and Surface component
 
-This package gives you the `useStyle()` hook, and the `<StyleSelectorProvider>` provider that allows you to configure custom selectors for your styles like `hover`, `widescreen`. The [retil-interactions](#) package exports the surface components that'll allow you to reuse your interactive styles across multiple packages.
+This package gives you the `useHighStyle()` hook, and the `<ProvideDownSelector>` provider that allows you to configure custom selectors for your styles like `hover`, `widescreen`. The [retil-interactions](#) package exports the surface components that'll allow you to reuse your interactive styles across multiple packages.
 
 
-### `useStyle`
+### `useHighStyle`
 
-This hook takes an object of nested style objects, and returns a style function in the format accepted by your `css` prop -- as supported by [Styled Components](http://styled-components.com/) and [Emotion](https://emotion.sh/docs/introduction).
+This hook takes an object of nested style objects, and returns a function that takes "high styles" with custom selectors, and returns the format accepted by your `css` prop -- as supported by [Styled Components](http://styled-components.com/) and [Emotion](https://emotion.sh/docs/introduction).
 
 #### Basic usage
 
 ```tsx
-import { useStyle } from 'retil-style'
+import { stringifyTransition, useHighStyle } from 'retil-style'
 
 const directionAngles = {
   down: '0deg',
@@ -131,30 +131,36 @@ export const Caret = forwardRef((props, ref) => {
     ...rest
   } = props
   const [styleProps, passthroughProps] = pickAndOmit(rest, layout)
-  const style = useStyle({
-    borderTopColor: color,
-    borderWidth: width,
-    marginBottom: -width,
-    borderColor: 'transparent',
-    borderStyle: 'solid',
-    height: 0,
-    width: 0,
-    transform: `rotate(${directionAngles[value]})`,
-    ...styleProps,
-    transition: buildTransition(transition, {
-      defaults: {
-        duration: 200,
-        timing: timings.easeOut
-      },
-      properties: {
-        color: ['borderTopColor']
-        width: ['borderWidth', 'marginBottom']
-        direction: ['transform']
-      }
-    })
-  })
+  const highStyle = useHighStyle()
 
-  return <div {...passthrough} css={style} ref={ref} />
+  return (
+    <div 
+      {...passthrough}
+      ref={ref}
+      css={highStyle({
+        borderTopColor: color,
+        borderWidth: width,
+        marginBottom: -width,
+        borderColor: 'transparent',
+        borderStyle: 'solid',
+        height: 0,
+        width: 0,
+        transform: `rotate(${directionAngles[value]})`,
+        ...styleProps,
+        transition: stringifyTransition(transition, {
+          defaults: {
+            duration: 200,
+            timing: timings.easeOut
+          },
+          properties: {
+            color: ['borderTopColor']
+            width: ['borderWidth', 'marginBottom']
+            direction: ['transform']
+          }
+        })
+      })}
+    />
+  )
 })
 ```
 

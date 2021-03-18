@@ -18,9 +18,11 @@ function renderHighStyle(
     wrapper: Wrapper = defaultWrapper,
   }: { wrapper?: React.FunctionComponent } = {},
 ) {
-  const result = {} as React.MutableRefObject<CSSFunction>
+  const result = {} as React.MutableRefObject<
+    (highStyle: HighStyle) => CSSFunction
+  >
   const Test = () => {
-    result.current = useHighStyle(highStyle)
+    result.current = useHighStyle()
     return <></>
   }
   render(
@@ -30,7 +32,7 @@ function renderHighStyle(
       </Wrapper>
     </React.StrictMode>,
   )
-  return result.current
+  return result.current(highStyle)
 }
 
 describe('useHighStyle()', () => {

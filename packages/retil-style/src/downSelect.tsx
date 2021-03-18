@@ -2,9 +2,10 @@ import React, {
   ReactNode,
   ReactElement,
   createContext,
-  useCallback,
   useContext,
+  useMemo,
 } from 'react'
+import { identity } from 'retil-support'
 
 // When an array of CSS selector strings is provided, any of those selectors
 // will be used to match the state. When `true`, the applicable styles will
@@ -18,19 +19,36 @@ export type CSSSelector = string[] | string | boolean
  * styles should always/never apply.
  *
  * If `undefined` is returned, then any value provided by the parent selector
- * will be used. If there is no parent selector, then by default, the styles
- * will not be applied.
+ * will be used. If there is no parent selector, then the selector will be used
+ * as-is.
  */
 export type DownSelect<HighSelector extends string> = (
   highSelector: HighSelector,
 ) => CSSSelector | undefined
 
-const DownSelectContext = createContext<DownSelect<string>>(() => false)
+const DownSelectContext = createContext<DownSelect<string>>(identity)
 
-export function useDownSelect<
-  XSelector extends string = string
->(): DownSelect<XSelector> {
-  return useContext(DownSelectContext)
+export function useDownSelect<HighSelector extends string = string>(
+  overrideDownSelect?: DownSelect<HighSelector>,
+): DownSelect<HighSelector> {
+  const contextDownSelect = useContext(
+    DownSelectContext,
+  ) as DownSelect<HighSelector>
+
+  const downSelect = useMemo(
+    () =>
+      overrideDownSelect
+        ? (highSelector: HighSelector) => {
+            const overrideSelector = overrideDownSelect(highSelector)
+            return overrideSelector !== null && overrideSelector !== undefined
+              ? overrideSelector
+              : contextDownSelect(highSelector)
+          }
+        : contextDownSelect,
+    [overrideDownSelect, contextDownSelect],
+  )
+
+  return downSelect
 }
 
 export interface ProvideDownSelectorProps<
@@ -43,23 +61,10 @@ export interface ProvideDownSelectorProps<
 export function ProvideDownSelector<HighSelector extends string = string>(
   props: ProvideDownSelectorProps<HighSelector>,
 ): ReactElement {
-  const { children, downSelect: getOverrideSelector } = props
-  const getDefaultCSSSelector = useContext(
-    DownSelectContext,
-  ) as DownSelect<HighSelector>
-  const downSelect = useCallback(
-    (highSelector: HighSelector) => {
-      const overrideSelector = getOverrideSelector(highSelector)
-      return overrideSelector !== null && overrideSelector !== undefined
-        ? overrideSelector
-        : getDefaultCSSSelector(highSelector)
-    },
-    [getOverrideSelector, getDefaultCSSSelector],
-  )
-
+  const contextValue = useDownSelect(props.downSelect) as DownSelect<string>
   return (
-    <DownSelectContext.Provider value={downSelect as DownSelect<string>}>
-      {children}
+    <DownSelectContext.Provider value={contextValue}>
+      {props.children}
     </DownSelectContext.Provider>
   )
 }

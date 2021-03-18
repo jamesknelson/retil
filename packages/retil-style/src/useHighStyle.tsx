@@ -13,25 +13,33 @@ import { DownSelect, useDownSelect } from './downSelect'
  */
 export type HighStyle<Theme = any, HighSelector extends string = string> = {
   [Prop in keyof CSSObject]?: HighStyleValue<
+    CSSObject[Prop],
     Theme,
-    HighSelector,
-    CSSObject[Prop]
+    HighSelector
   >
 }
 
-export type HighStyleValue<Theme, HighSelector extends string, Value> =
-  | ((theme: Theme) => HighStyleValue<Theme, HighSelector, Value>)
-  | HighStyleSelections<Theme, HighSelector, Value>
+export type HighStyleValue<
+  Value,
+  Theme = any,
+  HighSelector extends string = string
+> =
+  | ((theme: Theme) => HighStyleValue<Value, Theme, HighSelector>)
+  | HighStyleSelections<Value, Theme, HighSelector>
   | Value
 
-export type HighStyleSelections<Theme, HighSelector extends string, Value> = {
+export type HighStyleSelections<
+  Value,
+  Theme = any,
+  HighSelector extends string = string
+> = {
   [Selector in HighSelector | 'default']: HighStyleValue<
+    Value,
     Theme,
-    HighSelector,
-    Value
+    HighSelector
   >
 } & {
-  [selector: string]: HighStyleValue<Theme, HighSelector, Value>
+  [selector: string]: HighStyleValue<Value, Theme, HighSelector>
 }
 
 // Equivalent to the CSSObject type expected by styled-components and emotion.
@@ -44,31 +52,35 @@ export type CSSFunction<Theme = any> = (
   themeOrProps: Theme | { theme: Theme },
 ) => CSSObject
 
+// TODO: instead of taking highStyle, take an optional downSelect, and return
+// a function that takes style and returns style
 export function useHighStyle<Theme, HighSelector extends string>(
-  highStyle: HighStyle<Theme, HighSelector>,
-): CSSFunction<Theme> {
-  const downSelect = useDownSelect()
+  overrideDownSelect?: DownSelect<HighSelector>,
+): (highStyle: HighStyle<Theme, HighSelector>) => CSSFunction<Theme> {
+  const downSelect = useDownSelect(overrideDownSelect)
 
-  const styleFunction = (themeOrProps: Theme | { theme: Theme }) => {
-    // Emotion passes in a theme directly, while styled-components passes it
-    // on a proprety of the argument object.
-    const theme = 'theme' in themeOrProps ? themeOrProps['theme'] : themeOrProps
-    const props = Object.keys(highStyle)
-    const output: CSSObject = {}
-    for (const propName of props) {
-      mutableCompileStyle(
-        theme,
-        downSelect,
-        output,
-        propName,
-        highStyle[propName],
-      )
+  return (highStyle) => {
+    const cssFunction = (themeOrProps: Theme | { theme: Theme }) => {
+      // Emotion passes in a theme directly, while styled-components passes it
+      // on a proprety of the argument object.
+      const theme =
+        'theme' in themeOrProps ? themeOrProps['theme'] : themeOrProps
+      const props = Object.keys(highStyle)
+      const output: CSSObject = {}
+      for (const propName of props) {
+        mutableCompileStyle(
+          theme,
+          downSelect,
+          output,
+          propName,
+          highStyle[propName],
+        )
+      }
+
+      return output
     }
-
-    return output
+    return cssFunction
   }
-
-  return styleFunction
 }
 
 function mutableCompileStyle<Theme, HighSelector extends string>(
@@ -76,7 +88,7 @@ function mutableCompileStyle<Theme, HighSelector extends string>(
   downSelect: DownSelect<HighSelector>,
   output: CSSObject,
   property: string,
-  highValue: HighStyleValue<Theme, HighSelector, any>,
+  highValue: HighStyleValue<any, Theme, HighSelector>,
 ): void {
   if (typeof highValue === 'number' || typeof highValue === 'string') {
     output[property] = highValue
