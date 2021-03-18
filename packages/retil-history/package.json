@@ -1,6 +1,6 @@
 {
   "name": "retil-history",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "Retil sources for consuming and interacting with browser history.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -22,8 +22,8 @@
   "dependencies": {
     "history": "^5.0.0",
     "querystring": "^0.2.0",
-    "retil-source": "^0.20.0",
-    "retil-support": "^0.20.0",
+    "retil-source": "^0.20.1",
+    "retil-support": "^0.20.1",
     "tslib": "2.0.1"
   },
   "devDependencies": {
