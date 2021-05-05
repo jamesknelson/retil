@@ -16,7 +16,7 @@ import {
   HistorySnapshot,
   HistoryState,
   HistoryRequest,
-  HistoryRequestPlan,
+  HistoryRequestPrecache,
 } from './historyTypes'
 import { createActionMap, parseLocation, resolveAction } from './historyUtils'
 
@@ -26,7 +26,7 @@ const defaultLocationReducer: HistoryLocationReducer<any> = (
 ) => resolveAction(action, location.pathname)
 
 export function createBrowserHistory<S extends HistoryState = HistoryState>(
-  options: BrowserHistoryOptions,
+  options?: BrowserHistoryOptions,
 ): HistoryService<{}, S> {
   return createHistoryService(
     baseCreateBrowserHistory(options) as BrowserHistory<S | null>,
@@ -53,18 +53,18 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     key: history.location.key,
   } as HistoryRequest<S>
 
-  const plannedRequests = createActionMap<HistoryRequestPlan<S>>()
+  const precachedRequests = createActionMap<HistoryRequestPrecache<S>>()
 
   const source = observe<HistorySnapshot<{}, S>>((next) => {
     next(lastRequest)
     return history.listen(({ location }) => {
       const parsedLocation = parseLocation(location)
-      const plannedRequest = plannedRequests.get(parsedLocation)
+      const precachedRequest = precachedRequests.get(parsedLocation)
       lastRequest = {
-        ...(plannedRequest || parsedLocation),
+        ...(precachedRequest || parsedLocation),
         key: location.key,
       }
-      plannedRequests.clear()
+      precachedRequests.clear()
       next(lastRequest)
     })
   })
@@ -118,20 +118,20 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
       })
     },
 
-    plan: (action): Promise<HistoryRequestPlan<S>> => {
+    precache: (action): Promise<HistoryRequestPrecache<S>> => {
       const location = locationReducer(lastRequest, action)
 
-      let plannedRequest = plannedRequests.get(location)
-      if (!plannedRequest) {
-        plannedRequest = {
+      let precachedRequest = precachedRequests.get(location)
+      if (!precachedRequest) {
+        precachedRequest = {
           ...location,
-          planId: Symbol(),
+          precacheId: Symbol(),
         }
-        delete plannedRequest.key
-        plannedRequests.set(location, plannedRequest)
+        delete precachedRequest.key
+        precachedRequests.set(location, precachedRequest)
       }
 
-      return Promise.resolve(plannedRequest)
+      return Promise.resolve(precachedRequest)
     },
   }
 

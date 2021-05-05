@@ -38,12 +38,12 @@ export interface HistoryRequest<S extends HistoryState = HistoryState>
    * will always contain an object that is referentially equal to the
    * original `plan`.
    */
-  planId?: symbol
+  precacheId?: symbol
 }
 
-export interface HistoryRequestPlan<S extends HistoryState = HistoryState>
+export interface HistoryRequestPrecache<S extends HistoryState = HistoryState>
   extends HistoryRequest<S> {
-  planId: symbol
+  precacheId: symbol
 }
 
 export type HistorySnapshot<
@@ -81,7 +81,7 @@ export interface HistoryController<
     },
   ): Promise<boolean>
 
-  plan(action: HistoryAction<S>): Promise<HistoryRequestPlan<S> & Ext>
+  precache(action: HistoryAction<S>): Promise<HistoryRequestPrecache<S> & Ext>
 }
 
 export type HistoryBlockPredicate<S extends HistoryState = HistoryState> = (

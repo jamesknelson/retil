@@ -7,7 +7,32 @@ import {
   PopupDialogArrowDiv,
   PopupDialogTriggerSurface,
   ConnectPopupDialog,
-} from '../../packages/retil-interaction/src'
+} from 'retil-interaction'
+
+function App() {
+  return (
+    <ProvidePopupDialog
+      offset={[0, 6]}
+      placement="top-start"
+      triggerOnHover
+      triggerOnFocus
+      triggerOnPress>
+      <StyledTrigger data-testid="trigger">trigger</StyledTrigger>
+      <ConnectPopupDialog>
+        {(props) =>
+          !props.hidden &&
+          createPortal(
+            <StyledCard data-testid="popup" {...props}>
+              <StyledPopupDialogArrow />
+              popup
+            </StyledCard>,
+            document.body,
+          )
+        }
+      </ConnectPopupDialog>
+    </ProvidePopupDialog>
+  )
+}
 
 const StyledTrigger = styled(PopupDialogTriggerSurface)`
   cursor: pointer;
@@ -42,27 +67,4 @@ const StyledPopupDialogArrow = styled(PopupDialogArrowDiv)`
   }
 `
 
-export function App() {
-  return (
-    <ProvidePopupDialog
-      offset={[0, 6]}
-      placement="top-start"
-      triggerOnHover
-      triggerOnFocus
-      triggerOnPress>
-      <StyledTrigger data-testid="trigger">trigger</StyledTrigger>
-      <ConnectPopupDialog>
-        {(props) =>
-          !props.hidden &&
-          createPortal(
-            <StyledCard data-testid="popup" {...props}>
-              <StyledPopupDialogArrow />
-              popup
-            </StyledCard>,
-            document.body,
-          )
-        }
-      </ConnectPopupDialog>
-    </ProvidePopupDialog>
-  )
-}
+export default App

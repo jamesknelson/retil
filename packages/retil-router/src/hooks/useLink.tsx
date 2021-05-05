@@ -3,7 +3,7 @@ import { createHref } from 'retil-history'
 
 import { useResolveRoute } from './useResolveRoute'
 import { useNavigate } from './useNavigate'
-import { usePrefetch } from './usePrefetch'
+import { usePrecache } from './usePrecache'
 import { RouterAction } from '../routerTypes'
 
 export interface UseLinkOptions {
@@ -25,26 +25,26 @@ export const useLink = (to: RouterAction, options: UseLinkOptions = {}) => {
     onMouseEnter,
   } = options
   const navigate = useNavigate()
-  const prefetch = usePrefetch()
+  const precache = usePrecache()
   const action = useResolveRoute(to, state)
 
-  const doPrefetch = useMemo(() => {
-    let hasPrefetched = false
+  const doPrecache = useMemo(() => {
+    let hasPrecached = false
 
     return () => {
-      if (!hasPrefetched && action && prefetch) {
-        hasPrefetched = true
-        prefetch(action)
+      if (!hasPrecached && action && precache) {
+        hasPrecached = true
+        precache(action)
       }
     }
-  }, [action, prefetch])
+  }, [action, precache])
 
   // Prefetch on mount if required, or if `prefetch` becomes `true`.
   useEffect(() => {
     if (prefetchOn === 'mount') {
-      doPrefetch()
+      doPrecache()
     }
-  }, [prefetchOn, doPrefetch])
+  }, [prefetchOn, doPrecache])
 
   let handleMouseEnter = useCallback(
     (event: React.MouseEvent<HTMLAnchorElement>) => {
@@ -59,11 +59,11 @@ export const useLink = (to: RouterAction, options: UseLinkOptions = {}) => {
         }
 
         if (!event.defaultPrevented) {
-          doPrefetch()
+          doPrecache()
         }
       }
     },
-    [disabled, doPrefetch, onMouseEnter, prefetchOn],
+    [disabled, doPrecache, onMouseEnter, prefetchOn],
   )
 
   let handleClick = useCallback(

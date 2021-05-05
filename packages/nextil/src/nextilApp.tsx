@@ -1,6 +1,5 @@
 import { AppProps as NextAppProps } from 'next/app'
-import * as React from 'react'
-import { memo, useMemo } from 'react'
+import React, { memo, useMemo } from 'react'
 import {
   RouterFunction,
   createRequestService,

@@ -1,7 +1,10 @@
+import { createActionMap } from 'retil-history'
+import { createState, fuse, getSnapshotPromise, subscribe } from 'retil-source'
 import { createMemo } from 'retil-support'
-import { createState, fuse, getSnapshotPromise } from 'retil-source'
 
 import {
+  MaybePrecachedRequest,
+  PrecachedRequest,
   RouterController,
   RouterFunction,
   RouterRequest,
@@ -42,7 +45,19 @@ export function createRouter<
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
   const [requestSource, requestController] = requestService
 
-  const snapshotMemo = createMemo<RouterSnapshot<Request, Response>>()
+  const precachingActions = createActionMap<{
+    promise: Promise<RouterSnapshot<Request & PrecachedRequest, Response>>
+    done: boolean
+  }>()
+  const precachedActions = new Map<
+    symbol,
+    RouterSnapshot<Request & PrecachedRequest, Response>
+  >()
+  const precacheUnsubscribes = new Set<() => void>()
+
+  const contextMemo = createMemo<
+    RouterSnapshot<Request & MaybePrecachedRequest, Response>
+  >()
 
   let initialRequest: Request | null = null
 
@@ -85,40 +100,89 @@ export function createRouter<
       return initialSnapshot
     }
 
-    // There's no guarantee that a fusor function won't be run multiple times
-    // for the same request, so let's memoize it.
-    const snapshot = snapshotMemo(() => {
-      const response: Response = {
-        head: [] as any[],
-        headers: {},
-        pendingSuspenses: [] as PromiseLike<any>[],
-      } as Response
+    // TODO: signal an abort on any still precaching actions, and on any
+    // currently working router.
 
-      response.redirect = redirect.bind(null, response)
+    const precachedRouterSnapshot =
+      request.precacheId && precachedActions.get(request.precacheId)
 
-      return {
-        content: normalizedRouter(request, response),
-        response,
-        request,
-      }
-    }, [request])
+    // Clear our precache, as any change from now on should result in a new
+    // request.
+    precachedActions.clear()
+    precachingActions.clear()
+    precacheUnsubscribes.forEach((unsubscribe) => unsubscribe())
+    precacheUnsubscribes.clear()
+
+    // Memozie the snapshot by request, in case the fusor is re-run due to
+    // a suspense.
+    const snapshot = contextMemo(
+      () => precachedRouterSnapshot || createSnapshot(request),
+      [request],
+    )
+
+    return snapshot
+  })
+
+  const createSnapshot = <R extends Request & MaybePrecachedRequest>(
+    request: R,
+  ): RouterSnapshot<R, Response> => {
+    const response: Response = {
+      head: [] as any[],
+      headers: {},
+      pendingSuspenses: [] as PromiseLike<any>[],
+    } as Response
+
+    response.redirect = redirect.bind(null, response)
+
+    const snapshot: RouterSnapshot<R, Response> = {
+      content: normalizedRouter(request, response),
+      response,
+      request,
+    }
 
     if (!isRedirect(snapshot.response)) {
       redirectCounter = 0
     }
 
     return snapshot
-  })
+  }
 
   const controller: RouterController = {
     block: requestController.block,
-    // We don't wrap `navigate` in an `act()`, as we want in-progress results
-    // to be immediately available so they can be handled by suspense.
-    navigate: requestController.navigate,
-    prefetch(action): void {
-      // TODO: call `requestController.plan`, then create a snapshot using
-      // the returned request and add it to cache.
-      throw new Error('Unimplemented')
+
+    navigate: async (action, options) => {
+      // If we're currently precaching this action, then wait until precaching
+      // is complete before navigating, as otherwise we'll ignore the precache
+      // and re-start the request from scratch.
+      const currentlyPrecaching = precachingActions.get(action)
+      if (currentlyPrecaching && !currentlyPrecaching.done) {
+        let hasChanged = false
+
+        // Cancel navigation if something else causes navigation in the
+        // meantime.
+        const unsubscribe = subscribe(requestSource, () => {
+          hasChanged = true
+        })
+        await currentlyPrecaching
+        unsubscribe()
+        if (hasChanged) {
+          return false
+        }
+      }
+
+      return requestController.navigate(action, options)
+    },
+
+    async precache(
+      action,
+    ): Promise<RouterSnapshot<Request & PrecachedRequest, Response>> {
+      // TODO: once request precache cancellation on change is implemented,
+      // cache this so that we don't end up precaching the same action twice.
+      const precachedRouterRequest = await requestController.precache(action)
+      const precachedSnapshot = createSnapshot(precachedRouterRequest)
+      await waitForResponse(precachedSnapshot.response)
+      precachedActions.set(precachedRouterRequest.precacheId, precachedSnapshot)
+      return precachedSnapshot
     },
   }
 

@@ -1,0 +1,29 @@
+{
+  "name": "retil.tech",
+  "private": true,
+  "version": "0.20.1",
+  "scripts": {
+    "dev": "ts-node -r tsconfig-paths/register server.ts",
+    "dev:spa": "vite",
+    "build": "yarn build:client && yarn build:server",
+    "build:client": "vite build --outDir dist/client",
+    "build:server": "vite build --ssr src/entry-server.tsx --outDir dist/server",
+    "generate": "vite build --outDir dist/static && yarn build:server && node prerender",
+    "serve": "cross-env NODE_ENV=production node server",
+    "debug": "node --inspect-brk server"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.11",
+    "@vitejs/plugin-react-refresh": "^1.3.1",
+    "compression": "^1.7.4",
+    "cross-env": "^7.0.3",
+    "express": "^4.17.1",
+    "serve-static": "^1.14.1",
+    "ts-node": "^9.1.1",
+    "tsconfig-paths": "^3.9.0",
+    "vite-tsconfig-paths": "^3.3.10"
+  },
+  "dependencies": {
+    "slugify": "^1.5.1"
+  }
+}

@@ -13,6 +13,9 @@
   "javascript.updateImportsOnFileMove.enabled": "always",
   "javascript.preferences.importModuleSpecifier": "non-relative",
   "typescript.tsdk": "node_modules/typescript/lib",
+  "[html]": {
+    "editor.formatOnSave": false
+  },
   "[markdown]": {
     "editor.formatOnSave": false
   },

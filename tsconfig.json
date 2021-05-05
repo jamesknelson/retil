@@ -5,11 +5,15 @@
     "baseUrl": "./packages",
     "paths": {
       "retil": ["retil/src"],
-      "retil-common": ["retil-common/src"],
       "retil-history": ["retil-history/src"],
+      "retil-interaction": ["retil-interaction/src"],
+      "retil-issues": ["retil-issues/src"],
+      "retil-operation": ["retil-operation/src"],
       "retil-router": ["retil-router/src"],
       "retil-source": ["retil-source/src"],
-      "use-source": ["use-source/src"]
+      "retil-style": ["retil-style/src"],
+      "retil-support": ["retil-support/src"],
+      "site": ["site/src"]
     }
   }
 }

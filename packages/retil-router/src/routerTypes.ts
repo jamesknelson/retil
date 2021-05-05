@@ -7,12 +7,12 @@ import {
 } from 'retil-history'
 import { Source } from 'retil-source'
 
-export interface MaybePlannedRequest {
-  planId?: symbol
+export interface MaybePrecachedRequest {
+  precacheId?: symbol
 }
 
-export interface PlannedRequest {
-  planId: symbol
+export interface PrecachedRequest {
+  precacheId: symbol
 }
 
 export type RouterAction = HistoryAction<object>
@@ -94,11 +94,11 @@ export type RouterService<
 > = readonly [RouterSource<Request, Response>, RouterController]
 
 export type RouterRequestService<
-  Request extends MaybePlannedRequest
+  Request extends MaybePrecachedRequest
 > = readonly [Source<Request>, RouterRequestController<Request>]
 
 export interface RouterRequestController<
-  Request extends MaybePlannedRequest = HistoryRequest
+  Request extends MaybePrecachedRequest = HistoryRequest
 > {
   block(predicate: RouterBlockPredicate): () => void
   navigate(
@@ -108,11 +108,14 @@ export interface RouterRequestController<
       replace?: boolean
     },
   ): Promise<boolean>
-  plan(action: RouterAction): Promise<Request & PlannedRequest>
+  precache(action: RouterAction): Promise<Request & PrecachedRequest>
 }
 
-export interface RouterController {
+export interface RouterController<
+  Request extends RouterRequest & MaybePrecachedRequest = RouterRequest
+> {
   block(predicate: RouterBlockPredicate): () => void
+
   navigate(
     action: RouterAction,
     options?: {
@@ -124,7 +127,9 @@ export interface RouterController {
   /**
    * Allows you to fetch a route response without actually rendering it.
    */
-  prefetch(action: RouterAction): void
+  precache(
+    action: RouterAction,
+  ): Promise<RouterSnapshot<Request & PrecachedRequest>>
 }
 
 export interface RouterReactController<

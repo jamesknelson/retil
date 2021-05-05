@@ -18,16 +18,16 @@ export interface RouterProviderProps {
 }
 
 export function RouterProvider({ children, value }: RouterProviderProps) {
-  const { block, navigate, prefetch, waitUntilNavigationCompletes } = value
+  const { block, navigate, precache, waitUntilNavigationCompletes } = value
 
   const controller = useMemo(
     () => ({
       block,
       navigate,
-      prefetch,
+      precache,
       waitUntilNavigationCompletes,
     }),
-    [block, navigate, prefetch, waitUntilNavigationCompletes],
+    [block, navigate, precache, waitUntilNavigationCompletes],
   )
 
   return (

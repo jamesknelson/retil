@@ -139,7 +139,7 @@ export function createNextHistory(
       // 4. if false, retry
       throw new Error('historyController.block is unimplemented')
     },
-    plan: () => {
+    precache: () => {
       throw new Error('historyController.plan is unimplemented')
     },
 

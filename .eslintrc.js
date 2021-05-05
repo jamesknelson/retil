@@ -12,5 +12,6 @@ module.exports = {
   },
   rules: {
     '@typescript-eslint/no-angle-bracket-type-assertion': 'off',
+    'import/no-anonymous-default-export': 'off',
   },
 }

@@ -1,7 +1,7 @@
 import { useContext } from 'react'
 
 import { RouterPendingContext } from '../routerContext'
-import { RouterRequest } from '../routertypes'
+import { RouterRequest } from '../routerTypes'
 
 export function useRouterPending<
   Request extends RouterRequest = RouterRequest

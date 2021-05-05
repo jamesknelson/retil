@@ -1,14 +1,16 @@
-import * as React from 'react'
+import React, { useMemo } from 'react'
 
-import { delay } from '../../packages/retil-support/src'
 import {
   Link,
   Router,
   RouterContent,
+  createBrowserHistory,
+  createRequestService,
   routeAsync,
   routeByPattern,
   useRouterPending,
-} from '../../packages/retil-router/src'
+} from 'retil-router'
+import { delay } from 'retil-support'
 
 const homeRouter = routeAsync(async () => {
   await delay(1000)
@@ -25,13 +27,25 @@ const appRouter = routeByPattern({
   '/about': aboutRouter,
 })
 
-export function App() {
+function App({ basename }: { basename: string }) {
+  const requestService = useMemo(
+    () =>
+      createRequestService({
+        basename,
+        historyService: createBrowserHistory(),
+      }),
+    [basename],
+  )
+
   return (
-    <Router fn={appRouter} transitionTimeoutMs={500}>
+    <Router
+      fn={appRouter}
+      requestService={requestService}
+      transitionTimeoutMs={500}>
       <nav>
-        <Link to="/">Home</Link>
+        <Link to={basename}>Home</Link>
         &nbsp;&middot;&nbsp;
-        <Link to="/about">About</Link>
+        <Link to={basename + '/about'}>About</Link>
       </nav>
       <main>
         <React.Suspense fallback="loading fallback...">
@@ -47,3 +61,5 @@ function RouterPendingIndicator() {
   const pending = useRouterPending()
   return <>{pending && 'loading concurrently...'}</>
 }
+
+export default App

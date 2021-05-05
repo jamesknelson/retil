@@ -14,8 +14,8 @@ import {
 import { createMemo } from 'retil-support'
 
 import {
-  MaybePlannedRequest,
-  PlannedRequest,
+  MaybePrecachedRequest,
+  PrecachedRequest,
   RouterRequestController,
   RouterRequestExtension,
   RouterRequestService,
@@ -23,19 +23,16 @@ import {
 
 export interface CreateRouterRequestServiceOptions<
   Ext extends object,
-  Request extends MaybePlannedRequest = HistoryRequest
+  Request extends MaybePrecachedRequest = HistoryRequest
 > {
   basename?: string
   extend?: (request: Request, use: FusorUse) => Ext
   historyService?: RouterRequestService<Request>
-
-  // TODO: configurable getActionKey, which returns an array of keys, and use
-  // a more flexible keyed cache which should probably go in retil-support.
 }
 
 export function createRequestService<
   Ext extends object,
-  Request extends MaybePlannedRequest = HistoryRequest
+  Request extends MaybePrecachedRequest = HistoryRequest
 >(
   options: CreateRouterRequestServiceOptions<Ext, Request> = {},
 ): RouterRequestService<Request & RouterRequestExtension & Ext> {
@@ -49,45 +46,45 @@ export function createRequestService<
   } = options
   const [baseSource, baseController] = historyService
 
-  const planningActions = createActionMap<{
-    promise: Promise<Request & RouterRequestExtension & Ext & PlannedRequest>
+  const precachingActions = createActionMap<{
+    promise: Promise<Request & RouterRequestExtension & Ext & PrecachedRequest>
     done: boolean
   }>()
-  const plannedActions = new Map<
+  const precachedActions = new Map<
     symbol,
-    Request & RouterRequestExtension & Ext & PlannedRequest
+    Request & RouterRequestExtension & Ext & MaybePrecachedRequest
   >()
-  const planUnsubscribes = new Set<() => void>()
+  const precacheUnsubscribes = new Set<() => void>()
 
   const requestMemo = createMemo<
-    Request & RouterRequestExtension & Ext & PlannedRequest
+    Request & RouterRequestExtension & Ext & MaybePrecachedRequest
   >()
 
   const source = fuse<Request & RouterRequestExtension & Ext>((use) => {
     const historyRequest = use(baseSource)
-    const plannedRequest =
-      historyRequest.planId && plannedActions.get(historyRequest.planId)
+    const precachedRequest =
+      historyRequest.precacheId &&
+      precachedActions.get(historyRequest.precacheId)
 
-    // Clear our plans, as any change from now on should result in a new
+    // Clear our precache, as any change from now on should result in a new
     // request.
-    plannedActions.clear()
-    planningActions.clear()
-    planUnsubscribes.forEach((unsubscribe) => unsubscribe())
-    planUnsubscribes.clear()
+    precachedActions.clear()
+    precachingActions.clear()
+    precacheUnsubscribes.forEach((unsubscribe) => unsubscribe())
+    precacheUnsubscribes.clear()
 
-    // Get the extension even if we have a planned request, as we want to make
-    // sure that any changes to sources that the extension uses will trigger
-    // another execution of the fusor function.
+    // Get the extension even if we have a precached request, as we want to
+    // make sure that any changes to sources that the extension uses will
+    // trigger another execution of the fusor function.
     const extension = (extend && extend(historyRequest, use)) as Ext
 
     return requestMemo(
       () =>
-        plannedRequest || {
+        precachedRequest || {
           params: {},
           basename,
           ...historyRequest,
           ...extension,
-          planId: undefined as any,
         },
       [
         historyRequest,
@@ -96,42 +93,50 @@ export function createRequestService<
     )
   })
 
-  const createPlan = async (
+  const precacheRequest = async (
     action: HistoryAction,
-  ): Promise<Request & RouterRequestExtension & Ext & PlannedRequest> => {
-    const plannedHistoryRequest = await baseController.plan(action)
+  ): Promise<Request & RouterRequestExtension & Ext & PrecachedRequest> => {
+    const precachedHistoryRequest = await baseController.precache(action)
+    const historyPrecacheId = precachedHistoryRequest.precacheId
 
     if (!extend) {
       return {
         basename,
         params: {},
-        ...plannedHistoryRequest,
-      } as Request & RouterRequestExtension & Ext & PlannedRequest
+        ...precachedHistoryRequest,
+      } as Request & RouterRequestExtension & Ext & PrecachedRequest
     }
 
-    const extensionSource = fuse((use) => extend(plannedHistoryRequest, use))
+    const extensionSource = fuse((use) => extend(precachedHistoryRequest, use))
     const extension = await getSnapshotPromise(extensionSource)
 
-    const plannedRequest = {
+    const precachedRequest = {
       basename,
       params: {},
-      ...plannedHistoryRequest,
+      ...precachedHistoryRequest,
       ...extension,
+
+      // Override the history's precacheId with a new one that differs between
+      // extensions.
+      precacheId: Symbol(),
     }
 
-    plannedActions.set(plannedRequest.planId, plannedRequest)
+    precachedActions.set(historyPrecacheId, precachedRequest)
 
     // If the extension source emits a new snapshot, it'll invalidate our
-    // planned request.
+    // precached request.
     const unsubscribe = subscribe(extensionSource, () => {
-      plannedActions.delete(plannedRequest.planId)
-      planningActions.delete(action)
-      planUnsubscribes.delete(unsubscribe)
+      precachedActions.delete(precachedRequest.precacheId)
+      precachingActions.delete(action)
+      precacheUnsubscribes.delete(unsubscribe)
       unsubscribe()
     })
-    planUnsubscribes.add(unsubscribe)
+    precacheUnsubscribes.add(unsubscribe)
 
-    return plannedRequest
+    // TODO: throw a cancellation exception and set `context.stale` to true if
+    // the extension changes
+
+    return precachedRequest
   }
 
   const controller: RouterRequestController<
@@ -140,11 +145,11 @@ export function createRequestService<
     block: baseController.block,
 
     navigate: async (action, options) => {
-      // If we're currently planning this action, then wait until planning is
-      // complete before navigating, as otherwise we'll need to start the plan
-      // from scratch.
-      const currentlyPlanning = planningActions.get(action)
-      if (currentlyPlanning && !currentlyPlanning.done) {
+      // If we're currently precaching this action, then wait until precaching
+      // is complete before navigating, as otherwise we'll ignore the precache
+      // and re-start the request from scratch.
+      const currentlyPrecaching = precachingActions.get(action)
+      if (currentlyPrecaching && !currentlyPrecaching.done) {
         let hasChanged = false
 
         // Cancel navigation if something else causes navigation in the
@@ -152,7 +157,7 @@ export function createRequestService<
         const unsubscribe = subscribe(baseSource, () => {
           hasChanged = true
         })
-        await currentlyPlanning
+        await currentlyPrecaching
         unsubscribe()
         if (hasChanged) {
           return false
@@ -162,18 +167,19 @@ export function createRequestService<
       return baseController.navigate(action, options)
     },
 
-    plan: (action) => {
-      const planningRequest = planningActions.get(action)
-      if (planningRequest) {
-        return planningRequest.promise
+    precache: (action) => {
+      const precachingRequest = precachingActions.get(action)
+      if (precachingRequest) {
+        return precachingRequest.promise
       }
 
-      const promise = createPlan(action)
+      const promise = precacheRequest(action)
       const cache = { promise, done: false }
-      planningActions.set(action, cache)
+      precachingActions.set(action, cache)
       promise.then(() => {
         cache.done = true
       })
+
       return promise
     },
   }

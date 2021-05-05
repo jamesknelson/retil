@@ -24,7 +24,7 @@
   "dependencies": {
     "retil-support": "^0.20.1",
     "tslib": "2.0.1",
-    "use-subscription": "1.5.1"
+    "use-subscription": "0.0.0-experimental-79740da4c"
   },
   "devDependencies": {
     "typescript": "4.1.2"
@@ -35,5 +35,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "9b6be586847ee2f2701d23f341a661a77cd48607"
+  "gitHead": "c3d07b313e425c572bf9b7bce2ca8ff09fb0f446"
 }

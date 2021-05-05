@@ -1,8 +1,0 @@
-{
-  "name": "examples-not-found-boundary",
-  "license": "MIT",
-  "private": true,
-  "scripts": {
-    "start": "../../node_modules/.bin/parcel serve ./index.html"
-  }
-}
