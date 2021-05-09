@@ -185,6 +185,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
               inject = snapshot
             }
             useList.push([snapshot, source, defaultValues, inject])
+            useInjects.push(inject)
             return inject
           }
         }
@@ -192,7 +193,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
         result = fusor(wrappedUse)
       }
 
-      results.set(useList, result)
+      results.set(useInjects, result)
       resultVector.push(result)
       addToNextQueueIfRequired(nextQueue, useList)
     }
