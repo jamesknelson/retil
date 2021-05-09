@@ -1,4 +1,4 @@
-import { isPromiseLike, noop } from 'retil-support'
+import { Maybe, isPromiseLike, noop } from 'retil-support'
 
 import { observe } from './observe'
 import {
@@ -15,7 +15,7 @@ export type FuseEffect = typeof FuseEffectSymbol
 export type FusorEffect = (callback: () => any) => FuseEffect
 export type FusorUse = <U, V = U>(
   source: Source<U>,
-  ...defaultValues: [V] | []
+  ...defaultValues: Maybe<V>
 ) => U | V
 export type Fusor<T> = (use: FusorUse, effect: FusorEffect) => T | FuseEffect
 
@@ -23,7 +23,11 @@ const throwArg = (error: any) => {
   throw error
 }
 
-type UsedState = { select: SourceSelect<any>; result?: any }
+type UsedState = {
+  select: SourceSelect<any>
+  defaultValues: Maybe<any>
+  result?: any
+}
 
 export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
   let onNext: null | ((value: T) => void) = null
@@ -52,30 +56,35 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     if (!used.has(core)) {
       used.set(core, [])
     }
-    const doesSourceHaveSnapshot = hasSnapshot(source)
-    const usedState: UsedState = { select }
-    if (doesSourceHaveSnapshot || defaultValues.length) {
-      usedState.result = doesSourceHaveSnapshot
-        ? select(core)
-        : defaultValues[0]
-    }
+    const usedState: UsedState = { select, defaultValues }
     used.get(core)!.push(usedState)
     if (!usedUnsubscribes.has(core)) {
       usedUnsubscribes.set(core, subscribe(createInvalidator(core)))
     }
-    return 'result' in usedState ? usedState.result : select(core)
+    const result =
+      defaultValues.length === 0 || hasSnapshot(source)
+        ? select(core)
+        : defaultValues[0]
+    usedState.result = result
+    return result
   }
 
   const createInvalidator = (core: SourceCore) => {
     return () => {
       const usedStates = used.get(core)!
       for (const usedState of usedStates) {
+        const hasDefaultValue = usedState.defaultValues.length
         const source = [core, usedState.select] as const
         const doesSourceHaveSnapshot = hasSnapshot(source)
-        const didSourceHaveSnapshot = 'snapshot' in usedState
+        const doesSourceHaveResult = doesSourceHaveSnapshot || hasDefaultValue
+        const didSourceHaveResult = 'result' in usedState
         if (
-          doesSourceHaveSnapshot !== didSourceHaveSnapshot ||
-          (doesSourceHaveSnapshot && getSnapshot(source) !== usedState.result)
+          doesSourceHaveResult !== didSourceHaveResult ||
+          (didSourceHaveResult &&
+            usedState.result !==
+              (doesSourceHaveSnapshot
+                ? getSnapshot(source)
+                : usedState.defaultValues[0]))
         ) {
           isInvalidated = true
           if (!isInEffect && !isFusing) {
