@@ -15,8 +15,7 @@ import {
   HistoryService,
   HistorySnapshot,
   HistoryState,
-  HistoryRequest,
-  HistoryRequestPrecache,
+  PrecachedSnapshot,
 } from './historyTypes'
 import { createActionMap, parseLocation, resolveAction } from './historyUtils'
 
@@ -27,7 +26,7 @@ const defaultLocationReducer: HistoryLocationReducer<any> = (
 
 export function createBrowserHistory<S extends HistoryState = HistoryState>(
   options?: BrowserHistoryOptions,
-): HistoryService<{}, S> {
+): HistoryService<S> {
   return createHistoryService(
     baseCreateBrowserHistory(options) as BrowserHistory<S | null>,
   )
@@ -35,7 +34,7 @@ export function createBrowserHistory<S extends HistoryState = HistoryState>(
 
 export function createMemoryHistory<S extends HistoryState = HistoryState>(
   initialLocation: string | HistoryLocation<S>,
-): HistoryService<{}, S> {
+): HistoryService<S> {
   return createHistoryService(
     baseCreateMemoryHistory({
       initialEntries: [parseLocation(initialLocation)],
@@ -46,23 +45,25 @@ export function createMemoryHistory<S extends HistoryState = HistoryState>(
 export function createHistoryService<S extends HistoryState = HistoryState>(
   history: History<S | null>,
   locationReducer: HistoryLocationReducer<S> = defaultLocationReducer,
-): HistoryService<{}, S> {
+): HistoryService<S> {
   let forceChange = false
   let lastRequest = {
     ...parseLocation(history.location),
-    key: history.location.key,
-  } as HistoryRequest<S>
+    historyKey: history.location.key,
+  } as HistorySnapshot<S>
 
-  const precachedRequests = createActionMap<HistoryRequestPrecache<S>>()
+  const precachedRequests = createActionMap<
+    HistorySnapshot<S> & PrecachedSnapshot
+  >()
 
-  const source = observe<HistorySnapshot<{}, S>>((next) => {
+  const source = observe<HistorySnapshot<S>>((next) => {
     next(lastRequest)
     return history.listen(({ location }) => {
       const parsedLocation = parseLocation(location)
       const precachedRequest = precachedRequests.get(parsedLocation)
       lastRequest = {
         ...(precachedRequest || parsedLocation),
-        key: location.key,
+        historyKey: location.key,
       }
       precachedRequests.clear()
       next(lastRequest)
@@ -78,7 +79,7 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
     )
   }
 
-  const controller: HistoryController<{}, S> = {
+  const controller: HistoryController<S> = {
     back: (): Promise<boolean> =>
       runMaybeBlockedAction(() => {
         history.back()
@@ -118,16 +119,16 @@ export function createHistoryService<S extends HistoryState = HistoryState>(
       })
     },
 
-    precache: (action): Promise<HistoryRequestPrecache<S>> => {
+    precache: (action): Promise<HistorySnapshot<S> & PrecachedSnapshot> => {
       const location = locationReducer(lastRequest, action)
 
       let precachedRequest = precachedRequests.get(location)
       if (!precachedRequest) {
         precachedRequest = {
           ...location,
-          precacheId: Symbol(),
+          precacheKey: Symbol(),
         }
-        delete precachedRequest.key
+        delete precachedRequest.historyKey
         precachedRequests.set(location, precachedRequest)
       }
 

@@ -1,11 +1,15 @@
 import { normalizePathname, parseAction } from 'retil-history'
 
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 
 import { routeRedirect } from './routeRedirect'
 
 export function routeNormalize<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(
   router: RouterFunction<Request, Response>,

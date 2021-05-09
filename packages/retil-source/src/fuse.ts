@@ -1,32 +1,31 @@
-import { isPromiseLike } from 'retil-support'
+import { isPromiseLike, noop } from 'retil-support'
 
 import { observe } from './observe'
 import {
   Source,
   SourceCore,
   SourceSelect,
-  SourceSubscribe,
   hasSnapshot,
   getSnapshot,
 } from './source'
 
+export const FuseEffectSymbol = Symbol()
+
 export type FuseEffect = typeof FuseEffectSymbol
-export type Fusor<T> = (use: FusorUse, effect: FusorEffect) => T | FuseEffect
+export type FusorEffect = (callback: () => any) => FuseEffect
 export type FusorUse = <U, V = U>(
   source: Source<U>,
   ...defaultValues: [V] | []
 ) => U | V
-export type FusorEffect = (callback: () => any) => FuseEffect
-
-const FuseEffectSymbol = Symbol()
+export type Fusor<T> = (use: FusorUse, effect: FusorEffect) => T | FuseEffect
 
 const throwArg = (error: any) => {
   throw error
 }
 
-type UsedState = { select: SourceSelect<any>; snapshot?: any }
+type UsedState = { select: SourceSelect<any>; result?: any }
 
-export function fuse<T>(fusor: Fusor<T>): Source<T> {
+export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
   let onNext: null | ((value: T) => void) = null
   let onError: (error: any) => void = throwArg
   let onClear: null | (() => void)
@@ -55,16 +54,16 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
     }
     const doesSourceHaveSnapshot = hasSnapshot(source)
     const usedState: UsedState = { select }
-    if (doesSourceHaveSnapshot) {
-      usedState.snapshot = select(core)
+    if (doesSourceHaveSnapshot || defaultValues.length) {
+      usedState.result = doesSourceHaveSnapshot
+        ? select(core)
+        : defaultValues[0]
     }
     used.get(core)!.push(usedState)
     if (!usedUnsubscribes.has(core)) {
       usedUnsubscribes.set(core, subscribe(createInvalidator(core)))
     }
-    return defaultValues.length === 0 || hasSnapshot(source)
-      ? select(core)
-      : defaultValues[0]
+    return 'result' in usedState ? usedState.result : select(core)
   }
 
   const createInvalidator = (core: SourceCore) => {
@@ -76,7 +75,7 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
         const didSourceHaveSnapshot = 'snapshot' in usedState
         if (
           doesSourceHaveSnapshot !== didSourceHaveSnapshot ||
-          (doesSourceHaveSnapshot && getSnapshot(source) !== usedState.snapshot)
+          (doesSourceHaveSnapshot && getSnapshot(source) !== usedState.result)
         ) {
           isInvalidated = true
           if (!isInEffect && !isFusing) {
@@ -187,6 +186,7 @@ export function fuse<T>(fusor: Fusor<T>): Source<T> {
       }
       usedUnsubscribes.clear()
       used.clear()
+      onTeardown()
     }
   })
 

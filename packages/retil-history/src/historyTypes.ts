@@ -25,52 +25,45 @@ export interface HistoryLocation<S extends HistoryState = HistoryState> {
   state: S | null
 }
 
-export interface HistoryRequest<S extends HistoryState = HistoryState>
+export interface HistorySnapshot<S extends HistoryState = HistoryState>
   extends HistoryLocation<S> {
   /**
    * This is applied to individual requests that have actually been added to
    * the browser history.
    */
-  key?: string
+  historyKey?: string
 
   /**
-   * If this request was pre-planned by calling the `plan` function, this
-   * will always contain an object that is referentially equal to the
-   * original `plan`.
+   * If this context was precached by the `precache` function, then this will
+   * will contain a symbol that is referentially equal to the value in the
+   * orbject returned by that function.
    */
-  precacheId?: symbol
+  precacheKey?: symbol
 }
 
-export interface HistoryRequestPrecache<S extends HistoryState = HistoryState>
-  extends HistoryRequest<S> {
-  precacheId: symbol
+export interface PrecachedSnapshot {
+  precacheKey: symbol
 }
 
-export type HistorySnapshot<
-  Ext = {},
-  S extends HistoryState = HistoryState
-> = HistoryRequest<S> & Ext
+export type HistorySource<S extends HistoryState = HistoryState> = Source<
+  HistorySnapshot<S>
+>
 
-export type HistorySource<
-  Ext = {},
-  S extends HistoryState = HistoryState
-> = Source<HistorySnapshot<Ext, S>>
-
-export type HistoryService<
-  Ext = {},
-  S extends HistoryState = HistoryState
-> = readonly [HistorySource<Ext, S>, HistoryController<{}, S>]
+export type HistoryService<S extends HistoryState = HistoryState> = readonly [
+  HistorySource<S>,
+  HistoryController<S>,
+]
 
 export interface HistoryController<
-  Ext = {},
-  S extends HistoryState = HistoryState
+  State extends HistoryState = HistoryState,
+  Snapshot extends HistorySnapshot = HistorySnapshot
 > {
   back(): Promise<boolean>
 
-  block(blocker: HistoryBlockPredicate<S>): Unblock
+  block(blocker: HistoryBlockPredicate<State>): Unblock
 
   navigate(
-    action: HistoryAction<S>,
+    action: HistoryAction<State>,
     options?: {
       /**
        * Bypass any blocks and navigate immediately. Useful for redirects, which
@@ -81,7 +74,7 @@ export interface HistoryController<
     },
   ): Promise<boolean>
 
-  precache(action: HistoryAction<S>): Promise<HistoryRequestPrecache<S> & Ext>
+  precache(action: HistoryAction<State>): Promise<Snapshot & PrecachedSnapshot>
 }
 
 export type HistoryBlockPredicate<S extends HistoryState = HistoryState> = (

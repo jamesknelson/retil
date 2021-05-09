@@ -1,6 +1,6 @@
 import {
   HistoryAction,
-  HistoryRequest,
+  HistorySnapshot,
   createActionMap,
   getDefaultBrowserHistory,
 } from 'retil-history'
@@ -14,50 +14,50 @@ import {
 import { createMemo } from 'retil-support'
 
 import {
-  MaybePrecachedRequest,
-  PrecachedRequest,
-  RouterRequestController,
+  MaybePrecachedContext,
+  PrecachedSnapshot,
+  RouterInputController,
   RouterRequestExtension,
-  RouterRequestService,
+  RouterHistoryService as RouterRequestService,
 } from './routerTypes'
 
 export interface CreateRouterRequestServiceOptions<
-  Ext extends object,
-  Request extends MaybePrecachedRequest = HistoryRequest
+  ContextSnapshot extends object,
+  RequestSnapshot extends MaybePrecachedContext = HistorySnapshot
 > {
   basename?: string
-  extend?: (request: Request, use: FusorUse) => Ext
-  historyService?: RouterRequestService<Request>
+  fuseContext?: (request: RequestSnapshot, use: FusorUse) => ContextSnapshot
+  requestService?: RouterRequestService<RequestSnapshot>
 }
 
 export function createRequestService<
   Ext extends object,
-  Request extends MaybePrecachedRequest = HistoryRequest
+  Request extends MaybePrecachedContext = HistorySnapshot
 >(
   options: CreateRouterRequestServiceOptions<Ext, Request> = {},
 ): RouterRequestService<Request & RouterRequestExtension & Ext> {
   const {
     basename = '',
-    historyService = (getDefaultBrowserHistory() as any) as [
+    requestService: historyService = (getDefaultBrowserHistory() as any) as [
       Source<Request>,
-      RouterRequestController<Request>,
+      RouterInputController<Request>,
     ],
-    extend,
+    fuseContext: extend,
   } = options
   const [baseSource, baseController] = historyService
 
   const precachingActions = createActionMap<{
-    promise: Promise<Request & RouterRequestExtension & Ext & PrecachedRequest>
+    promise: Promise<Request & RouterRequestExtension & Ext & PrecachedSnapshot>
     done: boolean
   }>()
   const precachedActions = new Map<
     symbol,
-    Request & RouterRequestExtension & Ext & MaybePrecachedRequest
+    Request & RouterRequestExtension & Ext & MaybePrecachedContext
   >()
   const precacheUnsubscribes = new Set<() => void>()
 
   const requestMemo = createMemo<
-    Request & RouterRequestExtension & Ext & MaybePrecachedRequest
+    Request & RouterRequestExtension & Ext & MaybePrecachedContext
   >()
 
   const source = fuse<Request & RouterRequestExtension & Ext>((use) => {
@@ -95,7 +95,7 @@ export function createRequestService<
 
   const precacheRequest = async (
     action: HistoryAction,
-  ): Promise<Request & RouterRequestExtension & Ext & PrecachedRequest> => {
+  ): Promise<Request & RouterRequestExtension & Ext & PrecachedSnapshot> => {
     const precachedHistoryRequest = await baseController.precache(action)
     const historyPrecacheId = precachedHistoryRequest.precacheId
 
@@ -104,7 +104,7 @@ export function createRequestService<
         basename,
         params: {},
         ...precachedHistoryRequest,
-      } as Request & RouterRequestExtension & Ext & PrecachedRequest
+      } as Request & RouterRequestExtension & Ext & PrecachedSnapshot
     }
 
     const extensionSource = fuse((use) => extend(precachedHistoryRequest, use))
@@ -139,7 +139,7 @@ export function createRequestService<
     return precachedRequest
   }
 
-  const controller: RouterRequestController<
+  const controller: RouterInputController<
     Request & RouterRequestExtension & Ext
   > = {
     block: baseController.block,

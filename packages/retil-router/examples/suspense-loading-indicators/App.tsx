@@ -1,11 +1,9 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 
 import {
   Link,
   Router,
   RouterContent,
-  createBrowserHistory,
-  createRequestService,
   routeAsync,
   routeByPattern,
   useRouterPending,
@@ -27,25 +25,13 @@ const appRouter = routeByPattern({
   '/about': aboutRouter,
 })
 
-function App({ basename }: { basename: string }) {
-  const requestService = useMemo(
-    () =>
-      createRequestService({
-        basename,
-        historyService: createBrowserHistory(),
-      }),
-    [basename],
-  )
-
+function App({ basename }: { basename?: string }) {
   return (
-    <Router
-      fn={appRouter}
-      requestService={requestService}
-      transitionTimeoutMs={500}>
+    <Router basename={basename} fn={appRouter} transitionTimeoutMs={500}>
       <nav>
-        <Link to={basename}>Home</Link>
+        <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
-        <Link to={basename + '/about'}>About</Link>
+        <Link to="/about">About</Link>
       </nav>
       <main>
         <React.Suspense fallback="loading fallback...">

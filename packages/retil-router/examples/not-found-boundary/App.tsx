@@ -1,11 +1,9 @@
-import React, { useMemo } from 'react'
+import React from 'react'
 
 import {
   Link,
   Router,
   RouterContent,
-  createBrowserHistory,
-  createRequestService,
   routeByPattern,
   routeNotFoundBoundary,
 } from 'retil-router'
@@ -15,27 +13,18 @@ const appRouter = routeNotFoundBoundary(
     '/': <h1>Welcome!</h1>,
     '/about': <h1>About</h1>,
   }),
-  (request) => <NotFound pathname={request.pathname} />,
+  (props) => <NotFound pathname={props.pathname} />,
 )
 
-function App({ basename }: { basename: string }) {
-  const requestService = useMemo(
-    () =>
-      createRequestService({
-        basename,
-        historyService: createBrowserHistory(),
-      }),
-    [basename],
-  )
-
+function App({ basename }: { basename?: string }) {
   return (
-    <Router fn={appRouter} requestService={requestService}>
+    <Router basename={basename} fn={appRouter}>
       <nav>
-        <Link to={basename}>Home</Link>
+        <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
-        <Link to={basename + '/about'}>About</Link>
+        <Link to="/about">About</Link>
         &nbsp;&middot;&nbsp;
-        <Link to={basename + '/not-found'}>Not Found</Link>
+        <Link to="/not-found">Not Found</Link>
       </nav>
       <main>
         <RouterContent />

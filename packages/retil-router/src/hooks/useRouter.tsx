@@ -1,36 +1,42 @@
 import { useMemo, useRef } from 'react'
+import { FusorUse } from 'retil-source'
 
 import { createRequestService } from '../requestService'
 import {
   RouterFunction,
-  RouterRequest,
-  RouterRequestService,
+  RouterHistoryService,
+  RouterHistorySnapshot,
   RouterResponse,
-  RouterSnapshot,
-  RouterState,
+  RouterRouteSnapshot,
+  MountedRouterState,
+  RouterSnapshotExtension,
 } from '../routerTypes'
 import { createRouter } from '../routerService'
 
 import { useRouterService } from './useRouterService'
 
 export interface UseRouterOptions<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
+  RouteExtension extends object = {},
+  HistorySnapshot extends RouterHistorySnapshot = RouterHistorySnapshot
 > {
-  initialSnapshot?: RouterSnapshot<Request, Response>
-  onResponseComplete?: (response: Response, request: Request) => void
-  requestService?: RouterRequestService<Request>
+  basename?: string
+  extend?: (
+    request: HistorySnapshot & RouterSnapshotExtension,
+    use: FusorUse,
+  ) => RouteExtension
+  historyService?: RouterHistoryService<HistorySnapshot>
+  onResponseComplete?: (response: Response, request: RouteExtension) => void
   transitionTimeoutMs?: number
   unstable_isConcurrent?: boolean
 }
 
 export function useRouter<
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   routerFunction: RouterFunction<Request, Response>,
   options: UseRouterOptions<Request, Response> = {},
-): RouterState<Request, Response> {
+): MountedRouterState<Request, Response> {
   const {
     requestService: requestServiceProp,
     initialSnapshot,
@@ -39,14 +45,14 @@ export function useRouter<
     unstable_isConcurrent,
   } = options
 
-  const requestServiceRef = useRef<RouterRequestService<Request>>(
+  const requestServiceRef = useRef<RouterHistoryService<Request>>(
     requestServiceProp!,
   )
   if (requestServiceProp) {
     requestServiceRef.current = requestServiceProp
   }
   if (!requestServiceRef.current && typeof window !== 'undefined') {
-    requestServiceRef.current = createRequestService() as RouterRequestService<Request>
+    requestServiceRef.current = createRequestService() as RouterHistoryService<Request>
   }
   if (!requestServiceRef.current) {
     throw new Error(

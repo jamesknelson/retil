@@ -3,10 +3,10 @@ import { getSnapshotPromise } from 'retil-source'
 import { Deferred } from 'retil-support'
 
 import {
-  RouterRequest,
+  RouterRouteSnapshot,
   RouterResponse,
   RouterSource,
-  RouterSnapshot,
+  RouterRouteSnapshot,
 } from '../routerTypes'
 import { waitForResponse } from '../routerUtils'
 
@@ -17,15 +17,15 @@ import { useRouterSourceBlocking as _useRouterSourceBlocking } from './useRouter
 import { useRouterSourceConcurrent as _useRouterSourceConcurrent } from './useRouterSourceConcurrent'
 
 export const useRouterSource = <
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   source: RouterSource<Request, Response>,
   options: UseRouterSourceOptions = {},
 ): readonly [
-  RouterSnapshot<Request, Response>,
+  RouterRouteSnapshot<Request, Response>,
   Request | boolean,
-  () => Promise<RouterSnapshot<Request, Response>>,
+  () => Promise<RouterRouteSnapshot<Request, Response>>,
 ] => {
   const [snapshot, pending] = options.unstable_isConcurrent
     ? _useRouterSourceConcurrent(source, options)
@@ -50,7 +50,7 @@ export const useRouterSource = <
   }, [request, source])
 
   const waitUntilNavigationCompletes = useCallback((): Promise<
-    RouterSnapshot<Request, Response>
+    RouterRouteSnapshot<Request, Response>
   > => {
     const source = latestSourceRef.current
     return getSnapshotPromise(source).then((snapshot) =>

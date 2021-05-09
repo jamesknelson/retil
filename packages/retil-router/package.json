@@ -20,6 +20,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "path-to-regexp": "^6.1.0",
     "retil-history": "^0.20.1",
     "retil-source": "^0.20.1",

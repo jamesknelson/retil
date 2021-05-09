@@ -1,15 +1,15 @@
 import { createContext } from 'react'
-import { RouterReactController, RouterRequest } from './routerTypes'
+import { MountedRouterController, RouterRouteSnapshot } from './routerTypes'
 
 export const RouterContentContext = createContext<React.ReactNode>(
   undefined as any,
 )
-export const RouterControllerContext = createContext<RouterReactController>(
+export const RouterControllerContext = createContext<MountedRouterController>(
   undefined as any,
 )
 export const RouterPendingContext = createContext<
-  RouterRequest | boolean | undefined
+  RouterRouteSnapshot | boolean | undefined
 >(false)
-export const RouterRequestContext = createContext<RouterRequest>(
+export const RouterRequestContext = createContext<RouterRouteSnapshot>(
   undefined as any,
 )

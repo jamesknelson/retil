@@ -1,39 +1,44 @@
-import { createActionMap } from 'retil-history'
-import { createState, fuse, getSnapshotPromise, subscribe } from 'retil-source'
+import { PrecachedSnapshot, createActionMap } from 'retil-history'
+import {
+  FusorUse,
+  createState,
+  fuse,
+  getSnapshotPromise,
+  subscribe,
+} from 'retil-source'
 import { createMemo } from 'retil-support'
 
 import {
-  MaybePrecachedRequest,
-  PrecachedRequest,
   RouterController,
   RouterFunction,
-  RouterRequest,
-  RouterRequestExtension,
+  RouterHistorySnapshot,
   RouterRequestService,
   RouterResponse,
   RouterService,
-  RouterSnapshot,
+  RouterRouteSnapshot,
+  RouterSnapshotExtension,
 } from './routerTypes'
 import { isRedirect, waitForResponse } from './routerUtils'
 
 import { routeNormalize } from './routers/routeNormalize'
 
 export interface RouterOptions<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
+  TContextSnapshot extends object,
+  TRequestSnapshot extends RequestSnapshot = RequestSnapshot
 > {
+  basename?: string
   followRedirects?: boolean
+  fuseContext?: (request: TRequestSnapshot, use: FusorUse) => TContextSnapshot
   maxRedirects?: number
   normalizePathname?: boolean
-  initialSnapshot?: RouterSnapshot<Request, Response>
+  requestService?: RequestService<TRequestSnapshot>
 }
 
 export function createRouter<
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   router: RouterFunction<Request & RouterRequestExtension, Response>,
-  requestService: RouterRequestService<Request>,
   options: RouterOptions<Request, Response> = {},
 ): RouterService<Request, Response> {
   const {
@@ -43,20 +48,20 @@ export function createRouter<
     initialSnapshot,
   } = options
   const normalizedRouter = normalizePathname ? routeNormalize(router) : router
-  const [requestSource, requestController] = requestService
+  const [requestSource, requestController] = inputService
 
   const precachingActions = createActionMap<{
-    promise: Promise<RouterSnapshot<Request & PrecachedRequest, Response>>
+    promise: Promise<RouterRouteSnapshot<Request & PrecachedSnapshot, Response>>
     done: boolean
   }>()
   const precachedActions = new Map<
     symbol,
-    RouterSnapshot<Request & PrecachedRequest, Response>
+    RouterRouteSnapshot<Request & PrecachedSnapshot, Response>
   >()
   const precacheUnsubscribes = new Set<() => void>()
 
   const contextMemo = createMemo<
-    RouterSnapshot<Request & MaybePrecachedRequest, Response>
+    RouterRouteSnapshot<Request & MaybePrecachedContext, Response>
   >()
 
   let initialRequest: Request | null = null
@@ -90,7 +95,7 @@ export function createRouter<
     }
   }
 
-  const source = fuse<RouterSnapshot<Request, Response>>((use) => {
+  const source = fuse<RouterRouteSnapshot<Request, Response>>((use) => {
     const request = use(requestSource)
 
     // If an initial snapshot is provided, use it until a new request is
@@ -104,7 +109,7 @@ export function createRouter<
     // currently working router.
 
     const precachedRouterSnapshot =
-      request.precacheId && precachedActions.get(request.precacheId)
+      request.precacheKey && precachedActions.get(request.precacheKey)
 
     // Clear our precache, as any change from now on should result in a new
     // request.
@@ -123,9 +128,9 @@ export function createRouter<
     return snapshot
   })
 
-  const createSnapshot = <R extends Request & MaybePrecachedRequest>(
+  const createSnapshot = <R extends Request & MaybePrecachedContext>(
     request: R,
-  ): RouterSnapshot<R, Response> => {
+  ): RouterRouteSnapshot<R, Response> => {
     const response: Response = {
       head: [] as any[],
       headers: {},
@@ -134,7 +139,7 @@ export function createRouter<
 
     response.redirect = redirect.bind(null, response)
 
-    const snapshot: RouterSnapshot<R, Response> = {
+    const snapshot: RouterRouteSnapshot<R, Response> = {
       content: normalizedRouter(request, response),
       response,
       request,
@@ -175,13 +180,16 @@ export function createRouter<
 
     async precache(
       action,
-    ): Promise<RouterSnapshot<Request & PrecachedRequest, Response>> {
+    ): Promise<RouterRouteSnapshot<Request & PrecachedSnapshot, Response>> {
       // TODO: once request precache cancellation on change is implemented,
       // cache this so that we don't end up precaching the same action twice.
       const precachedRouterRequest = await requestController.precache(action)
       const precachedSnapshot = createSnapshot(precachedRouterRequest)
       await waitForResponse(precachedSnapshot.response)
-      precachedActions.set(precachedRouterRequest.precacheId, precachedSnapshot)
+      precachedActions.set(
+        precachedRouterRequest.precacheKey,
+        precachedSnapshot,
+      )
       return precachedSnapshot
     },
   }
@@ -194,13 +202,13 @@ export interface GetRouteOptions {
 }
 
 export async function getInitialSnapshot<
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   router: RouterFunction<Request, Response>,
   request: Request,
   options: GetRouteOptions = {},
-): Promise<RouterSnapshot<Request, Response>> {
+): Promise<RouterRouteSnapshot<Request, Response>> {
   const [requestSource] = createState(request)
   const requestService = [requestSource, {} as any] as const
   const [routerSource] = createRouter<Request, Response>(

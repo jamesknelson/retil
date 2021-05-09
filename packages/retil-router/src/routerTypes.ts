@@ -1,174 +1,118 @@
-import { ReactElement, ReactNode } from 'react'
+import { ReactNode } from 'react'
 import {
   HistoryAction,
   HistoryBlockPredicate,
+  HistoryController,
   HistoryLocation,
-  HistoryRequest,
+  HistorySnapshot,
 } from 'retil-history'
 import { Source } from 'retil-source'
-
-export interface MaybePrecachedRequest {
-  precacheId?: symbol
-}
-
-export interface PrecachedRequest {
-  precacheId: symbol
-}
 
 export type RouterAction = HistoryAction<object>
 export type RouterBlockPredicate = HistoryBlockPredicate<object>
 export type RouterLocation = HistoryLocation<object>
 
 export type RouterFunction<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
-> = (request: Request, response: Response) => ReactNode
+  Snapshot extends RouterRouteSnapshot = RouterRouteSnapshot
+> = (snapshot: Readonly<Snapshot>) => ReactNode
 
-export interface RouterRequestExtension {
+export interface RouterSnapshotExtension {
   /**
-   * Contains the parts of the url that are not meand to be matched on,
-   * either because they've been matched by a previous router or because the
-   * app is mounted on a subdirectory.
+   * This is unique for each time the router service passes a context to the
+   * root-level router function.
    */
+  routerKey: symbol
+
+  // how do we define that the parent context can supply default values for
+  // these for us?
   basename: string
   params: { [name: string]: string | string[] }
-}
 
-export interface RouterRequest
-  extends HistoryRequest<object>,
-    RouterRequestExtension {}
+  // This will be set by the router that wraps the content in a react context
+  // provider
+  content?: any
 
-export type RouterRequestSource = Source<RouterRequest>
-
-export interface RouterResponseRedirect {
-  (url: string): Promise<void>
-  (statusCode: number, url: string): Promise<void>
+  // Note: this will be extracted from the context passed to the react app
+  // itself, as it's mutable and only meant to be accessed by the router
+  // functions.
+  response: RouterResponse
 }
 
 export interface RouterResponse {
-  content?: never
-
+  // if there's an error, it can be stored here
   error?: any
 
-  head: ReactElement[]
+  headers?: { [name: string]: string }
 
-  headers: { [name: string]: string }
+  /**
+   * can be used to specify redirects, not found, etc.
+   **/
+  status?: number
+
+  isReady(): boolean
+
+  /**
+   * Helper to set the response status and headers as required for a redirect.
+   */
+  redirect(url: string): Promise<void>
+  redirect(statusCode: number, url: string): Promise<void>
+
+  /**
+   * Wait until all suspenses added to the response have resolved. This is
+   * useful when using renderToString – but not necessary for the streaming
+   * renderer.
+   */
+  waitUntilReady(): Promise<void>
 
   /**
    * Allows a router to indicate that the content will currently suspend,
    * and if it is undesirable to render suspending content, the router should
    * wait until there are no more pending promises.
-   *
-   * Note that this array can be mutated, so once the known promises are
-   * resolved, you should always check if any more promises have been added.
    */
-  pendingSuspenses: PromiseLike<any>[]
-
-  /**
-   * Calling this will navigate the underlying history to a new url, so long
-   * as the router is still active.
-   */
-  redirect: RouterResponseRedirect
-
-  // can be used to specify redirects, not found, etc.
-  status?: number
+  willNotBeReadyUntil(promise: PromiseLike<any>): void
 }
 
-export interface RouterSnapshot<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
-> {
-  content: ReactNode
-  request: Request
-  response: Response
-}
+export interface RouterRouteSnapshot
+  extends HistorySnapshot<object>,
+    RouterSnapshotExtension {}
 
 export type RouterSource<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
-> = Source<RouterSnapshot<Request, Response>>
+  RouteSnapshot extends RouterRouteSnapshot = RouterRouteSnapshot
+> = Source<RouteSnapshot>
 
 export type RouterService<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
-> = readonly [RouterSource<Request, Response>, RouterController]
+  RouteSnapshot extends RouterRouteSnapshot = RouterRouteSnapshot
+> = readonly [RouterSource<RouteSnapshot>, RouterController]
+
+export interface RouterHistorySnapshot
+  extends HistorySnapshot<object>,
+    Partial<RouterSnapshotExtension> {}
 
 export type RouterRequestService<
-  Request extends MaybePrecachedRequest
-> = readonly [Source<Request>, RouterRequestController<Request>]
+  HistorySnapshot extends RouterHistorySnapshot = RouterHistorySnapshot
+> = readonly [
+  Source<RouterHistorySnapshot>,
+  HistoryController<object, HistorySnapshot>,
+]
 
-export interface RouterRequestController<
-  Request extends MaybePrecachedRequest = HistoryRequest
-> {
-  block(predicate: RouterBlockPredicate): () => void
-  navigate(
-    action: RouterAction,
-    options?: {
-      force?: boolean
-      replace?: boolean
-    },
-  ): Promise<boolean>
-  precache(action: RouterAction): Promise<Request & PrecachedRequest>
-}
+export type RouterController<
+  RouteSnapshot extends RouterRouteSnapshot = RouterRouteSnapshot
+> = HistoryController<object, RouteSnapshot>
 
-export interface RouterController<
-  Request extends RouterRequest & MaybePrecachedRequest = RouterRequest
-> {
-  block(predicate: RouterBlockPredicate): () => void
-
-  navigate(
-    action: RouterAction,
-    options?: {
-      force?: boolean
-      replace?: boolean
-    },
-  ): Promise<boolean>
-
-  /**
-   * Allows you to fetch a route response without actually rendering it.
-   */
-  precache(
-    action: RouterAction,
-  ): Promise<RouterSnapshot<Request & PrecachedRequest>>
-}
-
-export interface RouterReactController<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
+export interface MountedRouterController<
+  RouteSnapshot extends RouterRouteSnapshot = RouterRouteSnapshot
 > extends RouterController {
   /**
    * Waits until navigation is no longer in progress, and return the snapshot
    * at that time.
    */
-  waitUntilNavigationCompletes: () => Promise<RouterSnapshot<Request, Response>>
+  waitUntilNavigationCompletes: () => Promise<RouteSnapshot>
 }
 
-export interface RouterState<
-  Request extends RouterRequest = RouterRequest,
-  Response extends RouterResponse = RouterResponse
-> extends RouterReactController<Request, Response> {
-  /**
-   * In concurrent mode, this will return the latest content -- and if the
-   * current route is pending, it'll return the pending content.
-   *
-   * In legacy mode, it'll contain the most recent non-pending content.
-   */
-  content: React.ReactNode
-
-  pending: Request | boolean
-
-  /**
-   * Contains the currently rendered request. Initially, this will contain
-   * the initial request. In concurrent mode, the two trees will contain
-   * different values for this.
-   */
-  request: Request
-
-  /**
-   * The response is not provided, as it is a mutable object that can be
-   * updated in ways that can't be properly rendered by React. To access the
-   * response, pass an `onResponse` option, or call
-   * `waitUntilNavigationCompletes`.
-   */
-  response?: never
-}
+export type MountedRouterState<
+  Snapshot extends RouterRouteSnapshot = RouterRouteSnapshot
+> = readonly [
+  snapshot: Omit<RouterRouteSnapshot, 'response'> & { content: ReactNode },
+  controller: MountedRouterController<Snapshot>,
+  pendingSnapshot: RouterRouteSnapshot | boolean,
+]
