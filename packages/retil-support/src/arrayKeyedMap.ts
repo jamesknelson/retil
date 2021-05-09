@@ -62,7 +62,7 @@ export class ArrayKeyedMap<K extends unknown[], V> {
       map = map.get(item) as MapNode<K, V>
       if (!map) return []
     }
-    return [map.get(dataSymbol)] as [V]
+    return map.has(dataSymbol) ? [map.get(dataSymbol) as V] : []
   }
 
   delete(path: K) {

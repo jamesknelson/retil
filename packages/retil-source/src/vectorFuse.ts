@@ -15,7 +15,7 @@ type Valueless = typeof ValuelessSymbol
 
 export type FuseVector<T> = [typeof FuseVectorSymbol, ...T[]]
 
-export function createFuseVector<T>(...xs: [T, ...T[]]) {
+export function createFuseVector<T>(xs: [T, ...T[]]): FuseVector<T> {
   return [FuseVectorSymbol, ...xs]
 }
 
@@ -33,11 +33,11 @@ export type VectorFusorUse = <U, V = U>(
 export type VectorFusor<T> = (use: VectorFusorUse) => T
 
 export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
-  let nextQueue = [] as UseInvocation[][]
+  let previousNextQueue = [] as UseInvocation[][]
   let previousResults = new ArrayKeyedMap<unknown[], T>()
 
   const clearCache = () => {
-    nextQueue.length = 0
+    previousNextQueue.length = 0
     previousResults.clear()
   }
 
@@ -59,8 +59,9 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
       return snapshot
     }
 
-    const queue = nextQueue.length ? nextQueue.slice() : [[]]
-    nextQueue.length = 0
+    const queue = previousNextQueue.length ? previousNextQueue.slice() : [[]]
+    const nextQueue = [] as UseInvocation[][]
+
     queueLoop: while (queue.length) {
       const useList = queue.shift()!
       const useInjects = [] as unknown[]
@@ -75,6 +76,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
 
       for (let i = 0; i < useList.length; i++) {
         const invocation = useList[i]
+
         const [snapshot, source, maybeDefaultValue] = useList[i]
         if (invocation.length === 4) {
           if (isFuseVector(snapshot)) {
@@ -88,18 +90,21 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
           if (isFuseVector(currentSnapshot)) {
             // Replace this item in the queue with an expansion for the
             // vector
-            expandVectorFrom(queue, useList, i, currentSnapshot, 1)
+            expandVectorFrom(
+              queue,
+              useList,
+              i,
+              currentSnapshot,
+              source,
+              maybeDefaultValue,
+              1,
+            )
             continue queueLoop
           } else if (currentSnapshot !== snapshot) {
             // Our prediction didn't match the current value for this source, so
-            // continue down the queue without processing it. Note that it's
-            // possble for the first run to produce no results if the last
-            // result was invalidated. In this case, we'll append an empty list
-            // to force a single run of the fusor.
-            if (!queue.length && !resultVector.length) {
-              queue.push([])
-            }
-            continue queueLoop
+            // truncate the useList at this point and skip to the fusor.
+            useList.length = i
+            break
           } else {
             invocation[3] =
               currentSnapshot === ValuelessSymbol
@@ -166,7 +171,15 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
               }
               inject = defaultValues[0] as U
             } else if (isFuseVector(snapshot)) {
-              expandVectorFrom(queue, useList, useIndex, snapshot, 2)
+              expandVectorFrom(
+                queue,
+                useList,
+                useIndex,
+                snapshot,
+                source,
+                defaultValues,
+                2,
+              )
               inject = snapshot[1]
             } else {
               inject = snapshot
@@ -185,6 +198,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
     }
 
     previousResults = results
+    previousNextQueue = nextQueue
 
     return resultVector
   }, clearCache)
@@ -195,18 +209,15 @@ function expandVectorFrom(
   useList: UseInvocation[],
   vectorIndex: number,
   vector: FuseVector<any>,
+  source: Source<any>,
+  defaultValues: Maybe<any>,
   startIndex: number,
 ) {
   // Walk backwards so that the result of unshifting is that the vector will
   // be added in the original order.
   for (let j = vector.length - 1; j >= startIndex; j--) {
     const toEnqueue = useList.slice()
-    toEnqueue.splice(vectorIndex, 1, [
-      vector,
-      useList[vectorIndex][1],
-      useList[vectorIndex][2],
-      vector[j],
-    ])
+    toEnqueue.splice(vectorIndex, 1, [vector, source, defaultValues, vector[j]])
     queue.unshift(toEnqueue)
   }
 }
@@ -215,14 +226,20 @@ function addToNextQueueIfRequired(
   nextQueue: UseInvocation[][],
   useList: UseInvocation[],
 ) {
-  const toInclude = useList.slice(0, 3)
   const isAlreadyIncluded = nextQueue.find(
-    (item) =>
-      item[0] === toInclude[0] &&
-      item[1] === toInclude[1] &&
-      item[2] === toInclude[2],
+    (queuedList) =>
+      queuedList.length === useList.length &&
+      queuedList.every(
+        (invocation, i) =>
+          invocation[0] === useList[i][0] &&
+          invocation[1] === useList[i][1] &&
+          invocation[2].length === useList[i][2].length &&
+          invocation[2][0] === useList[i][2][0],
+      ),
   )
   if (!isAlreadyIncluded) {
-    nextQueue.push(toInclude)
+    nextQueue.push(
+      useList.map((invocation) => invocation.slice(0, 3) as UseInvocation),
+    )
   }
 }
