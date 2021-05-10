@@ -63,7 +63,9 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
     const nextQueue = [] as UseInvocation[][]
 
     queueLoop: while (queue.length) {
-      const useList = queue.shift()!
+      const useList = queue
+        .shift()!
+        .map((invocation) => invocation.slice() as UseInvocation)
       const useInjects = [] as unknown[]
 
       // Keep track of values to inject per-source, e.g. for if we've got
@@ -83,7 +85,9 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<FuseVector<T>> {
             replaceUseInvocationsBySource.set(source, invocation)
           }
         } else if (replaceUseInvocationsBySource.has(source)) {
-          useList[i] = replaceUseInvocationsBySource.get(source)!
+          useList[i] = replaceUseInvocationsBySource
+            .get(source)!
+            .slice() as UseInvocation
           useList[i][2] = maybeDefaultValue
         } else {
           const currentSnapshot = cachedUse(source)

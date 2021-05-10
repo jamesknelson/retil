@@ -208,6 +208,7 @@ describe(`vectorFuse`, () => {
     setState(3)
     expect(hasSnapshot(source)).toBe(false)
     setState(4)
+    expect(hasSnapshot(source)).toBe(true)
     expect(output.reverse()).toEqual([
       createFuseVector([2]),
       createFuseVector([4]),
