@@ -7,14 +7,16 @@ import {
   RouterPendingContext,
   RouterRequestContext,
 } from '../routerContext'
-import { RouterState } from '../routerTypes'
+import { MountedRouterState } from '../routerTypes'
 
 export interface RouterProviderProps {
   children: React.ReactNode
 
   // Pending is optional, as passing pending will cause changes to context that
   // may be undesirable in some applications.
-  value: Omit<RouterState, 'pending'> & { pending?: RouterState['pending'] }
+  value: Omit<MountedRouterState, 'pending'> & {
+    pending?: MountedRouterState['pending']
+  }
 }
 
 export function RouterProvider({ children, value }: RouterProviderProps) {

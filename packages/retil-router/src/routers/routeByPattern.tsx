@@ -1,7 +1,11 @@
 import * as React from 'react'
 import { joinPaths } from 'retil-history'
 
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 import { Matcher, createMatcher } from '../routerUtils'
 
 import { routeNotFound } from './routeNotFound'
@@ -10,14 +14,14 @@ import { routeProvide } from './routeProvide'
 const notFoundRouter = routeNotFound()
 
 export interface CreatePatternRouterOptions<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 > {
   [pattern: string]: React.ReactNode | RouterFunction<Request, Response>
 }
 
 export function routeByPattern<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(
   handlers: CreatePatternRouterOptions<Request, Response>,

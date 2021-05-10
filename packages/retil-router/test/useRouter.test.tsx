@@ -9,8 +9,8 @@ import {
   CreateRouterRequestServiceOptions,
   RouterFunction,
   RouterProvider,
-  RouterRequest,
-  RouterState,
+  RouterRouteSnapshot,
+  MountedRouterState,
   UseRouterOptions,
   createRequest,
   createRequestService,
@@ -28,7 +28,7 @@ function createTestRequestService<Ext extends object = {}>(
 ) {
   const historyService = createMemoryHistory(path)
   return createRequestService({
-    historyService,
+    requestService: historyService,
     ...options,
   })
 }
@@ -113,13 +113,13 @@ function testUseRouter(useRouter: typeof _useRouter) {
 
   test(`can use an extended request`, () => {
     const requestService = createTestRequestService('/test-1', {
-      extend: () => ({
+      fuseContext: () => ({
         currentUser: 'james',
       }),
     })
-    const router: RouterFunction<RouterRequest & { currentUser: string }> = (
-      request,
-    ) => request.currentUser
+    const router: RouterFunction<
+      RouterRouteSnapshot & { currentUser: string }
+    > = (request) => request.currentUser
     const Test = () => <>{useRouter(router, { requestService }).content}</>
     const { container } = render(<Test />)
     expect(container).toHaveTextContent('james')
@@ -172,7 +172,7 @@ function testUseRouter(useRouter: typeof _useRouter) {
     const [pendingSource, setPendingSource] = createState()
     const requestService1 = createTestRequestService('/test-1')
     const requestService2 = createTestRequestService('/test-2', {
-      extend: (_request, use) => {
+      fuseContext: (_request, use) => {
         return {
           asyncValue: use(pendingSource),
         }
@@ -240,7 +240,7 @@ describe('useRouter (in concurrent mode)', () => {
         return { default: innerRouter }
       }),
     })
-    let route!: RouterState
+    let route!: MountedRouterState
     const Test = () => {
       route = useRouter(router, { requestService })
       return (
@@ -313,7 +313,7 @@ describe('useRouter (in blocking mode)', () => {
         return { default: innerRouter }
       }),
     })
-    let route!: RouterState
+    let route!: MountedRouterState
 
     const Test = () => {
       route = useRouter(router, { requestService })
@@ -377,8 +377,8 @@ describe('useRouter (in blocking mode)', () => {
     const TestRedirectLoop = () => {
       const [requestService, _setRequestService] = useState(() =>
         createRequestService({
-          historyService,
-          extend: () => ({ auth: false }),
+          requestService: historyService,
+          fuseContext: () => ({ auth: false }),
         }),
       )
       setRequestService = _setRequestService
@@ -401,8 +401,8 @@ describe('useRouter (in blocking mode)', () => {
     act(() => {
       setRequestService(() =>
         createRequestService({
-          historyService,
-          extend: () => ({ auth: true }),
+          requestService: historyService,
+          fuseContext: () => ({ auth: true }),
         }),
       )
     })
@@ -421,7 +421,7 @@ describe('useRouter (in blocking mode)', () => {
         return { default: routeRedirect('/test-1') }
       }),
     })
-    let route!: RouterState
+    let route!: MountedRouterState
 
     const Test = () => {
       route = useRouter(router, { requestService })

@@ -1,7 +1,11 @@
 import * as React from 'react'
 import { resolveAction, createHref, parseAction } from 'retil-history'
 
-import { RouterAction, RouterFunction, RouterRequest } from '../routerTypes'
+import {
+  RouterAction,
+  RouterFunction,
+  RouterRouteSnapshot,
+} from '../routerTypes'
 
 export interface RedirectProps {
   redirectPromise: PromiseLike<any>
@@ -11,7 +15,9 @@ export const Redirect: React.FunctionComponent<RedirectProps> = (props) => {
   throw Promise.resolve(props.redirectPromise)
 }
 
-export function routeRedirect<Request extends RouterRequest = RouterRequest>(
+export function routeRedirect<
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot
+>(
   to: RouterAction | ((request: Request) => RouterAction),
   status = 302,
 ): RouterFunction<Request> {

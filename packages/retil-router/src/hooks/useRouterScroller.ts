@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef } from 'react'
 import { noop } from 'retil-support'
 
-import { RouterRequest } from '../routerTypes'
+import { RouterRouteSnapshot } from '../routerTypes'
 
 import { useRouterRequest } from './useRouterRequest'
 import { useWaitUntilNavigationCompletes } from './useWaitUntilNavigationCompletes'
@@ -15,7 +15,7 @@ const useClientSideOnlyLayoutEffect =
   typeof window !== 'undefined' ? useLayoutEffect : noop
 
 export interface UseRouterScrollerOptions<
-  Request extends RouterRequest = RouterRequest
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot
 > {
   // Useful for nested layouts with suspense wrappers, where you might want
   // to leave scrolling to be handled by a child component when the inner
@@ -28,7 +28,7 @@ export interface UseRouterScrollerOptions<
 let hasHydrated = false
 
 export function useRouterScroller<
-  Request extends RouterRequest = RouterRequest
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot
 >(options: UseRouterScrollerOptions<Request> = {}) {
   const {
     getWillChildHandleScroll,
@@ -51,7 +51,7 @@ export function useRouterScroller<
       try {
         // Save the scroll position before the update actually occurs
         sessionStorage.setItem(
-          '__retil_scroll_' + prevRequest.key!,
+          '__retil_scroll_' + prevRequest.historyKey!,
           JSON.stringify({ x: window.pageXOffset, y: window.pageYOffset }),
         )
       } catch {}
@@ -88,17 +88,19 @@ export function useRouterScroller<
   }, [scrollRequest])
 }
 
-const defaultGetShouldScroll = (prev: RouterRequest, next: RouterRequest) =>
-  prev.hash !== next.hash || prev.pathname !== next.pathname
+const defaultGetShouldScroll = (
+  prev: RouterRouteSnapshot,
+  next: RouterRouteSnapshot,
+) => prev.hash !== next.hash || prev.pathname !== next.pathname
 
-export const defaultScrollToRequest = (request: RouterRequest) => {
+export const defaultScrollToRequest = (request: RouterRouteSnapshot) => {
   // TODO: if scrolling to a hash within the same page, ignore
   // the scroll history and just scroll directly there
 
   let scrollCoords: { x: number; y: number }
   try {
     scrollCoords = JSON.parse(
-      sessionStorage.getItem('__retil_scroll_' + request.key)!,
+      sessionStorage.getItem('__retil_scroll_' + request.historyKey)!,
     ) || { x: 0, y: 0 }
   } catch {
     if (!request.hash) {

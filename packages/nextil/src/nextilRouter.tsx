@@ -3,8 +3,8 @@ import { createContext, useContext, useMemo } from 'react'
 import {
   RouterFunction,
   RouterProvider,
-  RouterRequestService,
-  RouterSnapshot,
+  RouterHistoryService,
+  RouterRouteSnapshot,
   UseRouterOptions,
   createRequestService,
   useRouter,
@@ -14,9 +14,9 @@ import { FusorUse } from 'retil-source'
 import { NextilRequest, NextilResponse } from './nextilTypes'
 
 export interface NextilRouterDefaultsContextValue {
-  requestService: RouterRequestService<any>
+  requestService: RouterHistoryService<any>
   routerFunction: RouterFunction<any, any>
-  initialSnapshot: RouterSnapshot<any, any>
+  initialSnapshot: RouterRouteSnapshot<any, any>
 }
 
 export const NextilRouterDefaultsContext = createContext<NextilRouterDefaultsContextValue>(
@@ -26,7 +26,7 @@ export const NextilRouterDefaultsContext = createContext<NextilRouterDefaultsCon
 export interface NextilRouterProps<Ext extends object>
   extends Omit<
     UseRouterOptions<NextilRequest & Ext, NextilResponse>,
-    'requestService'
+    'requestService' | 'fn'
   > {
   children: React.ReactNode
 
@@ -63,8 +63,8 @@ export function NextilRouter<Ext extends object>(
   const requestService = useMemo(
     () =>
       createRequestService<Ext, NextilRequest & Ext>({
-        extend: extendRequest as any,
-        historyService: appRequestService,
+        fuseContext: extendRequest as any,
+        requestService: appRequestService,
       }),
     [extendRequest, appRequestService],
   )

@@ -1,8 +1,8 @@
 import { useContext } from 'react'
 
 import { RouterControllerContext } from '../routerContext'
-import { RouterReactController } from '../routerTypes'
+import { MountedRouterController } from '../routerTypes'
 
-export function usePrecache(): RouterReactController['precache'] {
+export function usePrecache(): MountedRouterController['precache'] {
   return useContext(RouterControllerContext).precache
 }

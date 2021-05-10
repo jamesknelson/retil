@@ -20,9 +20,9 @@ import {
 } from 'retil-source'
 
 import {
-  RouterRequest,
+  RouterRouteSnapshot,
   RouterResponse,
-  RouterSnapshot,
+  RouterRouteSnapshot,
   RouterSource,
 } from '../routerTypes'
 import { waitForResponse } from '../routerUtils'
@@ -33,12 +33,12 @@ import {
 } from './useRouterSourceCommon'
 
 export const useRouterSourceBlocking: UseRouterSourceFunction = <
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   source: RouterSource<Request, Response>,
   options: UseRouterSourceOptions = {},
-): readonly [RouterSnapshot<Request, Response>, Request | boolean] => {
+): readonly [RouterRouteSnapshot<Request, Response>, Request | boolean] => {
   const { transitionTimeoutMs = Infinity } = options
 
   const mergedSource = useMemo(
@@ -51,8 +51,8 @@ export const useRouterSourceBlocking: UseRouterSourceFunction = <
   )
 
   const [state, setState] = useState<{
-    currentSnapshot: RouterSnapshot<Request, Response>
-    pendingSnapshot: RouterSnapshot<Request, Response> | null
+    currentSnapshot: RouterRouteSnapshot<Request, Response>
+    pendingSnapshot: RouterRouteSnapshot<Request, Response> | null
     mergedSource: Source<any> | null
     sourcePending: boolean
   }>(() => {

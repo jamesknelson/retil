@@ -1,10 +1,14 @@
 import * as React from 'react'
 
 import { RouterRequestContext } from '../routerContext'
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 
 export function routeProvide<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(
   router: RouterFunction<Request, Response>,
@@ -18,7 +22,7 @@ export function routeProvide<
 
 interface RouterContentWrapperProps {
   content: React.ReactNode
-  request: RouterRequest
+  request: RouterRouteSnapshot
 }
 
 function RouterContentWrapper({ content, request }: RouterContentWrapperProps) {

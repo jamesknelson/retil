@@ -4,7 +4,7 @@ import { FusorUse } from 'retil-source'
 import { createRequestService } from '../requestService'
 import {
   RouterFunction,
-  RouterHistoryService,
+  RouterRequestService,
   RouterHistorySnapshot,
   RouterResponse,
   RouterRouteSnapshot,
@@ -24,7 +24,7 @@ export interface UseRouterOptions<
     request: HistorySnapshot & RouterSnapshotExtension,
     use: FusorUse,
   ) => RouteExtension
-  historyService?: RouterHistoryService<HistorySnapshot>
+  historyService?: RouterRequestService<HistorySnapshot>
   onResponseComplete?: (response: Response, request: RouteExtension) => void
   transitionTimeoutMs?: number
   unstable_isConcurrent?: boolean
@@ -45,14 +45,14 @@ export function useRouter<
     unstable_isConcurrent,
   } = options
 
-  const requestServiceRef = useRef<RouterHistoryService<Request>>(
+  const requestServiceRef = useRef<RouterRequestService<Request>>(
     requestServiceProp!,
   )
   if (requestServiceProp) {
     requestServiceRef.current = requestServiceProp
   }
   if (!requestServiceRef.current && typeof window !== 'undefined') {
-    requestServiceRef.current = createRequestService() as RouterHistoryService<Request>
+    requestServiceRef.current = createRequestService() as RouterRequestService<Request>
   }
   if (!requestServiceRef.current) {
     throw new Error(

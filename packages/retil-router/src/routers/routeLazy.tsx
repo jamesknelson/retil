@@ -1,9 +1,13 @@
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 
 import { routeAsync } from './routeAsync'
 
 export function routeLazy<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(
   load: () => PromiseLike<{ default: RouterFunction<Request, Response> }>,

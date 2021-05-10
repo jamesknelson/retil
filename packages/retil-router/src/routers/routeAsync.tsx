@@ -1,7 +1,11 @@
 import * as React from 'react'
 import { ReactNode } from 'react'
 
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 
 import { routeProvide } from './routeProvide'
 
@@ -37,7 +41,7 @@ export const AsyncContentWrapper: React.FunctionComponent<AsyncResponseContentPr
 }
 
 export function routeAsync<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(
   asyncRouter: (request: Request, response: Response) => PromiseLike<ReactNode>,

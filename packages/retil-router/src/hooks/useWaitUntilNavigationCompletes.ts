@@ -1,11 +1,11 @@
 import { useContext } from 'react'
 
 import { RouterControllerContext } from '../routerContext'
-import { RouterReactController } from '../routerTypes'
+import { MountedRouterController } from '../routerTypes'
 
 export function useWaitUntilNavigationCompletes(
-  forceValue?: RouterReactController['waitUntilNavigationCompletes'],
-): RouterReactController['waitUntilNavigationCompletes'] {
+  forceValue?: MountedRouterController['waitUntilNavigationCompletes'],
+): MountedRouterController['waitUntilNavigationCompletes'] {
   const contextController = useContext(RouterControllerContext)
   return forceValue || contextController.waitUntilNavigationCompletes
 }

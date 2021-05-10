@@ -4,7 +4,11 @@ import {
 } from 'path-to-regexp'
 import { normalizePathname, parseLocation } from 'retil-history'
 
-import { RouterAction, RouterRequest, RouterResponse } from './routerTypes'
+import {
+  RouterAction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from './routerTypes'
 
 // Wait for a list of promises that may have grown by the time the first
 // promises resolves.
@@ -27,7 +31,7 @@ export async function waitForResponse(response: RouterResponse) {
 export function createRequest<Ext extends object = {}>(
   action: RouterAction,
   ext?: Ext,
-): RouterRequest & Ext {
+): RouterRouteSnapshot & Ext {
   return Object.assign(parseLocation(action), { basename: '', params: {} }, ext)
 }
 

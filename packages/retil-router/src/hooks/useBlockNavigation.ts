@@ -1,8 +1,8 @@
 import { useContext } from 'react'
 
 import { RouterControllerContext } from '../routerContext'
-import { RouterReactController } from '../routerTypes'
+import { MountedRouterController } from '../routerTypes'
 
-export function useBlockNavigation(): RouterReactController['block'] {
+export function useBlockNavigation(): MountedRouterController['block'] {
   return useContext(RouterControllerContext).block
 }

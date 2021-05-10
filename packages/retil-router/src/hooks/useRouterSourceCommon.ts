@@ -1,8 +1,8 @@
 import {
-  RouterRequest,
+  RouterRouteSnapshot,
   RouterResponse,
   RouterSource,
-  RouterSnapshot,
+  RouterRouteSnapshot,
 } from '../routerTypes'
 
 export interface UseRouterSourceOptions {
@@ -12,10 +12,10 @@ export interface UseRouterSourceOptions {
 
 export interface UseRouterSourceFunction {
   <
-    Request extends RouterRequest = RouterRequest,
+    Request extends RouterRouteSnapshot = RouterRouteSnapshot,
     Response extends RouterResponse = RouterResponse
   >(
     source: RouterSource<Request, Response>,
     options?: UseRouterSourceOptions,
-  ): readonly [RouterSnapshot<Request, Response>, Request | boolean]
+  ): readonly [RouterRouteSnapshot<Request, Response>, Request | boolean]
 }

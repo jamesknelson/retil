@@ -2,9 +2,9 @@ import { IncomingMessage, ServerResponse } from 'http'
 import { ParsedUrlQuery } from 'querystring'
 import {
   RouterFunction,
-  RouterRequest,
+  RouterRouteSnapshot,
   RouterResponse,
-  RouterSnapshot,
+  RouterRouteSnapshot,
 } from 'retil-router'
 import { FusorUse } from 'retil-source'
 
@@ -12,7 +12,7 @@ import type { BypassSerializationHack } from './nextilConstants'
 
 export interface NextilRequestExtension extends NextilState<any> {}
 
-export type NextilRequest = RouterRequest & NextilRequestExtension
+export type NextilRequest = RouterRouteSnapshot & NextilRequestExtension
 
 export type NextilResponse = RouterResponse
 
@@ -35,7 +35,7 @@ export type NextilExtendRequestFunction<Ext> = (
 
 export interface NextilRoutedPageUnserializedAppProps {
   // This will *only* be available on the server
-  initialSnapshot?: RouterSnapshot<NextilRequest>
+  initialSnapshot?: RouterRouteSnapshot<NextilRequest>
   // This will only be available on the server, and *after* the initial render
   // on the client
   nextilState?: NextilState

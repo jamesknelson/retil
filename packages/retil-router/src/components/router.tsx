@@ -1,12 +1,16 @@
 import * as React from 'react'
 
 import { UseRouterOptions, useRouter } from '../hooks/useRouter'
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 
 import { RouterProvider } from './routerProvider'
 
 export interface RouterProps<
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 > extends UseRouterOptions<Request, Response> {
   children: React.ReactNode
@@ -14,7 +18,7 @@ export interface RouterProps<
 }
 
 export function Router<
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(props: RouterProps<Request, Response>) {
   const { children, fn, ...routerOptions } = props

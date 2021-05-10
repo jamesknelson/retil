@@ -8,6 +8,7 @@ import {
 
 import { routeRedirect } from './routeRedirect'
 
+// TODO: move this into the location source
 export function routeNormalize<
   Request extends RouterRouteSnapshot,
   Response extends RouterResponse

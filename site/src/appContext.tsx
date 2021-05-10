@@ -1,3 +1,3 @@
-import type { RouterRequest } from '../../packages/retil-router/src'
+import type { RouterRouteSnapshot } from '../../packages/retil-router/src'
 
-export interface AppContext extends RouterRequest {}
+export interface AppContext extends RouterRouteSnapshot {}

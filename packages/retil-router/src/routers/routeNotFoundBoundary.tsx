@@ -1,11 +1,15 @@
 import * as React from 'react'
 
-import { RouterFunction, RouterRequest, RouterResponse } from '../routerTypes'
+import {
+  RouterFunction,
+  RouterRouteSnapshot,
+  RouterResponse,
+} from '../routerTypes'
 
 import { NotFoundError } from './routeNotFound'
 
 export interface NotFoundBoundaryProps<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 > {
   children: React.ReactNode
@@ -15,7 +19,7 @@ export interface NotFoundBoundaryProps<
 }
 
 function NotFoundBoundary<
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(props: NotFoundBoundaryProps<Request, Response>) {
   return <InnerNotFoundBoundary {...props} />
@@ -76,7 +80,7 @@ class InnerNotFoundBoundary extends React.Component<
 }
 
 export const routeNotFoundBoundary = <
-  Request extends RouterRequest,
+  Request extends RouterRouteSnapshot,
   Response extends RouterResponse
 >(
   initialRouter: RouterFunction<Request, Response>,

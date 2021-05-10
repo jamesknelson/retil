@@ -1,5 +1,13 @@
 import type { ParsedUrlQuery } from 'querystring'
-import { Fusor, Source, filter, fuse, mergeLatest, select } from 'retil-source'
+import {
+  FuseEffectSymbol,
+  Fusor,
+  Source,
+  filter,
+  fuse,
+  mergeLatest,
+  select,
+} from 'retil-source'
 
 export interface RoutingRedirectFunction {
   redirect(url: string): Promise<void>
@@ -63,114 +71,6 @@ export interface RetilRouteProps extends RetilEnvironment, InjectedRouteProps {}
 export type RouterFunction<
   Snapshot extends RouterRouteSnapshot = RouterRouteSnapshot
 > = (snapshot: Readonly<Snapshot>) => ReactNode
-
-const PrecacheSymbol = Symbol('precache')
-
-export type Precache<T extends object> = readonly [typeof PrecacheSymbol, T]
-
-export type MaybePrecached<T extends object> = T | Precache<T>
-
-export function createPrecache<T extends object>(x: T): Precache<T> {
-  return [PrecacheSymbol, x]
-}
-
-export function isPrecache<T extends object>(
-  x: T | Precache<T> | any,
-): x is Precache<T> {
-  return Array.isArray(x) && x[0] === PrecacheSymbol
-}
-
-class WeakArrayMap<K extends object, V> {
-  clear(): void {}
-  get(keys: K[]): V | null {}
-  has(keys: K[]): boolean {}
-  set(keys: K[], value: V): void {}
-}
-
-type Used = readonly [
-  source: Source<any>,
-  defaultValues: [any] | [],
-  snapshot: any,
-]
-
-export function fuseMaybePrecached<T extends object>(fusor: PureFusor<T>) {
-  const precache = new WeakArrayMap<Source<any>, (readonly [Used[], T])[]>()
-
-  const clearCache = () => {
-    precache.clear()
-  }
-
-  // todo: I think we want to store all combinations of sources that have
-  // been used to precache, along with a list of all sources in total,
-  // and check each combination
-
-  const source = fuse((use, effect) => {
-    if (precache) {
-      const cachedSources = Array.from(precache.used.entries())
-      const currentValues = cachedSources.map(([source, defaultValue]) =>
-        use(source, defaultValue),
-      )
-      const isActual = currentValues.every(isNotPrecache)
-
-      if (isActual) {
-        // Check `hasPrecachedValue` separately to `precachedValue`, in case
-        // there is a precached falsy value.
-        const hasPrecachedValue = precache.precachedValues.has(currentValues)
-        const precachedValue = precache.precachedValues.get(currentValues)
-
-        clearCache()
-
-        if (hasPrecachedValue) {
-          return precachedValue
-        }
-      }
-    }
-
-    const precachedSources = [] as Source<any>[]
-    const used = [] as [
-      source: Source<any>,
-      defaultValues: [any] | [],
-      snapshot: any,
-    ][]
-
-    // Keep track of what is used, so that if we find we're producing a
-    // precached value, we can keep track of the inputs that correspond
-    // to it.
-    const wrappedUse = <T, U>(
-      source: Source<T>,
-      ...defaultValues: [U] | []
-    ) => {
-      if (process.env.NODE_ENV !== 'production') {
-        if (defaultValues.length && isPrecache(defaultValues[0])) {
-          throw new Error(
-            "You can't use a precache value as a default value for use()",
-          )
-        }
-      }
-
-      const snapshot = use(source, ...defaultValues)
-
-      if (isPrecache(snapshot)) {
-        precachedSources.push(source)
-      }
-
-      used.push([source, defaultValues, snapshot])
-
-      return snapshot
-    }
-
-    const snapshot = fusor(wrappedUse, effect)
-
-    if (precachedSources.length === 0) {
-      precache.clear()
-      return snapshot
-    } else {
-      // TODO: append to cache
-
-      return createPrecache(snapshot)
-    }
-  }, clearCache)
-}
 
 export function extendEnvironmentSource(
   environmentSource,

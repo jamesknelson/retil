@@ -1,7 +1,7 @@
 import { NextRouter } from 'next/router'
 import {
   HistoryController,
-  HistoryRequest,
+  HistorySnapshot,
   HistoryService,
   HistorySource,
   createHref,
@@ -30,10 +30,10 @@ export function createNextHistory(
 ): HistoryService<NextilState, any> {
   // If we're on the server, return a constant source
   if (!router.events) {
-    const [source] = createState<HistoryRequest & NextilState>({
+    const [source] = createState<HistorySnapshot & NextilState>({
       ...parseLocation(router.asPath),
       ...nextilState,
-      key: undefined as any,
+      historyKey: undefined as any,
     })
     return [source, {} as any]
   }
@@ -51,8 +51,8 @@ export function createNextHistory(
         )
       }
 
-      let lastSnapshot: HistoryRequest & NextilState = {
-        key: 'default',
+      let lastSnapshot: HistorySnapshot & NextilState = {
+        historyKey: 'default',
         ...parseLocation(router.asPath),
         ...nextilState,
       }
@@ -84,7 +84,7 @@ export function createNextHistory(
             ...location,
             ...latestNextilStateRef.current!,
 
-            key: window.history.state.options.retilKey,
+            historyKey: window.history.state.options.retilKey,
           }
 
           next(lastSnapshot)

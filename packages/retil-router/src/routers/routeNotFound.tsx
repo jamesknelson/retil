@@ -1,9 +1,9 @@
 import * as React from 'react'
 
-import { RouterFunction, RouterRequest } from '../routerTypes'
+import { RouterFunction, RouterRouteSnapshot } from '../routerTypes'
 
 export class NotFoundError {
-  constructor(readonly request: RouterRequest) {}
+  constructor(readonly request: RouterRouteSnapshot) {}
 }
 
 export interface NotFoundProps {

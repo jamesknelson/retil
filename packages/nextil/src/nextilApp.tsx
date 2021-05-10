@@ -94,7 +94,7 @@ export function nextilApp(
     const requestService = useMemo(
       () =>
         createRequestService<any, NextilRequest>({
-          extend: (request, use) => {
+          fuseContext: (request, use) => {
             if (request.extendRequest) {
               request = { ...request, ...request.extendRequest(request, use) }
             }
@@ -104,7 +104,7 @@ export function nextilApp(
             }
             return request
           },
-          historyService: createNextHistory(
+          requestService: createNextHistory(
             nextRouter,
             nextilStateProp || latestNextilStateRef.current!,
           ) as any,

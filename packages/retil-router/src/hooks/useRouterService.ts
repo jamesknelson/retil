@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react'
 import {
   MountedRouterState,
-  RouterSnapshot,
+  RouterRouteSnapshot,
   RouterResponse,
   RouterService,
 } from '../routerTypes'
@@ -9,7 +9,7 @@ import {
 import { useRouterSource } from './useRouterSource'
 
 export interface UseRouterServiceOptions<
-  Request extends RouterSnapshot = RouterSnapshot,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 > {
   /**
@@ -23,7 +23,7 @@ export interface UseRouterServiceOptions<
 }
 
 export function useRouterService<
-  Request extends RouterSnapshot = RouterSnapshot,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   routerService: RouterService<Request, Response>,

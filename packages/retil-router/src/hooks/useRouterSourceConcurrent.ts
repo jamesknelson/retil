@@ -5,9 +5,9 @@ import { useMemo, useRef } from 'react'
 import { mergeLatest, useSource } from 'retil-source'
 
 import {
-  RouterRequest,
+  RouterRouteSnapshot,
   RouterResponse,
-  RouterSnapshot,
+  RouterRouteSnapshot,
   RouterSource,
 } from '../routerTypes'
 
@@ -19,12 +19,12 @@ import {
 const { unstable_useTransition: useTransition } = React
 
 export const useRouterSourceConcurrent: UseRouterSourceFunction = <
-  Request extends RouterRequest = RouterRequest,
+  Request extends RouterRouteSnapshot = RouterRouteSnapshot,
   Response extends RouterResponse = RouterResponse
 >(
   source: RouterSource<Request, Response>,
   options: UseRouterSourceOptions = {},
-): readonly [RouterSnapshot<Request, Response>, boolean] => {
+): readonly [RouterRouteSnapshot<Request, Response>, boolean] => {
   const [startTransition, pending] = useTransition()
   const latestSource = useMemo(
     () =>
@@ -35,7 +35,9 @@ export const useRouterSourceConcurrent: UseRouterSourceFunction = <
     [source],
   )
 
-  const lastSnapshot = useRef<RouterSnapshot<Request, Response> | null>(null)
+  const lastSnapshot = useRef<RouterRouteSnapshot<Request, Response> | null>(
+    null,
+  )
   const [currentSnapshot, isSuspended] =
     useSource(latestSource, {
       defaultValue: null,

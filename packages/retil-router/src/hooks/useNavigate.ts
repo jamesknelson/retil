@@ -1,8 +1,8 @@
 import { useContext } from 'react'
 
 import { RouterControllerContext } from '../routerContext'
-import { RouterReactController } from '../routerTypes'
+import { MountedRouterController } from '../routerTypes'
 
-export function useNavigate(): RouterReactController['navigate'] {
+export function useNavigate(): MountedRouterController['navigate'] {
   return useContext(RouterControllerContext).navigate
 }
