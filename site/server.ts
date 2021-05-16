@@ -49,7 +49,7 @@ async function createServer(
     )
   }
 
-  app.use('*', async (req, res) => {
+  app.use('/', async (req, res) => {
     try {
       const url = req.originalUrl
 
@@ -65,18 +65,17 @@ async function createServer(
         render = require('./dist/server/entry-server.js').render
       }
 
-      const context = {}
       const {
         appHTML,
         headHTML,
         responseHeaders = {} as Record<string, string>,
         responseStatus = 200,
-      } = await render(url, context)
+      } = await render(req, res)
 
       if (
-        responseStatus >= 300 &&
-        responseStatus < 400 &&
-        responseHeaders.Location
+        res.statusCode >= 300 &&
+        res.statusCode < 400 &&
+        res.getHeaders().Location
       ) {
         return res.redirect(responseStatus, responseHeaders.Location)
       }

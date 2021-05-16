@@ -1,12 +1,17 @@
 import groupBy from 'lodash/groupBy'
 import startCase from 'lodash/startCase'
 import React from 'react'
-import { Link } from 'retil-router'
+import { useLink } from 'retil-nav'
 
 import { ExampleModule } from './examplesTypes'
 
 interface Props {
   exampleModules: ExampleModule[]
+}
+
+const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
+  const linkProps = useLink(to)
+  return <a {...linkProps}>{children}</a>
 }
 
 function Page(props: Props) {

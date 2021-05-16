@@ -2956,11 +2956,6 @@ array-includes@^3.1.1:
     es-abstract "^1.17.0"
     is-string "^1.0.5"
 
-array-keyed-map@^2.1.0:
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/array-keyed-map/-/array-keyed-map-2.1.0.tgz#4eebbb79cc4d24e19bc35e9787be8b144f556ec8"
-  integrity sha512-722yGiM5iNSoZwCbn+griA12P6kZO8r+UGF9MCTxRZNB4yCW9yAjvHMWWJYEFv1e9m68T+Z6KeMYEpuBmOxuVg==
-
 array-union@^1.0.2:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/array-union/-/array-union-1.0.2.tgz#9a34410e4f4e3da23dea375be5be70f24778ec39"

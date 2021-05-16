@@ -1,24 +1,19 @@
 import React from 'react'
 
-import {
-  Link,
-  Router,
-  RouterContent,
-  routeByPattern,
-  routeNotFoundBoundary,
-} from 'retil-router'
+import { MountProvider, useMount } from 'retil-loader'
+import { match, notFoundBoundary } from 'retil-nav'
 
-const appRouter = routeNotFoundBoundary(
-  routeByPattern({
+const rootLoader = notFoundBoundary(
+  match({
     '/': <h1>Welcome!</h1>,
     '/about': <h1>About</h1>,
   }),
-  (props) => <NotFound pathname={props.pathname} />,
+  (env) => <NotFound pathname={env.pathname} />,
 )
 
 function App({ basename }: { basename?: string }) {
   return (
-    <Router basename={basename} fn={appRouter}>
+    <Router basename={basename} fn={rootLoader}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;

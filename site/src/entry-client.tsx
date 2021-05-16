@@ -4,22 +4,18 @@
 
 import React from 'react'
 import { unstable_createRoot as createRoot } from 'react-dom'
-import { getDefaultBrowserNavigationService, route } from 'retil-router'
+import { load } from 'retil-loader'
+import { getDefaultBrowserNavService } from 'retil-nav'
 
-import rootRouter from './routers/rootRouter'
-import Root from './Root'
+import rootLoader from './screens/rootLoader'
+import Root from './root'
+
+const [navSource, navController] = getDefaultBrowserNavService()
 
 const rootNode = document.getElementById('root')!
 const reactRoot = createRoot(rootNode, { hydrate: true })
-const [
-  navigationSource,
-  navigationController,
-] = getDefaultBrowserNavigationService()
-const routeSource = route(rootRouter, navigationSource)
+const rootSource = load(rootLoader, (use) => {
+  return use(navSource)
+})
 
-reactRoot.render(
-  <Root
-    routeSource={routeSource}
-    navigationController={navigationController}
-  />,
-)
+reactRoot.render(<Root navController={navController} rootSource={rootSource} />)

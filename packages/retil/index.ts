@@ -1,6 +1,4 @@
-export * from 'retil-history'
 export * from 'retil-issues'
 export * from 'retil-operation'
-export * from 'retil-router'
 export * from 'retil-source'
 export * from 'retil-support'

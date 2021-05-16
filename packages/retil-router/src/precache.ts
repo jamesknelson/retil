@@ -1,4 +1,4 @@
-export class AsyncTracker {
+export class Precache {
   isReady(): boolean {}
 
   /**
@@ -13,5 +13,5 @@ export class AsyncTracker {
    * and if it is undesirable to render suspending content, the router should
    * wait until there are no more pending promises.
    */
-  willNotBeReadyUntil(promise: PromiseLike<any>): void {}
+  requires(promise: PromiseLike<any>): void {}
 }

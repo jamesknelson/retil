@@ -1,20 +1,19 @@
 import React from 'react'
-import {
-  Link,
-  useRouterContent,
-  // useRouterPending,
-} from 'retil-router'
+import { useMountContent } from 'retil-loader'
+import { useLink } from 'retil-nav'
 
 function App() {
-  const content = useRouterContent()
-  // const pending = useRouterPending()
+  const content = useMountContent<React.ReactNode>()
+
+  const homeLink = useLink('/')
+  const examplesLink = useLink('/examples')
 
   return (
     <>
       <nav>
-        <Link to="/">retil</Link>
+        <a {...homeLink}>retil</a>
         &nbsp;&middot;&nbsp;
-        <Link to="/examples">examples</Link>
+        <a {...examplesLink}>examples</a>
       </nav>
       <main>
         <React.Suspense fallback="loading fallback...">

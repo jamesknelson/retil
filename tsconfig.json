@@ -5,11 +5,11 @@
     "baseUrl": "./packages",
     "paths": {
       "retil": ["retil/src"],
-      "retil-history": ["retil-history/src"],
       "retil-interaction": ["retil-interaction/src"],
       "retil-issues": ["retil-issues/src"],
+      "retil-loader": ["retil-loader/src"],
+      "retil-nav": ["retil-nav/src"],
       "retil-operation": ["retil-operation/src"],
-      "retil-router": ["retil-router/src"],
       "retil-source": ["retil-source/src"],
       "retil-style": ["retil-style/src"],
       "retil-support": ["retil-support/src"],

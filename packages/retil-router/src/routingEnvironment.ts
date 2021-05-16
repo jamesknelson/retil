@@ -42,24 +42,6 @@ export interface RetilEnvironment extends HistoryLocation {
   response: RoutingEnvironmentResponse
 }
 
-export interface SuspenseTracker {
-  isReady(): boolean
-
-  /**
-   * Wait until all suspenses added to the response have resolved. This is
-   * useful when using renderToString – but not necessary for the streaming
-   * renderer.
-   */
-  waitUntilReady(): Promise<void>
-
-  /**
-   * Allows a router to indicate that the content will currently suspend,
-   * and if it is undesirable to render suspending content, the router should
-   * wait until there are no more pending promises.
-   */
-  willNotBeReadyUntil(promise: PromiseLike<any>): void
-}
-
 export interface InjectedRouteProps {
   abortSignal: AbortSignal
   routeKey: symbol
@@ -69,7 +51,7 @@ export interface InjectedRouteProps {
 export interface RetilRouteProps extends RetilEnvironment, InjectedRouteProps {}
 
 export type RouterFunction<
-  Snapshot extends RouterRouteSnapshot = RouterRouteSnapshot
+  Snapshot extends RouterRouteSnapshot = RouterRouteSnapshot,
 > = (snapshot: Readonly<Snapshot>) => ReactNode
 
 export function extendEnvironmentSource(
@@ -86,46 +68,4 @@ export function extendEnvironmentSource(
       ...(typeof extension === 'function' ? extension(use) : extension),
     }
   })
-}
-
-export function route(routerFunction, environmentSource)
-export function route(
-  routerFunction,
-  environmentExtension: (
-    environment: Environment,
-  ) => MaybePrecachedFusor | object,
-)
-export function route(
-  routerFunction,
-  environmentSource,
-  environmentExtension: (
-    environment: Environment,
-  ) => MaybePrecachedFusor | object,
-)
-export function route<
-  Environment extends RetilEnvironment = RetilEnvironment,
-  EnvironmentExtension extends object = {}
->(
-  routerFunction: RouterFunction,
-  environmentSourceOrExtenion,
-  environmentExtension?,
-) {
-  const extendedEnvironmentSource: Source<Environment & EnvironmentExtension>
-
-  const source = fuseMaybePrecached((use) => {
-    const environmentSnapshot = use(extendedEnvironmentSource)
-    const abortController = new AbortController()
-    const routeKey = Symbol()
-    const routeProps = {
-      ...environentSnapshot,
-
-      abortSignal: abortController.signal,
-      routeKey,
-      suspenseTracker: new SuspenseTracker(),
-    }
-
-    return [routeProps, routerFunction(routeProps)]
-  })
-
-  return mergeLatest(filter(source, isNotPrecache))
 }

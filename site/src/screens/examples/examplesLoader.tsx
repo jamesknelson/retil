@@ -1,7 +1,8 @@
 import escapeRegExp from 'lodash/escapeRegExp'
 import snakeCase from 'lodash/snakeCase'
 import React from 'react'
-import { joinPaths, routeAsync, routeByPattern } from 'retil-router'
+import { lazy } from 'retil-loader'
+import { joinPathnames, match } from 'retil-nav'
 import { fromEntries } from 'retil-support'
 import slugify from 'slugify'
 
@@ -53,21 +54,18 @@ const exampleModules = getExampleModules(
   standaloneExampleModuleLoaders,
 ).concat(getExampleModules(directoryExampleGlob, directoryExampleModuleLoaders))
 
-const examplesRouter = routeByPattern({
-  '/': routeAsync(async () => {
+const examplesRouter = match({
+  '/': lazy(async () => {
     const { default: Page } = await import('./examplesIndexPage')
     return <Page exampleModules={exampleModules} />
   }),
   ...fromEntries(
     exampleModules.map(({ load, packageName, exampleNameSlug }) => [
-      joinPaths(packageName, exampleNameSlug) + '*',
-      routeAsync(async (request, response) => {
+      joinPathnames(packageName, exampleNameSlug) + '*',
+      lazy(async (env) => {
         const example = await load()
-        const {
-          importComponent,
-          catchNestedRoutes,
-          disableSSR,
-        } = getExampleConfig(example)
+        const { importComponent, catchNestedRoutes, disableSSR } =
+          getExampleConfig(example)
 
         if (import.meta.env.SSR && disableSSR) {
           // TODO: render this during hydration as well
@@ -75,11 +73,11 @@ const examplesRouter = routeByPattern({
         } else {
           const { default: Component } = await importComponent()
           return catchNestedRoutes ? (
-            <Component basename={request.basename} />
+            <Component basename={env.basename} />
           ) : (
-            routeByPattern({
-              '/': () => <Component basename={request.basename} />,
-            })(request, response)
+            match({
+              '/': () => <Component basename={env.basename} />,
+            })(env)
           )
         }
       }),

@@ -4,18 +4,22 @@
 import type { Request, Response } from 'express'
 import React from 'react'
 import ReactDOMServer from 'react-dom/server'
-import { getServerSideRoutingEnvironment, routeOnce } from 'retil-router'
+import { loadOnce } from 'retil-loader'
+import { getStaticNavEnv } from 'retil-nav'
 import { ServerStyleSheet } from 'styled-components'
 
-import rootRouter from './routers/rootRouter'
-import Root from './Root'
+import Root from './root'
+import rootLoader from './screens/rootLoader'
 
-export async function render(request: Request, response: Response) {
+export async function render(
+  request: Omit<Request, 'params' | 'query'>,
+  response: Response,
+) {
   const sheet = new ServerStyleSheet()
 
   try {
-    const environment = getServerSideRoutingEnvironment(request, response)
-    const routeSource = await routeOnce(rootRouter, environment)
+    const env = getStaticNavEnv(request, response)
+    const rootSource = await loadOnce(rootLoader, env)
 
     if (
       (response.statusCode >= 300 && response.statusCode < 400) ||
@@ -24,7 +28,7 @@ export async function render(request: Request, response: Response) {
       return null
     } else {
       const appHTML = ReactDOMServer.renderToString(
-        sheet.collectStyles(<Root routeSource={routeSource} />),
+        sheet.collectStyles(<Root rootSource={rootSource} />),
       )
       const headHTML = `
         <title>retil.tech</title>

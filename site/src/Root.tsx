@@ -1,24 +1,28 @@
 import React from 'react'
-import { RouterService, RouterProvider, useRouterService } from 'retil-router'
+import { MountProvider, RootSource, useMount } from 'retil-loader'
+import { NavController, NavProvider } from 'retil-nav'
 
 import App from './app/App'
-import { AppContext } from './appContext'
-import { GlobalStyles } from './GlobalStyles'
+import { Env } from './env'
+import GlobalStyles from './globalStyles'
 
 export interface AppProps {
-  routerService: RouterService<AppContext>
+  navController?: NavController
+  rootSource: RootSource<Env>
 }
 
 function Root(props: AppProps) {
-  const { routerService } = props
-  const router = useRouterService(routerService)
+  const { navController, rootSource } = props
+  const mount = useMount(rootSource)
 
   return (
     <>
       <GlobalStyles />
-      <RouterProvider value={router}>
-        <App />
-      </RouterProvider>
+      <MountProvider value={mount}>
+        <NavProvider env={mount.env} controller={navController}>
+          <App />
+        </NavProvider>
+      </MountProvider>
     </>
   )
 }

@@ -1,6 +1,6 @@
 import { createGlobalStyle } from 'styled-components'
 
-export const GlobalStyles = createGlobalStyle`
+const GlobalStyles = createGlobalStyle`
   * {
     appearance: none;
     border: 0;
@@ -41,3 +41,5 @@ export const GlobalStyles = createGlobalStyle`
     flex-grow: 1;
   }
 `
+
+export default GlobalStyles
