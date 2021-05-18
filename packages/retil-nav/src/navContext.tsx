@@ -1,5 +1,5 @@
 import React, { ReactNode, createContext, useContext, useMemo } from 'react'
-import { useMountEnv, useWaitForStableMount } from 'retil-loader'
+import { useMountEnv, useWaitForStableMount } from 'retil-mount'
 
 import { NavController, NavEnv } from './navTypes'
 import { noopNavController } from './noopNavController'

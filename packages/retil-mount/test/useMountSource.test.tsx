@@ -1,16 +1,15 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
-import { createState } from 'retil-source'
+import { createState, getSnapshot } from 'retil-source'
 import { Deferred, delay } from 'retil-support'
 import { act, render, waitFor } from '@testing-library/react'
 
 import {
   DependencyList,
-  LoadEnv,
-  Mount,
-  load,
-  loadOnce,
-  useMount,
+  MountEnv,
+  UseMountState,
+  mount,
+  useMountSource,
 } from '../src'
 
 const getEmptyEnv = () => ({})
@@ -29,10 +28,10 @@ export const SuspendForUnresolvedDependencies = ({
   }
 }
 
-describe('useRoot', () => {
+describe('useMountSource', () => {
   test(`returns content`, () => {
-    const rootSource = load(() => 'success', getEmptyEnv)
-    const Test = () => <>{useMount(rootSource).content}</>
+    const rootSource = mount(() => 'success', getEmptyEnv)
+    const Test = () => <>{useMountSource(rootSource).content}</>
     const { container } = render(
       <StrictMode>
         <Test />
@@ -43,11 +42,11 @@ describe('useRoot', () => {
 
   test(`only runs the loader once`, () => {
     let runCount = 0
-    const rootSource = load(() => {
+    const rootSource = mount(() => {
       runCount++
       return 'test'
     }, getEmptyEnv)
-    const Test = () => <>{useMount(rootSource).content}</>
+    const Test = () => <>{useMountSource(rootSource).content}</>
     render(<Test />)
     expect(runCount).toBe(1)
   })
@@ -55,7 +54,7 @@ describe('useRoot', () => {
   test(`lazily executes suspending sources just once, even in strict mode`, async () => {
     let runCount = 0
     let deferred: Deferred = new Deferred()
-    const rootSource = load((env) => {
+    const rootSource = mount((env) => {
       runCount++
       env.dependencies.add(deferred.promise)
       return (
@@ -64,7 +63,7 @@ describe('useRoot', () => {
         </SuspendForUnresolvedDependencies>
       )
     }, getEmptyEnv)
-    const Test = () => <>{useMount(rootSource).content}</>
+    const Test = () => <>{useMountSource(rootSource).content}</>
     const { container } = render(
       <StrictMode>
         <Suspense fallback={'loading'}>
@@ -87,8 +86,8 @@ describe('useRoot', () => {
       setEnv({ pathname })
     }
 
-    const rootSource = load(
-      (env: LoadEnv & { pathname: string }) => {
+    const rootSource = mount(
+      (env: MountEnv & { pathname: string }) => {
         if (env.pathname === '/start') {
           env.dependencies.add(redirect('/complete'))
         }
@@ -101,7 +100,7 @@ describe('useRoot', () => {
       (use) => use(envSource),
     )
 
-    const Test = () => <>{useMount(rootSource).content}</>
+    const Test = () => <>{useMountSource(rootSource).content}</>
     const { container } = render(
       <StrictMode>
         <Suspense fallback={'loading'}>
@@ -117,12 +116,12 @@ describe('useRoot', () => {
   })
 
   test(`can change to a suspended updating env without seeing a loading content`, async () => {
-    const rootSource1 = load(() => '/start', getEmptyEnv)
+    const rootSource1 = mount(() => '/start', getEmptyEnv)
 
     const [envSource, setEnv] = createState({ pathname: '/redirect' })
     const deferred = new Deferred()
-    const rootSource2 = load(
-      (env: LoadEnv & { pathname: string }) => {
+    const rootSource2 = mount(
+      (env: MountEnv & { pathname: string }) => {
         if (env.pathname === '/redirect') {
           env.dependencies.add(deferred.promise)
         }
@@ -139,7 +138,7 @@ describe('useRoot', () => {
     const Test = () => {
       const [source, _setState] = useState(rootSource1)
       setState = _setState
-      const root = useMount(source)
+      const root = useMountSource(source)
       return (
         <>
           {root.content}
@@ -165,14 +164,14 @@ describe('useRoot', () => {
   })
 
   test(`changing root sources immediately updates content`, () => {
-    const rootSource1 = load(() => 'start', getEmptyEnv)
-    const rootSource2 = load(() => 'complete', getEmptyEnv)
+    const rootSource1 = mount(() => 'start', getEmptyEnv)
+    const rootSource2 = mount(() => 'complete', getEmptyEnv)
 
     let setState!: any
     const Test = () => {
       const [source, _setState] = useState(rootSource1)
       setState = _setState
-      return <>{useMount(source).content}</>
+      return <>{useMountSource(source).content}</>
     }
 
     const { container } = render(
@@ -190,8 +189,8 @@ describe('useRoot', () => {
   test(`when changing to a pending source, keep old content until new source has a value`, async () => {
     const [pendingSource, setPendingSource] = createState<object>()
 
-    const rootSource1 = load(() => 'start', getEmptyEnv)
-    const rootSource2 = load(
+    const rootSource1 = mount(() => 'start', getEmptyEnv)
+    const rootSource2 = mount(
       () => 'complete',
       (use) => use(pendingSource),
     )
@@ -199,7 +198,7 @@ describe('useRoot', () => {
     const Test = () => {
       const [source, _setState] = useState(rootSource1)
       setState = _setState
-      const root = useMount(source)
+      const root = useMountSource(source)
       return (
         <>
           {root.content}
@@ -226,7 +225,7 @@ describe('useRoot', () => {
   })
 
   test(`can externally wait for suspension list to resolve to avoid initial suspense`, async () => {
-    const rootSource = await loadOnce((env) => {
+    const rootSource = mount((env) => {
       env.dependencies.add(delay(10))
       return (
         <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
@@ -235,7 +234,9 @@ describe('useRoot', () => {
       )
     }, getEmptyEnv)
 
-    const Test = () => <>{useMount(rootSource).content}</>
+    await getSnapshot(rootSource).dependencies.resolve()
+
+    const Test = () => <>{useMountSource(rootSource).content}</>
 
     const { container } = render(
       <StrictMode>
@@ -250,8 +251,8 @@ describe('useRoot', () => {
   test(`doesn't resolve waitUntilStable() calls until the new content has mounted`, async () => {
     const [envSource, setEnv] = createState({ pathname: '/start' })
     const deferred = new Deferred()
-    const rootSource = load(
-      (env: LoadEnv & { pathname: string }) => {
+    const rootSource = mount(
+      (env: MountEnv & { pathname: string }) => {
         if (env.pathname === '/lazy') {
           env.dependencies.add(deferred.promise)
         }
@@ -264,10 +265,10 @@ describe('useRoot', () => {
       (use) => use(envSource),
     )
 
-    let root!: Mount<any>
+    let root!: UseMountState<any>
 
     const Test = () => {
-      root = useMount(rootSource)
+      root = useMountSource(rootSource)
       return (
         <>
           <Suspense fallback="loading">{root.content}</Suspense>
@@ -295,8 +296,8 @@ describe('useRoot', () => {
   test(`waitUntilStable() waits until any subsequent envs have loaded before resolving`, async () => {
     const [envSource, setEnv] = createState({ pathname: '/start' })
     const deferred = new Deferred()
-    const rootSource = load(
-      (env: LoadEnv & { pathname: string }) => {
+    const rootSource = mount(
+      (env: MountEnv & { pathname: string }) => {
         if (env.pathname === '/lazy') {
           env.dependencies.add(deferred.promise)
         }
@@ -309,10 +310,10 @@ describe('useRoot', () => {
       (use) => use(envSource),
     )
 
-    let root!: Mount<any>
+    let root!: UseMountState<any>
 
     const Test = () => {
-      root = useMount(rootSource)
+      root = useMountSource(rootSource)
       return (
         <>
           <Suspense fallback="loading">{root.content}</Suspense>

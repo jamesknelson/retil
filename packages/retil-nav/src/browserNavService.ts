@@ -386,8 +386,6 @@ export function createBrowserNavService(
         })
       }
     },
-
-    resolve,
   }
 
   return [source, controller]

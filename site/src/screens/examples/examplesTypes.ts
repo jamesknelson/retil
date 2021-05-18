@@ -1,4 +1,6 @@
 import type { ComponentType } from 'react'
+import { Loader } from 'retil-mount'
+import { NavEnv } from 'retil-nav'
 
 export interface ExampleModule {
   packageName: string
@@ -7,7 +9,8 @@ export interface ExampleModule {
 }
 
 export interface ExampleConfig {
-  importComponent: () => Promise<{ default: ComponentType<any> }>
+  importComponent?: () => Promise<{ default: ComponentType<any> }>
+  importLoader?: () => Promise<{ default: Loader<NavEnv> }>
 
   catchNestedRoutes?: boolean
   disableSSR?: boolean

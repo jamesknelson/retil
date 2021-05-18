@@ -1,5 +1,5 @@
 import React from 'react'
-import { useMountContent } from 'retil-loader'
+import { useMountContent } from 'retil-mount'
 import { useLink } from 'retil-nav'
 
 function App() {

@@ -1,8 +1,7 @@
 import React from 'react'
+import { Loader } from 'retil-mount'
 
-import { Loader } from 'retil-loader'
 import { NavAction, NavEnv } from '../navTypes'
-
 import { resolveAction, createHref, parseAction } from '../navUtils'
 
 export interface RedirectProps {

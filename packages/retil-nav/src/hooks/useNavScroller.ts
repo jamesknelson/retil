@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef } from 'react'
-import { useWaitForStableMount } from 'retil-loader'
+import { useWaitForStableMount } from 'retil-mount'
 import { noop } from 'retil-support'
 
 import { useNavEnv } from '../navContext'

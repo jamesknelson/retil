@@ -1,5 +1,5 @@
 import React from 'react'
-import { Loader } from 'retil-loader'
+import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
 

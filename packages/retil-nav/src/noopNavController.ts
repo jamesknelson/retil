@@ -1,7 +1,6 @@
 import { noop } from 'retil-support'
 
 import { NavController } from './navTypes'
-import { parseLocation } from './navUtils'
 
 const resolveToFalse = () => Promise.resolve(false)
 
@@ -12,5 +11,4 @@ export const noopNavController: NavController = {
   go: resolveToFalse,
   navigate: resolveToFalse,
   precache: () => noop,
-  resolve: parseLocation,
 }

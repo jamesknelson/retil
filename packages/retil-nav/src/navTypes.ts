@@ -65,8 +65,6 @@ export interface NavController {
   ): Promise<boolean>
 
   precache(action: NavAction): Canceller
-
-  resolve(action: NavAction): NavLocation
 }
 
 export type NavBlockPredicate = (

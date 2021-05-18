@@ -1,15 +1,21 @@
 import { VectorFusor, map, vectorFuse } from 'retil-source'
 
-import { Loader, LoadEnv, RootSnapshot, RootSource } from './loaderTypes'
+import {
+  EnvType,
+  Loader,
+  MountEnv,
+  MountSnapshot,
+  MountSource,
+} from './mountTypes'
 import { DependencyList } from './dependencyList'
 
-export function load<Env extends object, Screen>(
-  loader: Loader<Env & LoadEnv, Screen>,
-  envFusor: VectorFusor<Env>,
-): RootSource<Env, Screen> {
+export function mount<Env extends object, Content>(
+  loader: Loader<Env & MountEnv, Content>,
+  env: EnvType<Env>,
+): MountSource<Env, Content> {
   const vectorSource = vectorFuse((use) => {
     const dependencies = new DependencyList()
-    const loadEnv: LoadEnv = {
+    const mountEnv: MountEnv = {
       // TODO: implement abort controller. this probably requires a separate
       // fusor that watches as items appear/disappear in/from the env vector.
       // TODO: if abort controller or suspension list are passed in, "fork"
@@ -18,17 +24,22 @@ export function load<Env extends object, Screen>(
       abortSignal: undefined as any as AbortSignal,
       dependencies,
     }
-    const env = envFusor(use)
+    const envSnapshot =
+      typeof env === 'function'
+        ? (env as VectorFusor<Env>)(use)
+        : Array.isArray(env)
+        ? use(env)
+        : env
     const content = loader({
-      ...env,
-      ...loadEnv,
+      ...envSnapshot,
+      ...mountEnv,
     })
-    const root: RootSnapshot<Env, Screen> = {
+    const snapshot: MountSnapshot<Env, Content> = {
       dependencies,
-      env,
+      env: envSnapshot,
       content,
     }
-    return root
+    return snapshot
   })
   return map(vectorSource, (vectorSnapshot) => vectorSnapshot[1])
 }

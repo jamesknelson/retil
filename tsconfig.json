@@ -7,7 +7,7 @@
       "retil": ["retil/src"],
       "retil-interaction": ["retil-interaction/src"],
       "retil-issues": ["retil-issues/src"],
-      "retil-loader": ["retil-loader/src"],
+      "retil-mount": ["retil-mount/src"],
       "retil-nav": ["retil-nav/src"],
       "retil-operation": ["retil-operation/src"],
       "retil-source": ["retil-source/src"],

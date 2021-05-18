@@ -21,7 +21,7 @@
     "serve-static": "^1.14.1",
     "ts-node": "^9.1.1",
     "tsconfig-paths": "^3.9.0",
-    "vite-tsconfig-paths": "^3.3.10"
+    "vite-tsconfig-paths": "^3.3.11"
   },
   "dependencies": {
     "slugify": "^1.5.1"

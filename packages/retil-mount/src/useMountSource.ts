@@ -16,31 +16,31 @@ import {
   subscribe,
 } from 'retil-source'
 
-import { RootSnapshot, RootSource, Mount } from './loaderTypes'
+import { MountSnapshot, MountSource, UseMountState } from './mountTypes'
 import { DependencyList } from './dependencyList'
 
-export interface UseRootOptions {
+export interface UseMountSourceOptions {
   transitionTimeoutMs?: number
 }
 
-export const useMount = <Env extends object, Content>(
-  rootSource: RootSource<Env, Content>,
-  options: UseRootOptions = {},
-): Mount<Env, Content> => {
+export const useMountSource = <Env extends object, Content>(
+  mountSource: MountSource<Env, Content>,
+  options: UseMountSourceOptions = {},
+): UseMountState<Env, Content> => {
   const { transitionTimeoutMs = Infinity } = options
 
   const mergedSource = useMemo(
     () =>
       mergeLatest(
-        rootSource,
+        mountSource,
         (latestSnapshot, isSuspended) => [latestSnapshot, isSuspended] as const,
       ),
-    [rootSource],
+    [mountSource],
   )
 
   const [state, setState] = useState<{
-    currentSnapshot: RootSnapshot<Env, Content>
-    pendingSnapshot: RootSnapshot<Env, Content> | null
+    currentSnapshot: MountSnapshot<Env, Content>
+    pendingSnapshot: MountSnapshot<Env, Content> | null
     mergedSource: Source<any> | null
     sourcePending: boolean
   }>(() => {
@@ -155,7 +155,7 @@ export const useMount = <Env extends object, Content>(
   const pendingEnv = pendingSnapshot?.env || null
   const pending = !!(pendingSnapshot || state.sourcePending)
   const waitUntilStable = useWaitForStableMount(
-    rootSource,
+    mountSource,
     currentSnapshot.dependencies,
   )
 
@@ -172,7 +172,7 @@ export const useMount = <Env extends object, Content>(
 }
 
 function useWaitForStableMount(
-  source: RootSource<any, unknown>,
+  source: MountSource<any, unknown>,
   dependencies: DependencyList,
 ) {
   const latestSourceRef = useRef(source)

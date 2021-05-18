@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useMemo } from 'react'
 
-import { Mount } from './loaderTypes'
+import { UseMountState } from './mountTypes'
 
 const MountRootContext = createContext<readonly [object, any]>(undefined as any)
 const MountPendingContext = createContext<boolean>(false)
@@ -31,7 +31,7 @@ export function useWaitForStableMount() {
 
 export interface MountProviderProps {
   children: React.ReactNode
-  value: Mount<any, any>
+  value: UseMountState<any, any>
 }
 
 export function MountProvider({ children, value }: MountProviderProps) {

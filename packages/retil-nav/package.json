@@ -20,13 +20,13 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-loader": "^0.20.1",
+    "retil-mount": "^0.20.1",
     "retil-source": "^0.20.1",
     "retil-support": "^0.20.1",
     "tslib": "2.0.1"
   },
   "devDependencies": {
-    "typescript": "4.1.2"
+    "typescript": "4.2.4"
   },
   "files": [
     "dist"

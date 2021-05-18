@@ -1,17 +1,14 @@
-import React, { useMemo } from 'react'
-import { MountProvider, load, useMount } from 'retil-loader'
+import React, { ReactElement, useMemo } from 'react'
+import { Mount, useMountContent, useMountEnv } from 'retil-mount'
 import {
   NavEnv,
-  NavProvider,
   createBrowserNavService,
+  joinPathnames,
   useLink,
 } from 'retil-nav'
 
 interface Env extends NavEnv {}
 
-// it's called "RetilRouterProps" because it covers all the props that router
-// produced by retil itself require. your app can extend it to add other props,
-// though
 function rootLoader(env: Env) {
   switch (env.pathname) {
     case env.basename:
@@ -25,38 +22,36 @@ function rootLoader(env: Env) {
   }
 }
 
-const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
-  const linkProps = useLink(to)
-  return <a {...linkProps}>{children}</a>
-}
-
-function App({ basename }: { basename: string }) {
+export function App({ basename }: { basename: string }) {
   const [navSource, navController] = useMemo(
     () => createBrowserNavService({ basename }),
     [basename],
   )
 
-  const rootSource = useMemo(
-    () => load(rootLoader, (use) => use(navSource)),
-    [navSource],
-  )
-
-  const mount = useMount(rootSource)
-
   return (
-    <MountProvider value={mount}>
-      <NavProvider controller={navController}>
+    // A <NavProvider> is only necessary when we're not using the default
+    // browser nav service.
+    <NavProvider controller={navController}>
+      <Mount env={navSource} loader={rootLoader}>
         <nav>
-          <Link to={basename}>Home</Link>
+          <Link to="/">Home</Link>
           &nbsp;&middot;&nbsp;
-          <Link to={basename + '/about'}>About</Link>
+          <Link to="/about">About</Link>
           &nbsp;&middot;&nbsp;
-          <Link to={basename + '/not-found'}>Not Found</Link>
+          <Link to="/not-found">Not Found</Link>
         </nav>
-        <main>{mount.content}</main>
-      </NavProvider>
-    </MountProvider>
+        <Content />
+      </Mount>
+    </NavProvider>
   )
+}
+
+const Content = () => useMountContent<ReactElement>()
+
+const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
+  const env = useMountEnv<Env>()
+  const linkProps = useLink(joinPathnames(env.basename, to))
+  return <a {...linkProps}>{children}</a>
 }
 
 export default App

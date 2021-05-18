@@ -4,7 +4,7 @@
 import type { Request, Response } from 'express'
 import React from 'react'
 import ReactDOMServer from 'react-dom/server'
-import { loadOnce } from 'retil-loader'
+import { ServerMount } from 'retil-mount'
 import { getStaticNavEnv } from 'retil-nav'
 import { ServerStyleSheet } from 'styled-components'
 
@@ -15,11 +15,13 @@ export async function render(
   request: Omit<Request, 'params' | 'query'>,
   response: Response,
 ) {
+  const env = getStaticNavEnv(request, response)
+
   const sheet = new ServerStyleSheet()
+  const mount = new ServerMount(rootLoader, env)
 
   try {
-    const env = getStaticNavEnv(request, response)
-    const rootSource = await loadOnce(rootLoader, env)
+    await mount.preload()
 
     if (
       (response.statusCode >= 300 && response.statusCode < 400) ||
@@ -28,7 +30,13 @@ export async function render(
       return null
     } else {
       const appHTML = ReactDOMServer.renderToString(
-        sheet.collectStyles(<Root rootSource={rootSource} />),
+        // TODO:
+        // The `provide` function will supply a mountSource which will be
+        // used when a <Mount> with this rootLoader/envSource is encountered,
+        // instead of creating a whole new mountSource
+        mount.provide(
+          sheet.collectStyles(<Root env={env} loader={rootLoader} />),
+        ),
       )
       const headHTML = `
         <title>retil.tech</title>
@@ -41,6 +49,7 @@ export async function render(
       }
     }
   } finally {
+    mount.seal()
     sheet.seal()
   }
 }

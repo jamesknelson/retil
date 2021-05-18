@@ -1,5 +1,5 @@
 import { ReactNode } from 'react'
-import { Loader } from 'retil-loader'
+import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
 import { Matcher, createMatcher } from '../matcher'

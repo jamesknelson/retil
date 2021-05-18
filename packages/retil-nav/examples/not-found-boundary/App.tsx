@@ -1,7 +1,7 @@
 import React from 'react'
-
-import { MountProvider, useMount } from 'retil-loader'
+import { Mount, MountedContent } from 'retil-mount'
 import { match, notFoundBoundary } from 'retil-nav'
+import Link from 'retil-link'
 
 const rootLoader = notFoundBoundary(
   match({
@@ -11,9 +11,9 @@ const rootLoader = notFoundBoundary(
   (env) => <NotFound pathname={env.pathname} />,
 )
 
-function App({ basename }: { basename?: string }) {
+function App({ navSource }: { navSource: string }) {
   return (
-    <Router basename={basename} fn={rootLoader}>
+    <Mount env={navSource} loader={rootLoader}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
@@ -21,10 +21,8 @@ function App({ basename }: { basename?: string }) {
         &nbsp;&middot;&nbsp;
         <Link to="/not-found">Not Found</Link>
       </nav>
-      <main>
-        <RouterContent />
-      </main>
-    </Router>
+      <MountedContent />
+    </Mount>
   )
 }
 

@@ -1,10 +1,12 @@
 import escapeRegExp from 'lodash/escapeRegExp'
 import snakeCase from 'lodash/snakeCase'
 import React from 'react'
-import { lazy } from 'retil-loader'
+import { lazy } from 'retil-mount'
 import { joinPathnames, match } from 'retil-nav'
 import { fromEntries } from 'retil-support'
 import slugify from 'slugify'
+
+import { Env } from '../../env'
 
 import { ExampleModule, getExampleConfig } from './examplesTypes'
 
@@ -62,15 +64,18 @@ const examplesRouter = match({
   ...fromEntries(
     exampleModules.map(({ load, packageName, exampleNameSlug }) => [
       joinPathnames(packageName, exampleNameSlug) + '*',
-      lazy(async (env) => {
+      lazy<Env>(async (env) => {
         const example = await load()
-        const { importComponent, catchNestedRoutes, disableSSR } =
+        const { importComponent, importLoader, catchNestedRoutes, disableSSR } =
           getExampleConfig(example)
 
         if (import.meta.env.SSR && disableSSR) {
           // TODO: render this during hydration as well
           return null
-        } else {
+        } else if (importLoader) {
+          const { default: loader } = await importLoader()
+          return loader(env)
+        } else if (importComponent) {
           const { default: Component } = await importComponent()
           return catchNestedRoutes ? (
             <Component basename={env.basename} />

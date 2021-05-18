@@ -1,5 +1,5 @@
 import { lazy } from './lazy'
-import { Loader } from './loaderTypes'
+import { Loader } from './mountTypes'
 
 export function lazyImport<Env extends object>(
   load: () => PromiseLike<{ default: Loader<Env> }>,

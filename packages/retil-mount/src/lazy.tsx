@@ -1,6 +1,6 @@
 import React, { ReactElement, ReactNode } from 'react'
 
-import { LoadEnv, Loader } from './loaderTypes'
+import { MountEnv, Loader } from './mountTypes'
 
 interface OutcomeRef {
   current:
@@ -34,9 +34,9 @@ export const AsyncContent: React.FunctionComponent<AsyncContentProps> = ({
 }
 
 export function lazy<Env extends object>(
-  asyncLoader: (env: Env & LoadEnv) => PromiseLike<ReactNode>,
+  asyncLoader: (env: Env & MountEnv) => PromiseLike<ReactNode>,
 ): Loader<Env, ReactElement> {
-  return (env: Env & LoadEnv) => {
+  return (env: Env & MountEnv) => {
     const outcomeRef: OutcomeRef = {
       current: null,
     }

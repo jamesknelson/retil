@@ -1,4 +1,4 @@
-import { lazyImport } from 'retil-loader'
+import { lazyImport } from 'retil-mount'
 import { match, notFoundBoundary } from 'retil-nav'
 
 import { Env } from '../env'
