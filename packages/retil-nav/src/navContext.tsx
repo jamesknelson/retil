@@ -1,6 +1,7 @@
 import React, { ReactNode, createContext, useContext, useMemo } from 'react'
 import { useMountEnv, useWaitForStableMount } from 'retil-mount'
 
+import { getDefaultBrowserNavService } from './getDefaultBrowserNavService'
 import { NavController, NavEnv } from './navTypes'
 import { noopNavController } from './noopNavController'
 
@@ -26,7 +27,13 @@ export interface NavProviderProps {
 export const NavProvider = (props: NavProviderProps) => {
   const mountEnv = useMountEnv<NavEnv>()
   const waitForStableMount = useWaitForStableMount()
-  const { children, controller = noopNavController, env = mountEnv } = props
+  const {
+    children,
+    controller = typeof window === 'undefined'
+      ? noopNavController
+      : getDefaultBrowserNavService()[1],
+    env = mountEnv,
+  } = props
   const wrappedController = useMemo(
     (): NavController => ({
       ...controller,

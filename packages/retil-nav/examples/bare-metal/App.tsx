@@ -2,6 +2,7 @@ import React, { ReactElement, useMemo } from 'react'
 import { Mount, useMountContent, useMountEnv } from 'retil-mount'
 import {
   NavEnv,
+  NavProvider,
   createBrowserNavService,
   joinPathnames,
   useLink,

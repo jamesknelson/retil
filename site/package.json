@@ -24,6 +24,8 @@
     "vite-tsconfig-paths": "^3.3.11"
   },
   "dependencies": {
-    "slugify": "^1.5.1"
+    "slugify": "^1.5.1",
+    "styled-components": "^5.3.0",
+    "tslib": "^2.2.0"
   }
 }
