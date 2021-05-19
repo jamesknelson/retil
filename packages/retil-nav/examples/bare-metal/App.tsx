@@ -32,8 +32,8 @@ export function App({ basename }: { basename: string }) {
   return (
     // A <NavProvider> is only necessary when we're not using the default
     // browser nav service.
-    <NavProvider controller={navController}>
-      <Mount env={navSource} loader={rootLoader}>
+    <Mount env={navSource} loader={rootLoader}>
+      <NavProvider controller={navController}>
         <nav>
           <Link to="/">Home</Link>
           &nbsp;&middot;&nbsp;
@@ -42,8 +42,8 @@ export function App({ basename }: { basename: string }) {
           <Link to="/not-found">Not Found</Link>
         </nav>
         <Content />
-      </Mount>
-    </NavProvider>
+      </NavProvider>
+    </Mount>
   )
 }
 

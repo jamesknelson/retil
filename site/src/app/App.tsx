@@ -1,3 +1,4 @@
+import { css } from '@emotion/react'
 import React from 'react'
 import { useMountContent } from 'retil-mount'
 import { useLink } from 'retil-nav'
@@ -11,7 +12,13 @@ function App() {
   return (
     <>
       <nav>
-        <a {...homeLink}>retil</a>
+        <a
+          css={css`
+            color: red;
+          `}
+          {...homeLink}>
+          retil
+        </a>
         &nbsp;&middot;&nbsp;
         <a {...examplesLink}>examples</a>
       </nav>

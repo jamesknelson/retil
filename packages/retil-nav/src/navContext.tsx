@@ -5,8 +5,8 @@ import { getDefaultBrowserNavService } from './getDefaultBrowserNavService'
 import { NavController, NavEnv } from './navTypes'
 import { noopNavController } from './noopNavController'
 
-const NavControllerContext = createContext<NavController>(undefined as any)
-const NavEnvContext = createContext<NavEnv>(undefined as any)
+const NavControllerContext = createContext<NavController | null>(null)
+const NavEnvContext = createContext<NavEnv | null>(null)
 
 const wrapNavigationMethod = <Args extends any[]>(
   fn: (...args: Args) => Promise<boolean>,
@@ -25,26 +25,11 @@ export interface NavProviderProps {
 }
 
 export const NavProvider = (props: NavProviderProps) => {
-  const mountEnv = useMountEnv<NavEnv>()
-  const waitForStableMount = useWaitForStableMount()
-  const {
-    children,
-    controller = typeof window === 'undefined'
-      ? noopNavController
-      : getDefaultBrowserNavService()[1],
-    env = mountEnv,
-  } = props
-  const wrappedController = useMemo(
-    (): NavController => ({
-      ...controller,
-      navigate: wrapNavigationMethod(controller.navigate, waitForStableMount),
-    }),
-    [controller, waitForStableMount],
-  )
+  const { children, controller = null, env = null } = props
 
   return (
     <NavEnvContext.Provider value={env}>
-      <NavControllerContext.Provider value={wrappedController}>
+      <NavControllerContext.Provider value={controller}>
         {children}
       </NavControllerContext.Provider>
     </NavEnvContext.Provider>
@@ -52,9 +37,23 @@ export const NavProvider = (props: NavProviderProps) => {
 }
 
 export function useNavController() {
-  return useContext(NavControllerContext)
+  const waitForStableMount = useWaitForStableMount()
+  const contextController = useContext(NavControllerContext)
+  const controller =
+    contextController || typeof window === 'undefined'
+      ? noopNavController
+      : getDefaultBrowserNavService()[1]
+  return useMemo(
+    (): NavController => ({
+      ...controller,
+      navigate: wrapNavigationMethod(controller.navigate, waitForStableMount),
+    }),
+    [controller, waitForStableMount],
+  )
 }
 
 export function useNavEnv() {
-  return useContext(NavEnvContext)
+  const mountEnv = useMountEnv<NavEnv>()
+  const envContext = useContext(NavEnvContext)
+  return envContext || mountEnv
 }
