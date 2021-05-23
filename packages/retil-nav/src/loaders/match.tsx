@@ -8,13 +8,13 @@ import { joinPathnames } from '../navUtils'
 import { notFoundLoader } from './notFound'
 
 export interface MatchOptions<
-  TEnv extends object = object,
+  TEnv extends NavEnv = NavEnv,
   TContent = ReactNode,
 > {
   [pattern: string]: Loader<TEnv, TContent> | TContent
 }
 
-export function match<TEnv extends object = object, TContent = ReactNode>(
+export function match<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
   handlers: MatchOptions<TEnv, TContent>,
 ): Loader<TEnv & NavEnv> {
   const tests: [Matcher, Loader<TEnv>][] = []

@@ -3,13 +3,13 @@ import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
 
-export interface NotFoundBoundaryProps<TEnv extends object> {
+export interface NotFoundBoundaryProps<TEnv extends NavEnv> {
   children: React.ReactNode
   env: TEnv
   notFoundLoader: Loader<TEnv>
 }
 
-function NotFoundBoundary<TEnv extends object>(
+function NotFoundBoundary<TEnv extends NavEnv>(
   props: NotFoundBoundaryProps<TEnv>,
 ) {
   return <InnerNotFoundBoundary {...props} />
@@ -62,14 +62,14 @@ class InnerNotFoundBoundary extends React.Component<
     // As SSR doesn't support state, and thus can't recover using error
     // boundaries, we'll also check for a 404 on the response object (as
     // during SSR, the response will always be complete before rendering).
-    if (this.state.error || this.props.env.response.statusCode === 404) {
+    if (this.state.error || this.props.env.getStatusCode() === 404) {
       return this.props.notFoundLoader(this.props.env)
     }
     return this.props.children
   }
 }
 
-export const notFoundBoundary = <TEnv extends object = NavEnv>(
+export const notFoundBoundary = <TEnv extends NavEnv = NavEnv>(
   mainLoader: Loader<TEnv>,
   notFoundLoader: Loader<TEnv>,
 ): Loader<TEnv> => {
@@ -95,7 +95,7 @@ export const NotFound: React.FunctionComponent<NotFoundProps> = (props) => {
 export const notFoundLoader: Loader<NavEnv> = (env) => {
   const error = new NotFoundError(env)
 
-  env.response.statusCode = 404
+  env.setStatusCode(404)
 
   return <NotFound error={error} />
 }

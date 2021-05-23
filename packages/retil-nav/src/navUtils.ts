@@ -39,22 +39,38 @@ export function joinPathnames(base: string, ...paths: string[]): string {
 }
 
 export function normalizePathname(pathname: string): string {
-  return decodeURI(
+  const intermediate = decodeURI(
     pathname
       .replace(/\/+/g, '/')
       .replace(/(.)\/$/, '$1')
       .normalize(),
   )
+
+  if (intermediate === '/' || intermediate === '') {
+    return '/'
+  } else {
+    const pathnameWithLeadingSlash =
+      intermediate[0] !== '/' ? '/' + intermediate : intermediate
+    return pathnameWithLeadingSlash[pathnameWithLeadingSlash.length - 1] === '/'
+      ? pathnameWithLeadingSlash.slice(0, pathnameWithLeadingSlash.length - 1)
+      : pathnameWithLeadingSlash
+  }
 }
 
 export function parseLocation(input: NavAction, state?: object): NavLocation {
+  const parsedAction = parseAction(input, state)
+
+  if (parsedAction?.pathname !== undefined) {
+    parsedAction.pathname = normalizePathname(parsedAction.pathname)
+  }
+
   return {
     hash: '',
     pathname: '',
     query: {},
     search: '',
     state: null,
-    ...parseAction(input, state),
+    ...parsedAction,
   }
 }
 

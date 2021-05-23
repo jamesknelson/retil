@@ -1,29 +1,37 @@
-import { NavEnv, NavParams, NavQuery, NavResponse } from './navTypes'
+import { NavEnv } from './navTypes'
 import { createHref, parseLocation, resolveAction } from './navUtils'
 
-export interface StaticNavRequest {
-  baseUrl?: string
-  originalUrl?: string
-  params?: NavParams
-  query?: NavQuery
-  url: string
+export interface StaticNavContext {
+  headers: Record<string, number | string | string[] | undefined>
+  statusCode: number
 }
 
-export interface StaticNavEnv<
-  TRequest extends StaticNavRequest,
-  TResponse extends NavResponse,
-> extends NavEnv {
-  request: TRequest
-  response: TResponse
-}
+export function getStaticNavEnv(
+  url: string,
+  context?: Partial<StaticNavContext>,
+): NavEnv {
+  if (!context) {
+    context = {}
+  }
+  if (!context.headers) {
+    context.headers = {}
+  }
 
-export function getStaticNavEnv<
-  TRequest extends StaticNavRequest,
-  TResponse extends NavResponse,
->(request: TRequest, response: TResponse): StaticNavEnv<TRequest, TResponse> {
-  const originalUrl =
-    request.originalUrl ?? (request.baseUrl ?? '') + request.url
-  const location = parseLocation(originalUrl)
+  const location = parseLocation(url)
+
+  const getHeaders = () => context!.headers!
+  const setHeader = (
+    name: string,
+    value: number | string | string[] | undefined,
+  ) => {
+    context!.headers![name] = value
+  }
+
+  const getStatusCode = () => context!.statusCode || 200
+  const setStatusCode = (newStatusCode: number) => {
+    context!.statusCode = newStatusCode
+  }
+
   const redirect = async (
     statusOrAction: number | string,
     action?: string,
@@ -32,18 +40,20 @@ export function getStaticNavEnv<
       resolveAction(action || (statusOrAction as string), location.pathname),
     )
 
-    response.setHeader('Location', to)
-    response.statusCode =
+    setHeader('Location', to)
+    context!.statusCode =
       typeof statusOrAction === 'number' ? statusOrAction : 302
   }
 
   return {
     ...location,
-    basename: request.baseUrl ?? '',
-    navKey: 'ssr',
-    params: request.params || {},
-    request,
-    response,
+    basename: '',
+    getHeaders,
+    getStatusCode,
+    navKey: 'static',
+    params: {},
     redirect,
+    setHeader,
+    setStatusCode,
   }
 }

@@ -1,4 +1,4 @@
-import { VectorFusor, map, vectorFuse } from 'retil-source'
+import { Source, Vector, VectorFusor, map, vectorFuse } from 'retil-source'
 
 import {
   EnvType,
@@ -24,12 +24,13 @@ export function mount<Env extends object, Content>(
       abortSignal: undefined as any as AbortSignal,
       dependencies,
     }
-    const envSnapshot =
+    const envSnapshot = (
       typeof env === 'function'
         ? (env as VectorFusor<Env>)(use)
         : Array.isArray(env)
-        ? use(env)
+        ? use(env as Source<Env | Vector<Env>>)
         : env
+    ) as Env
     const content = loader({
       ...envSnapshot,
       ...mountEnv,

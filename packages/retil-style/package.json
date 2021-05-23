@@ -21,7 +21,7 @@
   },
   "dependencies": {
     "retil-support": "^0.20.1",
-    "tslib": "2.0.1"
+    "tslib": "^2.2.0"
   },
   "devDependencies": {
     "typescript": "4.2.4"

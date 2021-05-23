@@ -25,21 +25,18 @@ export interface NavRedirectFunction {
   (statusCode: number, action: string): Promise<void>
 }
 
-export interface NavResponse {
-  getHeaders(): { [name: string]: number | string | string[] | undefined }
-  setHeader(name: string, value: number | string | string[] | undefined): void
-  statusCode: number
-}
-
 export type NavQuery = { [name: string]: string | string[] }
 export type NavParams = { [name: string]: string | string[] }
 
 export interface NavEnv extends NavLocation {
   basename: string
+  getHeaders(): { [name: string]: number | string | string[] | undefined }
+  getStatusCode(): number
   navKey: string
   params: NavParams
   redirect: NavRedirectFunction
-  response: NavResponse
+  setHeader(name: string, value: number | string | string[] | undefined): void
+  setStatusCode(code: number): void
 }
 
 export type NavSource = VectorSource<NavEnv>

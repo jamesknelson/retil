@@ -65,30 +65,22 @@ async function createServer(
         render = require('./dist/server/entry-server.js').render
       }
 
-      const {
-        appHTML,
-        headHTML,
-        responseHeaders = {} as Record<string, string>,
-        responseStatus = 200,
-      } = await render(req, res)
+      const result = await render(req, res)
 
       if (
         res.statusCode >= 300 &&
         res.statusCode < 400 &&
-        res.getHeaders().Location
+        res.getHeader('Location')
       ) {
-        return res.redirect(responseStatus, responseHeaders.Location)
+        return res.send()
       }
 
-      responseHeaders['Content-Type'] = 'text/html'
-      res
-        .status(responseStatus)
-        .set(responseHeaders)
-        .end(
-          template
-            .replace(`<!--app-html-->`, appHTML)
-            .replace('<!--head-html-->', headHTML),
-        )
+      res.setHeader('Content-Type', 'text/html')
+      res.end(
+        template
+          .replace(`<!--app-html-->`, result.appHTML)
+          .replace('<!--head-html-->', result.headHTML),
+      )
     } catch (e) {
       if (viteDevServer) {
         viteDevServer.ssrFixStacktrace(e)

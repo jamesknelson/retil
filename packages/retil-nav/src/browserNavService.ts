@@ -16,7 +16,6 @@ import {
   getSnapshot,
   observe,
 } from 'retil-source'
-import { noop } from 'retil-support'
 
 import {
   NavAction,
@@ -32,14 +31,6 @@ import { createHref, parseLocation, resolveAction } from './navUtils'
 
 const defaultNavReducer: NavReducer = (location, action) =>
   resolveAction(action, location.pathname)
-
-const noopResponse = {
-  getHeaders: () => ({}),
-  setHeader: noop,
-  get statusCode() {
-    return 200
-  },
-}
 
 const defaultMaxRedirectDepth = 10
 
@@ -171,6 +162,21 @@ export function createBrowserNavService(
 
     const { key = createKey(), redirectDepth = 0 } = options
 
+    const headers = {} as Record<string, number | string | string[] | undefined>
+    const getHeaders = () => headers
+    const setHeader = (
+      name: string,
+      value: number | string | string[] | undefined,
+    ) => {
+      headers[name] = value
+    }
+
+    let statusCode = 200
+    const getStatusCode = () => statusCode
+    const setStatusCode = (newStatusCode: number) => {
+      statusCode = newStatusCode
+    }
+
     const redirect = (
       statusOrAction: number | string,
       action?: string,
@@ -185,7 +191,7 @@ export function createBrowserNavService(
           `A redirect was attempted from a location that is not currently active` +
             ` – from ${createHref(location)} to ${createHref(
               to,
-            )}. This is often` +
+            )}. This may be` +
             `due to precaching a link that points to a redirect.`,
         )
         cancelPrecacheLocation(env)
@@ -205,6 +211,9 @@ export function createBrowserNavService(
           redirectDepth: redirectDepth + 1,
         })
 
+        statusCode = typeof statusOrAction === 'number' ? statusOrAction : 302
+        headers['Location'] = createHref(to)
+
         write(redirectEnv, { replace: true })
       })
     }
@@ -212,10 +221,13 @@ export function createBrowserNavService(
     const env = {
       ...location,
       basename,
+      getHeaders,
+      getStatusCode,
       navKey: key,
       params: {},
       redirect,
-      response: noopResponse,
+      setHeader,
+      setStatusCode,
     }
 
     return env

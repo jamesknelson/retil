@@ -40,9 +40,10 @@ export function useNavController() {
   const waitForStableMount = useWaitForStableMount()
   const contextController = useContext(NavControllerContext)
   const controller =
-    contextController || typeof window === 'undefined'
+    contextController ||
+    (typeof window === 'undefined'
       ? noopNavController
-      : getDefaultBrowserNavService()[1]
+      : getDefaultBrowserNavService()[1])
   return useMemo(
     (): NavController => ({
       ...controller,

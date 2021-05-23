@@ -2,7 +2,13 @@ import React, { ReactElement } from 'react'
 import { getSnapshot } from 'retil-source'
 
 import { mount } from './mount'
-import { EnvType, Loader, MountEnv, MountSource } from './mountTypes'
+import {
+  EnvType,
+  Loader,
+  MountEnv,
+  MountSnapshot,
+  MountSource,
+} from './mountTypes'
 import { ServerMountContext } from './serverMountContext'
 
 export class ServerMount<Env extends object, Content> {
@@ -15,7 +21,7 @@ export class ServerMount<Env extends object, Content> {
     this.env = env
   }
 
-  preload(): Promise<void> {
+  preload(): Promise<MountSnapshot<Env, Content>> {
     if (this.source) {
       throw new Error(
         `The "preload" method of ServerMount may only be called once.`,
@@ -24,7 +30,7 @@ export class ServerMount<Env extends object, Content> {
 
     this.source = mount(this.loader, this.env)
     const snapshot = getSnapshot(this.source)
-    return snapshot.dependencies.resolve()
+    return snapshot.dependencies.resolve().then(() => snapshot)
   }
 
   provide(element: ReactElement): ReactElement {

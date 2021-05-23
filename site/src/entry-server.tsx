@@ -8,7 +8,7 @@ import { Request, Response } from 'express'
 import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { ServerMount } from 'retil-mount'
-import { getStaticNavEnv } from 'retil-nav'
+import { createHref, getServerNavEnv } from 'retil-nav'
 
 import Root from './root'
 import rootLoader from './screens/rootLoader'
@@ -17,9 +17,15 @@ export async function render(
   request: Omit<Request, 'params' | 'query'>,
   response: Response,
 ) {
-  const env = getStaticNavEnv(request, response)
-  const mount = new ServerMount(rootLoader, env)
+  const env = getServerNavEnv(request, response)
 
+  if (request.path !== env.pathname) {
+    response.statusCode = 308
+    response.setHeader('Location', createHref(env))
+    return null
+  }
+
+  const mount = new ServerMount(rootLoader, env)
   const styleCache = createStyleCache({ key: 'sskk' })
   const { extractCriticalToChunks, constructStyleTagsFromChunks } =
     createEmotionServer(styleCache)

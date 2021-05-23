@@ -9,6 +9,7 @@ export * from './loaders/redirect'
 
 export * from './browserNavService'
 export * from './getDefaultBrowserNavService'
+export * from './getServerNavEnv'
 export * from './getStaticNavEnv'
 export * from './navContext'
 export * from './navTypes'

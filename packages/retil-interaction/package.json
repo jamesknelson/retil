@@ -26,7 +26,7 @@
     "retil-source": "^0.20.1",
     "retil-style": "^0.20.1",
     "retil-support": "^0.20.1",
-    "tslib": "2.0.1"
+    "tslib": "^2.2.0"
   },
   "devDependencies": {
     "@types/styled-components": "^5.1.7",
