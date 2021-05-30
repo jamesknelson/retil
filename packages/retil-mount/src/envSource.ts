@@ -1,7 +1,5 @@
+import { Source, fuse, hasSnapshot } from 'retil-source'
 import { ArrayKeyedMap, Maybe } from 'retil-support'
-
-import { fuse } from './fuse'
-import { Source, hasSnapshot } from './source'
 
 type UseInvocation = [
   snapshot: unknown,
@@ -9,30 +7,30 @@ type UseInvocation = [
   maybeDefaultValue: Maybe<unknown>,
   inject?: unknown,
 ]
-const VectorSymbol = Symbol('FuseVector')
+const EnvVectorHead = Symbol('EnvVector')
 const ValuelessSymbol = Symbol('valueless')
 type Valueless = typeof ValuelessSymbol
 
-export type Vector<T> = [typeof VectorSymbol, ...T[]]
+export type EnvVector<T> = [typeof EnvVectorHead, ...T[]]
 
-export type VectorSource<T> = Source<Vector<T>>
+export type EnvSource<T> = Source<EnvVector<T>>
 
-export function createVector<T>(xs: [T, ...T[]]): Vector<T> {
-  return [VectorSymbol, ...xs]
+export function createEnvVector<T>(xs: [T, ...T[]]): EnvVector<T> {
+  return [EnvVectorHead, ...xs]
 }
 
-export function isVector<T>(x: Vector<T> | unknown): x is Vector<T> {
-  return Array.isArray(x) && x[0] === VectorSymbol
+export function isEnvVector<T>(x: EnvVector<T> | unknown): x is EnvVector<T> {
+  return Array.isArray(x) && x[0] === EnvVectorHead
 }
 
-export type VectorFusorUse = <U, V = U>(
-  source: Source<Vector<U> | U>,
+export type EnvFusorUse = <U, V = U>(
+  source: Source<EnvVector<U> | U>,
   ...defaultValues: [V] | []
 ) => U | V
 
-export type VectorFusor<T> = (use: VectorFusorUse) => T
+export type EnvFusor<T> = (use: EnvFusorUse) => T
 
-export function vectorFuse<T>(fusor: VectorFusor<T>): Source<Vector<T>> {
+export function fuseEnvSource<T>(fusor: EnvFusor<T>): Source<EnvVector<T>> {
   let previousNextQueue = [] as UseInvocation[][]
   let previousResults = new ArrayKeyedMap<unknown[], T>()
 
@@ -41,9 +39,9 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<Vector<T>> {
     previousResults.clear()
   }
 
-  return fuse<Vector<T>>((use) => {
+  return fuse<EnvVector<T>>((use) => {
     const results = new ArrayKeyedMap<unknown[], T>()
-    const resultVector = [VectorSymbol] as Vector<T>
+    const resultVector = [EnvVectorHead] as EnvVector<T>
 
     // Cache calls to use, as `fuse` isn't designed to deal with the many
     // invocations of `use` that can result from combining vector sources.
@@ -81,7 +79,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<Vector<T>> {
 
         const [snapshot, source, maybeDefaultValue] = useList[i]
         if (invocation.length === 4) {
-          if (isVector(snapshot)) {
+          if (isEnvVector(snapshot)) {
             replaceUseInvocationsBySource.set(source, invocation)
           }
         } else if (replaceUseInvocationsBySource.has(source)) {
@@ -91,7 +89,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<Vector<T>> {
           useList[i][2] = maybeDefaultValue
         } else {
           const currentSnapshot = cachedUse(source)
-          if (isVector(currentSnapshot)) {
+          if (isEnvVector(currentSnapshot)) {
             // Replace this item in the queue with an expansion for the
             // vector
             expandVectorFrom(
@@ -139,11 +137,11 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<Vector<T>> {
         // precached value, we can keep track of the inputs that correspond
         // to it.
         const wrappedUse = <T, U>(
-          source: Source<Vector<T> | T>,
+          source: Source<EnvVector<T> | T>,
           ...defaultValues: [U] | []
         ): T | U => {
           if (process.env.NODE_ENV !== 'production') {
-            if (defaultValues.length && isVector(defaultValues[0])) {
+            if (defaultValues.length && isEnvVector(defaultValues[0])) {
               throw new Error(
                 "You can't use a vector as a default value for use() within vectorFuse()",
               )
@@ -174,7 +172,7 @@ export function vectorFuse<T>(fusor: VectorFusor<T>): Source<Vector<T>> {
                 use(source)
               }
               inject = defaultValues[0] as U
-            } else if (isVector(snapshot)) {
+            } else if (isEnvVector(snapshot)) {
               expandVectorFrom(
                 queue,
                 useList,
@@ -213,7 +211,7 @@ function expandVectorFrom(
   queue: UseInvocation[][],
   useList: UseInvocation[],
   vectorIndex: number,
-  vector: Vector<any>,
+  vector: EnvVector<any>,
   source: Source<any>,
   defaultValues: Maybe<any>,
   startIndex: number,

@@ -1,4 +1,4 @@
-import type { VectorSource } from 'retil-source'
+import type { EnvSource } from 'retil-mount'
 
 export type NavTrigger = 'PUSH' | 'REPLACE' | 'POP'
 
@@ -28,20 +28,41 @@ export interface NavRedirectFunction {
 export type NavQuery = { [name: string]: string | string[] }
 export type NavParams = { [name: string]: string | string[] }
 
-export interface NavEnv extends NavLocation {
-  basename: string
-  getHeaders(): { [name: string]: number | string | string[] | undefined }
-  getStatusCode(): number
-  navKey: string
-  params: NavParams
-  redirect: NavRedirectFunction
-  setHeader(name: string, value: number | string | string[] | undefined): void
-  setStatusCode(code: number): void
+export interface NavEnv<
+  TRequest extends NavRequest = NavRequest,
+  TResponse extends NavResponse = NavResponse,
+> {
+  nav: NavSnapshot
+  request?: TRequest
+  response?: TResponse
 }
 
-export type NavSource = VectorSource<NavEnv>
+export interface NavSnapshot extends NavLocation {
+  basename: string
+  key: string
+  matchname: string
+  notFound(): void
+  params: NavParams
+  redirect: NavRedirectFunction
+}
 
-export type NavService = readonly [NavSource, NavController]
+export interface NavRequest {
+  baseUrl?: string
+  originalUrl?: string
+  params?: NavParams
+  query?: NavQuery
+  url: string
+}
+
+export interface NavResponse {
+  getHeaders(): { [name: string]: number | string | string[] | undefined }
+  setHeader(name: string, value: number | string | string[] | undefined): void
+  statusCode?: number
+}
+
+export type NavEnvSource = EnvSource<NavEnv>
+
+export type NavEnvService = readonly [NavEnvSource, NavController]
 
 export interface NavController {
   back(): void

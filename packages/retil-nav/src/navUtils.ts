@@ -124,6 +124,7 @@ export function isExternalAction(href: NavAction) {
 export function resolveAction(
   action: string | NavAction,
   currentPathname: string,
+  basename = '',
 ): NavLocation {
   if (isExternalAction(action)) {
     throw new Error(
@@ -146,6 +147,10 @@ export function resolveAction(
             /^\.\.?\//.test(pathname) ? '.' : '..',
             pathname,
           )
+
+    if (pathname.slice(0, basename.length) !== basename) {
+      pathname = joinPathnames(basename, pathname)
+    }
   }
 
   return {

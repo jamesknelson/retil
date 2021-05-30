@@ -3,7 +3,7 @@
   "ts-node": {
     "transpileOnly": true,
     "compilerOptions": {
-      "module": "CommonJS"
+      "module": "CommonJS",
     }
   },
   "compilerOptions": {
@@ -11,6 +11,9 @@
     "esModuleInterop": false,
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
+    "jsx": "react-jsx",
+    "jsxImportSource": "@emotion/react",
+    "types": ["@emotion/react"],
     "noEmit": true
   },
   "include": ["./src"]

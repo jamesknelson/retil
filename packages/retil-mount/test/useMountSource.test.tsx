@@ -6,7 +6,7 @@ import { act, render, waitFor } from '@testing-library/react'
 
 import {
   DependencyList,
-  MountEnv,
+  LoaderProps,
   UseMountState,
   mount,
   useMountSource,
@@ -56,9 +56,9 @@ describe('useMountSource', () => {
     let deferred: Deferred = new Deferred()
     const rootSource = mount((env) => {
       runCount++
-      env.dependencies.add(deferred.promise)
+      env.mount.dependencies.add(deferred.promise)
       return (
-        <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
+        <SuspendForUnresolvedDependencies dependencies={env.mount.dependencies}>
           test
         </SuspendForUnresolvedDependencies>
       )
@@ -87,12 +87,13 @@ describe('useMountSource', () => {
     }
 
     const rootSource = mount(
-      (env: MountEnv & { pathname: string }) => {
+      (env: LoaderProps<{ pathname: string }>) => {
         if (env.pathname === '/start') {
-          env.dependencies.add(redirect('/complete'))
+          env.mount.dependencies.add(redirect('/complete'))
         }
         return (
-          <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
+          <SuspendForUnresolvedDependencies
+            dependencies={env.mount.dependencies}>
             {env.pathname}
           </SuspendForUnresolvedDependencies>
         )
@@ -121,12 +122,13 @@ describe('useMountSource', () => {
     const [envSource, setEnv] = createState({ pathname: '/redirect' })
     const deferred = new Deferred()
     const rootSource2 = mount(
-      (env: MountEnv & { pathname: string }) => {
+      (env: LoaderProps<{ pathname: string }>) => {
         if (env.pathname === '/redirect') {
-          env.dependencies.add(deferred.promise)
+          env.mount.dependencies.add(deferred.promise)
         }
         return (
-          <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
+          <SuspendForUnresolvedDependencies
+            dependencies={env.mount.dependencies}>
             {env.pathname}
           </SuspendForUnresolvedDependencies>
         )
@@ -226,9 +228,9 @@ describe('useMountSource', () => {
 
   test(`can externally wait for suspension list to resolve to avoid initial suspense`, async () => {
     const rootSource = mount((env) => {
-      env.dependencies.add(delay(10))
+      env.mount.dependencies.add(delay(10))
       return (
-        <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
+        <SuspendForUnresolvedDependencies dependencies={env.mount.dependencies}>
           test
         </SuspendForUnresolvedDependencies>
       )
@@ -252,12 +254,13 @@ describe('useMountSource', () => {
     const [envSource, setEnv] = createState({ pathname: '/start' })
     const deferred = new Deferred()
     const rootSource = mount(
-      (env: MountEnv & { pathname: string }) => {
+      (env: LoaderProps<{ pathname: string }>) => {
         if (env.pathname === '/lazy') {
-          env.dependencies.add(deferred.promise)
+          env.mount.dependencies.add(deferred.promise)
         }
         return (
-          <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
+          <SuspendForUnresolvedDependencies
+            dependencies={env.mount.dependencies}>
             {env.pathname}
           </SuspendForUnresolvedDependencies>
         )
@@ -297,12 +300,13 @@ describe('useMountSource', () => {
     const [envSource, setEnv] = createState({ pathname: '/start' })
     const deferred = new Deferred()
     const rootSource = mount(
-      (env: MountEnv & { pathname: string }) => {
+      (env: LoaderProps<{ pathname: string }>) => {
         if (env.pathname === '/lazy') {
-          env.dependencies.add(deferred.promise)
+          env.mount.dependencies.add(deferred.promise)
         }
         return (
-          <SuspendForUnresolvedDependencies dependencies={env.dependencies}>
+          <SuspendForUnresolvedDependencies
+            dependencies={env.mount.dependencies}>
             {env.pathname}
           </SuspendForUnresolvedDependencies>
         )

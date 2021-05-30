@@ -1,9 +1,7 @@
-import React from 'react'
-
 function NotFound() {
   return <h1>404 Not Found</h1>
 }
 
-const notFoundRouter = () => <NotFound />
+const notFoundLoader = () => <NotFound />
 
-export default notFoundRouter
+export default notFoundLoader

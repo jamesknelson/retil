@@ -3,15 +3,20 @@ export * from './hooks/useNavMatch'
 export * from './hooks/useNavResolve'
 export * from './hooks/useNavScroller'
 
-export * from './loaders/match'
-export * from './loaders/notFound'
-export * from './loaders/redirect'
+export * from './loaders/loadMatch'
+export * from './loaders/loadNotFoundBoundary'
+export * from './loaders/loadRedirect'
 
-export * from './browserNavService'
-export * from './getDefaultBrowserNavService'
-export * from './getServerNavEnv'
-export * from './getStaticNavEnv'
 export * from './navContext'
 export * from './navTypes'
 export * from './navUtils'
 export * from './noopNavController'
+export * from './serverNavEnv'
+export * from './staticNavEnv'
+
+// Don't expose setDefaultBrowserNavService/hasDefaultBrowserNavService for now.
+export {
+  createBrowserNavEnvService,
+  getDefaultBrowserNavEnvService,
+} from './browserNavEnvService'
+export type { BrowserNavEnvServiceOptions } from './browserNavEnvService'

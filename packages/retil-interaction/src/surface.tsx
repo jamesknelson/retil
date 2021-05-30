@@ -77,7 +77,7 @@ export function splitSurfaceProps<P extends SurfaceProps>(
 // should not be passed through.
 export interface ConnectSurfaceProps<
   SurfaceElement extends HTMLElement,
-  MergeProps extends ConnectSurfaceMergeableProps<SurfaceElement>
+  MergeProps extends ConnectSurfaceMergeableProps<SurfaceElement>,
 > extends SurfaceProps {
   mergeProps?: MergeProps
 
@@ -110,7 +110,7 @@ export const SurfaceDepthContext = createContext<number>(0)
 
 export function ConnectSurface<
   SurfaceElement extends HTMLElement,
-  MergeProps extends ConnectSurfaceMergeableProps<SurfaceElement>
+  MergeProps extends ConnectSurfaceMergeableProps<SurfaceElement>,
 >(
   props: ConnectSurfaceProps<SurfaceElement, MergeProps> & {
     mergeProps?: {

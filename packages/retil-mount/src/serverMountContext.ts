@@ -1,10 +1,10 @@
 import { createContext } from 'react'
 
-import { EnvType, Loader, MountSource } from './mountTypes'
+import { CastableToEnvSource, Loader, MountSource } from './mountTypes'
 
 export const ServerMountContext =
   createContext<null | {
     loader: Loader<any>
-    env: EnvType<object>
+    env: CastableToEnvSource<object>
     source: MountSource<any, any>
   }>(null)

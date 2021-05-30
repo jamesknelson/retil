@@ -3,20 +3,20 @@ import React, { StrictMode } from 'react'
 import { render } from '@testing-library/react'
 import { Deferred } from 'retil-support'
 
-import { ServerMount, lazy, useMount } from '../src'
+import { ServerMount, loadAsync, useMount } from '../src'
 
 describe('ServerMount', () => {
   test('returns a mount snapshot from preload()', async () => {
     const loader = (env: any) => env.pathname
     const mount = new ServerMount(loader, { pathname: '/test' })
-    const { content } = await mount.preload()
-    expect(content).toBe('/test')
+    const { contentRef } = await mount.preload()
+    expect(contentRef.current).toBe('/test')
   })
 
   test('works with async routes', async () => {
     const deferred = new Deferred()
 
-    const loader = lazy(async (env: any) => {
+    const loader = loadAsync(async (env: any) => {
       env.asyncRef.current = await deferred.promise
       return 'done'
     })
@@ -34,7 +34,7 @@ describe('ServerMount', () => {
     let loadCount = 0
 
     const deferred = new Deferred()
-    const loader = lazy(async (env: any) => {
+    const loader = loadAsync(async (env: any) => {
       loadCount++
       return env.pathname + (await deferred.promise)
     })

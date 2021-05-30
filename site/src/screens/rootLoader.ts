@@ -1,14 +1,15 @@
-import { lazyImport } from 'retil-mount'
-import { match, notFoundBoundary } from 'retil-nav'
-
-import { Env } from '../env'
+import { loadLazy } from 'retil-mount'
+import { loadMatch, loadNotFoundBoundary } from 'retil-nav'
 
 import notFoundLoader from './notFoundLoader'
 
-const rootLoader = notFoundBoundary(
-  match<Env>({
-    '/': lazyImport(() => import('./landingLoader')),
-    '/examples*': lazyImport(() => import('./examples/examplesLoader')),
+import landingLoader from './landingLoader'
+
+const rootLoader = loadNotFoundBoundary(
+  loadMatch({
+    '/': landingLoader,
+    // '/': loadLazy(() => import('./landingLoader')),
+    '/examples*': loadLazy(() => import('./examples/examplesLoader')),
   }),
   notFoundLoader,
 )

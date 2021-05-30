@@ -22,7 +22,7 @@ export type HighStyle<Theme = any, HighSelector extends string = string> = {
 export type HighStyleValue<
   Value,
   Theme = any,
-  HighSelector extends string = string
+  HighSelector extends string = string,
 > =
   | ((theme: Theme) => HighStyleValue<Value, Theme, HighSelector>)
   | HighStyleSelections<Value, Theme, HighSelector>
@@ -31,7 +31,7 @@ export type HighStyleValue<
 export type HighStyleSelections<
   Value,
   Theme = any,
-  HighSelector extends string = string
+  HighSelector extends string = string,
 > = {
   [Selector in HighSelector | 'default']: HighStyleValue<
     Value,
@@ -52,8 +52,6 @@ export type CSSFunction<Theme = any> = (
   themeOrProps: Theme | { theme: Theme },
 ) => CSSObject
 
-// TODO: instead of taking highStyle, take an optional downSelect, and return
-// a function that takes style and returns style
 export function useHighStyle<Theme, HighSelector extends string>(
   overrideDownSelect?: DownSelect<HighSelector>,
 ): (highStyle: HighStyle<Theme, HighSelector>) => CSSFunction<Theme> {
@@ -95,7 +93,13 @@ function mutableCompileStyle<Theme, HighSelector extends string>(
   } else if (typeof highValue === 'function') {
     mutableCompileStyle(theme, downSelect, output, property, highValue(theme))
   } else if (isPlainObject(highValue)) {
-    const selectorNames = Object.keys(highValue) as HighSelector[]
+    // Ensure the default selector is always first, so that it doesn't override
+    // other selectors.
+    const { default: _, ...nonDefault } = highValue
+    const selectorNames = (
+      'default' in highValue ? ['default' as HighSelector] : []
+    ).concat(Object.keys(nonDefault) as HighSelector[])
+
     for (const selectorName of selectorNames) {
       const selector =
         selectorName === 'default' ? true : downSelect(selectorName)

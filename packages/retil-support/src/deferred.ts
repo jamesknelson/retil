@@ -7,7 +7,7 @@ export class Deferred<T = any> {
    * If the value is a Promise then the associated promise assumes the state
    * of Promise passed as value.
    */
-  resolve: (value: T) => void = undefined as any
+  resolve: (value: Promise<T> | T) => void = undefined as any
 
   /* A method to reject the assocaited Promise with the value passed.
    * If the promise is already settled it does nothing.

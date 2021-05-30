@@ -2,12 +2,7 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode } from 'react'
 import { render } from '@testing-library/react'
 
-import {
-  createRequest,
-  getInitialSnapshot,
-  RouterProvider,
-  useMatchRoute,
-} from '../src'
+import { NavProvider, createStaticNavEnv, useNavMatch } from '../src'
 
 function testUseMatchRoute(
   description: string,
@@ -16,23 +11,20 @@ function testUseMatchRoute(
   expectedResult: boolean,
 ) {
   test(description, async () => {
-    const snapshot = await getInitialSnapshot(
-      ({ pathname }) => pathname,
-      createRequest(pathname),
-    )
-    const Test = () => <>{useMatchRoute(pattern) ? 'match' : 'miss'}</>
+    const env = createStaticNavEnv({ url: pathname })
+    const Test = () => <>{useNavMatch(pattern) ? 'match' : 'miss'}</>
     const { container } = render(
       <StrictMode>
-        <RouterProvider value={snapshot as any}>
+        <NavProvider env={env}>
           <Test />
-        </RouterProvider>
+        </NavProvider>
       </StrictMode>,
     )
     expect(container).toHaveTextContent(expectedResult ? 'match' : 'miss')
   })
 }
 
-describe('useMatch', () => {
+describe('useNavMatch()', () => {
   testUseMatchRoute(
     'matches nested paths on wildcard patterns',
     '/test*',

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 
-import { useNavEnv } from '../navContext'
+import { useNavSnapshot } from '../navContext'
 import { NavAction, NavLocation } from '../navTypes'
 import { parseAction, resolveAction } from '../navUtils'
 
@@ -8,10 +8,10 @@ export const useNavResolve = (
   action: NavAction,
   state?: object,
 ): NavLocation => {
-  const { pathname } = useNavEnv()
+  const { basename, pathname } = useNavSnapshot()
   const resolved = useMemo(
-    () => resolveAction(parseAction(action, state), pathname),
-    [action, pathname, state],
+    () => resolveAction(parseAction(action, state), pathname, basename),
+    [action, basename, pathname, state],
   )
 
   // Memoize by action parts so that we'll output the same location object

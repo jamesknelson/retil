@@ -1,12 +1,12 @@
 import React, { ReactNode, createContext, useContext, useMemo } from 'react'
 import { useMountEnv, useWaitForStableMount } from 'retil-mount'
 
-import { getDefaultBrowserNavService } from './getDefaultBrowserNavService'
-import { NavController, NavEnv } from './navTypes'
+import { getDefaultBrowserNavEnvService } from './browserNavEnvService'
+import { NavController, NavEnv, NavSnapshot } from './navTypes'
 import { noopNavController } from './noopNavController'
 
 const NavControllerContext = createContext<NavController | null>(null)
-const NavEnvContext = createContext<NavEnv | null>(null)
+const NavSnapshotContext = createContext<NavSnapshot | null>(null)
 
 const wrapNavigationMethod = <Args extends any[]>(
   fn: (...args: Args) => Promise<boolean>,
@@ -28,11 +28,11 @@ export const NavProvider = (props: NavProviderProps) => {
   const { children, controller = null, env = null } = props
 
   return (
-    <NavEnvContext.Provider value={env}>
+    <NavSnapshotContext.Provider value={env?.nav || null}>
       <NavControllerContext.Provider value={controller}>
         {children}
       </NavControllerContext.Provider>
-    </NavEnvContext.Provider>
+    </NavSnapshotContext.Provider>
   )
 }
 
@@ -43,7 +43,7 @@ export function useNavController() {
     contextController ||
     (typeof window === 'undefined'
       ? noopNavController
-      : getDefaultBrowserNavService()[1])
+      : getDefaultBrowserNavEnvService()[1])
   return useMemo(
     (): NavController => ({
       ...controller,
@@ -53,8 +53,8 @@ export function useNavController() {
   )
 }
 
-export function useNavEnv() {
+export function useNavSnapshot() {
   const mountEnv = useMountEnv<NavEnv>()
-  const envContext = useContext(NavEnvContext)
-  return envContext || mountEnv
+  const contextNavSnapshot = useContext(NavSnapshotContext)
+  return contextNavSnapshot || mountEnv.nav
 }

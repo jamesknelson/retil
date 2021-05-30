@@ -5,10 +5,9 @@ import createStyleCache from '@emotion/cache'
 import { CacheProvider as StyleCacheProvider } from '@emotion/react'
 import createEmotionServer from '@emotion/server/create-instance'
 import { Request, Response } from 'express'
-import React from 'react'
 import { renderToString } from 'react-dom/server'
 import { ServerMount } from 'retil-mount'
-import { createHref, getServerNavEnv } from 'retil-nav'
+import { createHref, createServerNavEnv } from 'retil-nav'
 
 import Root from './root'
 import rootLoader from './screens/rootLoader'
@@ -17,11 +16,11 @@ export async function render(
   request: Omit<Request, 'params' | 'query'>,
   response: Response,
 ) {
-  const env = getServerNavEnv(request, response)
+  const env = createServerNavEnv(request, response)
 
-  if (request.path !== env.pathname) {
+  if (request.path !== env.nav.pathname) {
     response.statusCode = 308
-    response.setHeader('Location', createHref(env))
+    response.setHeader('Location', createHref(env.nav))
     return null
   }
 
@@ -41,13 +40,9 @@ export async function render(
     } else {
       const { html: appHTML, styles: appStyles } = extractCriticalToChunks(
         renderToString(
-          // TODO:
-          // The `provide` function will supply a mountSource which will be
-          // used when a <Mount> with this rootLoader/envSource is encountered,
-          // instead of creating a whole new mountSource
           mount.provide(
             <StyleCacheProvider value={styleCache}>
-              <Root env={env} loader={rootLoader} />
+              <Root loader={rootLoader} env={env} />
             </StyleCacheProvider>,
           ),
         ),

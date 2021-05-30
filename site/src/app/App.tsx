@@ -1,31 +1,40 @@
-import { css } from '@emotion/react'
-import React from 'react'
+import { ReactNode, Suspense } from 'react'
 import { useMountContent } from 'retil-mount'
-import { useLink } from 'retil-nav'
+import { Link } from 'retil-link'
+import { useHighStyle } from 'retil-style'
 
-function App() {
-  const content = useMountContent<React.ReactNode>()
+const NavLinkBody: React.FunctionComponent = ({ children }) => {
+  const highStyle = useHighStyle()
 
-  const homeLink = useLink('/')
-  const examplesLink = useLink('/examples')
+  return (
+    <span
+      css={highStyle({
+        color: {
+          default: 'black',
+          activated: 'red',
+        },
+      })}>
+      {children}
+    </span>
+  )
+}
+
+const App = () => {
+  const content = useMountContent<ReactNode>()
 
   return (
     <>
       <nav>
-        <a
-          css={css`
-            color: red;
-          `}
-          {...homeLink}>
-          retil
-        </a>
+        <Link to="/" exact>
+          <NavLinkBody>retil</NavLinkBody>
+        </Link>
         &nbsp;&middot;&nbsp;
-        <a {...examplesLink}>examples</a>
+        <Link to="/examples">
+          <NavLinkBody>examples</NavLinkBody>
+        </Link>
       </nav>
       <main>
-        <React.Suspense fallback="loading fallback...">
-          {content}
-        </React.Suspense>
+        <Suspense fallback="loading fallback...">{content}</Suspense>
       </main>
     </>
   )

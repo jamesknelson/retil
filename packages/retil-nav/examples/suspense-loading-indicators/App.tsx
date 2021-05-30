@@ -1,33 +1,36 @@
 import React from 'react'
 
+import { Link } from 'retil-link'
 import {
-  Link,
-  Router,
-  RouterContent,
-  routeAsync,
-  routeByPattern,
-  useRouterPending,
-} from 'retil-router'
+  EnvSource,
+  Mount,
+  MountedContent,
+  loadAsync,
+  useMountPending,
+} from 'retil-mount'
+import { loadMatch, NavEnv } from 'retil-nav'
 import { delay } from 'retil-support'
 
-const homeRouter = routeAsync(async () => {
-  await delay(1000)
-  return <h1>Welcome!</h1>
+export interface AppEnv extends NavEnv {}
+
+export const appLoader = loadMatch<AppEnv>({
+  '/': loadAsync(async () => {
+    await delay(1000)
+    return <h1>Welcome!</h1>
+  }),
+  '/about': loadAsync(async () => {
+    await delay(1000)
+    return <h1>About</h1>
+  }),
 })
 
-const aboutRouter = routeAsync(async () => {
-  await delay(1000)
-  return <h1>About</h1>
-})
+export interface AppProps {
+  env: AppEnv | EnvSource<AppEnv>
+}
 
-const appRouter = routeByPattern({
-  '/': homeRouter,
-  '/about': aboutRouter,
-})
-
-function App({ basename }: { basename?: string }) {
+export const App: React.FunctionComponent<AppProps> = ({ env }) => {
   return (
-    <Router basename={basename} fn={appRouter} transitionTimeoutMs={500}>
+    <Mount env={env} loader={appLoader} transitionTimeoutMs={500}>
       <nav>
         <Link to="/">Home</Link>
         &nbsp;&middot;&nbsp;
@@ -36,16 +39,14 @@ function App({ basename }: { basename?: string }) {
       <main>
         <React.Suspense fallback="loading fallback...">
           <RouterPendingIndicator />
-          <RouterContent />
+          <MountedContent />
         </React.Suspense>
       </main>
-    </Router>
+    </Mount>
   )
 }
 
 function RouterPendingIndicator() {
-  const pending = useRouterPending()
+  const pending = useMountPending()
   return <>{pending && 'loading concurrently...'}</>
 }
-
-export default App

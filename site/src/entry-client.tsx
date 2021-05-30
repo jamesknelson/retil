@@ -4,9 +4,8 @@
 
 import createStyleCache from '@emotion/cache'
 import { CacheProvider as StyleCacheProvider } from '@emotion/react'
-import React from 'react'
 import { createRoot } from 'react-dom'
-import { getDefaultBrowserNavService } from 'retil-nav'
+import { getDefaultBrowserNavEnvService } from 'retil-nav'
 
 import rootLoader from './screens/rootLoader'
 import Root from './root'
@@ -14,7 +13,7 @@ import Root from './root'
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
 const reactRoot = createRoot(rootNode, { hydrate: true })
-const [navSource] = getDefaultBrowserNavService()
+const [navSource] = getDefaultBrowserNavEnvService()
 
 reactRoot.render(
   <StyleCacheProvider value={styleCache}>

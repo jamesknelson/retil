@@ -1,17 +1,23 @@
 import React from 'react'
 import { Mount, MountedContent } from 'retil-mount'
-import { match, notFoundBoundary } from 'retil-nav'
-import Link from 'retil-link'
+import {
+  getDefaultBrowserNavEnvService,
+  loadMatch,
+  loadNotFoundBoundary,
+} from 'retil-nav'
+import { Link } from 'retil-link'
 
-const rootLoader = notFoundBoundary(
-  match({
+const rootLoader = loadNotFoundBoundary(
+  loadMatch({
     '/': <h1>Welcome!</h1>,
     '/about': <h1>About</h1>,
   }),
-  (env) => <NotFound pathname={env.pathname} />,
+  (env) => <NotFound pathname={env.nav.pathname} />,
 )
 
-function App({ navSource }: { navSource: string }) {
+function App() {
+  const [navSource] = getDefaultBrowserNavEnvService()
+
   return (
     <Mount env={navSource} loader={rootLoader}>
       <nav>

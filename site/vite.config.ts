@@ -1,5 +1,5 @@
 import reactRefresh from '@vitejs/plugin-react-refresh'
-import { resolve } from 'path'
+import { join, resolve } from 'path'
 import { defineConfig } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
@@ -12,7 +12,12 @@ export default defineConfig({
   },
   esbuild: {
     jsxFactory: 'jsx',
-    jsxInject: `import {jsx} from '@emotion/react'`,
+    jsxFragment: 'Fragment',
+
+    // We're using emotion's "jsx" factory, but instead of importing directly
+    // from emotion, we import from a local shim that also re-exports Fragment
+    // – allowing us to use JSX fragments without also importing React.
+    jsxInject: `import {Fragment, jsx} from '${join(__dirname, 'react-shim')}'`,
   },
   plugins: [
     reactRefresh(),

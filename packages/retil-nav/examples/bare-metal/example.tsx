@@ -1,6 +1,5 @@
 export default {
-  importComponent: () => import('./App'),
-
-  catchNestedRoutes: true,
   disableSSR: true,
+  importComponent: () => import('./app'),
+  matchAll: true,
 }

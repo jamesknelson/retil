@@ -1,25 +1,25 @@
 import '@testing-library/jest-dom/extend-expect'
 import React from 'react'
 import { renderToString } from 'react-dom/server'
-import { MountEnv, ServerMount, lazy, useMount } from 'retil-mount'
+import { ServerMount, loadAsync, useMount } from 'retil-mount'
 import { Deferred } from 'retil-support'
 
-import { NavEnv, getStaticNavEnv, match, notFoundBoundary } from '../src'
+import { createStaticNavEnv, loadMatch, loadNotFoundBoundary } from '../src'
 
-describe('notFoundBoundary', () => {
+describe('loadNotFoundBoundary()', () => {
   test(`works during SSR with async routes`, async () => {
     const deferred = new Deferred()
-    const innerLoader = match({
-      '/found': (request) => 'found' + request.pathname,
+    const innerLoader = loadMatch({
+      '/found': ({ nav }) => 'found' + nav.pathname,
     })
-    const loader = notFoundBoundary(
-      lazy(async (req: NavEnv & MountEnv) => {
+    const loader = loadNotFoundBoundary(
+      loadAsync(async (env) => {
         await deferred.promise
-        return innerLoader(req)
+        return innerLoader(env)
       }),
-      (request) => 'not-found' + request.pathname,
+      (env) => 'not-found' + env.nav.pathname,
     )
-    const env = getStaticNavEnv('/test-1')
+    const env = createStaticNavEnv({ url: '/test-1' })
     const mount = new ServerMount(loader, env)
 
     const mountPromise = mount.preload()

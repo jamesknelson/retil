@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 
 import { createMatcher } from '../matcher'
-import { useNavEnv } from '../navContext'
+import { useNavSnapshot } from '../navContext'
 
 /**
  * Returns a boolean that indicates whether the user is currently
@@ -19,6 +19,6 @@ export const useNavMatch = (patterns: string | string[]): boolean => {
           },
     [patterns],
   )
-  const env = useNavEnv()
+  const env = useNavSnapshot()
   return useMemo(() => !!matcher(env.pathname), [matcher, env])
 }

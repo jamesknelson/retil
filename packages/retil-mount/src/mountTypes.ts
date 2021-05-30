@@ -1,31 +1,43 @@
 import { ReactNode } from 'react'
-import { Source, VectorFusor, VectorSource } from 'retil-source'
+import { Source } from 'retil-source'
 
 import { DependencyList } from './dependencyList'
+import { EnvFusor, EnvSource } from './envSource'
 
-export type EnvType<T extends object> =
+export type CastableToEnvSource<T extends object> =
   | T
   | Source<T>
-  | VectorSource<T>
-  | VectorFusor<T>
+  | EnvFusor<T>
+  | EnvSource<T>
 
-export type Loader<Env extends object, Content = ReactNode> = (
-  env: Env & MountEnv,
-) => Content
-
-export interface MountEnv {
-  abortSignal: AbortSignal
-  dependencies: DependencyList
+export type LoaderProps<Env extends object> = Env & {
+  mount: MountSnapshot<Env, unknown>
 }
 
-export type MountSnapshot<Env extends object, Content = ReactNode> = {
+export type Loader<Env extends object, Content = ReactNode> = (
+  props: LoaderProps<Env>,
+) => Content
+
+export interface MountContentRef<Content = ReactNode> {
+  readonly current?: Content
+}
+
+export interface MountSnapshot<Env extends object, Content = ReactNode> {
   dependencies: DependencyList
   env: Env
-  content: Content
+  contentRef: MountContentRef<Content>
+  signal: AbortSignal
+}
+
+export interface MountSnapshotWithContent<
+  Env extends object,
+  Content = ReactNode,
+> extends MountSnapshot<Env, Content> {
+  contentRef: { readonly current: Content }
 }
 
 export type MountSource<Env extends object, Content = ReactNode> = Source<
-  MountSnapshot<Env, Content>
+  MountSnapshotWithContent<Env, Content>
 >
 
 export interface UseMountState<

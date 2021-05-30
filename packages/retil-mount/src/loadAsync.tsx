@@ -1,6 +1,6 @@
 import React, { ReactElement, ReactNode } from 'react'
 
-import { MountEnv, Loader } from './mountTypes'
+import { Loader, LoaderProps } from './mountTypes'
 
 interface OutcomeRef {
   current:
@@ -22,9 +22,9 @@ export interface AsyncContentProps {
 
 export const AsyncContent: React.FunctionComponent<AsyncContentProps> = ({
   promisedContent,
-  outcomeRef: resultRef,
+  outcomeRef,
 }) => {
-  const result = resultRef.current
+  const result = outcomeRef.current
   if (!result) {
     throw Promise.resolve(promisedContent)
   } else if (result.type === 'error') {
@@ -33,10 +33,10 @@ export const AsyncContent: React.FunctionComponent<AsyncContentProps> = ({
   return <>{result.content}</>
 }
 
-export function lazy<Env extends object>(
-  asyncLoader: (env: Env & MountEnv) => PromiseLike<ReactNode>,
+export function loadAsync<Env extends object>(
+  asyncLoader: (env: LoaderProps<Env>) => PromiseLike<ReactNode>,
 ): Loader<Env, ReactElement> {
-  return (env: Env & MountEnv) => {
+  return (props: LoaderProps<Env>) => {
     const outcomeRef: OutcomeRef = {
       current: null,
     }
@@ -47,7 +47,7 @@ export function lazy<Env extends object>(
     const lazyPromisedContent: PromiseLike<ReactNode> = {
       then: (...args) => {
         if (!promisedContent) {
-          promisedContent = asyncLoader(env).then(
+          promisedContent = asyncLoader(props).then(
             (content) => {
               outcomeRef.current = {
                 type: 'content',
@@ -69,7 +69,7 @@ export function lazy<Env extends object>(
       },
     }
 
-    env.dependencies.add(lazyPromisedContent)
+    props.mount.dependencies.add(lazyPromisedContent)
 
     return (
       <AsyncContent

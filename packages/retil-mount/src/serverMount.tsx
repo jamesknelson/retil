@@ -1,27 +1,29 @@
 import React, { ReactElement } from 'react'
-import { getSnapshot } from 'retil-source'
+import { getSnapshot, subscribe } from 'retil-source'
+import { noop } from 'retil-support'
 
 import { mount } from './mount'
 import {
-  EnvType,
+  CastableToEnvSource,
   Loader,
-  MountEnv,
-  MountSnapshot,
+  MountSnapshotWithContent,
   MountSource,
 } from './mountTypes'
 import { ServerMountContext } from './serverMountContext'
 
 export class ServerMount<Env extends object, Content> {
-  loader: Loader<Env & MountEnv, Content>
-  env: EnvType<Env>
+  loader: Loader<Env, Content>
+  env: CastableToEnvSource<Env>
   source: MountSource<Env, Content>
 
-  constructor(loader: Loader<Env & MountEnv, Content>, env: EnvType<Env>) {
+  private unsubscribe: null | (() => void) = null
+
+  constructor(loader: Loader<Env, Content>, env: CastableToEnvSource<Env>) {
     this.loader = loader
     this.env = env
   }
 
-  preload(): Promise<MountSnapshot<Env, Content>> {
+  preload(): Promise<MountSnapshotWithContent<Env, Content>> {
     if (this.source) {
       throw new Error(
         `The "preload" method of ServerMount may only be called once.`,
@@ -29,6 +31,11 @@ export class ServerMount<Env extends object, Content> {
     }
 
     this.source = mount(this.loader, this.env)
+
+    // We'll subscribe to the source to keep it from cleaning up it's cache
+    // until the request is sealed.
+    this.unsubscribe = subscribe(this.source, noop)
+
     const snapshot = getSnapshot(this.source)
     return snapshot.dependencies.resolve().then(() => snapshot)
   }
@@ -48,6 +55,11 @@ export class ServerMount<Env extends object, Content> {
   }
 
   seal(): void {
+    if (this.unsubscribe) {
+      this.unsubscribe()
+      this.unsubscribe = null
+    }
+
     this.loader = undefined as any
     this.env = undefined as any
     this.source = undefined as any

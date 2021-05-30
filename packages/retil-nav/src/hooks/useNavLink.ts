@@ -6,7 +6,7 @@ import { createHref } from '../navUtils'
 
 import { useNavResolve } from './useNavResolve'
 
-export interface UseLinkOptions {
+export interface UseNavLinkOptions {
   disabled?: boolean
   replace?: boolean
   precacheOn?: 'hover' | 'mount'
@@ -15,7 +15,7 @@ export interface UseLinkOptions {
   onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
-export const useLink = (to: NavAction, options: UseLinkOptions = {}) => {
+export const useNavLink = (to: NavAction, options: UseNavLinkOptions = {}) => {
   const { disabled, precacheOn, replace, state, onClick, onMouseEnter } =
     options
   const { navigate, precache } = useNavController()

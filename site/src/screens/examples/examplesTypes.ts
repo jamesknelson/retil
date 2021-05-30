@@ -12,8 +12,8 @@ export interface ExampleConfig {
   importComponent?: () => Promise<{ default: ComponentType<any> }>
   importLoader?: () => Promise<{ default: Loader<NavEnv> }>
 
-  catchNestedRoutes?: boolean
   disableSSR?: boolean
+  matchAll?: boolean
 }
 
 export type Example = { default: ExampleConfig | ComponentType<any> }

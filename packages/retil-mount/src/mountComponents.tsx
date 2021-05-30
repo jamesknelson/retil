@@ -1,7 +1,7 @@
-import React, { ReactNode } from 'react'
+import React, { ReactElement, ReactNode } from 'react'
 
 import { MountProvider, useMountContent } from './mountContext'
-import { EnvType, Loader } from './mountTypes'
+import { CastableToEnvSource, Loader } from './mountTypes'
 import { useMount } from './useMount'
 import { UseMountSourceOptions } from './useMountSource'
 
@@ -9,7 +9,7 @@ export interface MountProps<Env extends object, Content>
   extends UseMountSourceOptions {
   children: ReactNode
   loader: Loader<Env, Content>
-  env: EnvType<Env>
+  env: CastableToEnvSource<Env>
 }
 
 export function Mount<Env extends object, Content>(
@@ -21,5 +21,6 @@ export function Mount<Env extends object, Content>(
 }
 
 export function MountedContent() {
-  return useMountContent()
+  // Cast this to ReactElement to appease TypeScript.
+  return useMountContent() as ReactElement
 }

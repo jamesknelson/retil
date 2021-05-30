@@ -1,21 +1,19 @@
 import React, { ReactElement, useMemo } from 'react'
-import { Mount, useMountContent, useMountEnv } from 'retil-mount'
+import { Mount, LoaderProps, useMountContent, useMountEnv } from 'retil-mount'
 import {
   NavEnv,
   NavProvider,
-  createBrowserNavService,
+  createBrowserNavEnvService,
   joinPathnames,
-  useLink,
+  useNavLink,
 } from 'retil-nav'
 
-interface Env extends NavEnv {}
-
-function rootLoader(env: Env) {
-  switch (env.pathname) {
-    case env.basename:
+function rootLoader(props: LoaderProps<NavEnv>) {
+  switch (props.nav.pathname) {
+    case props.nav.basename:
       return <h1>Welcome!</h1>
 
-    case env.basename + '/about':
+    case props.nav.basename + '/about':
       return <h1>About</h1>
 
     default:
@@ -24,15 +22,15 @@ function rootLoader(env: Env) {
 }
 
 export function App({ basename }: { basename: string }) {
-  const [navSource, navController] = useMemo(
-    () => createBrowserNavService({ basename }),
+  const [navEnvSource, navController] = useMemo(
+    () => createBrowserNavEnvService({ basename }),
     [basename],
   )
 
   return (
     // A <NavProvider> is only necessary when we're not using the default
     // browser nav service.
-    <Mount env={navSource} loader={rootLoader}>
+    <Mount env={navEnvSource} loader={rootLoader}>
       <NavProvider controller={navController}>
         <nav>
           <Link to="/">Home</Link>
@@ -50,8 +48,8 @@ export function App({ basename }: { basename: string }) {
 const Content = () => useMountContent<ReactElement>()
 
 const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
-  const env = useMountEnv<Env>()
-  const linkProps = useLink(joinPathnames(env.basename, to))
+  const env = useMountEnv<NavEnv>()
+  const linkProps = useNavLink(joinPathnames(env.nav.basename, to))
   return <a {...linkProps}>{children}</a>
 }
 

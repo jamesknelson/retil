@@ -16,7 +16,11 @@ import {
   subscribe,
 } from 'retil-source'
 
-import { MountSnapshot, MountSource, UseMountState } from './mountTypes'
+import {
+  MountSnapshotWithContent,
+  MountSource,
+  UseMountState,
+} from './mountTypes'
 import { DependencyList } from './dependencyList'
 
 export interface UseMountSourceOptions {
@@ -39,8 +43,8 @@ export const useMountSource = <Env extends object, Content>(
   )
 
   const [state, setState] = useState<{
-    currentSnapshot: MountSnapshot<Env, Content>
-    pendingSnapshot: MountSnapshot<Env, Content> | null
+    currentSnapshot: MountSnapshotWithContent<Env, Content>
+    pendingSnapshot: MountSnapshotWithContent<Env, Content> | null
     mergedSource: Source<any> | null
     sourcePending: boolean
   }>(() => {
@@ -161,7 +165,7 @@ export const useMountSource = <Env extends object, Content>(
 
   return useMemo(
     () => ({
-      content: currentSnapshot.content,
+      content: currentSnapshot.contentRef.current,
       env: currentSnapshot.env,
       pending,
       pendingEnv,

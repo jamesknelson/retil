@@ -5,18 +5,18 @@ import { NavEnv } from '../navTypes'
 import { Matcher, createMatcher } from '../matcher'
 import { joinPathnames } from '../navUtils'
 
-import { notFoundLoader } from './notFound'
+import { notFoundLoader } from './loadNotFoundBoundary'
 
-export interface MatchOptions<
+export interface LoadMatchOptions<
   TEnv extends NavEnv = NavEnv,
   TContent = ReactNode,
 > {
   [pattern: string]: Loader<TEnv, TContent> | TContent
 }
 
-export function match<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
-  handlers: MatchOptions<TEnv, TContent>,
-): Loader<TEnv & NavEnv> {
+export function loadMatch<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
+  handlers: LoadMatchOptions<TEnv, TContent>,
+): Loader<TEnv> {
   const tests: [Matcher, Loader<TEnv>][] = []
 
   const patterns = Object.keys(handlers)
@@ -32,10 +32,10 @@ export function match<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
   }
 
   return (env) => {
-    const { basename, pathname } = env
+    const { matchname, pathname, params } = env.nav
     const unmatchedPathname =
-      (pathname.slice(0, basename.length) === basename
-        ? pathname.slice(basename.length)
+      (pathname.slice(0, matchname.length) === matchname
+        ? pathname.slice(matchname.length)
         : pathname) || '/'
 
     for (const [matcher, router] of tests) {
@@ -43,8 +43,11 @@ export function match<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
       if (match) {
         return router({
           ...env,
-          basename: joinPathnames(basename, match.pathname),
-          params: { ...env.params, ...match.params },
+          nav: {
+            ...env.nav,
+            matchname: joinPathnames(matchname, match.pathname),
+            params: { ...params, ...match.params },
+          },
         })
       }
     }

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { ReactElement } from 'react'
 import { Loader } from 'retil-mount'
 
 import { NavAction, NavEnv } from '../navTypes'
@@ -12,25 +12,25 @@ export const Redirect: React.FunctionComponent<RedirectProps> = (props) => {
   throw Promise.resolve(props.redirectPromise)
 }
 
-export function redirect<TEnv extends NavEnv>(
+export function loadRedirect<TEnv extends NavEnv>(
   to: NavAction | ((env: NavEnv) => NavAction),
   status = 302,
-): Loader<TEnv & NavEnv> {
+): Loader<TEnv, ReactElement> {
   return (env) => {
     const toAction = parseAction(typeof to === 'function' ? to(env) : to)
-    const href = createHref(resolveAction(toAction, env.basename))
+    const href = createHref(resolveAction(toAction, env.nav.basename))
 
     // Defer this promise until we're ready to actually render the content
     // that would have existed at this page.
     let redirectPromise: Promise<any> | undefined
     const lazyPromise: PromiseLike<void> = {
       then: (...args) => {
-        redirectPromise = redirectPromise || env.redirect(status, href)
+        redirectPromise = redirectPromise || env.nav.redirect(status, href)
         return redirectPromise.then(...args)
       },
     }
 
-    env.dependencies.add(lazyPromise)
+    env.mount.dependencies.add(lazyPromise)
 
     return <Redirect redirectPromise={lazyPromise} />
   }

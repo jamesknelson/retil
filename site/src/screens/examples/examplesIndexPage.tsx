@@ -1,7 +1,7 @@
 import groupBy from 'lodash/groupBy'
 import startCase from 'lodash/startCase'
 import React from 'react'
-import { useLink } from 'retil-nav'
+import { useNavLink } from 'retil-nav'
 
 import { ExampleModule } from './examplesTypes'
 
@@ -10,7 +10,7 @@ interface Props {
 }
 
 const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
-  const linkProps = useLink(to)
+  const linkProps = useNavLink(to)
   return <a {...linkProps}>{children}</a>
 }
 

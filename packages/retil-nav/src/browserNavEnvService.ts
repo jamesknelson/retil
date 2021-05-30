@@ -1,33 +1,28 @@
 /**
- * Based on the "history" package
+ * Some parts are based on the "history" package
  * Copyright (c) React Training 2016-2018
  * Licensed under MIT license
  * https://github.com/ReactTraining/history/blob/28c89f4091ae9e1b0001341ea60c629674e83627/LICENSE
  *
- * With updates by James K Nelson
+ * Modifications by James K Nelson
  * Copyright (c) Seven Stripes Kabushiki Kaisha 2021
  * Licensed under MIT license
  */
-
-import {
-  createState,
-  createVector,
-  fuse,
-  getSnapshot,
-  observe,
-} from 'retil-source'
+import { createEnvVector, fuseEnvSource } from 'retil-mount'
+import { createState, fuse, getSnapshot, observe } from 'retil-source'
 
 import {
   NavAction,
   NavBlockPredicate,
   NavController,
-  NavEnv,
+  NavSnapshot,
   NavLocation,
   NavReducer,
-  NavService,
+  NavEnvService,
   NavTrigger,
 } from './navTypes'
 import { createHref, parseLocation, resolveAction } from './navUtils'
+import { NotFoundError } from './notFoundError'
 
 const defaultNavReducer: NavReducer = (location, action) =>
   resolveAction(action, location.pathname)
@@ -45,33 +40,104 @@ interface NavRead {
 }
 
 interface NavState {
-  env: NavEnv
+  env: NavSnapshot
   index: number
   version: number
 }
 
-export type BrowserNavServiceOptions = {
+export const getDefaultBrowserNavEnvService: {
+  (window?: Window): NavEnvService
+  value?: NavEnvService
+  window?: Window
+} = (
+  window = typeof document === 'undefined' ? undefined : document.defaultView!,
+): NavEnvService => {
+  if (
+    !getDefaultBrowserNavEnvService.value ||
+    getDefaultBrowserNavEnvService.window !== window
+  ) {
+    getDefaultBrowserNavEnvService.value = createBrowserNavEnvService({
+      window,
+    })
+    getDefaultBrowserNavEnvService.window = window
+  }
+  return getDefaultBrowserNavEnvService.value
+}
+
+export const hasDefaultBrowserNavEnvService = () => {
+  return !!getDefaultBrowserNavEnvService.window
+}
+
+export const setDefaultBrowserNavEnvService = (
+  value: NavEnvService,
+  window: Window = typeof document === 'undefined'
+    ? (undefined as any)
+    : document.defaultView!,
+) => {
+  getDefaultBrowserNavEnvService.value = value
+  getDefaultBrowserNavEnvService.window = window
+}
+
+export type BrowserNavEnvServiceOptions = {
+  /**
+   * Specifies the path at which this navigation service is mounted.
+   *
+   * E.g. if you're hosting an independent blog app under the "/blog" directory
+   * of your domain, then this would be "/blog". Defaults to "".
+   */
   basename?: string
+
+  /**
+   * Controls whether this nav service can be returned by
+   * `getDefaultBrowserNavService`, and thus used by hooks like `useNavLink`.
+   *
+   * By default, the first nav created nav service will be used as the default
+   * unless `getDefaultBrowserNavService` is called beforehand.
+   *
+   * Setting this to `true` will cause an error to be thrown if there's already
+   * a default nav service.
+   */
+  default?: boolean
+
+  /**
+   * Sets the number of redirects that are allowed before retil-nav will
+   * classify it as a redirect loop and bail with an error.
+   */
   maxRedirectDepth?: number
+
+  /**
+   * Allows for customization of how actions map to new URLs.
+   */
   reducer?: NavReducer
+
+  /**
+   * Sets the window object to use. When used in a browser, this will default
+   * to the global window object.
+   */
   window?: Window
 }
 
-export function createBrowserNavService(
-  options: BrowserNavServiceOptions = {},
-): NavService {
+export function createBrowserNavEnvService(
+  options: BrowserNavEnvServiceOptions = {},
+): NavEnvService {
   let readWriteCounter = 0
 
   const {
     basename = '',
+    default: defaultNavService,
     maxRedirectDepth = defaultMaxRedirectDepth,
     reducer = defaultNavReducer,
     window = document.defaultView!,
   } = options
 
+  const hasDefault = hasDefaultBrowserNavEnvService()
+  if (hasDefault && defaultNavService) {
+    throw new Error('Could not override the default nav service.')
+  }
+
   const blockPredicates = [] as NavBlockPredicate[]
   const history = window.history
-  const [precacheSource, setPrecache] = createState<NavEnv[]>([])
+  const [precacheSource, setPrecache] = createState<NavSnapshot[]>([])
 
   const cancelPrecacheQueue = [] as (() => void)[]
 
@@ -105,11 +171,11 @@ export function createBrowserNavService(
     }
   }
 
-  const write = (env: NavEnv, options: { replace?: boolean } = {}) => {
+  const write = (env: NavSnapshot, options: { replace?: boolean } = {}) => {
     const index = readIndex() + Number(!options.replace)
     const historyState: HistoryState = {
       usr: env.state || undefined,
-      key: env.navKey,
+      key: env.key,
       idx: index,
     }
     const url = createHref(env)
@@ -149,34 +215,22 @@ export function createBrowserNavService(
     })
   }
 
-  const getEnv = (
+  const getNavSnapshot = (
     location: NavLocation,
     options: { key?: string; redirectDepth?: number } = {},
-  ): NavEnv => {
+  ): NavSnapshot => {
     const precachedEnv = getSnapshot(precacheSource).find(
       createLocationPredicate(location),
     )
-    if (precachedEnv && (!options.key || options.key === precachedEnv.navKey)) {
+    if (precachedEnv && (!options.key || options.key === precachedEnv.key)) {
       return precachedEnv
     }
 
     const { key = createKey(), redirectDepth = 0 } = options
 
-    const headers = {} as Record<string, number | string | string[] | undefined>
-    const getHeaders = () => headers
-    const setHeader = (
-      name: string,
-      value: number | string | string[] | undefined,
-    ) => {
-      headers[name] = value
+    const notFound = () => {
+      throw new NotFoundError(nav)
     }
-
-    let statusCode = 200
-    const getStatusCode = () => statusCode
-    const setStatusCode = (newStatusCode: number) => {
-      statusCode = newStatusCode
-    }
-
     const redirect = (
       statusOrAction: number | string,
       action?: string,
@@ -186,7 +240,7 @@ export function createBrowserNavService(
         location.pathname,
       )
 
-      if (env !== getSnapshot(stateSource).env) {
+      if (nav !== getSnapshot(stateSource).env) {
         console.error(
           `A redirect was attempted from a location that is not currently active` +
             ` – from ${createHref(location)} to ${createHref(
@@ -194,7 +248,7 @@ export function createBrowserNavService(
             )}. This may be` +
             `due to precaching a link that points to a redirect.`,
         )
-        cancelPrecacheLocation(env)
+        cancelPrecacheLocation(nav)
         return Promise.resolve()
       }
 
@@ -207,35 +261,30 @@ export function createBrowserNavService(
       return Promise.resolve().then(() => {
         // There's no need to precache redirects or keep keys. We'll also force
         // redirects even if there are blockers in play.
-        const redirectEnv = getEnv(to, {
+        const redirectEnv = getNavSnapshot(to, {
           redirectDepth: redirectDepth + 1,
         })
-
-        statusCode = typeof statusOrAction === 'number' ? statusOrAction : 302
-        headers['Location'] = createHref(to)
 
         write(redirectEnv, { replace: true })
       })
     }
 
-    const env = {
+    const nav: NavSnapshot = {
       ...location,
       basename,
-      getHeaders,
-      getStatusCode,
-      navKey: key,
+      key,
+      matchname: basename,
+      notFound,
       params: {},
       redirect,
-      setHeader,
-      setStatusCode,
     }
 
-    return env
+    return nav
   }
 
   const initialRead = read()
   const [stateSource, setState] = createState<NavState>({
-    env: getEnv(initialRead.location, { key: initialRead.key }),
+    env: getNavSnapshot(initialRead.location, { key: initialRead.key }),
     index: initialRead.index,
     version: initialRead.version,
   })
@@ -297,7 +346,7 @@ export function createBrowserNavService(
     }
   })
 
-  const source = fuse((use, effect) => {
+  const navSource = fuse((use, effect) => {
     const pop = use(popSource)
     const state = use(stateSource)
     const precache = use(precacheSource)
@@ -309,7 +358,7 @@ export function createBrowserNavService(
         setState({
           version: pop.version,
           index: pop.index,
-          env: getEnv(pop.location, { key: pop.key }),
+          env: getNavSnapshot(pop.location, { key: pop.key }),
         })
       })
     }
@@ -325,7 +374,7 @@ export function createBrowserNavService(
       })
     }
 
-    return createVector([
+    return createEnvVector([
       env,
       ...precache.filter((precacheEnv) => precacheEnv !== env),
     ])
@@ -371,7 +420,7 @@ export function createBrowserNavService(
       const trigger: NavTrigger = options.replace ? 'REPLACE' : 'PUSH'
       return isBlocked(location, trigger).then((blocked) => {
         if (!blocked) {
-          write(getEnv(location), options)
+          write(getNavSnapshot(location), options)
         }
         return !blocked
       })
@@ -380,7 +429,7 @@ export function createBrowserNavService(
     precache: (action) => {
       const location = resolve(action)
       const predicate = createLocationPredicate(location)
-      const env = getEnv(location)
+      const env = getNavSnapshot(location)
 
       // TODO:
       // - if a single location is has multiple `precache` calls holding
@@ -393,14 +442,21 @@ export function createBrowserNavService(
       return () => {
         cancelPrecacheQueue.push(() => {
           setPrecache((precache) =>
-            precache.filter((precacheEnv) => precacheEnv.navKey !== env.navKey),
+            precache.filter((precacheEnv) => precacheEnv.key !== env.key),
           )
         })
       }
     },
   }
 
-  return [source, controller]
+  const navEnvSource = fuseEnvSource((use) => ({ nav: use(navSource) }))
+  const service = [navEnvSource, controller] as const
+
+  if (!hasDefault && (defaultNavService || defaultNavService === undefined)) {
+    setDefaultBrowserNavEnvService(service, window)
+  }
+
+  return service
 }
 
 function promptBeforeUnload(event: BeforeUnloadEvent) {
@@ -416,7 +472,7 @@ function createKey() {
 
 function createLocationPredicate(location: NavLocation) {
   const href = createHref(location)
-  return (env: NavEnv) =>
+  return (env: NavSnapshot) =>
     createHref(env) === href && env.state === location.state
 }
 

@@ -1,9 +1,9 @@
-import React from 'react'
-
 function Landing() {
   return <h1>retil</h1>
 }
 
-const landingRouter = () => <Landing />
+const landingLoader = () => {
+  return <Landing />
+}
 
-export default landingRouter
+export default landingLoader

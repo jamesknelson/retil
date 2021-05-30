@@ -1,7 +1,7 @@
 {
-  "name": "retil-nav",
+  "name": "retil-link",
   "version": "0.20.1",
-  "description": "Superpowers for routing and navigation in React apps.",
+  "description": "A composable link component for React apps.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -20,11 +20,8 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "path-to-regexp": "^6.2.0",
-    "querystring": "^0.2.1",
-    "retil-mount": "^0.20.1",
-    "retil-source": "^0.20.1",
-    "retil-support": "^0.20.1",
+    "retil-interaction": "^0.20.1",
+    "retil-nav": "^0.20.1",
     "tslib": "^2.2.0"
   },
   "devDependencies": {
@@ -35,9 +32,6 @@
   ],
   "keywords": [
     "react",
-    "loader",
-    "routing",
-    "router",
-    "navigation"
+    "loader"
   ]
 }
