@@ -10,7 +10,7 @@ import {
 } from 'retil-nav'
 import { ServerMountContext } from 'retil-mount/src/serverMountContext'
 import { setDefaultBrowserNavEnvService } from 'retil-nav/src/browserNavEnvService'
-import { fuse, map } from 'retil-source'
+import { filter, fuse, map, mergeLatest } from 'retil-source'
 import { fromEntries } from 'retil-support'
 import slugify from 'slugify'
 
@@ -76,34 +76,65 @@ const examplesRouter = loadMatch({
         const { mount, ...env } = props
         const basename = env.nav.matchname
         const example = await load()
-        const { importComponent, importLoader, matchAll, disableSSR } =
+        const { importComponent, importMain, matchAll, disableSSR } =
           getExampleConfig(example)
 
+        const createNestedEnv = (env: NavEnv) => ({
+          ...env,
+          nav: {
+            ...env.nav,
+            basename,
+            matchname: basename,
+          },
+        })
+        const getMappedBrowserNavEnvService = () => {
+          const defaultNavService = getDefaultBrowserNavEnvService()
+          const [source, controller] = defaultNavService
+          const exampleNavSource = mergeLatest(
+            filter(
+              map(source, ([, currentEnv]) =>
+                // Ignore precache for the child service
+                createEnvVector([createNestedEnv(currentEnv)]),
+              ),
+              (vector) => vector[1].nav.pathname.startsWith(basename),
+            ),
+          )
+          return [exampleNavSource, controller] as const
+        }
+
         if (import.meta.env.SSR && disableSSR) {
-          // TODO: render this during hydration as well
+          // TODO: render null during hydration as well
           return null
-        } else if (importLoader) {
-          const { default: loader } = await importLoader()
-          return loader(props)
+        } else if (importMain) {
+          let content: React.ReactElement
+
+          const { clientMain, serverMain } = await importMain()
+          const render = (element: React.ReactElement) => {
+            content = element
+          }
+
+          if (import.meta.env.SSR && serverMain) {
+            const request = {
+              ...props.request!,
+              baseUrl: basename,
+            }
+            await serverMain(render, request, props.response!)
+          } else {
+            await clientMain(render, getMappedBrowserNavEnvService)
+          }
+
+          return (
+            <ServerMountContext.Provider value={null}>
+              {content!}
+            </ServerMountContext.Provider>
+          )
         } else if (importComponent) {
           const { default: Component } = await importComponent()
 
-          const createNestedEnv = (env: NavEnv) => ({
-            ...env,
-            nav: {
-              ...env.nav,
-              basename,
-              matchname: basename,
-            },
-          })
           const switchDefaultBrowserNavService = (callback: Function) => {
             const defaultNavService = getDefaultBrowserNavEnvService()
-            const [source, controller] = defaultNavService
-            const mappedSource = map(source, ([, currentEnv]) =>
-              // Ignore precache for the child service
-              createEnvVector([createNestedEnv(currentEnv)]),
-            )
-            setDefaultBrowserNavEnvService([mappedSource, controller])
+            const exampleNavService = getMappedBrowserNavEnvService()
+            setDefaultBrowserNavEnvService(exampleNavService)
             try {
               return callback()
             } finally {

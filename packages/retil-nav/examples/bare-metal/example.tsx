@@ -1,5 +1,4 @@
 export default {
-  disableSSR: true,
-  importComponent: () => import('./app'),
+  importMain: () => import('./main'),
   matchAll: true,
 }

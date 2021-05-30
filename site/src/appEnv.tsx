@@ -1,5 +1,3 @@
-import type { NavSnapshot } from 'retil-nav'
+import type { NavEnv } from 'retil-nav'
 
-export interface AppEnv {
-  nav: NavSnapshot
-}
+export interface AppEnv extends NavEnv {}

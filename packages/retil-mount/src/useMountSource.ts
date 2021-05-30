@@ -157,7 +157,9 @@ export const useMountSource = <Env extends object, Content>(
   }, [mergedSource, handleNewSnapshot, transitionTimeoutMs])
 
   const pendingEnv = pendingSnapshot?.env || null
-  const pending = !!(pendingSnapshot || state.sourcePending)
+  const pending =
+    !!(pendingSnapshot || state.sourcePending) &&
+    pendingSnapshot !== currentSnapshot
   const waitUntilStable = useWaitForStableMount(
     mountSource,
     currentSnapshot.dependencies,

@@ -1,19 +1,15 @@
-import React, { ReactElement, useMemo } from 'react'
-import { Mount, LoaderProps, useMountContent, useMountEnv } from 'retil-mount'
-import {
-  NavEnv,
-  NavProvider,
-  createBrowserNavEnvService,
-  joinPathnames,
-  useNavLink,
-} from 'retil-nav'
+import React, { ReactElement } from 'react'
+import { EnvSource, Mount, LoaderProps, useMountContent } from 'retil-mount'
+import { NavEnv, useNavLink, useNavMatch } from 'retil-nav'
 
-function rootLoader(props: LoaderProps<NavEnv>) {
-  switch (props.nav.pathname) {
-    case props.nav.basename:
+export interface AppEnv extends NavEnv {}
+
+export function appLoader({ nav }: LoaderProps<AppEnv>) {
+  switch (nav.pathname) {
+    case nav.matchname:
       return <h1>Welcome!</h1>
 
-    case props.nav.basename + '/about':
+    case nav.matchname + '/about':
       return <h1>About</h1>
 
     default:
@@ -21,26 +17,21 @@ function rootLoader(props: LoaderProps<NavEnv>) {
   }
 }
 
-export function App({ basename }: { basename: string }) {
-  const [navEnvSource, navController] = useMemo(
-    () => createBrowserNavEnvService({ basename }),
-    [basename],
-  )
+export interface AppProps {
+  env: AppEnv | EnvSource<AppEnv>
+}
 
+export function App({ env }: AppProps) {
   return (
-    // A <NavProvider> is only necessary when we're not using the default
-    // browser nav service.
-    <Mount env={navEnvSource} loader={rootLoader}>
-      <NavProvider controller={navController}>
-        <nav>
-          <Link to="/">Home</Link>
-          &nbsp;&middot;&nbsp;
-          <Link to="/about">About</Link>
-          &nbsp;&middot;&nbsp;
-          <Link to="/not-found">Not Found</Link>
-        </nav>
-        <Content />
-      </NavProvider>
+    <Mount env={env} loader={appLoader}>
+      <nav>
+        <Link to="/">Home</Link>
+        &nbsp;&middot;&nbsp;
+        <Link to="/about">About</Link>
+        &nbsp;&middot;&nbsp;
+        <Link to="/not-found">Not Found</Link>
+      </nav>
+      <Content />
     </Mount>
   )
 }
@@ -48,9 +39,13 @@ export function App({ basename }: { basename: string }) {
 const Content = () => useMountContent<ReactElement>()
 
 const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
-  const env = useMountEnv<NavEnv>()
-  const linkProps = useNavLink(joinPathnames(env.nav.basename, to))
-  return <a {...linkProps}>{children}</a>
+  const linkProps = useNavLink(to)
+  const active = useNavMatch(to)
+  return (
+    <a {...linkProps} style={{ color: active ? 'red' : 'black' }}>
+      {children}
+    </a>
+  )
 }
 
 export default App

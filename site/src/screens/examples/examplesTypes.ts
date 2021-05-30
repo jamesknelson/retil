@@ -1,6 +1,5 @@
-import type { ComponentType } from 'react'
-import { Loader } from 'retil-mount'
-import { NavEnv } from 'retil-nav'
+import type { ComponentType, ReactElement } from 'react'
+import { NavEnvService, NavRequest, NavResponse } from 'retil-nav'
 
 export interface ExampleModule {
   packageName: string
@@ -10,7 +9,18 @@ export interface ExampleModule {
 
 export interface ExampleConfig {
   importComponent?: () => Promise<{ default: ComponentType<any> }>
-  importLoader?: () => Promise<{ default: Loader<NavEnv> }>
+  importMain?: () => Promise<{
+    clientMain(
+      render: (element: ReactElement) => void,
+      getDefaultBrowserNavEnvService: () => NavEnvService,
+    ): Promise<void>
+
+    serverMain?(
+      render: (element: ReactElement) => void,
+      request: NavRequest,
+      response: NavResponse,
+    ): Promise<void>
+  }>
 
   disableSSR?: boolean
   matchAll?: boolean

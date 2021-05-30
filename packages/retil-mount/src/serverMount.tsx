@@ -59,9 +59,5 @@ export class ServerMount<Env extends object, Content> {
       this.unsubscribe()
       this.unsubscribe = null
     }
-
-    this.loader = undefined as any
-    this.env = undefined as any
-    this.source = undefined as any
   }
 }
