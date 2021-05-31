@@ -16,8 +16,6 @@ export class ServerMount<Env extends object, Content> {
   env: CastableToEnvSource<Env>
   source: MountSource<Env, Content>
 
-  private unsubscribe: null | (() => void) = null
-
   constructor(loader: Loader<Env, Content>, env: CastableToEnvSource<Env>) {
     this.loader = loader
     this.env = env
@@ -31,10 +29,6 @@ export class ServerMount<Env extends object, Content> {
     }
 
     this.source = mount(this.loader, this.env)
-
-    // We'll subscribe to the source to keep it from cleaning up it's cache
-    // until the request is sealed.
-    this.unsubscribe = subscribe(this.source, noop)
 
     const snapshot = getSnapshot(this.source)
     return snapshot.dependencies.resolve().then(() => snapshot)
@@ -55,9 +49,8 @@ export class ServerMount<Env extends object, Content> {
   }
 
   seal(): void {
-    if (this.unsubscribe) {
-      this.unsubscribe()
-      this.unsubscribe = null
-    }
+    // This is part of the API in case it turns out to be needed. But for now,
+    // so long as the env is a constant source, I don't think we *do* need to
+    // clean up.
   }
 }

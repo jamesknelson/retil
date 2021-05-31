@@ -1,6 +1,9 @@
-import { ReactNode, Suspense } from 'react'
+import { ReactNode } from 'react'
+import { Boundary } from 'retil-boundary'
+import { useHydrater } from 'retil-hydration'
 import { useMountContent } from 'retil-mount'
 import { Link } from 'retil-link'
+import { useNavScroller } from 'retil-nav'
 import { useHighStyle } from 'retil-style'
 
 const NavLinkBody: React.FunctionComponent = ({ children }) => {
@@ -22,6 +25,9 @@ const NavLinkBody: React.FunctionComponent = ({ children }) => {
 const App = () => {
   const content = useMountContent<ReactNode>()
 
+  useHydrater()
+  useNavScroller()
+
   return (
     <>
       <nav>
@@ -34,7 +40,7 @@ const App = () => {
         </Link>
       </nav>
       <main>
-        <Suspense fallback="loading fallback...">{content}</Suspense>
+        <Boundary fallback="loading fallback...">{content}</Boundary>
       </main>
     </>
   )

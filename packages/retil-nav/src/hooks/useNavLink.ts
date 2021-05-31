@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
+import { joinEventHandlers } from 'retil-support'
 
 import { useNavController } from '../navContext'
 import { NavAction } from '../navTypes'
@@ -13,40 +14,60 @@ export interface UseNavLinkOptions {
   state?: object
   onClick?: React.MouseEventHandler<HTMLAnchorElement>
   onMouseEnter?: React.MouseEventHandler<HTMLAnchorElement>
+  onMouseLeave?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
 export const useNavLink = (to: NavAction, options: UseNavLinkOptions = {}) => {
-  const { disabled, precacheOn, replace, state, onClick, onMouseEnter } =
-    options
+  const {
+    disabled,
+    precacheOn,
+    replace,
+    state,
+    onClick,
+    onMouseEnter,
+    onMouseLeave,
+  } = options
   const { navigate, precache } = useNavController()
   const action = useNavResolve(to, state)
+
+  const releasePrecacheRef = useRef<undefined | (() => void)>(undefined)
+  const doPrecache = useCallback(() => {
+    if (releasePrecacheRef.current) {
+      releasePrecacheRef.current()
+      releasePrecacheRef.current = undefined
+    }
+    if (!disabled) {
+      releasePrecacheRef.current = precache(action)
+    }
+  }, [action, disabled, precache])
 
   // Prefetch on mount if required, or if `prefetch` becomes `true`.
   useEffect(() => {
     if (precacheOn === 'mount') {
-      return precache(action)
+      doPrecache()
     }
-  }, [action, precache, precacheOn])
-
-  let handleMouseEnter = useCallback(
-    (event: React.MouseEvent<HTMLAnchorElement>) => {
-      if (precacheOn === 'hover') {
-        if (onMouseEnter) {
-          onMouseEnter(event)
-        }
-
-        if (disabled) {
-          event.preventDefault()
-          return
-        }
-
-        if (!event.defaultPrevented) {
-          const cancel = precache(action)
-          setTimeout(cancel, 100)
-        }
+    return () => {
+      if (releasePrecacheRef.current) {
+        releasePrecacheRef.current()
       }
-    },
-    [action, disabled, onMouseEnter, precache, precacheOn],
+    }
+  }, [doPrecache, precacheOn])
+
+  const handleMouseEnter = useMemo(
+    () =>
+      joinEventHandlers(
+        onMouseEnter,
+        precacheOn === 'hover' ? doPrecache : undefined,
+      ),
+    [onMouseEnter, precacheOn, doPrecache],
+  )
+  const handleMouseLeave = useMemo(
+    () =>
+      joinEventHandlers(
+        precacheOn === 'hover' ? releasePrecacheRef.current : undefined,
+        onMouseLeave,
+      ),
+    [onMouseLeave, precacheOn],
   )
 
   let handleClick = useCallback(
@@ -73,6 +94,8 @@ export const useNavLink = (to: NavAction, options: UseNavLinkOptions = {}) => {
           event.preventDefault()
           navigate(action, { replace })
         }
+      } else if (onClick) {
+        onClick(event)
       }
     },
     [disabled, action, navigate, onClick, replace],
@@ -81,6 +104,7 @@ export const useNavLink = (to: NavAction, options: UseNavLinkOptions = {}) => {
   return {
     onClick: handleClick,
     onMouseEnter: handleMouseEnter,
+    onMouseLeave: handleMouseLeave,
     href: action ? createHref(action) : (to as string),
   }
 }

@@ -439,12 +439,17 @@ export function createBrowserNavEnvService(
         env,
       ])
 
+      let released = false
+
       return () => {
-        cancelPrecacheQueue.push(() => {
-          setPrecache((precache) =>
-            precache.filter((precacheEnv) => precacheEnv.key !== env.key),
-          )
-        })
+        if (!released) {
+          released = true
+          cancelPrecacheQueue.push(() => {
+            setPrecache((precache) =>
+              precache.filter((precacheEnv) => precacheEnv.key !== env.key),
+            )
+          })
+        }
       }
     },
   }

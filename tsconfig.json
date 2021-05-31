@@ -5,6 +5,8 @@
     "baseUrl": "./packages",
     "paths": {
       "retil": ["retil/src"],
+      "retil-boundary": ["retil-boundary/src"],
+      "retil-hydration": ["retil-hydration/src"],
       "retil-interaction": ["retil-interaction/src"],
       "retil-issues": ["retil-issues/src"],
       "retil-link": ["retil-link/src"],

@@ -5,10 +5,13 @@ import React, {
   useMemo,
 } from 'react'
 import { CSSSelector, ProvideDownSelector } from 'retil-style'
-import { emptyObject, preventDefaultEventHandler } from 'retil-support'
+import {
+  emptyObject,
+  joinClassNames,
+  preventDefaultEventHandler,
+} from 'retil-support'
 
 import { InteractionDefaultsContext } from './interactionDefaultsContext'
-import { joinClassNames } from './joinClassNames'
 import { useJoinEventHandlers } from './joinEventHandlers'
 import { InteractionType } from './interactionType'
 import { SurfaceDefaultsContext } from './surfaceDefaultsContext'

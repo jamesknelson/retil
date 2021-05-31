@@ -1,5 +1,5 @@
 import React, { ReactNode, createContext, useContext, useMemo } from 'react'
-import { useMountEnv, useWaitForStableMount } from 'retil-mount'
+import { useEnv, useWaitForStableMount } from 'retil-mount'
 
 import { getDefaultBrowserNavEnvService } from './browserNavEnvService'
 import { NavController, NavEnv, NavSnapshot } from './navTypes'
@@ -54,7 +54,7 @@ export function useNavController() {
 }
 
 export function useNavSnapshot() {
-  const mountEnv = useMountEnv<NavEnv>()
+  const mountEnv = useEnv<NavEnv>()
   const contextNavSnapshot = useContext(NavSnapshotContext)
   return contextNavSnapshot || mountEnv.nav
 }

@@ -13,11 +13,11 @@ export function useMountPending() {
   return useContext(MountPendingContext)
 }
 
-export function useMountPendingEnv<Env extends object>(): Env {
+export function usePendingEnv<Env extends object>(): Env {
   return useContext(MountPendingEnvContext) as Env
 }
 
-export function useMountEnv<Env extends object>(): Env {
+export function useEnv<Env extends object>(): Env {
   return useContext(MountRootContext)?.[0] as Env
 }
 

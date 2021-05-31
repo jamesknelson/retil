@@ -1,39 +1,25 @@
-import { useLayoutEffect, useRef } from 'react'
-import { useWaitForStableMount } from 'retil-mount'
-import { noop } from 'retil-support'
+import { useRef } from 'react'
+import { useBoundaryLayoutEffect } from 'retil-boundary'
+import { useEnv, useWaitForStableMount } from 'retil-mount'
 
-import { useNavSnapshot } from '../navContext'
-import { NavSnapshot } from '../navTypes'
+import { NavEnv } from '../navTypes'
 
-// React currently throws a warning when using useLayoutEffect on the server.
-// To get around it, we can conditionally useEffect on the server (no-op) and
-// useLayoutEffect in the browser. We need useLayoutEffect because we want
-// `connect` to perform sync updates to a ref to save the latest props after
-// a render is actually committed to the DOM.
-const useClientSideOnlyLayoutEffect =
-  typeof window !== 'undefined' ? useLayoutEffect : noop
-
-export interface UseRouterScrollerOptions<Env extends NavSnapshot> {
-  // Useful for nested layouts with suspense wrappers, where you might want
-  // to leave scrolling to be handled by a child component when the inner
-  // suspense finishes loading.
-  getWillChildHandleScroll?: () => boolean
+export interface UseNavScrollerOptions<Env extends NavEnv> {
   getShouldScroll?: (prevEnv: Env, nextEnv: Env) => boolean
   scrollToLocation?: (env: Env) => boolean
 }
 
 let hasHydrated = false
 
-export function useRouterScroller<Env extends NavSnapshot = NavSnapshot>(
-  options: UseRouterScrollerOptions<Env> = {},
+export function useNavScroller<Env extends NavEnv = NavEnv>(
+  options: UseNavScrollerOptions<Env> = {},
 ) {
   const {
-    getWillChildHandleScroll,
     getShouldScroll = defaultGetShouldScroll,
     scrollToLocation: scrollToRequest = defaultScrollToRequest,
   } = options
 
-  const env = useNavSnapshot() as Env
+  const env = useEnv() as Env
   const waitForStableMount = useWaitForStableMount()
   const scrollRequestRef = useRef(env)
 
@@ -48,7 +34,7 @@ export function useRouterScroller<Env extends NavSnapshot = NavSnapshot>(
       try {
         // Save the scroll position before the update actually occurs
         sessionStorage.setItem(
-          '__retil_scroll_' + prevEnv.key!,
+          '__retil_scroll_' + prevEnv.nav.key!,
           JSON.stringify({ x: window.pageXOffset, y: window.pageYOffset }),
         )
       } catch {}
@@ -57,25 +43,20 @@ export function useRouterScroller<Env extends NavSnapshot = NavSnapshot>(
 
   const scrollRequest = scrollRequestRef.current
 
-  useClientSideOnlyLayoutEffect(() => {
+  useBoundaryLayoutEffect(() => {
     let unmounted = false
 
-    if (!getWillChildHandleScroll || !getWillChildHandleScroll()) {
-      if (!hasHydrated) {
-        window.history.scrollRestoration = 'manual'
-        hasHydrated = true
-      } else {
-        const didScroll = scrollToRequest(scrollRequest)
-        if (!didScroll) {
-          waitForStableMount().then(() => {
-            if (
-              !unmounted &&
-              (!getWillChildHandleScroll || !getWillChildHandleScroll())
-            ) {
-              scrollToRequest(scrollRequest)
-            }
-          })
-        }
+    if (!hasHydrated) {
+      window.history.scrollRestoration = 'manual'
+      hasHydrated = true
+    } else {
+      const didScroll = scrollToRequest(scrollRequest)
+      if (!didScroll) {
+        waitForStableMount().then(() => {
+          if (!unmounted) {
+            scrollToRequest(scrollRequest)
+          }
+        })
       }
     }
 
@@ -85,23 +66,23 @@ export function useRouterScroller<Env extends NavSnapshot = NavSnapshot>(
   }, [scrollRequest])
 }
 
-const defaultGetShouldScroll = (prev: NavSnapshot, next: NavSnapshot) =>
-  prev.hash !== next.hash || prev.pathname !== next.pathname
+const defaultGetShouldScroll = (prev: NavEnv, next: NavEnv) =>
+  prev.nav.hash !== next.nav.hash || prev.nav.pathname !== next.nav.pathname
 
-export const defaultScrollToRequest = (env: NavSnapshot) => {
+export const defaultScrollToRequest = (env: NavEnv) => {
   // TODO: if scrolling to a hash within the same page, ignore
   // the scroll history and just scroll directly there
 
   let scrollCoords: { x: number; y: number }
   try {
     scrollCoords = JSON.parse(
-      sessionStorage.getItem('__retil_scroll_' + env.key)!,
+      sessionStorage.getItem('__retil_scroll_' + env.nav.key)!,
     ) || { x: 0, y: 0 }
   } catch {
-    if (!env.hash) {
+    if (!env.nav.hash) {
       scrollCoords = { x: 0, y: 0 }
     } else {
-      const id = document.getElementById(env.hash.slice(1))
+      const id = document.getElementById(env.nav.hash.slice(1))
       if (!id) {
         return false
       }

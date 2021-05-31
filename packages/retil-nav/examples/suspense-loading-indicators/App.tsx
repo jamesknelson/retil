@@ -1,12 +1,15 @@
 import React from 'react'
 
 import { Link } from 'retil-link'
+import { Boundary } from 'retil-boundary'
 import {
   EnvSource,
   Mount,
   MountedContent,
   loadAsync,
   useMountPending,
+  usePendingEnv,
+  useEnv,
 } from 'retil-mount'
 import { loadMatch, NavEnv } from 'retil-nav'
 import { delay } from 'retil-support'
@@ -37,10 +40,10 @@ export const App: React.FunctionComponent<AppProps> = ({ env }) => {
         <Link to="/about">About</Link>
       </nav>
       <main>
-        <React.Suspense fallback="loading fallback...">
+        <Boundary fallback="loading fallback...">
           <RouterPendingIndicator />
           <MountedContent />
-        </React.Suspense>
+        </Boundary>
       </main>
     </Mount>
   )
@@ -48,5 +51,9 @@ export const App: React.FunctionComponent<AppProps> = ({ env }) => {
 
 function RouterPendingIndicator() {
   const pending = useMountPending()
-  return <>{pending && 'loading concurrently...'}</>
+  const env = useEnv<AppEnv>()
+  const pendingEnv = usePendingEnv<AppEnv>()
+  const loading =
+    pending && (!pendingEnv || pendingEnv.nav.pathname !== env.nav.pathname)
+  return <>{loading && 'loading concurrently...'}</>
 }

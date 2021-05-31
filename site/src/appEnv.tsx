@@ -1,3 +1,4 @@
+import type { HydrationEnv } from 'retil-hydration'
 import type { NavEnv } from 'retil-nav'
 
-export interface AppEnv extends NavEnv {}
+export interface AppEnv extends HydrationEnv, NavEnv {}
