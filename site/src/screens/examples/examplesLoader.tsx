@@ -1,3 +1,4 @@
+import { MDXProvider } from '@mdx-js/react'
 import escapeRegExp from 'lodash/escapeRegExp'
 import snakeCase from 'lodash/snakeCase'
 import { createEnvVector, loadAsync } from 'retil-mount'
@@ -76,8 +77,10 @@ const examplesRouter = loadMatch({
         const { mount, ...env } = props
         const basename = env.nav.matchname
         const example = await load()
-        const { importComponent, importMain, matchAll, disableSSR } =
+        const { importComponent, importDoc, importMain, matchAll, disableSSR } =
           getExampleConfig(example)
+
+        const docModulePromise = importDoc && importDoc()
 
         const createNestedEnv = (env: NavEnv) => ({
           ...env,
@@ -102,9 +105,10 @@ const examplesRouter = loadMatch({
           return [exampleNavSource, controller] as const
         }
 
+        let exampleNode: React.ReactNode
         if (import.meta.env.SSR && disableSSR) {
           // TODO: render null during hydration as well
-          return null
+          exampleNode = null
         } else if (importMain) {
           let content: React.ReactElement
 
@@ -123,7 +127,7 @@ const examplesRouter = loadMatch({
             await clientMain(render, getMappedBrowserNavEnvService)
           }
 
-          return (
+          exampleNode = (
             <ServerMountContext.Provider value={null}>
               {content!}
             </ServerMountContext.Provider>
@@ -160,12 +164,24 @@ const examplesRouter = loadMatch({
             </ServerMountContext.Provider>
           )
 
-          return matchAll ? (
+          exampleNode = matchAll ? (
             <WrappedComponent />
           ) : (
             loadMatch({
               '/': () => <WrappedComponent />,
             })(props)
+          )
+        }
+
+        if (!docModulePromise) {
+          return exampleNode
+        } else {
+          const { default: Doc } = await docModulePromise
+          const Example = () => exampleNode
+          return (
+            <MDXProvider components={{ Example }}>
+              <Doc />
+            </MDXProvider>
           )
         }
       }),

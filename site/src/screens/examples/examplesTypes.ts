@@ -9,6 +9,7 @@ export interface ExampleModule {
 
 export interface ExampleConfig {
   importComponent?: () => Promise<{ default: ComponentType<any> }>
+  importDoc?: () => Promise<{ default: ComponentType<any> }>
   importMain?: () => Promise<{
     clientMain(
       render: (element: ReactElement) => void,

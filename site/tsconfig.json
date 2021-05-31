@@ -16,5 +16,5 @@
     "types": ["@emotion/react"],
     "noEmit": true
   },
-  "include": ["./src"]
+  "include": ["@types/**.ts", "./src"]
 }

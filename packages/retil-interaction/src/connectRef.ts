@@ -1,7 +1,5 @@
 import { cloneElement, useCallback, useMemo } from 'react'
-import { memoizeOne } from 'retil-support'
-
-import { joinRefs } from './joinRefs'
+import { joinRefs, memoizeOne } from 'retil-support'
 
 // Returns a function that adds the specified ref to the argument element,
 // memoizing the created function to avoid frequent changes to the resulting

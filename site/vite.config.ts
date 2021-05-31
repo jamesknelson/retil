@@ -1,6 +1,7 @@
 import reactRefresh from '@vitejs/plugin-react-refresh'
 import { join, resolve } from 'path'
 import { defineConfig } from 'vite'
+import mdx from 'vite-plugin-mdx'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
 import emotion from './plugins/plugin-emotion'
@@ -26,6 +27,7 @@ export default defineConfig({
       projects: ['.'],
     }),
     emotion(),
+    mdx(),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-is'],
