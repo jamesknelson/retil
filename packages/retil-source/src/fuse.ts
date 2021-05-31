@@ -1,13 +1,7 @@
 import { Maybe, isPromiseLike, noop } from 'retil-support'
 
 import { observe } from './observe'
-import {
-  Source,
-  SourceCore,
-  SourceSelect,
-  hasSnapshot,
-  getSnapshot,
-} from './source'
+import { Source, SourceCore, SourceSelect, hasSnapshot } from './source'
 
 export const FuseEffectSymbol = Symbol()
 
@@ -29,9 +23,17 @@ type UsedState = {
   result?: any
 }
 
+type UsedCore = {
+  unsubscribe: () => void
+  hasVersion: boolean
+  version: any
+  sealed?: boolean
+}
+
 export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
   let onNext: null | ((value: T) => void) = null
   let onError: (error: any) => void = throwArg
+  let onSeal: null | (() => void) = null
   let onClear: null | (() => void)
 
   let isFusing = false
@@ -39,7 +41,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
   let isInvalidated = false
 
   const used = new Map<SourceCore, UsedState[]>()
-  const usedUnsubscribes = new Map<SourceCore, () => void>()
+  const usedCores = new Map<SourceCore, UsedCore>()
 
   const effectQueue = [] as (() => any)[]
   const effect = (callback: () => any): FuseEffect => {
@@ -52,56 +54,90 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     ...defaultValues: [U] | []
   ): T | U => {
     const [core, select] = source
-    const subscribe = core[1]
     if (!used.has(core)) {
       used.set(core, [])
     }
     const usedState: UsedState = { select, defaultValues }
     used.get(core)!.push(usedState)
-    if (!usedUnsubscribes.has(core)) {
-      usedUnsubscribes.set(core, subscribe(createInvalidator(core)))
-    }
-    const result =
-      defaultValues.length === 0 || hasSnapshot(source)
-        ? select(core)
-        : defaultValues[0]
+    const usedCore = addCore(core)
+    const result = usedCore.hasVersion
+      ? select(usedCore.version)
+      : defaultValues.length === 0
+      ? select(core[0]())
+      : defaultValues[0]
     usedState.result = result
     return result
   }
 
-  const createInvalidator = (core: SourceCore) => {
-    return () => {
-      const usedStates = used.get(core)!
-      for (const usedState of usedStates) {
-        const hasDefaultValue = usedState.defaultValues.length
-        const source = [core, usedState.select] as const
-        const doesSourceHaveSnapshot = hasSnapshot(source)
-        const doesSourceHaveResult = doesSourceHaveSnapshot || hasDefaultValue
-        const didSourceHaveResult = 'result' in usedState
-        if (
-          doesSourceHaveResult !== didSourceHaveResult ||
-          (didSourceHaveResult &&
-            usedState.result !==
-              (doesSourceHaveSnapshot
-                ? getSnapshot(source)
-                : usedState.defaultValues[0]))
-        ) {
-          isInvalidated = true
-          if (!isInEffect && !isFusing) {
-            runFusor()
+  const addCore = (core: SourceCore) => {
+    let usedCore = usedCores.get(core)
+    if (usedCore) {
+      return usedCore
+    } else {
+      const [getVersion, subscribe] = core
+      const change = () => {
+        const usedStates = used.get(core)!
+        const doesCoreHaveVersion = (usedCore.hasVersion = hasSnapshot([core]))
+        const coreVersion = (usedCore.version = usedCore.hasVersion
+          ? getVersion()
+          : undefined)
+        for (const usedState of usedStates) {
+          const hasDefaultValue = usedState.defaultValues.length
+          const doesSourceHaveResult = doesCoreHaveVersion || hasDefaultValue
+          const didSourceHaveResult = 'result' in usedState
+          if (
+            doesSourceHaveResult !== didSourceHaveResult ||
+            (didSourceHaveResult &&
+              usedState.result !==
+                (doesCoreHaveVersion
+                  ? usedState.select(coreVersion)
+                  : usedState.defaultValues[0]))
+          ) {
+            isInvalidated = true
+            if (!isInEffect && !isFusing) {
+              runFusor()
+            }
+            return
           }
-          return
         }
       }
+      const seal = () => {
+        usedCore.sealed = true
+        attemptSeal()
+      }
+      const initialHasVersion = hasSnapshot([core])
+      const usedCore: Partial<UsedCore> = {
+        hasVersion: initialHasVersion,
+        version: initialHasVersion ? getVersion() : undefined,
+      }
+      usedCore.unsubscribe = subscribe(change, seal)
+      usedCores.set(core, usedCore as UsedCore)
+      return usedCore
     }
   }
 
-  const unsubscribeFromUnused = () => {
-    for (const [core, unsubscribe] of Array.from(usedUnsubscribes.entries())) {
+  const cleanUpUnusedCores = () => {
+    for (const [core, { unsubscribe }] of Array.from(usedCores.entries())) {
       if (!used.has(core)) {
-        usedUnsubscribes.delete(core)
+        usedCores.delete(core)
         unsubscribe()
       }
+    }
+
+    attemptSeal()
+  }
+
+  const attemptSeal = () => {
+    if (
+      !isFusing &&
+      !isInvalidated &&
+      !isInEffect &&
+      !effectQueue.length &&
+      onSeal &&
+      (!used.size ||
+        !Array.from(usedCores.values()).some((core) => !core.sealed))
+    ) {
+      onSeal()
     }
   }
 
@@ -113,7 +149,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
       if (isInvalidated) {
         runFusor()
       } else {
-        unsubscribeFromUnused()
+        cleanUpUnusedCores()
       }
       return result
     }
@@ -155,7 +191,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
         if (effectQueue.length) {
           runEffects()
         } else {
-          unsubscribeFromUnused()
+          cleanUpUnusedCores()
         }
       }
     } catch (errorOrPromise) {
@@ -177,9 +213,10 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     }
   }
 
-  const source = observe<T>((next, error, _, clear) => {
+  const source = observe<T>((next, error, seal, clear) => {
     onNext = next
     onError = error
+    onSeal = seal
     onClear = clear
 
     isInvalidated = true
@@ -189,11 +226,12 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     return () => {
       onNext = null
       onError = throwArg
+      onSeal = null
       onClear = null
-      for (const unsubscribe of Array.from(usedUnsubscribes.values())) {
+      for (const { unsubscribe } of Array.from(usedCores.values())) {
         unsubscribe()
       }
-      usedUnsubscribes.clear()
+      usedCores.clear()
       used.clear()
       onTeardown()
     }

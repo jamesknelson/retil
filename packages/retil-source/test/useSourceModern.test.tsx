@@ -1,11 +1,15 @@
 import '@testing-library/jest-dom/extend-expect'
-import React, { Suspense, unstable_useTransition as useTransition } from 'react'
+import React, { Suspense, TransitionStartFunction } from 'react'
 import ReactDOM from 'react-dom'
 import { act } from 'react-dom/test-utils'
 
 import { delay } from 'retil-support'
 
 import { createState, useSourceModern as useSource } from '../src'
+
+const { useTransition } = React as any as {
+  useTransition: () => [boolean, TransitionStartFunction]
+}
 
 jest.mock('scheduler', () => require('scheduler/unstable_mock'))
 
@@ -28,9 +32,8 @@ describe(`useSource (concurrent implementation)`, () => {
     let busyCount = 0
 
     const [stateSource, setState] = createState(1)
-    const config = { timeoutMs: 10000 }
     const Test = () => {
-      const [startTransition, busy] = useTransition(config)
+      const [busy, startTransition] = useTransition()
       const value = useSource(stateSource, { startTransition })
       if (busy) {
         busyCount++
@@ -50,7 +53,7 @@ describe(`useSource (concurrent implementation)`, () => {
     }
 
     act(() => {
-      ;(ReactDOM as any).unstable_createRoot(container).render(<Test />)
+      ;(ReactDOM as any).createRoot(container).render(<Test />)
     })
 
     expect(document.querySelector('#status')?.textContent).toBe('ready')

@@ -6,6 +6,8 @@ export interface StateController<T> {
   (updater: (state: T) => T): void
 }
 
+export type StateSealer = () => void
+
 export function createState<T>(
   // Doesn't accept a setter function, as it's not a hook that stores state
   // between renders and thus it wouldn't make sense to do so.
@@ -13,10 +15,12 @@ export function createState<T>(
   // If provided, the state will only be updated if this function indicates
   // that it is not equal to the current state.
   isEqual?: (x: T, y: T) => boolean,
-): readonly [Source<T>, StateController<T>] {
+): readonly [Source<T>, StateController<T>, StateSealer] {
   let hasState = arguments.length !== 0
   let state = initialState as T
+
   let next: null | ((value: T) => void) = null
+  let seal: null | (() => void) = null
 
   const setState: StateController<T> = (stateOrUpdater: Function | T) => {
     const nextState =
@@ -33,15 +37,23 @@ export function createState<T>(
     }
   }
 
-  const source = observe<T>((onNext) => {
+  const source = observe<T>((onNext, _, onSeal) => {
     next = onNext
+    seal = onSeal
     if (hasState) {
       onNext(state)
     }
     return () => {
       next = null
+      seal = null
     }
   })
 
-  return [source, setState]
+  const sealState = () => {
+    if (seal) {
+      seal()
+    }
+  }
+
+  return [source, setState, sealState]
 }

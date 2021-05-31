@@ -14,9 +14,30 @@ import { sendToArray } from './utils/sendToArray'
 describe(`fuse`, () => {
   test(`can return a constant value without using any sources`, () => {
     const source = fuse(() => 'constant')
-    const output = sendToArray(source)
+    const output = sendToArray(source, 'seal')
 
-    expect(output).toEqual(['constant'])
+    expect(output).toEqual(['constant', 'seal'])
+  })
+
+  test(`fusing a constant source seals the fused source`, () => {
+    const source1 = fuse(() => 'constant')
+    const source2 = fuse((use) => use(source1))
+    const output = sendToArray(source2, 'seal')
+
+    expect(output).toEqual(['constant', 'seal'])
+  })
+
+  test(`sealing all used sources seals the fused source`, () => {
+    const [stateSource1, , seal1] = createState(1)
+    const [stateSource2, , seal2] = createState(2)
+    const source = fuse((use) => use(stateSource1) + use(stateSource2))
+    const output = sendToArray(source, 'seal')
+
+    expect(output).toEqual([3])
+    seal1()
+    expect(output).toEqual([3])
+    seal2()
+    expect(output).toEqual([3, 'seal'])
   })
 
   test(`can map values from a single source`, () => {
@@ -188,6 +209,7 @@ describe(`fuse`, () => {
   test('the fusor is only run once when a suspended source is updated', async () => {
     let fuseCount = 0
     const [stateSource, setState] = createState<number>()
+
     const source = fuse((use) => {
       const value = use(stateSource)
       fuseCount++

@@ -1,14 +1,13 @@
 /* eslint-disable react-hooks/rules-of-hooks */
 /// <reference types="react/experimental" />
 
-import * as React from 'react'
-import { useMemo } from 'react'
+import React, { useCallback, useMemo } from 'react'
 
 import {
   GettableSourceCore,
   SourceCore,
   Source,
-  SourceGet,
+  SourceGetVersion,
   hasSnapshot,
   identitySelector,
   nullSource,
@@ -18,16 +17,16 @@ import { UseSourceFunction, UseSourceOptions } from './useSourceType'
 
 interface ReactMutableSource {
   _source: SourceCore
-  _getVersion: SourceGet
+  _getVersion: SourceGetVersion
 }
 
 const {
   unstable_createMutableSource: createMutableSource,
   unstable_useMutableSource: useMutableSource,
-} = (React as any) as {
+} = React as any as {
   unstable_createMutableSource: (
     source: SourceCore,
-    getVersion: SourceGet,
+    getVersion: SourceGetVersion,
   ) => ReactMutableSource
   unstable_useMutableSource: <T>(
     source: ReactMutableSource,
@@ -54,12 +53,11 @@ export const useSourceModern: UseSourceFunction = <T = null, U = T>(
     ])
   }
 
-  const getSnapshot = useMemo(
-    () =>
-      hasDefaultValue
-        ? (core: GettableSourceCore) =>
-            hasSnapshot([core, select]) ? select(core) : MissingToken
-        : select,
+  const getSnapshot = useCallback(
+    ([getVersion]: GettableSourceCore) =>
+      hasDefaultValue && !hasSnapshot([[getVersion], select])
+        ? MissingToken
+        : select(getVersion()),
     [hasDefaultValue, select],
   )
 

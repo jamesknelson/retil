@@ -1,6 +1,5 @@
 import { Deferred, isPromiseLike, noop } from 'retil-support'
 
-import { callListener } from './callListener'
 import { Source, identitySelector } from './source'
 
 export const TEARDOWN_DELAY = 10
@@ -31,12 +30,13 @@ export function observe<T>(
     | { subscribe: ObserveSubscribeFunction<T> },
 ): Source<T> {
   const asyncActs = new Set<PromiseLike<void>>()
-  const callbacks = [] as (() => void)[]
+  const callbacks = [] as (readonly [(() => void)?, (() => void)?])[]
 
   let actDeferred: Deferred<void> | null = null
   let actDepth = 0
   let error: null | { value: any } = null
   let nextSnapshot: null | { value: T } = null
+  let sealed = false
   let snapshot: null | SnapshotState<T> = null
   let subscription: null | Subscription = null
 
@@ -61,14 +61,21 @@ export function observe<T>(
     throw snapshot.deferred!.promise
   }
 
-  const subscribe = (callback: () => void): (() => void) => {
+  const subscribe = (change?: () => void, seal?: () => void): (() => void) => {
+    if (sealed) {
+      if (seal) {
+        seal()
+      }
+      return noop
+    }
     if (error) {
       return noop
     }
-    callbacks.push(callback)
+    const pair = [change, seal] as const
+    callbacks.push(pair)
     subscribeIfRequired()
     return () => {
-      const index = callbacks.indexOf(callback)
+      const index = callbacks.indexOf(pair)
       if (index !== -1) {
         callbacks.splice(index, 1)
         scheduleTeardownIfRequired()
@@ -80,7 +87,7 @@ export function observe<T>(
     const hasValue = (snapshot && !snapshot.deferred) || nextSnapshot
     const latestValue = nextSnapshot ? nextSnapshot.value : snapshot?.value
 
-    if (!subscription || (hasValue && latestValue === value)) {
+    if (sealed || !subscription || (hasValue && latestValue === value)) {
       return
     }
 
@@ -94,7 +101,7 @@ export function observe<T>(
   const handleClear = () => {
     nextSnapshot = null
 
-    if (!subscription || !snapshot || snapshot.deferred) {
+    if (sealed || !subscription || !snapshot || snapshot.deferred) {
       return
     }
 
@@ -103,8 +110,38 @@ export function observe<T>(
     notifySubscribers()
   }
 
-  const handleError = (err: any) => {
+  const handleSeal = () => {
     if (!subscription) {
+      return
+    }
+
+    if (nextSnapshot) {
+      commit()
+    }
+
+    if (snapshot === null || snapshot?.deferred) {
+      handleError(new Error('Attempted to seal an observe() with no value'))
+    }
+
+    sealed = true
+
+    // Tear down the subscription *without* removing the value
+    const unsubscribe = subscription.unsubscribe!
+    subscription = null
+    try {
+      unsubscribe()
+    } catch {}
+
+    callbacks.slice().forEach(([, seal]) => {
+      if (seal) {
+        seal()
+      }
+    })
+    callbacks.length = 0
+  }
+
+  const handleError = (err: any) => {
+    if (sealed || !subscription) {
       return
     }
 
@@ -127,11 +164,14 @@ export function observe<T>(
     // skip notifying subscribers, as they can get the value if they need
     // it.
     if (subscription && !subscription.isSubscribing) {
-      callbacks.slice().forEach(callListener)
+      callbacks.slice().forEach(callChangeListener)
     }
   }
 
   const subscribeIfRequired = () => {
+    if (sealed) {
+      return
+    }
     if (subscription) {
       subscription.count++
       if (subscription.teardownTimeout) {
@@ -145,7 +185,7 @@ export function observe<T>(
       const unsubscribeFunctionOrObject = observableSubscribe(
         handleSnapshot,
         handleError,
-        noop,
+        handleSeal,
         handleClear,
       )
       const unsubscribe =
@@ -190,7 +230,7 @@ export function observe<T>(
   }
 
   const commit = () => {
-    if (!subscription || !nextSnapshot) return
+    if (sealed || !subscription || !nextSnapshot) return
 
     const actDeferredCopy = actDeferred
     const snapshotDeferred = snapshot?.deferred
@@ -225,6 +265,9 @@ export function observe<T>(
   const act = <U>(callback: () => PromiseLike<U> | U): Promise<U> => {
     if (error) {
       throw error.value
+    }
+    if (sealed) {
+      return Promise.resolve(callback())
     }
 
     const isTopLevelAct = ++actDepth === 1
@@ -265,4 +308,21 @@ export function observe<T>(
   }
 
   return [[get, subscribe], identitySelector, act]
+}
+
+const callChangeListener = ([listener]: readonly [
+  (() => void)?,
+  (() => void)?,
+]) => {
+  try {
+    if (listener) {
+      listener()
+    }
+  } catch (errorOrPromise) {
+    // Given callbacks will call `getSnapshot()`, which often throws a promise,
+    // let's ignore thrown promises so that the callback don't have to.
+    if (!isPromiseLike(errorOrPromise)) {
+      throw errorOrPromise
+    }
+  }
 }

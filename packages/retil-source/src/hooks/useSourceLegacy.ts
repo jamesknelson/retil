@@ -14,12 +14,11 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
   const hasDefaultValue = 'defaultValue' in options
   const { defaultValue, startTransition } = options
   const [core, inputSelect] = maybeSource || nullSource
-  const select = useMemo(
-    () =>
-      hasDefaultValue
-        ? (core: GettableSourceCore) =>
-            hasSnapshot([core, inputSelect]) ? inputSelect(core) : MissingToken
-        : inputSelect,
+  const select = useCallback(
+    ([getVersion]: GettableSourceCore) =>
+      hasDefaultValue && !hasSnapshot([[getVersion], inputSelect])
+        ? MissingToken
+        : inputSelect(getVersion()),
     [hasDefaultValue, inputSelect],
   )
   const getCurrentValue = useCallback(() => select(core), [core, select])
@@ -49,7 +48,7 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
   useEffect(() => {
     if (!hasDefaultValue) {
       return subscribe(() => {
-        if (!hasSnapshot([core, select])) {
+        if (!hasSnapshot([core])) {
           setState((() => {
             // Because hasSnapshot returns false, this'll throw a promise.
             select(core)
