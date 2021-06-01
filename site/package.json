@@ -5,11 +5,11 @@
   "scripts": {
     "dev": "ts-node -r tsconfig-paths/register server.ts",
     "dev:spa": "vite",
-    "build": "yarn build:client && yarn build:server",
+    "build": "yarn build:client && yarn build:server && mv dist/client/index.html dist/server",
     "build:client": "vite build --outDir dist/client",
     "build:server": "vite build --ssr src/entry-server.tsx --outDir dist/server",
     "generate": "vite build --outDir dist/static && yarn build:server && node prerender",
-    "serve": "cross-env NODE_ENV=production ts-node server",
+    "serve": "cross-env NODE_ENV=production node server",
     "debug": "node --inspect-brk server"
   },
   "dependencies": {

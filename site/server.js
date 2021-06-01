@@ -1,9 +1,7 @@
-import type { ViteDevServer } from 'vite'
+const fs = require('fs')
+const path = require('path')
 
-import * as fs from 'fs'
-import * as path from 'path'
-
-const express = require('express') as typeof import('express')
+const express = require('express')
 
 const isTest = process.env.NODE_ENV === 'test' || !!process.env.VITE_TEST_BUILD
 
@@ -11,10 +9,10 @@ async function createServer(
   root = process.cwd(),
   isProd = process.env.NODE_ENV === 'production',
 ) {
-  const resolve = (p: string) => path.resolve(__dirname, p)
+  const resolve = (p) => path.resolve(__dirname, p)
 
   const indexProd = isProd
-    ? fs.readFileSync(resolve('dist/client/index.html'), 'utf-8')
+    ? fs.readFileSync(resolve('dist/server/index.html'), 'utf-8')
     : ''
 
   const app = express()
@@ -22,9 +20,9 @@ async function createServer(
   /**
    * @type {import('vite').ViteDevServer}
    */
-  let viteDevServer: ViteDevServer | undefined
+  let viteDevServer
   if (!isProd) {
-    const { createServer } = require('vite') as typeof import('vite')
+    const { createServer } = require('vite')
     viteDevServer = await createServer({
       root,
       logLevel: isTest ? 'error' : 'info',
