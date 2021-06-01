@@ -1,17 +1,10 @@
 import groupBy from 'lodash/groupBy'
-import startCase from 'lodash/startCase'
-import React from 'react'
-import { useNavLink } from 'retil-nav'
+import { Link } from 'retil-link'
 
 import { ExampleModule } from './examplesTypes'
 
 interface Props {
   exampleModules: ExampleModule[]
-}
-
-const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
-  const linkProps = useNavLink(to)
-  return <a {...linkProps}>{children}</a>
 }
 
 function Page(props: Props) {
@@ -30,7 +23,7 @@ function Page(props: Props) {
               <li key={exampleModule.exampleNameSlug}>
                 <Link
                   to={`./${exampleModule.packageName}/${exampleModule.exampleNameSlug}`}>
-                  {startCase(exampleModule.exampleNameSlug)}
+                  {exampleModule.title}
                 </Link>
               </li>
             ))}

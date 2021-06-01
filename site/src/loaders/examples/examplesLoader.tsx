@@ -1,6 +1,7 @@
 import { MDXProvider } from '@mdx-js/react'
 import escapeRegExp from 'lodash/escapeRegExp'
 import snakeCase from 'lodash/snakeCase'
+import startCase from 'lodash/startCase'
 import { ServerMountContext, createEnvVector, loadAsync } from 'retil-mount'
 import {
   NavEnv,
@@ -51,9 +52,11 @@ const getExampleModules = (
   )
   return Object.keys(loaders).map((path) => {
     const [, packageName, exampleName] = path.match(pattern)!
+    const exampleNameSlug = slugify(snakeCase(exampleName).replace(/_/g, '-'))
     return {
       packageName,
-      exampleNameSlug: slugify(snakeCase(exampleName).replace(/_/g, '-')),
+      exampleNameSlug,
+      title: startCase(exampleNameSlug),
       load: loaders[path],
     } as ExampleModule
   })
@@ -65,19 +68,26 @@ const exampleModules = getExampleModules(
 ).concat(getExampleModules(directoryExampleGlob, directoryExampleModuleLoaders))
 
 const examplesRouter = loadMatch({
-  '/': loadAsync(async () => {
+  '/': loadAsync<AppEnv>(async (props) => {
+    props.head.push(<title>retil - examples</title>)
     const { default: Page } = await import('./examplesIndexPage')
     return <Page exampleModules={exampleModules} />
   }),
   ...fromEntries(
-    exampleModules.map(({ load, packageName, exampleNameSlug }) => [
+    exampleModules.map(({ load, packageName, exampleNameSlug, title }) => [
       joinPathnames(packageName, exampleNameSlug) + '*',
       loadAsync<AppEnv>(async (props) => {
-        const { mount, ...env } = props
+        const { mount, head, ...env } = props
         const basename = env.nav.matchname
         const example = await load()
         const { importComponent, importDoc, importMain, matchAll, disableSSR } =
           getExampleConfig(example)
+
+        head.push(
+          <title>
+            {title} example – {packageName}
+          </title>,
+        )
 
         const docModulePromise = importDoc && importDoc()
 

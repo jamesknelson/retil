@@ -4,13 +4,16 @@
 
 import createStyleCache from '@emotion/cache'
 import { CacheProvider as StyleCacheProvider } from '@emotion/react'
+import { cloneElement } from 'react'
 import { createRoot } from 'react-dom'
+import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
-import { fuseEnvSource } from 'retil-mount'
+import { Mount, fuseEnvSource, useEnv } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
 
+import App from './app/App'
+import { AppEnv } from './appEnv'
 import rootLoader from './loaders/rootLoader'
-import Root from './root'
 
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
@@ -25,11 +28,31 @@ const envSource = fuseEnvSource((use) => {
   return {
     ...hydrationEnv,
     ...navEnv,
+    head: [],
   }
 })
 
+function Head() {
+  const env = useEnv<AppEnv>()
+
+  return env.hydrating ? null : (
+    <HelmetProvider>
+      <Helmet>
+        {env.head.length ? (
+          env.head.map((item, i) => cloneElement(item, { key: i }))
+        ) : (
+          <title>retil.tech</title>
+        )}
+      </Helmet>
+    </HelmetProvider>
+  )
+}
+
 reactRoot.render(
   <StyleCacheProvider value={styleCache}>
-    <Root env={envSource} loader={rootLoader} />
+    <Mount loader={rootLoader} env={envSource}>
+      <Head />
+      <App />
+    </Mount>
   </StyleCacheProvider>,
 )

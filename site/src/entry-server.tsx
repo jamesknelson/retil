@@ -5,18 +5,24 @@ import createStyleCache from '@emotion/cache'
 import { CacheProvider as StyleCacheProvider } from '@emotion/react'
 import createEmotionServer from '@emotion/server/create-instance'
 import { Request, Response } from 'express'
+import { ReactElement, cloneElement } from 'react'
 import { renderToString } from 'react-dom/server'
-import { ServerMount } from 'retil-mount'
+import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
+import { Mount, ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
 
-import Root from './root'
+import App from './app/App'
 import rootLoader from './loaders/rootLoader'
 
 export async function render(
   request: Omit<Request, 'params' | 'query'>,
   response: Response,
 ) {
-  const env = createServerNavEnv(request, response)
+  const head = [] as ReactElement[]
+  const env = {
+    ...createServerNavEnv(request, response),
+    head,
+  }
 
   if (request.path !== env.nav.pathname) {
     response.statusCode = 308
@@ -42,13 +48,32 @@ export async function render(
         renderToString(
           mount.provide(
             <StyleCacheProvider value={styleCache}>
-              <Root loader={rootLoader} env={env} />
+              <Mount loader={rootLoader} env={env}>
+                <App />
+              </Mount>
             </StyleCacheProvider>,
           ),
         ),
       )
+
+      const helmetContext = {} as { helmet: HelmetData }
+      renderToString(
+        <HelmetProvider context={helmetContext}>
+          <Helmet>
+            {head.length ? (
+              head.map((item, i) => cloneElement(item, { key: i }))
+            ) : (
+              <title>retil.tech</title>
+            )}
+          </Helmet>
+        </HelmetProvider>,
+      )
+
       const headHTML = `
-        <title>retil.tech</title>
+        ${helmetContext.helmet.title.toString()}
+        ${helmetContext.helmet.meta.toString()}
+        ${helmetContext.helmet.script.toString()}
+        ${helmetContext.helmet.style.toString()}
         ${constructStyleTagsFromChunks({ html: appHTML, styles: appStyles })}
       `
 

@@ -6,6 +6,8 @@ import { Link } from 'retil-link'
 import { useNavScroller } from 'retil-nav'
 import { useHighStyle } from 'retil-style'
 
+import AppStyles from './appStyles'
+
 const NavLinkBody: React.FunctionComponent = ({ children }) => {
   const highStyle = useHighStyle()
 
@@ -30,6 +32,7 @@ const App = () => {
 
   return (
     <>
+      <AppStyles />
       <nav>
         <Link to="/" exact>
           <NavLinkBody>retil</NavLinkBody>

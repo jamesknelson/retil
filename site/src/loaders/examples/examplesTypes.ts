@@ -4,6 +4,7 @@ import { NavEnvService, NavRequest, NavResponse } from 'retil-nav'
 export interface ExampleModule {
   packageName: string
   exampleNameSlug: string
+  title: string
   load: () => Promise<Example>
 }
 
