@@ -7,9 +7,9 @@ import tsconfigPaths from 'vite-tsconfig-paths'
 import emotion from './plugins/plugin-emotion'
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   define: {
-    'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV),
+    'process.env.NODE_ENV': JSON.stringify(mode),
   },
   esbuild: {
     jsxFactory: 'jsx',
@@ -21,15 +21,16 @@ export default defineConfig({
     jsxInject: `import {Fragment, jsx} from '${join(__dirname, 'react-shim')}'`,
   },
   plugins: [
-    reactRefresh(),
-    tsconfigPaths({
-      root: resolve(__dirname, '..'),
-      projects: ['.'],
-    }),
+    mode !== 'production' && reactRefresh(),
+    mode !== 'production' &&
+      tsconfigPaths({
+        root: resolve(__dirname, '..'),
+        projects: ['.'],
+      }),
     emotion(),
     mdx(),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-is'],
   },
-})
+}))
