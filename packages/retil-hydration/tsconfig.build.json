@@ -1,5 +1,8 @@
 {
   "extends": "../../tsconfig.build.json",
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../node_modules/.tsbuildinfo/retil-hydration.tsbuildinfo",
+  },
   "include": [
     "src/**/*"
   ]
