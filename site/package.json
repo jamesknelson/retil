@@ -6,9 +6,9 @@
     "typecheck": "tsc --noEmit",
     "dev": "node server",
     "dev:spa": "vite",
-    "build": "yarn typecheck && yarn build:client && yarn build:server && mv dist/client/index.html dist/server",
-    "build:client": "vite build --outDir dist/client",
+    "build:client": "yarn typecheck && vite build --outDir dist/client && mv dist/client/index.html dist/server",
     "build:server": "vite build --ssr src/entry-server.tsx --outDir dist/server",
+    "build": "yarn build:server && yarn build:client",
     "generate": "vite build --outDir dist/static && yarn build:server && node prerender",
     "serve": "cross-env NODE_ENV=production node server",
     "debug": "node --inspect-brk server"

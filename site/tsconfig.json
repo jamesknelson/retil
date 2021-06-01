@@ -9,6 +9,7 @@
   "compilerOptions": {
     "skipLibCheck": false,
     "esModuleInterop": false,
+    "tsBuildInfoFile": "../node_modules/.tsbuildinfo/site.tsbuildinfo",
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
