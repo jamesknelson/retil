@@ -1,8 +1,5 @@
 {
   "extends": "../../tsconfig.build.json",
-  "compilerOptions": {
-    "tsBuildInfoFile": "../../node_modules/.tsbuildinfo/retil-issues.tsbuildinfo",
-  },
   "include": [
     "src/**/*"
   ]

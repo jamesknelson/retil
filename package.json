@@ -8,7 +8,6 @@
     "build": "lerna run --stream build",
     "build:es-and-types": "lerna  run --stream build:es-and-types",
     "build:watch": "lerna run --stream build:watch",
-    "prepare": "mkdir -p node_modules/.tsbuildinfo",
     "publish": "lerna publish",
     "test": "lerna run --stream test",
     "test:watch": "lerna run --stream test:watch"
