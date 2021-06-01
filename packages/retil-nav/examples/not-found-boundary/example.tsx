@@ -1,4 +1,4 @@
 export default {
-  importComponent: () => import('./App'),
+  importComponent: () => import('./app'),
   matchAll: true,
 }
