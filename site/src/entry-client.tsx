@@ -9,7 +9,7 @@ import { getDefaultHydrationEnvService } from 'retil-hydration'
 import { fuseEnvSource } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
 
-import rootLoader from './screens/rootLoader'
+import rootLoader from './loaders/rootLoader'
 import Root from './root'
 
 const styleCache = createStyleCache({ key: 'sskk' })

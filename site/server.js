@@ -1,9 +1,9 @@
+const express = require('express')
 const fs = require('fs')
 const path = require('path')
 
-const express = require('express')
-
 const isTest = process.env.NODE_ENV === 'test' || !!process.env.VITE_TEST_BUILD
+const port = process.env.PORT || 3000
 
 async function createServer(
   root = process.cwd(),
@@ -93,8 +93,8 @@ async function createServer(
 
 if (!isTest) {
   createServer().then(({ app }) =>
-    app.listen(3000, () => {
-      console.log('http://localhost:3000')
+    app.listen(port, () => {
+      console.log(`Server online at http://localhost:${port}`)
     }),
   )
 }

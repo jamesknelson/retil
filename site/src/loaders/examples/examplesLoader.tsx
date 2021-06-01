@@ -1,16 +1,15 @@
 import { MDXProvider } from '@mdx-js/react'
 import escapeRegExp from 'lodash/escapeRegExp'
 import snakeCase from 'lodash/snakeCase'
-import { createEnvVector, loadAsync } from 'retil-mount'
+import { ServerMountContext, createEnvVector, loadAsync } from 'retil-mount'
 import {
   NavEnv,
   getDefaultBrowserNavEnvService,
   joinPathnames,
   loadMatch,
   noopNavController,
+  setDefaultBrowserNavEnvService,
 } from 'retil-nav'
-import { ServerMountContext } from 'retil-mount/src/serverMountContext'
-import { setDefaultBrowserNavEnvService } from 'retil-nav/src/browserNavEnvService'
 import { filter, fuse, map, mergeLatest } from 'retil-source'
 import { fromEntries } from 'retil-support'
 import slugify from 'slugify'

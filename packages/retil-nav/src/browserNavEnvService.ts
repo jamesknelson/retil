@@ -50,7 +50,9 @@ export const getDefaultBrowserNavEnvService: {
   value?: NavEnvService
   window?: Window
 } = (
-  window = typeof document === 'undefined' ? undefined : document.defaultView!,
+  window = typeof document === 'undefined'
+    ? (undefined as unknown as Window)
+    : document.defaultView!,
 ): NavEnvService => {
   if (
     !getDefaultBrowserNavEnvService.value ||
@@ -71,7 +73,7 @@ export const hasDefaultBrowserNavEnvService = () => {
 export const setDefaultBrowserNavEnvService = (
   value: NavEnvService,
   window: Window = typeof document === 'undefined'
-    ? (undefined as any)
+    ? (undefined as unknown as Window)
     : document.defaultView!,
 ) => {
   getDefaultBrowserNavEnvService.value = value

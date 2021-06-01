@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.20.1",
   "scripts": {
-    "dev": "ts-node -r tsconfig-paths/register server.ts",
+    "dev": "node server",
     "dev:spa": "vite",
     "build": "yarn build:client && yarn build:server && mv dist/client/index.html dist/server",
     "build:client": "vite build --outDir dist/client",

@@ -10,7 +10,7 @@ import { ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
 
 import Root from './root'
-import rootLoader from './screens/rootLoader'
+import rootLoader from './loaders/rootLoader'
 
 export async function render(
   request: Omit<Request, 'params' | 'query'>,
