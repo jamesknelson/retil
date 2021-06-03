@@ -11,8 +11,9 @@ import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
 import { Mount, ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
 
-import App from './app/App'
-import rootLoader from './loaders/rootLoader'
+import { App } from './components/app'
+import { GlobalStyles } from './globalStyles'
+import appLoader from './loaders/appLoader'
 
 export async function render(
   request: Omit<Request, 'params' | 'query'>,
@@ -30,7 +31,7 @@ export async function render(
     return null
   }
 
-  const mount = new ServerMount(rootLoader, env)
+  const mount = new ServerMount(appLoader, env)
   const styleCache = createStyleCache({ key: 'sskk' })
   const { extractCriticalToChunks, constructStyleTagsFromChunks } =
     createEmotionServer(styleCache)
@@ -48,7 +49,8 @@ export async function render(
         renderToString(
           mount.provide(
             <StyleCacheProvider value={styleCache}>
-              <Mount loader={rootLoader} env={env}>
+              <GlobalStyles />
+              <Mount loader={appLoader} env={env}>
                 <App />
               </Mount>
             </StyleCacheProvider>,

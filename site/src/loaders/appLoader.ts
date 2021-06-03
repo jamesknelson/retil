@@ -5,7 +5,7 @@ import notFoundLoader from './notFoundLoader'
 
 import landingLoader from './landingLoader'
 
-const rootLoader = loadNotFoundBoundary(
+const appLoader = loadNotFoundBoundary(
   loadMatch({
     '/': landingLoader,
     // '/': loadLazy(() => import('./landingLoader')),
@@ -14,4 +14,4 @@ const rootLoader = loadNotFoundBoundary(
   notFoundLoader,
 )
 
-export default rootLoader
+export default appLoader

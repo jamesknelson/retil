@@ -1,5 +1,6 @@
 {
   "name": "retil.tech",
+  "licence": "CC-BY-NC-4.0",
   "private": true,
   "version": "0.20.1",
   "scripts": {

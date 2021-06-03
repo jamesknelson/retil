@@ -3,7 +3,7 @@
   "private": true,
   "description": "The react utility belt.",
   "author": "James K Nelson <james@jamesknelson.com>",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "scripts": {
     "build": "lerna run --stream build",
     "build:es-and-types": "lerna  run --stream build:es-and-types",

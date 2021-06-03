@@ -11,9 +11,10 @@ import { getDefaultHydrationEnvService } from 'retil-hydration'
 import { Mount, fuseEnvSource, useEnv } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
 
-import App from './app/App'
 import { AppEnv } from './appEnv'
-import rootLoader from './loaders/rootLoader'
+import { App } from './components/app'
+import { GlobalStyles } from './globalStyles'
+import appLoader from './loaders/appLoader'
 
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
@@ -50,7 +51,8 @@ function Head() {
 
 reactRoot.render(
   <StyleCacheProvider value={styleCache}>
-    <Mount loader={rootLoader} env={envSource}>
+    <GlobalStyles />
+    <Mount loader={appLoader} env={envSource}>
       <Head />
       <App />
     </Mount>
