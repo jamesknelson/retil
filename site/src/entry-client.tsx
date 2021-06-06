@@ -3,17 +3,18 @@
 /// <reference types="vite/client" />
 
 import createStyleCache from '@emotion/cache'
-import { CacheProvider as StyleCacheProvider } from '@emotion/react'
+import { CacheProvider as StyleCacheProvider, css } from '@emotion/react'
 import { cloneElement } from 'react'
 import { createRoot } from 'react-dom'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
 import { Mount, fuseEnvSource, useEnv } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
+import { StyleProvider } from 'retil-style'
 
 import { AppEnv } from './appEnv'
 import { App } from './components/app'
-import { GlobalStyles } from './globalStyles'
+import { AppGlobalStyles } from './styles/appGlobalStyles'
 import appLoader from './loaders/appLoader'
 
 const styleCache = createStyleCache({ key: 'sskk' })
@@ -51,10 +52,12 @@ function Head() {
 
 reactRoot.render(
   <StyleCacheProvider value={styleCache}>
-    <GlobalStyles />
-    <Mount loader={appLoader} env={envSource}>
-      <Head />
-      <App />
-    </Mount>
+    <StyleProvider cssFunction={css}>
+      <AppGlobalStyles />
+      <Mount loader={appLoader} env={envSource}>
+        <Head />
+        <App />
+      </Mount>
+    </StyleProvider>
   </StyleCacheProvider>,
 )

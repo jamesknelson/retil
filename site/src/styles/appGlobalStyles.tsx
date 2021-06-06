@@ -1,6 +1,8 @@
 import { Global, css } from '@emotion/react'
 
-export const GlobalStyles = () => (
+import { colors } from './colors'
+
+export const AppGlobalStyles = () => (
   <Global
     styles={css`
       * {
@@ -31,6 +33,10 @@ export const GlobalStyles = () => (
         overflow-x: hidden;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
+      }
+
+      body {
+        background-color: ${colors.structure.wash};
       }
 
       body,

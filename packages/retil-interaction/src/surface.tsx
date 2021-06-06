@@ -201,13 +201,21 @@ function createDownSelect(
   overrides: Record<string, boolean> = emptyObject,
 ) {
   const defaultSelectors: Record<string, CSSSelector> = {
-    disabled: `.${surfaceClassName}[aria-disabled] &`,
-    enabled: `.${surfaceClassName}:not([aria-disabled]) &`,
-    hover: `.${surfaceClassName}:hover &`,
-    active: `.${surfaceClassName}:active &`,
+    disabled: [
+      `.${surfaceClassName}[aria-disabled] &`,
+      `&.${surfaceClassName}[aria-disabled]`,
+    ],
+    enabled: [
+      `.${surfaceClassName}:not([aria-disabled]) &`,
+      `&.${surfaceClassName}:not([aria-disabled])`,
+    ],
+    hover: [`.${surfaceClassName}:hover &`, `&.${surfaceClassName}:hover`],
+    active: [`.${surfaceClassName}:active &`, `&.${surfaceClassName}:active`],
     focus: [
       `.${surfaceClassName}:focus &`,
       `.${surfaceClassName}:focus-within &`,
+      `&.${surfaceClassName}:focus`,
+      `&.${surfaceClassName}:focus-within`,
     ],
   }
 

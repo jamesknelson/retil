@@ -1,18 +1,28 @@
-import { css } from '@emotion/react'
-import { Link } from 'retil-link'
-import { useHighStyle } from 'retil-style'
+import { AnchorSurface, NavLinkSurface } from 'retil-interaction'
+import { useCSS } from 'retil-style'
 
-const NavLinkBody: React.FunctionComponent = ({ children }) => {
-  const highStyle = useHighStyle()
+import { colors } from '../../styles/colors'
+
+const NavLinkBody: React.FunctionComponent<{ className: string }> = ({
+  children,
+  className,
+}) => {
+  const media = useCSS()
 
   return (
     <span
-      css={highStyle({
-        color: {
-          default: 'black',
-          activated: 'red',
-        },
-      })}>
+      className={className}
+      css={[
+        media`
+          color: ${colors.text.tertiary};
+          font-weight: 500;
+          line-height: 40px;
+          margin: 0 0.5rem;
+        `,
+        media.localLink`
+          border-bottom: 2px solid ${colors.brand.black};
+        `,
+      ]}>
       {children}
     </span>
   )
@@ -23,28 +33,52 @@ export interface AppLayoutProps {
 }
 
 export const AppLayout = ({ children }: AppLayoutProps) => {
+  const css = useCSS()
+  const media = css
+
   return (
     <>
       <nav
-        css={css`
-          border-bottom: 1px solid black;
+        css={media.default`
+          border-bottom: 1px solid ${colors.structure.border};
+          display: flex;
+          padding: 0 1rem;
         `}>
-        <Link to="/" exact>
-          <NavLinkBody>retil</NavLinkBody>
-        </Link>
-        <div>
-          <Link to="/examples">
+        <NavLinkSurface to="/" exact>
+          <NavLinkBody
+            css={css`
+              color: ${colors.brand.black};
+              font-family: Inconsolata, monospace;
+              font-size: 18px;
+              font-weight: 900;
+            `}>
+            retil
+          </NavLinkBody>
+        </NavLinkSurface>
+        <div
+          css={css`
+            flex-grow: 1;
+          `}
+        />
+        <div
+          css={css`
+            margin: 0 1rem;
+          `}>
+          <NavLinkSurface to="/examples">
             <NavLinkBody>examples</NavLinkBody>
-          </Link>
-          <Link to="/concepts">
+          </NavLinkSurface>{' '}
+          <NavLinkSurface to="/concepts">
             <NavLinkBody>concepts</NavLinkBody>
-          </Link>
-          <Link to="/packages">
+          </NavLinkSurface>{' '}
+          <NavLinkSurface to="/packages">
             <NavLinkBody>packages</NavLinkBody>
-          </Link>
+          </NavLinkSurface>
         </div>
         <div>
-          <a href="https://github.com/jamesknelson/retil">GitHub</a>
+          {' '}
+          <AnchorSurface href="https://github.com/jamesknelson/retil">
+            <NavLinkBody>GitHub</NavLinkBody>
+          </AnchorSurface>
         </div>
       </nav>
       <main>{children}</main>

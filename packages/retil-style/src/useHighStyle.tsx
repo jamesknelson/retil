@@ -1,84 +1,42 @@
-import * as CSS from 'csstype'
+import { useCallback } from 'react'
 import { isPlainObject } from 'retil-support'
 
-import { DownSelect, useDownSelect } from './downSelect'
-
-/**
- * An extended style object, which allows you to specify each property as
- * one of:
- *
- * - a value
- * - a function mapping your theme to a value
- * - an object mapping selectors to nested xstyle objects
- */
-export type HighStyle<Theme = any, HighSelector extends string = string> = {
-  [Prop in keyof CSSObject]?: HighStyleValue<
-    CSSObject[Prop],
-    Theme,
-    HighSelector
-  >
-}
-
-export type HighStyleValue<
-  Value,
-  Theme = any,
-  HighSelector extends string = string,
-> =
-  | ((theme: Theme) => HighStyleValue<Value, Theme, HighSelector>)
-  | HighStyleSelections<Value, Theme, HighSelector>
-  | Value
-
-export type HighStyleSelections<
-  Value,
-  Theme = any,
-  HighSelector extends string = string,
-> = {
-  [Selector in HighSelector | 'default']: HighStyleValue<
-    Value,
-    Theme,
-    HighSelector
-  >
-} & {
-  [selector: string]: HighStyleValue<Value, Theme, HighSelector>
-}
-
-// Equivalent to the CSSObject type expected by styled-components and emotion.
-export type CSSProperties = CSS.Properties<string | number>
-export type CSSPseudos = { [K in CSS.Pseudos]?: CSSObject }
-export interface CSSObject extends CSSProperties, CSSPseudos {
-  [key: string]: CSSObject | string | number | undefined
-}
-export type CSSFunction<Theme = any> = (
-  themeOrProps: Theme | { theme: Theme },
-) => CSSObject
+import {
+  CSSObject,
+  CSSPropFunction,
+  DownSelect,
+  HighStyle,
+  HighStyleValue,
+} from './styleTypes'
 
 export function useHighStyle<Theme, HighSelector extends string>(
-  overrideDownSelect?: DownSelect<HighSelector>,
-): (highStyle: HighStyle<Theme, HighSelector>) => CSSFunction<Theme> {
-  const downSelect = useDownSelect(overrideDownSelect)
+  downSelect: DownSelect<HighSelector>,
+): (highStyle: HighStyle<Theme, HighSelector>) => CSSPropFunction<Theme> {
+  return useCallback(
+    (highStyle) => {
+      const cssPropFunction = (themeOrProps: Theme | { theme: Theme }) => {
+        // Emotion passes in a theme directly, while styled-components passes it
+        // on a proprety of the argument object.
+        const theme =
+          'theme' in themeOrProps ? themeOrProps['theme'] : themeOrProps
+        const props = Object.keys(highStyle)
+        const output: CSSObject = {}
+        for (const propName of props) {
+          mutableCompileStyle(
+            theme,
+            downSelect,
+            output,
+            propName,
+            highStyle[propName],
+          )
+        }
 
-  return (highStyle) => {
-    const cssFunction = (themeOrProps: Theme | { theme: Theme }) => {
-      // Emotion passes in a theme directly, while styled-components passes it
-      // on a proprety of the argument object.
-      const theme =
-        'theme' in themeOrProps ? themeOrProps['theme'] : themeOrProps
-      const props = Object.keys(highStyle)
-      const output: CSSObject = {}
-      for (const propName of props) {
-        mutableCompileStyle(
-          theme,
-          downSelect,
-          output,
-          propName,
-          highStyle[propName],
-        )
+        return output
       }
-
-      return output
-    }
-    return cssFunction
-  }
+      return cssPropFunction
+    },
+    [downSelect],
+  )
 }
 
 function mutableCompileStyle<Theme, HighSelector extends string>(

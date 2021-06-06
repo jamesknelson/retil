@@ -2,7 +2,7 @@
 /// <reference types="vite/client" />
 
 import createStyleCache from '@emotion/cache'
-import { CacheProvider as StyleCacheProvider } from '@emotion/react'
+import { CacheProvider as StyleCacheProvider, css } from '@emotion/react'
 import createEmotionServer from '@emotion/server/create-instance'
 import { Request, Response } from 'express'
 import { ReactElement, cloneElement } from 'react'
@@ -10,9 +10,10 @@ import { renderToString } from 'react-dom/server'
 import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
 import { Mount, ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
+import { StyleProvider } from 'retil-style'
 
 import { App } from './components/app'
-import { GlobalStyles } from './globalStyles'
+import { AppGlobalStyles } from './styles/appGlobalStyles'
 import appLoader from './loaders/appLoader'
 
 export async function render(
@@ -49,10 +50,12 @@ export async function render(
         renderToString(
           mount.provide(
             <StyleCacheProvider value={styleCache}>
-              <GlobalStyles />
-              <Mount loader={appLoader} env={env}>
-                <App />
-              </Mount>
+              <StyleProvider cssFunction={css}>
+                <AppGlobalStyles />
+                <Mount loader={appLoader} env={env}>
+                  <App />
+                </Mount>
+              </StyleProvider>
             </StyleCacheProvider>,
           ),
         ),

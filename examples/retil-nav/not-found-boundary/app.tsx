@@ -1,11 +1,11 @@
 import React from 'react'
 import { Mount, MountedContent } from 'retil-mount'
+import { NavLinkSurface } from 'retil-interaction'
 import {
   getDefaultBrowserNavEnvService,
   loadMatch,
   loadNotFoundBoundary,
 } from 'retil-nav'
-import { Link } from 'retil-link'
 
 const rootLoader = loadNotFoundBoundary(
   loadMatch({
@@ -21,11 +21,11 @@ function App() {
   return (
     <Mount env={navSource} loader={rootLoader}>
       <nav>
-        <Link to="/">Home</Link>
+        <NavLinkSurface to="/">Home</NavLinkSurface>
         &nbsp;&middot;&nbsp;
-        <Link to="/about">About</Link>
+        <NavLinkSurface to="/about">About</NavLinkSurface>
         &nbsp;&middot;&nbsp;
-        <Link to="/not-found">Not Found</Link>
+        <NavLinkSurface to="/not-found">Not Found</NavLinkSurface>
       </nav>
       <MountedContent />
     </Mount>
