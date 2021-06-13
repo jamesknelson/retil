@@ -1,11 +1,5 @@
 {
   "extends": "../tsconfig.json",
-  "ts-node": {
-    "transpileOnly": true,
-    "compilerOptions": {
-      "module": "CommonJS",
-    }
-  },
   "compilerOptions": {
     "skipLibCheck": false,
     "esModuleInterop": false,
@@ -16,5 +10,5 @@
     "types": ["@emotion/react"],
     "noEmit": true,
   },
-  "include": ["@types/**.ts", "./src"]
+  "include": ["**/*.tsx"]
 }

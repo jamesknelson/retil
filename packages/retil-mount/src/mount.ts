@@ -40,5 +40,13 @@ export function mount<Env extends object, Content>(
     contentRef.current = loader(loaderProps)
     return mountSnapshot as MountSnapshotWithContent<Env, Content>
   })
-  return map(vectorSource, (vectorSnapshot) => vectorSnapshot[1])
+  return map(vectorSource, (vectorSnapshot) => {
+    vectorSnapshot.slice(2).forEach((snapshot) => {
+      // Start fetching dependencies for precache ahead of time
+      ;(
+        snapshot as MountSnapshotWithContent<Env, Content>
+      ).dependencies.resolve()
+    })
+    return vectorSnapshot[1]
+  })
 }

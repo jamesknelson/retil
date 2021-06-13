@@ -9,11 +9,10 @@ const appLoader = loadNotFoundBoundary(
   loadMatch({
     '/': loadAsync(async () => {
       const { default: Component } = await import(
-        '../../../docs/at-a-glance.mdx'
+        '../../../docs/site/at-a-glance.mdx'
       )
       return <DocumentContent Component={Component} />
     }),
-    // '/': loadLazy(() => import('./landingLoader')),
     '/examples*': loadLazy(() => import('./examples/examplesLoader')),
   }),
   notFoundLoader,

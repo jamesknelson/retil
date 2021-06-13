@@ -121,8 +121,20 @@ export function isExternalAction(href: NavAction) {
   )
 }
 
+export function areActionsEqual(x: NavAction, y: NavAction): boolean {
+  const px = parseAction(x)
+  const py = parseAction(y)
+
+  return (
+    px.hash !== py.hash ||
+    px.pathname !== py.pathname ||
+    px.search !== py.search ||
+    px.state !== py.state
+  )
+}
+
 export function resolveAction(
-  action: string | NavAction,
+  action: NavAction,
   currentPathname: string,
   basename = '',
 ): NavLocation {

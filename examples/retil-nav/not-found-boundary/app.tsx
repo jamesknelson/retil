@@ -1,4 +1,3 @@
-import React from 'react'
 import { Mount, MountedContent } from 'retil-mount'
 import { NavLinkSurface } from 'retil-interaction'
 import {
@@ -6,6 +5,7 @@ import {
   loadMatch,
   loadNotFoundBoundary,
 } from 'retil-nav'
+import { useCSS } from 'retil-style'
 
 const rootLoader = loadNotFoundBoundary(
   loadMatch({
@@ -15,17 +15,37 @@ const rootLoader = loadNotFoundBoundary(
   (env) => <NotFound pathname={env.nav.pathname} />,
 )
 
+const NavLinkBody = (props: any) => {
+  const media = useCSS()
+  return (
+    <span
+      css={[
+        media.localLink`
+          color: red;
+        `,
+      ]}>
+      {props.children}
+    </span>
+  )
+}
+
 function App() {
   const [navSource] = getDefaultBrowserNavEnvService()
 
   return (
     <Mount env={navSource} loader={rootLoader}>
       <nav>
-        <NavLinkSurface to="/">Home</NavLinkSurface>
+        <NavLinkSurface to="/" exact>
+          <NavLinkBody>Home</NavLinkBody>
+        </NavLinkSurface>
         &nbsp;&middot;&nbsp;
-        <NavLinkSurface to="/about">About</NavLinkSurface>
+        <NavLinkSurface to="/about">
+          <NavLinkBody>About</NavLinkBody>
+        </NavLinkSurface>
         &nbsp;&middot;&nbsp;
-        <NavLinkSurface to="/not-found">Not Found</NavLinkSurface>
+        <NavLinkSurface to="/not-found">
+          <NavLinkBody>Not Found</NavLinkBody>
+        </NavLinkSurface>
       </nav>
       <MountedContent />
     </Mount>

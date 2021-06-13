@@ -3,7 +3,7 @@ import { useCSS } from 'retil-style'
 
 import { colors } from '../../styles/colors'
 
-const NavLinkBody: React.FunctionComponent<{ className: string }> = ({
+const NavLinkBody: React.FunctionComponent<{ className?: string }> = ({
   children,
   className,
 }) => {
@@ -13,14 +13,15 @@ const NavLinkBody: React.FunctionComponent<{ className: string }> = ({
     <span
       className={className}
       css={[
-        media`
+        media.default`
           color: ${colors.text.tertiary};
+          font-size: 0.9rem;
           font-weight: 500;
           line-height: 40px;
           margin: 0 0.5rem;
         `,
         media.localLink`
-          border-bottom: 2px solid ${colors.brand.black};
+          border-bottom: 2px solid ${colors.ink.black};
         `,
       ]}>
       {children}
@@ -47,12 +48,12 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
         <NavLinkSurface to="/" exact>
           <NavLinkBody
             css={css`
-              color: ${colors.brand.black};
+              color: ${colors.ink.black};
               font-family: Inconsolata, monospace;
               font-size: 18px;
               font-weight: 900;
             `}>
-            retil
+            retil.tech
           </NavLinkBody>
         </NavLinkSurface>
         <div

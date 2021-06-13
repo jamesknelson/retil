@@ -1,24 +1,16 @@
-import { useMemo } from 'react'
+import { useCallback } from 'react'
 
 import { createMatcher } from '../matcher'
 import { useNavSnapshot } from '../navContext'
 
-/**
- * Returns a boolean that indicates whether the user is currently
- * viewing the specified pattern.
- * @param pattern
- */
-export const useNavMatch = (patterns: string | string[]): boolean => {
-  const matcher = useMemo(
-    () =>
-      typeof patterns === 'string'
-        ? createMatcher(patterns)
-        : (pathname: string) => {
-            const matchers = patterns.map(createMatcher)
-            return matchers.some((matcher) => matcher(pathname))
-          },
-    [patterns],
+import { useNavResolve } from './useNavResolve'
+
+export const useNavMatch = (): ((actionPattern: string) => boolean) => {
+  const resolve = useNavResolve()
+  const { pathname } = useNavSnapshot()
+  return useCallback(
+    (actionPattern: string) =>
+      !!createMatcher(resolve(actionPattern).pathname)(pathname),
+    [pathname, resolve],
   )
-  const env = useNavSnapshot()
-  return useMemo(() => !!matcher(env.pathname), [matcher, env])
 }

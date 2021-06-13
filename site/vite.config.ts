@@ -1,10 +1,17 @@
 import reactRefresh from '@vitejs/plugin-react-refresh'
 import { join, resolve } from 'path'
+import emoji from 'remark-emoji'
+import images from 'remark-images'
+import textr from 'remark-textr'
+import slug from 'remark-slug'
 import { defineConfig } from 'vite'
 import mdx from 'vite-plugin-mdx'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
-import emotion from './plugins/plugin-emotion'
+import importExample from './plugins/importExample'
+import mdxPrism from './plugins/mdxPrism'
+import typography from './plugins/typography'
+import reactEmotion from './plugins/reactEmotion'
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -27,8 +34,12 @@ export default defineConfig(({ mode }) => ({
         root: resolve(__dirname, '..'),
         projects: ['.'],
       }),
-    emotion(),
-    mdx(),
+    importExample(),
+    reactEmotion(),
+    mdx.withImports({ [resolve('./plugins/mdxEmotion.ts')]: ['mdx'] })({
+      remarkPlugins: [slug, images, emoji, [textr, { plugins: [typography] }]],
+      rehypePlugins: [mdxPrism],
+    }),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-is'],

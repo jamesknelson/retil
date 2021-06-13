@@ -7,7 +7,7 @@ import { createHref } from '../navUtils'
 
 import { useNavResolve } from './useNavResolve'
 
-export interface UseNavLinkOptions {
+export interface UseNavLinkPropsOptions {
   disabled?: boolean
   replace?: boolean
   precacheOn?: 'hover' | 'mount'
@@ -17,10 +17,13 @@ export interface UseNavLinkOptions {
   onMouseLeave?: React.MouseEventHandler<HTMLAnchorElement>
 }
 
-export const useNavLink = (to: NavAction, options: UseNavLinkOptions = {}) => {
+export const useNavLinkProps = (
+  to: NavAction,
+  options: UseNavLinkPropsOptions = {},
+) => {
   const {
     disabled,
-    precacheOn,
+    precacheOn = 'hover',
     replace,
     state,
     onClick,
@@ -28,7 +31,8 @@ export const useNavLink = (to: NavAction, options: UseNavLinkOptions = {}) => {
     onMouseLeave,
   } = options
   const { navigate, precache } = useNavController()
-  const action = useNavResolve(to, state)
+  const resolve = useNavResolve()
+  const action = resolve(to, state)
 
   const releasePrecacheRef = useRef<undefined | (() => void)>(undefined)
   const doPrecache = useCallback(() => {

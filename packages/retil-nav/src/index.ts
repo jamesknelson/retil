@@ -1,4 +1,4 @@
-export * from './hooks/useNavLink'
+export * from './hooks/useNavLinkProps'
 export * from './hooks/useNavMatch'
 export * from './hooks/useNavResolve'
 export * from './hooks/useNavScroller'

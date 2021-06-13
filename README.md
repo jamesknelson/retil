@@ -109,6 +109,6 @@ Retil is one half of the project, with [Frontend Armory](https://frontarm.com) b
 
 Copyright &copy; 2020 - 2021 James K. Nelson.
 
-Contents of the `/packages` directory – excluding the contents of documentation and examples including but not limited to `/docs` and `/examples` subdirectories – are licensed under the MIT License.
+Contents of the `/packages` directory are licensed under the MIT License.
 
 Documentation, examples and website contents are licensed under a [Creative Commons Attribution-NonCommercial 4.0 International License.](https://creativecommons.org/licenses/by-nc/4.0/).

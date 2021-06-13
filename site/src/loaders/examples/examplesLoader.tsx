@@ -1,4 +1,3 @@
-import { MDXProvider } from '@mdx-js/react'
 import escapeRegExp from 'lodash/escapeRegExp'
 import snakeCase from 'lodash/snakeCase'
 import startCase from 'lodash/startCase'
@@ -26,15 +25,15 @@ import { ExampleModule, getExampleConfig } from './examplesTypes'
 //
 // prettier-ignore
 const standaloneExampleGlob =
-  '../../../../packages/*/examples/*.example.tsx'
+  '../../../../examples/*/*.example.tsx'
 const standaloneExampleModuleLoaders = import.meta.glob(
-  '../../../../packages/*/examples/*.example.tsx',
+  '../../../../examples/*/*.example.tsx',
 )
 // prettier-ignore
 const directoryExampleGlob =
-  '../../../../packages/*/examples/*/example.tsx'
+  '../../../../examples/*/*/.example'
 const directoryExampleModuleLoaders = import.meta.glob(
-  '../../../../packages/*/examples/*/example.tsx',
+  '../../../../examples/*/*/.example',
 )
 
 const getExampleModules = (
@@ -42,13 +41,7 @@ const getExampleModules = (
   loaders: Record<string, () => Promise<Record<string, any>>>,
 ) => {
   const pattern = new RegExp(
-    '^' +
-      glob
-        .split(/\*\*?/g)
-        .map(escapeRegExp)
-        .join('([\\w-]+)')
-        .replace(')/(', '/)?(') +
-      '$',
+    '^' + glob.split(/\*/g).map(escapeRegExp).join('([\\w-]+)') + '$',
   )
   return Object.keys(loaders).map((path) => {
     const [, packageName, exampleName] = path.match(pattern)!
@@ -79,9 +72,16 @@ const examplesRouter = loadMatch({
       loadAsync<AppEnv>(async (props) => {
         const { mount, head, ...env } = props
         const basename = env.nav.matchname
+        const pageModule = import('./examplePage')
         const example = await load()
-        const { importComponent, importDoc, importMain, matchAll, disableSSR } =
-          getExampleConfig(example)
+        const {
+          importApp,
+          importMain,
+          importReadme,
+          matchAll,
+          disableSSR,
+          sources,
+        } = getExampleConfig(example)
 
         head.push(
           <title>
@@ -89,7 +89,7 @@ const examplesRouter = loadMatch({
           </title>,
         )
 
-        const docModulePromise = importDoc && importDoc()
+        const docModulePromise = importReadme && importReadme()
 
         const createNestedEnv = (env: NavEnv) => ({
           ...env,
@@ -141,8 +141,8 @@ const examplesRouter = loadMatch({
               {content!}
             </ServerMountContext.Provider>
           )
-        } else if (importComponent) {
-          const { default: Component } = await importComponent()
+        } else if (importApp) {
+          const { default: Component } = await importApp()
 
           const switchDefaultBrowserNavService = (callback: Function) => {
             const defaultNavService = getDefaultBrowserNavEnvService()
@@ -182,17 +182,18 @@ const examplesRouter = loadMatch({
           )
         }
 
-        if (!docModulePromise) {
-          return exampleNode
-        } else {
-          const { default: Doc } = await docModulePromise
-          const Example = () => exampleNode
-          return (
-            <MDXProvider components={{ Example }}>
-              <Doc />
-            </MDXProvider>
-          )
-        }
+        const docModule = docModulePromise ? await docModulePromise : undefined
+        const { default: ExamplePage } = await pageModule
+
+        return (
+          <ExamplePage
+            ReadmeDocument={docModule?.default}
+            exampleNode={exampleNode}
+            packageName={packageName}
+            sources={sources}
+            title={title}
+          />
+        )
       }),
     ]),
   ),

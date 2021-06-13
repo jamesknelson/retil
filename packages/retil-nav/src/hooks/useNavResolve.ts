@@ -1,28 +1,22 @@
 import { useMemo } from 'react'
+import { memoizeOne } from 'retil-support'
 
 import { useNavSnapshot } from '../navContext'
 import { NavAction, NavLocation } from '../navTypes'
-import { parseAction, resolveAction } from '../navUtils'
+import { areActionsEqual, parseAction, resolveAction } from '../navUtils'
 
-export const useNavResolve = (
+export const useNavResolve = (): ((
   action: NavAction,
   state?: object,
-): NavLocation => {
+) => NavLocation) => {
   const { basename, pathname } = useNavSnapshot()
-  const resolved = useMemo(
-    () => resolveAction(parseAction(action, state), pathname, basename),
-    [action, basename, pathname, state],
+  return useMemo(
+    () =>
+      memoizeOne(
+        (action: NavAction, state?: object) =>
+          resolveAction(parseAction(action, state), pathname, basename),
+        ([xa, xs], [ya, ys]) => xs === ys && areActionsEqual(xa, ya),
+      ),
+    [basename, pathname],
   )
-
-  // Memoize by action parts so that we'll output the same location object
-  // until something actually changes.
-  const deps = [
-    resolved?.pathname,
-    resolved?.search,
-    resolved?.hash,
-    resolved?.state,
-  ]
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  return useMemo(() => resolved, deps)
 }

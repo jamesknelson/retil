@@ -1,3 +1,4 @@
+export * from './defaultMediaQueries'
 export * from './downSelect'
 export * from './styleContext'
 export * from './stringifyTransition'

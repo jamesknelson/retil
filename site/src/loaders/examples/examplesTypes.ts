@@ -9,8 +9,7 @@ export interface ExampleModule {
 }
 
 export interface ExampleConfig {
-  importComponent?: () => Promise<{ default: ComponentType<any> }>
-  importDoc?: () => Promise<{ default: ComponentType<any> }>
+  importApp?: () => Promise<{ default: ComponentType<any> }>
   importMain?: () => Promise<{
     clientMain(
       render: (element: ReactElement) => void,
@@ -23,9 +22,12 @@ export interface ExampleConfig {
       response: NavResponse,
     ): Promise<void>
   }>
+  importReadme?: () => Promise<{ default: ComponentType<any> }>
 
   disableSSR?: boolean
   matchAll?: boolean
+
+  sources?: Record<string, string>
 }
 
 export type Example = { default: ExampleConfig | ComponentType<any> }
@@ -33,7 +35,7 @@ export type Example = { default: ExampleConfig | ComponentType<any> }
 export function getExampleConfig(example: Example): ExampleConfig {
   return typeof example.default === 'function'
     ? {
-        importComponent: () =>
+        importApp: () =>
           Promise.resolve(example as { default: ComponentType<any> }),
       }
     : example.default

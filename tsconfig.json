@@ -2,20 +2,20 @@
   "extends": "./tsconfig.build.json",
 
   "compilerOptions": {
-    "baseUrl": "./packages",
+    "baseUrl": ".",
     "paths": {
-      "retil": ["retil/src"],
-      "retil-boundary": ["retil-boundary/src"],
-      "retil-hydration": ["retil-hydration/src"],
-      "retil-interaction": ["retil-interaction/src"],
-      "retil-issues": ["retil-issues/src"],
-      "retil-link": ["retil-link/src"],
-      "retil-mount": ["retil-mount/src"],
-      "retil-nav": ["retil-nav/src"],
-      "retil-operation": ["retil-operation/src"],
-      "retil-source": ["retil-source/src"],
-      "retil-style": ["retil-style/src"],
-      "retil-support": ["retil-support/src"],
+      "retil": ["packages/retil/src"],
+      "retil-boundary": ["packages/retil-boundary/src"],
+      "retil-hydration": ["packages/retil-hydration/src"],
+      "retil-interaction": ["packages/retil-interaction/src"],
+      "retil-issues": ["packages/retil-issues/src"],
+      "retil-link": ["packages/retil-link/src"],
+      "retil-mount": ["packages/retil-mount/src"],
+      "retil-nav": ["packages/retil-nav/src"],
+      "retil-operation": ["packages/retil-operation/src"],
+      "retil-source": ["packages/retil-source/src"],
+      "retil-style": ["packages/retil-style/src"],
+      "retil-support": ["packages/retil-support/src"],
       "site": ["site/src"]
     }
   }
