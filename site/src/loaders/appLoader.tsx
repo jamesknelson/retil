@@ -3,17 +3,18 @@ import { loadMatch, loadNotFoundBoundary } from 'retil-nav'
 
 import { DocumentContent } from '../components/documentContent'
 
+import examplesLoader from './examples/examplesLoader'
 import notFoundLoader from './notFoundLoader'
 
 const appLoader = loadNotFoundBoundary(
   loadMatch({
     '/': loadAsync(async () => {
       const { default: Component } = await import(
-        '../../../docs/site/at-a-glance.mdx'
+        '../../../docs/site/index.mdx'
       )
       return <DocumentContent Component={Component} />
     }),
-    '/examples*': loadLazy(() => import('./examples/examplesLoader')),
+    '/examples*': examplesLoader,
   }),
   notFoundLoader,
 )

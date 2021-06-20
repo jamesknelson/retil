@@ -2,16 +2,16 @@ import groupBy from 'lodash/groupBy'
 import { NavLinkSurface } from 'retil-interaction'
 import { useCSS } from 'retil-style'
 
-import { ExampleModule } from './examplesTypes'
+import { ExampleMeta } from '../../data/exampleTypes'
 
 interface Props {
-  exampleModules: ExampleModule[]
+  data: ExampleMeta[]
 }
 
 function Page(props: Props) {
   const css = useCSS()
-  const { exampleModules } = props
-  const exampleModulesByPackage = groupBy(exampleModules, 'packageName')
+  const { data } = props
+  const exampleModulesByPackage = groupBy(data, 'packageName')
   const packageNames = Object.keys(exampleModulesByPackage)
 
   return (
@@ -37,12 +37,12 @@ function Page(props: Props) {
           <ul>
             {exampleModulesByPackage[name].map((exampleModule) => (
               <li
-                key={exampleModule.exampleNameSlug}
+                key={exampleModule.slug}
                 css={css`
                   margin: 0.5rem 0;
                 `}>
                 <NavLinkSurface
-                  to={`./${exampleModule.packageName}/${exampleModule.exampleNameSlug}`}>
+                  to={`./${exampleModule.packageName}/${exampleModule.slug}`}>
                   {exampleModule.title}
                 </NavLinkSurface>
               </li>
