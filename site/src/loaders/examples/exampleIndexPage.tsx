@@ -2,7 +2,7 @@ import groupBy from 'lodash/groupBy'
 import { NavLinkSurface } from 'retil-interaction'
 import { useCSS } from 'retil-style'
 
-import { ExampleMeta } from '../../data/exampleTypes'
+import { ExampleMeta } from 'site/src/data/exampleMeta'
 
 interface Props {
   data: ExampleMeta[]

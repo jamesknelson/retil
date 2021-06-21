@@ -1,13 +1,37 @@
-import startCase from 'lodash/startCase'
+import { ComponentType, ReactElement } from 'react'
 import { ServerMountContext } from 'retil-mount'
 import {
+  NavEnvService,
+  NavRequest,
+  NavResponse,
   getDefaultBrowserNavEnvService,
   setDefaultBrowserNavEnvService,
 } from 'retil-nav'
 import { memoizeOne } from 'retil-support'
 
 import DefaultDoc from './exampleDefaultDoc.mdx'
-import { ExampleClientMain, ExampleContent, ExampleMeta } from './exampleTypes'
+import { ExampleMeta, getExampleMeta } from './exampleMeta'
+
+export interface ExampleContent {
+  Doc: ComponentType<{}>
+
+  clientMain: ExampleClientMain
+  matchNestedRoutes: boolean
+  meta: ExampleMeta
+  sources: Record<string, string>
+  serverMain: false | ExampleServerMain // false disables SSR per example
+}
+
+export type ExampleClientMain = (
+  render: (element: ReactElement) => void,
+  mappedEnv: () => NavEnvService,
+) => Promise<void>
+
+export type ExampleServerMain = (
+  render: (element: ReactElement) => void,
+  request: NavRequest,
+  response: NavResponse,
+) => Promise<void>
 
 export async function getExampleContent(
   packageName: string,
@@ -41,14 +65,7 @@ export async function getExampleContent(
     // Match nested routes by default when providing a main function
     matchNestedRoutes = !!mod.clientMain,
   } = mod
-  const meta: ExampleMeta = {
-    packageName,
-    slug,
-    title: startCase(slug),
-
-    ...moduleMeta,
-  }
-
+  const meta = getExampleMeta(packageName, slug, moduleMeta)
   const clientMain = moduleClientMain || createClientMain(mod)
 
   return {

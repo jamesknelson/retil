@@ -2,33 +2,29 @@ import { css } from '@emotion/react'
 import { MDXProvider } from '@mdx-js/react'
 import React, { createContext, useContext } from 'react'
 
-import { CodeBlock } from '../../components/codeBlock'
-import { DocumentContent } from '../../components/documentContent'
-import { ExampleMeta } from '../../data/exampleTypes'
-import { colors } from '../../styles/colors'
+import { CodeBlock } from 'site/src/components/codeBlock'
+import { DocumentContent } from 'site/src/components/documentContent'
+import { ExampleContent } from 'site/src/data/exampleContent'
+import { colors } from 'site/src/styles/colors'
 
 const ExampleContext = createContext<ExamplePageProps>(undefined as any)
 
 export interface ExamplePageProps {
-  Doc: React.ComponentType<any>
   exampleNode: React.ReactNode
-  meta: ExampleMeta
-  sources: Record<string, string>
+  content: ExampleContent
 }
 
 export default function ExamplePage(props: ExamplePageProps) {
-  const { Doc } = props
-
   return (
     <ExampleContext.Provider value={props}>
       <MDXProvider components={{ Example, Source, Sources, Title }}>
-        <DocumentContent Component={Doc} />
+        <DocumentContent Component={props.content.Doc} />
       </MDXProvider>
     </ExampleContext.Provider>
   )
 }
 
-const Title = () => <>{useContext(ExampleContext).meta.title}</>
+const Title = () => <>{useContext(ExampleContext).content.meta.title}</>
 
 const Example = () => (
   <div
@@ -43,7 +39,7 @@ const Example = () => (
 )
 
 const Source = (props: { filename: string }) => {
-  const sources = useContext(ExampleContext).sources
+  const sources = useContext(ExampleContext).content.sources
   return sources ? (
     <CodeBlock data-language={props.filename.split('.')[1]}>
       <code
@@ -54,7 +50,7 @@ const Source = (props: { filename: string }) => {
 }
 
 const Sources = () => {
-  const sources = useContext(ExampleContext).sources
+  const sources = useContext(ExampleContext).content.sources
   const sourceEntries = sources && Object.entries(sources)
   return () =>
     sourceEntries ? (

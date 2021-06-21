@@ -1,6 +1,6 @@
 import { extractGlobData } from 'site/src/utils/extractGlobData'
 
-import { getExampleMeta } from './exampleMeta'
+import { getPackageMeta } from './packageMeta'
 
 // These two strings should match! The second one must be provided directly as
 // a string literal to placate vite, while the first one should match the
@@ -9,14 +9,15 @@ import { getExampleMeta } from './exampleMeta'
 //
 // prettier-ignore
 const glob =
-  '../../../examples/*/*/example.mdx'
+  '../../../docs/*/index.mdx'
 const frontMatters = import.meta.frontMatterGlobEager(
-  '../../../examples/*/*/example.mdx',
+  '../../../docs/*/index.mdx',
 )
 
-const metas = extractGlobData(glob, frontMatters).map(
-  ({ value, matches: [packageName, slug] }) =>
-    getExampleMeta(packageName, slug, value),
-)
+const metas = extractGlobData(glob, frontMatters)
+  .map(({ value, matches: [packageName] }) =>
+    getPackageMeta(packageName, value),
+  )
+  .filter((meta) => meta.packageName !== 'site')
 
 export default metas

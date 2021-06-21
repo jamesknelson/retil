@@ -19,7 +19,7 @@ const examplesRouter = loadMatch({
     props.head.push(<title>retil - examples</title>)
     const [{ default: data }, { default: Page }] = await Promise.all([
       import('../../data/exampleIndex'),
-      import('./examplesIndexPage'),
+      import('./exampleIndexPage'),
     ])
     return <Page data={data} />
   }),
@@ -28,17 +28,16 @@ const examplesRouter = loadMatch({
     const basename = env.nav.matchname
     const params = env.nav.params
     const pageModule = import('./examplePage')
-    const exampleContent = await getExampleContent(
+    const content = await getExampleContent(
       params.packageName as string,
       params.slug as string,
     )
 
-    if (!exampleContent) {
+    if (!content) {
       return notFoundLoader(props)
     }
 
-    const { Doc, clientMain, matchNestedRoutes, meta, serverMain, sources } =
-      exampleContent
+    const { clientMain, matchNestedRoutes, meta, serverMain } = content
     const disableSSR = serverMain === false
 
     head.push(
@@ -114,14 +113,7 @@ const examplesRouter = loadMatch({
 
     const { default: ExamplePage } = await pageModule
 
-    return (
-      <ExamplePage
-        Doc={Doc}
-        exampleNode={exampleNode}
-        meta={meta}
-        sources={sources}
-      />
-    )
+    return <ExamplePage content={content} exampleNode={exampleNode} />
   }),
 })
 
