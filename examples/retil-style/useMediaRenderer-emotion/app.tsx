@@ -1,4 +1,3 @@
-import React from 'react'
 import { defaultMediaQueries, useMediaRenderer } from 'retil-style'
 
 const App = () => {
