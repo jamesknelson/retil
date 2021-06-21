@@ -1,6 +1,6 @@
 import { css } from '@emotion/react'
 
-import { codeColors } from '../../styles/colors'
+import { codeColors } from 'site/src/styles/colors'
 
 export interface CodeBlockProps extends React.HTMLAttributes<HTMLPreElement> {
   'data-highlighted-line-numbers'?: string

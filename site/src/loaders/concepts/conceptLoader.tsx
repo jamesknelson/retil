@@ -1,14 +1,14 @@
 import { loadAsync } from 'retil-mount'
 import { loadMatch, notFoundLoader } from 'retil-nav'
 
-import { AppEnv } from '../../appEnv'
+import { AppEnv } from 'site/src/appEnv'
 import { getConceptContent } from 'site/src/data/conceptContent'
 
 const examplesRouter = loadMatch({
   '/': loadAsync<AppEnv>(async (props) => {
     props.head.push(<title>retil - concepts</title>)
     const [{ default: data }, { default: Page }] = await Promise.all([
-      import('../../data/conceptIndex'),
+      import('site/src/data/conceptIndex'),
       import('./conceptIndexPage'),
     ])
     return <Page data={data} />

@@ -13,7 +13,7 @@
     "build:es-and-types": "tsc -p tsconfig.build.json --module es2015 --outDir dist/es --declaration",
     "build:umd": "tsc -p tsconfig.build.json --pretty --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=development rollup -c -o dist/umd/retil.js && rimraf dist/umd-intermediate",
     "build:umd:min": "tsc -p tsconfig.build.json --module es2015 --outDir dist/umd-intermediate && cross-env NODE_ENV=production rollup -c -o dist/umd/retil.min.js && rimraf dist/umd-intermediate",
-    "build": "yarn run clean && yarn build:es-and-types && yarn build:commonjs && yarn build:types && yarn build:umd && yarn build:umd:min",
+    "build": "yarn run clean && yarn build:es-and-types && yarn build:commonjs && yarn build:umd && yarn build:umd:min",
     "build:watch": "yarn run clean && yarn build:es-and-types -- --watch",
     "prepare": "yarn build"
   },

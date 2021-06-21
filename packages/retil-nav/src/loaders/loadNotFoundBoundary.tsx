@@ -64,7 +64,7 @@ class NotFoundBoundary extends React.Component<
 }
 
 export const loadNotFoundBoundary = <TEnv extends NavEnv = NavEnv>(
-  mainLoader: Loader<TEnv | NavEnv>,
+  mainLoader: Loader<TEnv> | Loader<NavEnv>,
   notFoundLoader: Loader<TEnv>,
 ): Loader<TEnv> => {
   return (env) => {

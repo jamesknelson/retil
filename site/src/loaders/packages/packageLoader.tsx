@@ -8,7 +8,7 @@ const examplesRouter = loadMatch({
   '/': loadAsync<AppEnv>(async (props) => {
     props.head.push(<title>retil - concepts</title>)
     const [{ default: data }, { default: Page }] = await Promise.all([
-      import('../../data/packageIndex'),
+      import('site/src/data/packageIndex'),
       import('./packageIndexPage'),
     ])
     return <Page data={data} />

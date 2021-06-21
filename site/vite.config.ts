@@ -1,3 +1,4 @@
+import alias from '@rollup/plugin-alias'
 import reactRefresh from '@vitejs/plugin-react-refresh'
 import { join, resolve } from 'path'
 import emoji from 'remark-emoji'
@@ -17,6 +18,8 @@ import mdxPrism from './plugins/mdxPrism'
 import reactEmotion from './plugins/reactEmotion'
 import typography from './plugins/typography'
 
+const projectRootDir = resolve(__dirname)
+
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
   define: {
@@ -32,6 +35,11 @@ export default defineConfig(({ mode }) => ({
     jsxInject: `import {Fragment, jsx} from '${join(__dirname, 'react-shim')}'`,
   },
   plugins: [
+    alias({
+      entries: [
+        { find: 'site/src', replacement: resolve(projectRootDir, 'src') },
+      ],
+    }) as any,
     importFrontMatterPlugin(),
     importHighlightedSourcePlugin(),
     importGlobExtensionsPlugin(),

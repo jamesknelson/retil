@@ -1,7 +1,7 @@
 import { AnchorSurface, NavLinkSurface } from 'retil-interaction'
 import { useCSS } from 'retil-style'
 
-import { colors } from '../../styles/colors'
+import { colors } from 'site/src/styles/colors'
 
 const NavLinkBody: React.FunctionComponent<{ className?: string }> = ({
   children,

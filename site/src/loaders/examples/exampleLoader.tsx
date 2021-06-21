@@ -9,8 +9,8 @@ import {
 import { filter, fuse, map, mergeLatest } from 'retil-source'
 import { createMemo } from 'retil-support'
 
-import { AppEnv } from '../../appEnv'
-import { getExampleContent } from '../../data/exampleContent'
+import { AppEnv } from 'site/src/appEnv'
+import { getExampleContent } from 'site/src/data/exampleContent'
 
 const mappedEnvMemo = createMemo()
 
@@ -18,7 +18,7 @@ const examplesRouter = loadMatch({
   '/': loadAsync<AppEnv>(async (props) => {
     props.head.push(<title>retil - examples</title>)
     const [{ default: data }, { default: Page }] = await Promise.all([
-      import('../../data/exampleIndex'),
+      import('site/src/data/exampleIndex'),
       import('./exampleIndexPage'),
     ])
     return <Page data={data} />

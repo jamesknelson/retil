@@ -4,9 +4,9 @@ import { MDXProvider } from '@mdx-js/react'
 import { NavLinkSurface } from 'retil-interaction'
 import { isExternalAction } from 'retil-nav'
 
-import { CodeBlock } from '../../components/codeBlock'
-import { columnWidth } from '../../styles/dimensions'
-import { colors, palette } from '../../styles/colors'
+import { CodeBlock } from 'site/src/components/codeBlock'
+import { columnWidth } from 'site/src/styles/dimensions'
+import { colors, palette } from 'site/src/styles/colors'
 
 export interface DocumentContentProps {
   Component: React.ComponentType
