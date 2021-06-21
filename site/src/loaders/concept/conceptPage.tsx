@@ -1,7 +1,7 @@
 import { MDXProvider } from '@mdx-js/react'
 import { createContext, useContext } from 'react'
 
-import { DocumentContent } from 'site/src/components/documentContent'
+import { DocumentContent, DocumentFooter } from 'site/src/components/document'
 import { ConceptContent } from 'site/src/data/conceptContent'
 
 const ExampleContext = createContext<ConceptContent>(undefined as any)
@@ -15,6 +15,9 @@ function ConceptPage({ content }: ConceptPageProps) {
     <ExampleContext.Provider value={content}>
       <MDXProvider components={{ Title }}>
         <DocumentContent Component={content.Doc} />
+        <DocumentFooter
+          githubEditURL={`https://github.com/jamesknelson/retil/edit/master/docs/${content.meta.packageName}/concept-${content.meta.slug}.mdx`}
+        />
       </MDXProvider>
     </ExampleContext.Provider>
   )

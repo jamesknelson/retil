@@ -16,6 +16,7 @@ import importHighlightedSourcePlugin from './plugins/importHighlightedSourcePlug
 import importGlobExtensionsPlugin from './plugins/importGlobExtensionsPlugin'
 import mdxPrism from './plugins/mdxPrism'
 import reactEmotion from './plugins/reactEmotion'
+import reactStyledComponents from './plugins/reactStyledComponents'
 import typography from './plugins/typography'
 
 const projectRootDir = resolve(__dirname)
@@ -50,6 +51,7 @@ export default defineConfig(({ mode }) => ({
         projects: ['.'],
       }),
     reactEmotion(),
+    reactStyledComponents(),
     mdx.withImports({ [resolve('./plugins/mdxEmotion.ts')]: ['mdx'] })({
       remarkPlugins: [
         remarkFrontmatter,

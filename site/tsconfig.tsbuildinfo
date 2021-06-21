@@ -766,7 +766,7 @@
         "signature": "e48fb7e5cb4062b6dbe597396619a984618fb2f1aef6a4317789ece41b3f2802",
         "affectsGlobalScope": false
       },
-      "../packages/retil-nav/node_modules/path-to-regexp/dist/index.d.ts": {
+      "../node_modules/path-to-regexp/dist/index.d.ts": {
         "version": "6e7936b20cd2022c2a71f9d780e7f87216c19fde5c18448aaff60059a46ae2e7",
         "signature": "6e7936b20cd2022c2a71f9d780e7f87216c19fde5c18448aaff60059a46ae2e7",
         "affectsGlobalScope": false
@@ -1642,8 +1642,8 @@
         "affectsGlobalScope": false
       },
       "./src/data/examplecontent.tsx": {
-        "version": "d28424ac2f0801aa1a706deef26a6b9b85f3bc3cc0733d27af2452f21a7d50ae",
-        "signature": "f213f00d1ec7df4b4a5b8a8396a61f5919352423622b5b1771753566fd595607",
+        "version": "2ec9cb9d36b6832f941ed6fb4cc05f073fc41ddd3554a18c4d034ef32c951a44",
+        "signature": "249d698a77d734e9cd7fb62215a4e1a289ab2c8e44485e53df06efac8306e805",
         "affectsGlobalScope": false
       },
       "./src/data/exampleindex.ts": {
@@ -1656,8 +1656,18 @@
         "signature": "6ba6ec3dfefa2f47e3350d2c40e98193392b8b1e773262c36ebfa0d7a393b3fc",
         "affectsGlobalScope": false
       },
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts": {
+        "version": "bfe1b52cf71aea9bf8815810cc5d9490fa9617313e3d3c2ee3809a28b80d0bb4",
+        "signature": "bfe1b52cf71aea9bf8815810cc5d9490fa9617313e3d3c2ee3809a28b80d0bb4",
+        "affectsGlobalScope": false
+      },
+      "../node_modules/@types/styled-components/index.d.ts": {
+        "version": "6839e1779e1f61e0ed62b1ca3ff7e74dc70479a5455077a38434d0e404103c28",
+        "signature": "6839e1779e1f61e0ed62b1ca3ff7e74dc70479a5455077a38434d0e404103c28",
+        "affectsGlobalScope": true
+      },
       "./src/loaders/examples/examplepage.tsx": {
-        "version": "b0e5727d9a84a987472aa8019a425227cd69ec0446e49271fe68c65467cc3f53",
+        "version": "f7d451fa10f7d649d985a798c655f68c3e071a4bb7a7b3b366bbd7d747b12b0b",
         "signature": "3e91d13d9bb624faddb39ae06901e709f68e3f9d857ea8a5b30f181a3cebb64d",
         "affectsGlobalScope": false
       },
@@ -2022,7 +2032,7 @@
         "affectsGlobalScope": true
       },
       "./src/entry-server.tsx": {
-        "version": "b6f176d2de2c40839a172c014de8a4972348c6fb0a202cd483298e446248c2f7",
+        "version": "22d08cc94e1883394fd03587189d9eba2bc682deaecf9e41bfcdded6266d643a",
         "signature": "5a75a2244d3cf81566bb8050ba4ab66fec010287aef36ac0399e0994148b3c4c",
         "affectsGlobalScope": false
       }
@@ -2465,6 +2475,15 @@
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/qs/index.d.ts",
         "../node_modules/@types/serve-static/index.d.ts"
+      ],
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts": [
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts"
       ],
       "../node_modules/@types/lodash/common/array.d.ts": [
         "../node_modules/@types/lodash/common/collection.d.ts",
@@ -3389,6 +3408,17 @@
         "../node_modules/@types/node/ts3.7/index.d.ts",
         "../node_modules/@types/node/util.d.ts"
       ],
+      "../node_modules/@types/styled-components/index.d.ts": [
+        "../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/csstype/index.d.ts"
+      ],
       "../node_modules/@types/unist/index.d.ts": [
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/process.d.ts",
@@ -3422,6 +3452,14 @@
         "../node_modules/@types/node/util.d.ts"
       ],
       "../node_modules/memoize-one/dist/memoize-one.d.ts": [
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts"
+      ],
+      "../node_modules/path-to-regexp/dist/index.d.ts": [
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/process.d.ts",
         "../node_modules/@types/node/ts3.2/fs.d.ts",
@@ -5207,14 +5245,6 @@
         "../packages/retil-source/src/index.ts",
         "../packages/retil-support/src/index.ts"
       ],
-      "../packages/retil-nav/node_modules/path-to-regexp/dist/index.d.ts": [
-        "../node_modules/@types/node/fs.d.ts",
-        "../node_modules/@types/node/process.d.ts",
-        "../node_modules/@types/node/ts3.2/fs.d.ts",
-        "../node_modules/@types/node/ts3.2/process.d.ts",
-        "../node_modules/@types/node/ts3.2/util.d.ts",
-        "../node_modules/@types/node/util.d.ts"
-      ],
       "../packages/retil-nav/src/browsernavenvservice.ts": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
         "../node_modules/@types/node/fs.d.ts",
@@ -5365,8 +5395,8 @@
         "../node_modules/@types/node/ts3.2/process.d.ts",
         "../node_modules/@types/node/ts3.2/util.d.ts",
         "../node_modules/@types/node/util.d.ts",
+        "../node_modules/path-to-regexp/dist/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
-        "../packages/retil-nav/node_modules/path-to-regexp/dist/index.d.ts",
         "../packages/retil-nav/src/navutils.ts"
       ],
       "../packages/retil-nav/src/navcontext.tsx": [
@@ -6362,6 +6392,7 @@
         "../node_modules/@types/react-dom/server.d.ts",
         "../node_modules/@types/react/experimental.d.ts",
         "../node_modules/@types/react/index.d.ts",
+        "../node_modules/@types/styled-components/index.d.ts",
         "../node_modules/react-helmet-async/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
         "../node_modules/vite/client.d.ts",
@@ -6479,7 +6510,9 @@
         "../node_modules/@types/node/ts3.2/util.d.ts",
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/react/index.d.ts",
+        "../node_modules/@types/styled-components/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-style/src/index.ts",
         "./src/components/codeblock/index.ts",
         "./src/components/documentcontent/index.ts",
         "./src/data/examplecontent.tsx",
@@ -6950,6 +6983,15 @@
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/qs/index.d.ts",
         "../node_modules/@types/serve-static/index.d.ts"
+      ],
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts": [
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts"
       ],
       "../node_modules/@types/lodash/common/array.d.ts": [
         "../node_modules/@types/lodash/common/collection.d.ts",
@@ -7874,6 +7916,17 @@
         "../node_modules/@types/node/ts3.7/index.d.ts",
         "../node_modules/@types/node/util.d.ts"
       ],
+      "../node_modules/@types/styled-components/index.d.ts": [
+        "../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/csstype/index.d.ts"
+      ],
       "../node_modules/@types/unist/index.d.ts": [
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/process.d.ts",
@@ -7911,6 +7964,12 @@
         "../node_modules/@types/node/process.d.ts",
         "../node_modules/@types/node/ts3.2/fs.d.ts",
         "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts"
+      ],
+      "../node_modules/path-to-regexp/dist/index.d.ts": [
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
         "../node_modules/@types/node/ts3.2/util.d.ts",
         "../node_modules/@types/node/util.d.ts"
       ],
@@ -9321,14 +9380,6 @@
       "../packages/retil-mount/src/usemountsource.ts": [
         "../packages/retil-mount/src/mounttypes.ts"
       ],
-      "../packages/retil-nav/node_modules/path-to-regexp/dist/index.d.ts": [
-        "../node_modules/@types/node/fs.d.ts",
-        "../node_modules/@types/node/process.d.ts",
-        "../node_modules/@types/node/ts3.2/fs.d.ts",
-        "../node_modules/@types/node/ts3.2/process.d.ts",
-        "../node_modules/@types/node/ts3.2/util.d.ts",
-        "../node_modules/@types/node/util.d.ts"
-      ],
       "../packages/retil-nav/src/browsernavenvservice.ts": [
         "../packages/retil-nav/src/navtypes.ts"
       ],
@@ -9710,6 +9761,7 @@
       "../node_modules/@types/connect/index.d.ts",
       "../node_modules/@types/express-serve-static-core/index.d.ts",
       "../node_modules/@types/express/index.d.ts",
+      "../node_modules/@types/hoist-non-react-statics/index.d.ts",
       "../node_modules/@types/lodash/common/array.d.ts",
       "../node_modules/@types/lodash/common/collection.d.ts",
       "../node_modules/@types/lodash/common/common.d.ts",
@@ -9792,11 +9844,13 @@
       "../node_modules/@types/react/index.d.ts",
       "../node_modules/@types/scheduler/tracing.d.ts",
       "../node_modules/@types/serve-static/index.d.ts",
+      "../node_modules/@types/styled-components/index.d.ts",
       "../node_modules/@types/unist/index.d.ts",
       "../node_modules/@types/use-subscription/index.d.ts",
       "../node_modules/csstype/index.d.ts",
       "../node_modules/fast-deep-equal/index.d.ts",
       "../node_modules/memoize-one/dist/memoize-one.d.ts",
+      "../node_modules/path-to-regexp/dist/index.d.ts",
       "../node_modules/polished/lib/color/adjusthue.d.ts",
       "../node_modules/polished/lib/color/complement.d.ts",
       "../node_modules/polished/lib/color/darken.d.ts",
@@ -9975,7 +10029,6 @@
       "../packages/retil-mount/src/servermountcontext.ts",
       "../packages/retil-mount/src/usemount.ts",
       "../packages/retil-mount/src/usemountsource.ts",
-      "../packages/retil-nav/node_modules/path-to-regexp/dist/index.d.ts",
       "../packages/retil-nav/src/browsernavenvservice.ts",
       "../packages/retil-nav/src/hooks/usenavlinkprops.ts",
       "../packages/retil-nav/src/hooks/usenavmatch.ts",
@@ -10217,6 +10270,10 @@
         1
       ],
       [
+        "../node_modules/@types/hoist-non-react-statics/index.d.ts",
+        1
+      ],
+      [
         "../node_modules/@types/lodash/common/array.d.ts",
         1
       ],
@@ -10449,6 +10506,14 @@
         1
       ],
       [
+        "../node_modules/@types/node/ts3.4/base.d.ts",
+        1
+      ],
+      [
+        "../node_modules/@types/node/ts3.4/globals.global.d.ts",
+        1
+      ],
+      [
         "../node_modules/@types/node/ts3.5/base.d.ts",
         1
       ],
@@ -10545,6 +10610,10 @@
         1
       ],
       [
+        "../node_modules/@types/styled-components/index.d.ts",
+        1
+      ],
+      [
         "../node_modules/@types/unist/index.d.ts",
         1
       ],
@@ -10562,6 +10631,10 @@
       ],
       [
         "../node_modules/memoize-one/dist/memoize-one.d.ts",
+        1
+      ],
+      [
+        "../node_modules/path-to-regexp/dist/index.d.ts",
         1
       ],
       [
@@ -10925,7 +10998,55 @@
         1
       ],
       [
+        "../node_modules/typescript/lib/lib.dom.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.dom.iterable.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.collection.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.core.d.ts",
+        1
+      ],
+      [
         "../node_modules/typescript/lib/lib.es2015.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.generator.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.iterable.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.promise.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.proxy.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.reflect.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.symbol.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2015.symbol.wellknown.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2016.array.include.d.ts",
         1
       ],
       [
@@ -10937,7 +11058,51 @@
         1
       ],
       [
+        "../node_modules/typescript/lib/lib.es2017.intl.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2017.object.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2017.sharedmemory.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2017.string.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2017.typedarrays.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2018.asyncgenerator.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2018.asynciterable.d.ts",
+        1
+      ],
+      [
         "../node_modules/typescript/lib/lib.es2018.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2018.intl.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2018.promise.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2018.regexp.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2019.array.d.ts",
         1
       ],
       [
@@ -10945,11 +11110,67 @@
         1
       ],
       [
+        "../node_modules/typescript/lib/lib.es2019.object.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2019.string.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2019.symbol.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2020.bigint.d.ts",
+        1
+      ],
+      [
         "../node_modules/typescript/lib/lib.es2020.d.ts",
         1
       ],
       [
+        "../node_modules/typescript/lib/lib.es2020.intl.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2020.promise.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2020.sharedmemory.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2020.string.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es2020.symbol.wellknown.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.es5.d.ts",
+        1
+      ],
+      [
         "../node_modules/typescript/lib/lib.esnext.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.esnext.intl.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.esnext.promise.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.esnext.string.d.ts",
+        1
+      ],
+      [
+        "../node_modules/typescript/lib/lib.esnext.weakref.d.ts",
         1
       ],
       [

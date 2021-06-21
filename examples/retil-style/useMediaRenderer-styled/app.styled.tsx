@@ -1,5 +1,9 @@
-import styled from 'styled-components'
-import { defaultMediaQueries, useMediaRenderer } from 'retil-style'
+import styled, { css } from 'styled-components'
+import {
+  defaultMediaQueries,
+  StyleProvider,
+  useMediaRenderer,
+} from 'retil-style'
 
 const StyledDiv = styled.div<{ x: any }>`
   ${(props) => props.x}
@@ -11,7 +15,7 @@ const App = () => {
   const renderWhenSmall = useMediaRenderer(defaultMediaQueries.small)
 
   return (
-    <>
+    <StyleProvider cssFunction={css}>
       {renderWhenLarge((x) => (
         <StyledDiv x={x}>Large</StyledDiv>
       ))}
@@ -21,7 +25,7 @@ const App = () => {
       {renderWhenSmall((x) => (
         <StyledDiv x={x}>Small</StyledDiv>
       ))}
-    </>
+    </StyleProvider>
   )
 }
 

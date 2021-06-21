@@ -18,8 +18,9 @@ export interface ExampleContent {
   clientMain: ExampleClientMain
   matchNestedRoutes: boolean
   meta: ExampleMeta
-  sources: Record<string, string>
   serverMain: false | ExampleServerMain // false disables SSR per example
+  sources: Record<string, string>
+  styledComponents: boolean
 }
 
 export type ExampleClientMain = (
@@ -62,6 +63,8 @@ export async function getExampleContent(
     meta: moduleMeta = {},
     sources = {},
 
+    styledComponents = false,
+
     // Match nested routes by default when providing a main function
     matchNestedRoutes = !!mod.clientMain,
   } = mod
@@ -71,10 +74,11 @@ export async function getExampleContent(
   return {
     Doc,
     clientMain,
-    serverMain,
-    meta,
-    sources,
     matchNestedRoutes,
+    meta,
+    serverMain,
+    sources,
+    styledComponents,
   }
 }
 

@@ -2,7 +2,7 @@ import { MDXProvider } from '@mdx-js/react'
 import { createContext, useContext } from 'react'
 import { NavLinkSurface } from 'retil-interaction'
 
-import { DocumentContent } from 'site/src/components/documentContent'
+import { DocumentContent } from 'site/src/components/document'
 import { PackageContent } from 'site/src/data/packageContent'
 
 const PackageContext = createContext<PackageContent>(undefined as any)
@@ -27,7 +27,7 @@ const ConceptList = () => (
   <ul>
     {useContext(PackageContext).concepts.map((concept) => (
       <li key={concept.slug}>
-        <NavLinkSurface to={`/concepts/${concept.packageName}/${concept.slug}`}>
+        <NavLinkSurface to={`./concepts/${concept.slug}`}>
           {concept.title}
         </NavLinkSurface>
       </li>
@@ -39,7 +39,7 @@ const ExampleList = () => (
   <ul>
     {useContext(PackageContext).examples.map((example) => (
       <li key={example.slug}>
-        <NavLinkSurface to={`/examples/${example.packageName}/${example.slug}`}>
+        <NavLinkSurface to={`./examples/${example.slug}`}>
           {example.title}
         </NavLinkSurface>
       </li>

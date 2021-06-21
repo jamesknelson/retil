@@ -2,10 +2,10 @@ import groupBy from 'lodash/groupBy'
 import { NavLinkSurface } from 'retil-interaction'
 import { useCSS } from 'retil-style'
 
-import { ConceptMeta } from 'site/src/data/conceptMeta'
+import { ExampleMeta } from 'site/src/data/exampleMeta'
 
 interface Props {
-  data: ConceptMeta[]
+  data: ExampleMeta[]
 }
 
 function Page(props: Props) {
@@ -42,7 +42,7 @@ function Page(props: Props) {
                   margin: 0.5rem 0;
                 `}>
                 <NavLinkSurface
-                  to={`./${exampleModule.packageName}/${exampleModule.slug}`}>
+                  to={`../packages/${exampleModule.packageName}/examples/${exampleModule.slug}`}>
                   {exampleModule.title}
                 </NavLinkSurface>
               </li>

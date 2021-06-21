@@ -1,11 +1,15 @@
 import { loadAsync } from 'retil-mount'
 import { loadMatch, loadNotFoundBoundary } from 'retil-nav'
 
-import { DocumentContent } from 'site/src/components/documentContent'
+import { DocumentContent } from 'site/src/components/document'
 
-import conceptLoader from './concepts/conceptLoader'
-import exampleLoader from './examples/exampleLoader'
-import packageLoader from './packages/packageLoader'
+import conceptLoader from './concept/conceptLoader'
+import conceptIndexLoader from './conceptIndex/conceptIndexLoader'
+import exampleLoader from './example/exampleLoader'
+import exampleIndexLoader from './exampleIndex/exampleIndexLoader'
+import packageLoader from './package/packageLoader'
+import packageIndexLoader from './packageIndex/packageIndexLoader'
+
 import notFoundLoader from './notFoundLoader'
 
 const appLoader = loadNotFoundBoundary(
@@ -16,9 +20,16 @@ const appLoader = loadNotFoundBoundary(
       )
       return <DocumentContent Component={Component} />
     }),
-    '/concepts*': conceptLoader,
-    '/examples*': exampleLoader,
-    '/packages*': packageLoader,
+    '/concepts': conceptIndexLoader,
+    '/examples': exampleIndexLoader,
+    '/packages*': loadMatch({
+      '/': packageIndexLoader,
+      '/:packageName*': loadMatch({
+        '/': packageLoader,
+        '/concepts/:slug': conceptLoader,
+        '/examples/:slug': exampleLoader,
+      }),
+    }),
   }),
   notFoundLoader,
 )

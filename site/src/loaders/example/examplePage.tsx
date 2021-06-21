@@ -1,9 +1,11 @@
 import { css } from '@emotion/react'
 import { MDXProvider } from '@mdx-js/react'
 import React, { createContext, useContext } from 'react'
+import { StyleProvider } from 'retil-style'
+import { css as styledCSS } from 'styled-components'
 
 import { CodeBlock } from 'site/src/components/codeBlock'
-import { DocumentContent } from 'site/src/components/documentContent'
+import { DocumentContent, DocumentFooter } from 'site/src/components/document'
 import { ExampleContent } from 'site/src/data/exampleContent'
 import { colors } from 'site/src/styles/colors'
 
@@ -15,13 +17,22 @@ export interface ExamplePageProps {
 }
 
 export default function ExamplePage(props: ExamplePageProps) {
-  return (
+  const meta = props.content.meta
+  const result = (
     <ExampleContext.Provider value={props}>
       <MDXProvider components={{ Example, Source, Sources, Title }}>
         <DocumentContent Component={props.content.Doc} />
+        <DocumentFooter
+          githubEditURL={`https://github.com/jamesknelson/retil/tree/master/examples/${meta.packageName}/${meta.slug}`}
+        />
       </MDXProvider>
     </ExampleContext.Provider>
   )
+  if (props.content.styledComponents) {
+    return <StyleProvider cssFunction={styledCSS}>{result}</StyleProvider>
+  } else {
+    return result
+  }
 }
 
 const Title = () => <>{useContext(ExampleContext).content.meta.title}</>

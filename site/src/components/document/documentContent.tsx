@@ -135,7 +135,7 @@ export function DocumentContent({ Component }: DocumentContentProps) {
       <div
         css={css`
           margin: 2rem auto;
-          padding: 0 1rem;
+          padding: 0 1rem 1rem;
           max-width: ${columnWidth};
           position: relative;
         `}>

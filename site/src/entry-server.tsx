@@ -11,6 +11,7 @@ import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
 import { Mount, ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
 import { StyleProvider } from 'retil-style'
+import { ServerStyleSheet } from 'styled-components'
 
 import { App } from './components/app'
 import { AppGlobalStyles } from './styles/appGlobalStyles'
@@ -32,6 +33,7 @@ export async function render(
     return null
   }
 
+  const sheet = new ServerStyleSheet()
   const mount = new ServerMount(appLoader, env)
   const styleCache = createStyleCache({ key: 'sskk' })
   const { extractCriticalToChunks, constructStyleTagsFromChunks } =
@@ -48,15 +50,17 @@ export async function render(
     } else {
       const { html: appHTML, styles: appStyles } = extractCriticalToChunks(
         renderToString(
-          mount.provide(
-            <StyleCacheProvider value={styleCache}>
-              <StyleProvider cssFunction={css}>
-                <AppGlobalStyles />
-                <Mount loader={appLoader} env={env}>
-                  <App />
-                </Mount>
-              </StyleProvider>
-            </StyleCacheProvider>,
+          sheet.collectStyles(
+            mount.provide(
+              <StyleCacheProvider value={styleCache}>
+                <StyleProvider cssFunction={css}>
+                  <AppGlobalStyles />
+                  <Mount loader={appLoader} env={env}>
+                    <App />
+                  </Mount>
+                </StyleProvider>
+              </StyleCacheProvider>,
+            ),
           ),
         ),
       )
@@ -74,12 +78,14 @@ export async function render(
         </HelmetProvider>,
       )
 
+      const styledComponentsStyleTags = sheet.getStyleTags()
       const headHTML = `
         ${helmetContext.helmet.title.toString()}
         ${helmetContext.helmet.meta.toString()}
         ${helmetContext.helmet.script.toString()}
         ${helmetContext.helmet.style.toString()}
         ${constructStyleTagsFromChunks({ html: appHTML, styles: appStyles })}
+        ${styledComponentsStyleTags}
       `
 
       return {
@@ -88,6 +94,7 @@ export async function render(
       }
     }
   } finally {
+    sheet.seal()
     mount.seal()
   }
 }
