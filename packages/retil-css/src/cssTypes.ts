@@ -1,25 +1,36 @@
 import * as CSS from 'csstype'
+import type { Context } from 'react'
 
 import { SurfaceSelector } from './surfaceSelector'
 import { ThemeRx, rxSymbol } from './theme'
-
-export interface CSSRuntimeFunction {
-  (template: TemplateStringsArray, ...args: Array<CSSInterpolation>): any
-  (...args: Array<CSSInterpolation>): any
-}
 
 export type BaseExtensibleObject = {
   [key: string]: any
 }
 
-export type ExecutionContext = BaseExtensibleObject & {
-  theme?: { [rxSymbol]?: ThemeRx }
-} & {
+export type ExecutionContext<Theme extends CSSTheme = CSSTheme> =
+  BaseExtensibleObject & {
+    theme?: Theme
+  } & Theme
+
+export type CSSTheme = BaseExtensibleObject & {
   [rxSymbol]?: ThemeRx
 }
 
+export interface CSSRuntime<Theme extends CSSTheme = CSSTheme> {
+  themeContext: Context<Theme>
+  css: CSSRuntimeFunction<ExecutionContext<Theme>>
+}
+
+export interface CSSRuntimeFunction<
+  Props extends ExecutionContext = ExecutionContext,
+> {
+  (template: TemplateStringsArray, ...args: Array<CSSInterpolation<Props>>): any
+  (...args: Array<CSSInterpolation<Props>>): any
+}
+
 export type CSSPropFunction<Props extends ExecutionContext = ExecutionContext> =
-  (themeOrProps: Props) => CSSInterpolation
+  (themeOrProps: Props) => CSSInterpolation<Props>
 
 // Equivalent to the CSSObject type expected by styled-components and emotion.
 export type CSSProperties = CSS.Properties<string | number>
@@ -30,9 +41,13 @@ export type CSSPropertiesWithMultiValues = {
 }
 
 export type CSSPseudos = { [K in CSS.Pseudos]?: CSSObject }
-export interface ArrayCSSInterpolation extends Array<CSSInterpolation> {}
+export interface ArrayCSSInterpolation<
+  Props extends ExecutionContext = ExecutionContext,
+> extends Array<CSSInterpolation<Props>> {}
 
-export type InterpolationPrimitive =
+export type InterpolationPrimitive<
+  Props extends ExecutionContext = ExecutionContext,
+> =
   | null
   | undefined
   | boolean
@@ -42,7 +57,7 @@ export type InterpolationPrimitive =
   // | Keyframes
   // | ComponentSelector
   | CSSObject
-  | CSSPropFunction
+  | CSSPropFunction<Props>
   | SurfaceSelector
 
 export interface CSSObject
@@ -50,7 +65,9 @@ export interface CSSObject
     CSSPseudos,
     CSSOthersObject {}
 
-export type CSSInterpolation = InterpolationPrimitive | ArrayCSSInterpolation
+export type CSSInterpolation<
+  Props extends ExecutionContext = ExecutionContext,
+> = InterpolationPrimitive<Props> | ArrayCSSInterpolation<Props>
 
 export interface CSSOthersObject {
   [propertiesName: string]: CSSInterpolation

@@ -1,8 +1,13 @@
-import { css } from 'packages/retil-style/src/downSelector'
-import { isPlainObject } from 'retil-support'
+import React, { useContext, useMemo } from 'react'
 
 import { customSelectorPrefix } from './constants'
-import { CSSInterpolation, CSSPropFunction, ExecutionContext } from './cssTypes'
+import {
+  CSSInterpolation,
+  CSSPropFunction,
+  CSSTheme,
+  ExecutionContext,
+} from './cssTypes'
+import { defaultRuntime } from './defaultRuntime'
 import { HighStyle } from './highStyle'
 import { ThemeRx, rxSymbol } from './theme'
 
@@ -21,9 +26,7 @@ export type MediaQuery = string & {
     ...interpolations: Array<CSSInterpolation>
   ): CSSPropFunction
 
-  (
-    ...args: Array<CSSInterpolation>
-  ): CSSPropFunction
+  (...args: Array<CSSInterpolation>): CSSPropFunction
 }
 
 export type MediaQueryTuple = [
@@ -49,9 +52,7 @@ export function createMediaQuery(defaultValue: string) {
 
       const cssFunction: CSSPropFunction = (props) => {
         const mappedArgs = args.map((arg) =>
-          typeof arg === 'function'
-            ? arg(props)
-            : arg,
+          typeof arg === 'function' ? arg(props) : arg,
         )
 
         const theme =
@@ -62,15 +63,11 @@ export function createMediaQuery(defaultValue: string) {
         const { media, runtime } = theme[rxSymbol]
         const selector = media[serialNumber] ?? defaultValue
         const originalCSS = runtime.apply(null, mappedArgs)
-        
+
         if (selector === true) {
           return originalCSS
         } else if (selector) {
-          return runtime(
-            runtime`${selector} {`,
-            originalCSS,
-            runtime`}`,
-          )
+          return runtime(runtime`${selector} {`, originalCSS, runtime`}`)
         }
       }
 
@@ -88,7 +85,28 @@ export function createMediaQuery(defaultValue: string) {
 }
 
 export interface ProvideMediaQueriesProps {
-  children: 
+  children: React.ReactNode
+  override: {
+    [key: string]: string | boolean
+  }
+  themeContext?: React.Context<CSSTheme>
 }
 
-export function ProvideMediaQueries(props: ProvideMediaQueriesProps) {}
+export function ProvideMediaQueries(props: ProvideMediaQueriesProps) {
+  const themeContext = props.themeContext ?? defaultRuntime.themeContext
+
+  const theme = useContext(themeContext)
+  const extendedTheme = useMemo(
+    () => ({
+      // TODO: update the theme
+      ...theme,
+    }),
+    [theme],
+  )
+
+  return (
+    <themeContext.Provider value={extendedTheme}>
+      {props.children}
+    </themeContext.Provider>
+  )
+}
