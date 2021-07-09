@@ -33,30 +33,3 @@ export function StyleProvider({
     </themeContextContext.Provider>
   )
 }
-
-export interface ProvideMediaQueriesProps {
-  children: React.ReactNode
-  value?: Record<string, string>
-}
-
-export function ProvideMediaQueries(props: ProvideMediaQueriesProps) {
-  const { children, value } = props
-  const memoQueries = useMemo(
-    () => memoizeOne(identity, (x, y) => areShallowEqual(x[0], y[0])),
-    [],
-  )
-  const memoizedQueries = memoQueries(value || defaultMediaQueries)
-  const downSelect = useCallback(
-    (selectorName: string) => {
-      const query = memoizedQueries[selectorName]
-      return query && '@media ' + query
-    },
-    [memoizedQueries],
-  )
-
-  return (
-    <ProvideDownSelector downSelect={downSelect}>
-      {children}
-    </ProvideDownSelector>
-  )
-}
