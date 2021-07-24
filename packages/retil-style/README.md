@@ -1,168 +1,124 @@
-# retil-styles
+# retil-css
 
-**CSS-in-JS, inside out and upside down.**
+**Superpowers for decoupling style from behavior.**
 
-## What if?
 
-What if instead of mapping selectors-to-properties-to-values...
+✅ Works with [Styled Components](https://styled-components.com/) and [Emotion](https://emotion.sh/)
+✅ SSR friendly
+✅ Built for Concurrent React
+✅ You'll wonder how you ever lived without it
 
-```jsx
-<button css={{
-  borderStyle: 'solid',
-  borderColor: 'black',
-  ':hover': {
-    borderColor: 'red',
-  }
-}}>
-```
 
-You mapped properties-to-selectors-to-values?
+### Surface Selectors
+
+Gone are the days where you'd need to create different variations of your styles for links, buttons, submit buttons, any any other kind of behavior you came across.
+
+With retil-css, now you simply create re-usable **style components** that can be rendered inside *any* **surface component**.
 
 ```jsx
-<Button
-  borderStyle='solid',
-  borderColor={{
-    default: 'black',
-    ':hover': 'red',
-  }}
-/>
+const inFocusedSurface = createSurfaceSelector(':focus')
+
+const ButtonStyle = ({ children, color = 'red' }) => (
+  <div css={css`
+    background-color: ${color};
+    border-radius: 4px;
+    color: white;
+
+    ${inFocusSurface} {
+      box-shadow: 0 0 0 2px blue;
+    }
+  `}>
+    {children}
+  </div>
+)
+
+render(
+  <>
+    <ButtonSurface>
+      <ButtonStyle>
+        I'm a button!
+      </ButtonStyle>
+    </ButtonSurface>
+    <LinkSurface>
+      <ButtonStyle>
+        I'm a link that looks like a button!
+      </ButtonStyle>
+    </LinkSurface>
+  </>
+)
 ```
 
-If your css attributes could accept functions as values, you could even specify colors for all states in a single theme object...
+
+### Custom Surface Selectors
+
+With retil-css, you're no longer limited to the CSS selectors that the internet gods deigned fit to include in the browsers of yore. Because with custom selectors, you can create any behavior-based CSS selector that you can imagine!
+
+For example, custom selectors allow you to create components whose styles vary when mounted in a link to the currently active page –– using the <ConnectSurface> component.
 
 ```jsx
-<Button
-  borderColor={theme => theme.buttons.borderColor}
-/>
-```
+const inLocalLinkSurface = createSurfaceSelector(':local-link')
 
----
-
-And what if instead of tying your pseudo-selectors to individual elements:
-
-```jsx
-<button css={{
-  ':hover': {
-    borderColor: 'red'
-  }
-}}>
-```
-
-You could specified a control boundary, and nested elements would automatically place the `:hover` selector where it makes sense?
-
-```jsx
-<ButtonSurface>
-  <Icon
-    glyph={TranslationsMenu}
-    color={{
-      default: 'black' 
-      hover: 'red',
-    }}
-  />
-  <Caret
-    color={{
-      default: 'black' 
-      hover: 'red',
-    }}
-  />
-</ButtonSurface>
-```
-
-It'd allow you to create re-usable components that respond to user interaction – no matter whether that interaction is part of a button, an input, a plain-old div, or even a push-state link:
-
-```jsx
-<LinkSurface to='/start'>
-  <ButtonBody
-    backgroundColor='white'
-    borderColor={{
-      default: 'black',
-      hover: 'gray',
-      active: 'darkred',
-    }}
-    margin='8px 4px'
-  }}>
-    <ButtonContent
-      caret
-      glyph={Play}
-      label="Play"
-      color={{
-        default: 'black',
-        hover: 'gray',
-      }}
-    />
-  </ButtonBody>
-</LinkSurface>
-```
-
-How it works
-------------
-
-There's three parts to making the above demo work:
-
-- `useHighStyle()`
-- `<ProvideDownSelector>`
-- and Surface component
-
-This package gives you the `useHighStyle()` hook, and the `<ProvideDownSelector>` provider that allows you to configure custom selectors for your styles like `hover`, `widescreen`. The [retil-interactions](#) package exports the surface components that'll allow you to reuse your interactive styles across multiple packages.
-
-
-### `useHighStyle`
-
-This hook takes an object of nested style objects, and returns a function that takes "high styles" with custom selectors, and returns the format accepted by your `css` prop -- as supported by [Styled Components](http://styled-components.com/) and [Emotion](https://emotion.sh/docs/introduction).
-
-#### Basic usage
-
-```tsx
-import { stringifyTransition, useHighStyle } from 'retil-style'
-
-const directionAngles = {
-  down: '0deg',
-  up: '180deg',
-  left: '-90deg',
-  right: '90deg',
-}
-
-export const Caret = forwardRef((props, ref) => {
-  const {
-    color = 'currentColor',
-    direction = 'down',
-    transition,
-    width = 5,
-    ...rest
-  } = props
-  const [styleProps, passthroughProps] = pickAndOmit(rest, layout)
-  const highStyle = useHighStyle()
+const LinkSurface = ({ href, ...rest }) => {
+  // Return true if the given href matches the current URL
+  const active = useNavMatch(href)
+  const linkProps = useNavLinkProps(href)
 
   return (
-    <div 
-      {...passthrough}
-      ref={ref}
-      css={highStyle({
-        borderTopColor: color,
-        borderWidth: width,
-        marginBottom: -width,
-        borderColor: 'transparent',
-        borderStyle: 'solid',
-        height: 0,
-        width: 0,
-        transform: `rotate(${directionAngles[value]})`,
-        ...styleProps,
-        transition: stringifyTransition(transition, {
-          defaults: {
-            duration: 200,
-            timing: timings.easeOut
-          },
-          properties: {
-            color: ['borderTopColor']
-            width: ['borderWidth', 'marginBottom']
-            direction: ['transform']
-          }
-        })
-      })}
-    />
+    <ConnectSurface
+      mergeProps={{ ...rest, ...linkProps }}
+      overrideSelectors={[
+        [inLocalLinkSurface, active]
+      ]}
+    >
+      {props => <a {...props} />}
+    </ConnectSurface>
   )
-})
+}
 ```
+
+Now that you have a `<LinkSurface>` component and `inLocalLink` selector, you can use them just like the in-built surfaces and selectors!
+
+```jsx
+const NavLinkStyle = ({ children }) => (
+  <div css={css`
+    ${inLocalLinkSurface} {
+      border-bottom: 2px solid gray;
+    }
+  `}>
+    {children}
+  </div>
+)
+
+render(
+  <LinkSurface>
+    <NavLinkStyle>
+      I'm a link that looks like a button!
+    </NavLinkStyle>
+  </LinkSurface>
+)
+```
+
+
+### High Style
+
+Re-usable style components free you up to create high-quality component libraries and design systems, and retil-css facilitates this too with **high style** – style objects that allow for different values in different surfaces.
+
+```jsx
+const inHoveredSurface = createSurfaceSelector(':hover')
+
+<div css={css({
+  color: {
+    default: 'black',
+    [inHoveredSurface]: 'red',
+    [inLocalLink]: 'black',
+  },
+  fontSize: {
+    default: '16px',
+    [inSmallMedia]: '14px',
+  }
+})} />
+```
+
 
 
 Thoughts on styling

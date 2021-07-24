@@ -5,7 +5,7 @@ import { useNavController } from '../navContext'
 import { NavAction } from '../navTypes'
 import { createHref } from '../navUtils'
 
-import { useNavResolve } from './useNavResolve'
+import { useNavResolver } from './useNavResolver'
 
 export interface UseNavLinkPropsOptions {
   disabled?: boolean
@@ -31,8 +31,8 @@ export const useNavLinkProps = (
     onMouseLeave,
   } = options
   const { navigate, precache } = useNavController()
-  const resolve = useNavResolve()
-  const action = resolve(to, state)
+  const resolver = useNavResolver()
+  const action = resolver(to, state)
 
   const releasePrecacheRef = useRef<undefined | (() => void)>(undefined)
   const doPrecache = useCallback(() => {
@@ -109,6 +109,6 @@ export const useNavLinkProps = (
     onClick: handleClick,
     onMouseEnter: handleMouseEnter,
     onMouseLeave: handleMouseLeave,
-    href: action ? createHref(action) : (to as string),
+    href: disabled ? undefined : action ? createHref(action) : (to as string),
   }
 }

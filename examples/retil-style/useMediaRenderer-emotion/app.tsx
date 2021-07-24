@@ -1,9 +1,21 @@
-import { defaultMediaQueries, useMediaRenderer } from 'retil-style'
+import { css, ThemeContext } from '@emotion/react'
+import {
+  createMediaSelector,
+  defaultMediaQueries,
+  useMediaRenderer,
+} from 'retil-media'
+import { StyleProvider } from 'retil-style'
+
+const media = {
+  large: createMediaSelector(defaultMediaQueries.large),
+  medium: createMediaSelector(defaultMediaQueries.medium),
+  small: createMediaSelector(defaultMediaQueries.small),
+}
 
 const App = () => {
-  const renderWhenLarge = useMediaRenderer(defaultMediaQueries.large)
-  const renderWhenMedium = useMediaRenderer(defaultMediaQueries.medium)
-  const renderWhenSmall = useMediaRenderer(defaultMediaQueries.small)
+  const renderWhenLarge = useMediaRenderer(media.large)
+  const renderWhenMedium = useMediaRenderer(media.medium)
+  const renderWhenSmall = useMediaRenderer(media.small)
 
   return (
     <>
@@ -20,4 +32,10 @@ const App = () => {
   )
 }
 
-export default App
+const Root = () => (
+  <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+    <App />
+  </StyleProvider>
+)
+
+export default Root

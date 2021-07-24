@@ -1,7 +1,7 @@
 import { css } from '@emotion/react'
 import styled from '@emotion/styled'
 import { MDXProvider } from '@mdx-js/react'
-import { NavLinkSurface } from 'retil-interaction'
+import { AnchorSurface, LinkSurface } from 'retil-interaction'
 import { isExternalAction } from 'retil-nav'
 
 import { CodeBlock } from 'site/src/components/codeBlock'
@@ -15,9 +15,9 @@ export interface DocumentContentProps {
 function Link({ href, ...rest }: any) {
   return isExternalAction(href) ? (
     // eslint-disable-next-line jsx-a11y/anchor-has-content
-    <a href={href} {...rest} />
+    <AnchorSurface href={href} {...rest} />
   ) : (
-    <NavLinkSurface to={href} {...rest} />
+    <LinkSurface to={href} {...rest} />
   )
 }
 

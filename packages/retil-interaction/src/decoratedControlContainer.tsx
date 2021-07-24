@@ -12,3 +12,11 @@
 //     selector to pick out the control
 //   * can be used outside of a ControlProvider, allowing interaction styles
 //     to be applied using pure CSS pseudoselectors and no extra event handlers.
+
+// - hover selector will target the container itself
+// - active/disabled/focus selectors will be based on `input ~ &`
+// - the container and all non-input elements will delegate focus to the input
+// - sub-surfaces can provide their own context to move the hover selector,
+//   and may also update the "active" selector (need to test this works or
+//   maybe implement javascript-based forcing for it), but sub-surfaces won't
+//   provide focus selectors as focus should stay within the input itself.

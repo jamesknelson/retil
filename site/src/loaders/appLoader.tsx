@@ -27,7 +27,7 @@ const appLoader = loadNotFoundBoundary(
       '/:packageName*': loadMatch({
         '/': packageLoader,
         '/concepts/:slug': conceptLoader,
-        '/examples/:slug': exampleLoader,
+        '/examples/:slug/*': exampleLoader,
       }),
     }),
   }),

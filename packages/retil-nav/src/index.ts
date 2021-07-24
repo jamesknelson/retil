@@ -1,7 +1,7 @@
+export * from './hooks/useBoundaryNavScroller'
 export * from './hooks/useNavLinkProps'
-export * from './hooks/useNavMatch'
-export * from './hooks/useNavResolve'
-export * from './hooks/useNavScroller'
+export * from './hooks/useNavMatcher'
+export * from './hooks/useNavResolver'
 
 export * from './loaders/loadMatch'
 export * from './loaders/loadNotFoundBoundary'

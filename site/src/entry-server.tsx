@@ -2,7 +2,11 @@
 /// <reference types="vite/client" />
 
 import createStyleCache from '@emotion/cache'
-import { CacheProvider as StyleCacheProvider, css } from '@emotion/react'
+import {
+  CacheProvider as StyleCacheProvider,
+  ThemeContext,
+  css,
+} from '@emotion/react'
 import createEmotionServer from '@emotion/server/create-instance'
 import { Request, Response } from 'express'
 import { ReactElement, cloneElement } from 'react'
@@ -53,7 +57,7 @@ export async function render(
           sheet.collectStyles(
             mount.provide(
               <StyleCacheProvider value={styleCache}>
-                <StyleProvider cssFunction={css}>
+                <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
                   <AppGlobalStyles />
                   <Mount loader={appLoader} env={env}>
                     <App />

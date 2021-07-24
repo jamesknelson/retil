@@ -1,6 +1,6 @@
+import { css } from '@emotion/react'
 import groupBy from 'lodash/groupBy'
-import { NavLinkSurface } from 'retil-interaction'
-import { useCSS } from 'retil-style'
+import { LinkSurface } from 'retil-interaction'
 
 import { ExampleMeta } from 'site/src/data/exampleMeta'
 
@@ -9,7 +9,6 @@ interface Props {
 }
 
 function Page(props: Props) {
-  const css = useCSS()
   const { data } = props
   const exampleModulesByPackage = groupBy(data, 'packageName')
   const packageNames = Object.keys(exampleModulesByPackage)
@@ -41,10 +40,10 @@ function Page(props: Props) {
                 css={css`
                   margin: 0.5rem 0;
                 `}>
-                <NavLinkSurface
-                  to={`../packages/${exampleModule.packageName}/examples/${exampleModule.slug}`}>
+                <LinkSurface
+                  href={`../packages/${exampleModule.packageName}/examples/${exampleModule.slug}`}>
                   {exampleModule.title}
-                </NavLinkSurface>
+                </LinkSurface>
               </li>
             ))}
           </ul>

@@ -3,7 +3,11 @@
 /// <reference types="vite/client" />
 
 import createStyleCache from '@emotion/cache'
-import { CacheProvider as StyleCacheProvider, css } from '@emotion/react'
+import {
+  ThemeContext,
+  CacheProvider as StyleCacheProvider,
+  css,
+} from '@emotion/react'
 import { cloneElement } from 'react'
 import { createRoot } from 'react-dom'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
@@ -52,7 +56,7 @@ function Head() {
 
 reactRoot.render(
   <StyleCacheProvider value={styleCache}>
-    <StyleProvider cssFunction={css}>
+    <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
       <AppGlobalStyles />
       <Mount loader={appLoader} env={envSource}>
         <Head />

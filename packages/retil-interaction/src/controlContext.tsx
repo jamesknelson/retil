@@ -15,7 +15,6 @@
 import React, {
   ReactElement,
   ReactNode,
-  SyntheticEvent,
   cloneElement,
   createContext,
   forwardRef,
@@ -27,16 +26,11 @@ import React, {
 import { noop } from 'retil-support'
 
 import { useConnectRef } from './connectRef'
-import { SurfaceDefaultsProvider } from './surfaceDefaultsContext'
+import { FocusDelegationProvider, FocusableElement } from './focusable'
 
 export interface ControlContext {
-  ref: React.RefCallback<ControlHandle | null>
+  ref: React.RefCallback<FocusableElement | null>
   tabIndex: number
-}
-
-export interface ControlHandle {
-  blur?: HTMLElement['blur']
-  focus: HTMLElement['focus']
 }
 
 export type ConnectControlFunction = (element: ReactElement) => ReactElement
@@ -52,50 +46,43 @@ export interface ControlProviderProps {
   tabIndex?: number
 }
 
-export const ControlProvider = forwardRef<ControlHandle, ControlProviderProps>(
-  (props, ref) => {
-    const { children, tabIndex } = props
+export const ControlProvider = forwardRef<
+  FocusableElement,
+  ControlProviderProps
+>((props, ref) => {
+  const { children, tabIndex } = props
 
-    const handleRef = useRef<ControlHandle | null>(null)
+  const handleRef = useRef<FocusableElement | null>(null)
 
-    const setHandle = useCallback(
-      (handle: ControlHandle | null) => {
-        handleRef.current = handle
+  const setHandle = useCallback(
+    (handle: FocusableElement | null) => {
+      handleRef.current = handle
 
-        if (typeof ref === 'function') {
-          ref(handle)
-        } else if (ref) {
-          ref.current = handle
-        }
-      },
-      [ref],
-    )
-
-    const delegateFocus = useCallback((event: SyntheticEvent) => {
-      const handle = handleRef.current
-      if (handle !== ((event.target as unknown) as ControlHandle)) {
-        event.preventDefault()
-        handle?.focus()
+      if (typeof ref === 'function') {
+        ref(handle)
+      } else if (ref) {
+        ref.current = handle
       }
-    }, [])
+    },
+    [ref],
+  )
 
-    const context = useMemo(
-      () => ({
-        ref: setHandle,
-        tabIndex: tabIndex || -1,
-      }),
-      [setHandle, tabIndex],
-    )
+  const context = useMemo(
+    () => ({
+      ref: setHandle,
+      tabIndex: tabIndex || -1,
+    }),
+    [setHandle, tabIndex],
+  )
 
-    return (
-      <ControlContext.Provider value={context}>
-        <SurfaceDefaultsProvider delegateFocus={delegateFocus}>
-          {children}
-        </SurfaceDefaultsProvider>
-      </ControlContext.Provider>
-    )
-  },
-)
+  return (
+    <ControlContext.Provider value={context}>
+      <FocusDelegationProvider target={handleRef}>
+        {children}
+      </FocusDelegationProvider>
+    </ControlContext.Provider>
+  )
+})
 
 export function useControlContext(): ControlContext {
   return useContext(ControlContext)

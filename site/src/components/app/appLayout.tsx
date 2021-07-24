@@ -1,88 +1,81 @@
-import { AnchorSurface, NavLinkSurface } from 'retil-interaction'
-import { useCSS } from 'retil-style'
+import { css } from '@emotion/react'
+import {
+  AnchorSurface,
+  MatchedLinkSurface,
+  inToggledSurface,
+} from 'retil-interaction'
 
 import { colors } from 'site/src/styles/colors'
 
-const NavLinkBody: React.FunctionComponent<{ className?: string }> = ({
-  children,
-  className,
-}) => {
-  const media = useCSS()
-
-  return (
-    <span
-      className={className}
-      css={[
-        media.default`
-          color: ${colors.text.tertiary};
-          font-size: 0.9rem;
-          font-weight: 500;
-          line-height: 40px;
-          margin: 0 0.5rem;
-        `,
-        media.localLink`
-          border-bottom: 2px solid ${colors.ink.black};
-        `,
-      ]}>
-      {children}
-    </span>
-  )
-}
+const NavLinkBody: React.FunctionComponent<JSX.IntrinsicElements['span']> = (
+  props,
+) => (
+  <span
+    {...props}
+    css={[
+      css`
+        color: ${colors.text.tertiary};
+        font-size: 0.9rem;
+        font-weight: 500;
+        line-height: 40px;
+        margin: 0 0.5rem;
+      `,
+      inToggledSurface(css`
+        border-bottom: 2px solid ${colors.ink.black};
+      `),
+    ]}
+  />
+)
 
 export interface AppLayoutProps {
   children: React.ReactNode
 }
 
-export const AppLayout = ({ children }: AppLayoutProps) => {
-  const css = useCSS()
-  const media = css
-
-  return (
-    <>
-      <nav
-        css={media.default`
-          border-bottom: 1px solid ${colors.structure.border};
-          display: flex;
-          padding: 0 1rem;
-        `}>
-        <NavLinkSurface to="/" exact>
-          <NavLinkBody
-            css={css`
-              color: ${colors.ink.black};
-              font-family: Inconsolata, monospace;
-              font-size: 18px;
-              font-weight: 900;
-            `}>
-            retil.tech
-          </NavLinkBody>
-        </NavLinkSurface>
-        <div
+export const AppLayout = ({ children }: AppLayoutProps) => (
+  <>
+    <nav
+      css={css`
+        border-bottom: 1px solid ${colors.structure.border};
+        display: flex;
+        padding: 0 1rem;
+      `}>
+      <MatchedLinkSurface href="/" match="/">
+        <NavLinkBody
           css={css`
-            flex-grow: 1;
-          `}
-        />
-        <div
-          css={css`
-            margin: 0 1rem;
+            color: ${colors.ink.black};
+            font-family: Inconsolata, monospace;
+            font-size: 18px;
+            font-weight: 900;
           `}>
-          <NavLinkSurface to="/examples">
-            <NavLinkBody>examples</NavLinkBody>
-          </NavLinkSurface>{' '}
-          <NavLinkSurface to="/concepts">
-            <NavLinkBody>concepts</NavLinkBody>
-          </NavLinkSurface>{' '}
-          <NavLinkSurface to="/packages">
-            <NavLinkBody>packages</NavLinkBody>
-          </NavLinkSurface>
-        </div>
-        <div>
-          {' '}
-          <AnchorSurface href="https://github.com/jamesknelson/retil">
-            <NavLinkBody>GitHub</NavLinkBody>
-          </AnchorSurface>
-        </div>
-      </nav>
-      <main>{children}</main>
-    </>
-  )
-}
+          retil.tech
+        </NavLinkBody>
+      </MatchedLinkSurface>
+      <div
+        css={css`
+          flex-grow: 1;
+        `}
+      />
+      <div
+        css={css`
+          margin: 0 1rem;
+        `}>
+        <MatchedLinkSurface href="/examples">
+          <NavLinkBody>examples</NavLinkBody>
+        </MatchedLinkSurface>{' '}
+        <MatchedLinkSurface href="/concepts">
+          <NavLinkBody>concepts</NavLinkBody>
+        </MatchedLinkSurface>{' '}
+        <MatchedLinkSurface href="/packages">
+          <NavLinkBody>packages</NavLinkBody>
+        </MatchedLinkSurface>
+      </div>
+      <div>
+        {' '}
+        <AnchorSurface href="https://github.com/jamesknelson/retil">
+          <NavLinkBody>GitHub</NavLinkBody>
+        </AnchorSurface>
+      </div>
+    </nav>
+    <main>{children}</main>
+  </>
+)

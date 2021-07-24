@@ -1,6 +1,6 @@
 import React, { ReactElement } from 'react'
 import { EnvSource, Mount, LoaderProps, useMountContent } from 'retil-mount'
-import { NavEnv, useNavLinkProps, useNavMatch } from 'retil-nav'
+import { NavEnv, useNavLinkProps, useNavMatcher } from 'retil-nav'
 
 export interface AppEnv extends NavEnv {}
 
@@ -40,7 +40,7 @@ const Content = () => useMountContent<ReactElement>()
 
 const Link = ({ to, children }: { to: string; children: React.ReactNode }) => {
   const linkProps = useNavLinkProps(to)
-  const match = useNavMatch()
+  const match = useNavMatcher()
   return (
     <a {...linkProps} style={{ color: match(to) ? 'red' : 'black' }}>
       {children}

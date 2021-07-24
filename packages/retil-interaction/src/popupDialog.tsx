@@ -10,13 +10,17 @@ import React, {
 } from 'react'
 
 import { useJoinRefs } from './joinRefs'
-import { ConnectSurface, splitSurfaceProps, SurfaceProps } from './surface'
 import {
   PopupHandle,
   UsePopupConfig,
   usePopup,
   usePopupPosition,
 } from './popup'
+import {
+  ActionSurfaceProps,
+  ConnectActionSurface,
+  splitActionSurfaceProps,
+} from './actionSurface'
 
 const useOpaqueIdentifier = (React as any)
   .unstable_useOpaqueIdentifier as () => any
@@ -113,7 +117,7 @@ export type PopupDialogMergeableProps<PopupElement extends HTMLElement> = {
 
 export function usePopupDialogProps<
   PopupElement extends HTMLElement = HTMLElement,
-  MergeProps extends PopupDialogMergeableProps<PopupElement> = {}
+  MergeProps extends PopupDialogMergeableProps<PopupElement> = {},
 >(
   mergeProps?: MergeProps & {
     ref?: React.Ref<PopupElement | null>
@@ -144,7 +148,7 @@ export function usePopupDialogProps<
 
 export interface ConnectPopupDialogProps<
   PopupElement extends HTMLElement,
-  MergeProps extends PopupDialogMergeableProps<PopupElement> = {}
+  MergeProps extends PopupDialogMergeableProps<PopupElement> = {},
 > {
   children: (
     props: PopupDialogProps<PopupElement> &
@@ -155,7 +159,7 @@ export interface ConnectPopupDialogProps<
 
 export function ConnectPopupDialog<
   PopupElement extends HTMLElement = HTMLElement,
-  MergeProps extends PopupDialogMergeableProps<PopupElement> = {}
+  MergeProps extends PopupDialogMergeableProps<PopupElement> = {},
 >(props: ConnectPopupDialogProps<PopupElement, MergeProps>) {
   const { children, mergeProps } = props
   const popupDialogProps = usePopupDialogProps(mergeProps)
@@ -176,7 +180,7 @@ export interface PopupDialogTriggerProps<TriggerElement extends HTMLElement> {
 }
 
 export type PopupDialogTriggerMergeableProps<
-  TriggerElement extends HTMLElement
+  TriggerElement extends HTMLElement,
 > = {
   'aria-controls'?: never
   'aria-expanded'?: never
@@ -192,7 +196,7 @@ export type PopupDialogTriggerMergeableProps<
 
 export function usePopupDialogTriggerProps<
   TriggerElement extends HTMLElement,
-  MergeProps extends PopupDialogTriggerMergeableProps<TriggerElement>
+  MergeProps extends PopupDialogTriggerMergeableProps<TriggerElement>,
 >(
   mergeProps?: MergeProps & {
     ref?: React.Ref<TriggerElement | null>
@@ -227,7 +231,7 @@ export function usePopupDialogTriggerProps<
 }
 
 export interface PopupDialogTriggerSurfaceProps
-  extends SurfaceProps,
+  extends ActionSurfaceProps,
     Omit<
       React.HTMLAttributes<HTMLDivElement>,
       'aria-controls' | 'aria-expanded' | 'aria-haspopup' | 'id' | 'role'
@@ -238,21 +242,21 @@ export const PopupDialogTriggerSurface = forwardRef<
   HTMLDivElement,
   PopupDialogTriggerSurfaceProps
 >((props, ref) => {
-  const [surfaceProps, divProps] = splitSurfaceProps(props)
+  const [actionSurfaceProps, divProps] = splitActionSurfaceProps(props)
   const { disabled, ...triggerProps } = usePopupDialogTriggerProps({
     ...divProps,
     ref,
   })
 
   return (
-    <ConnectSurface
+    <ConnectActionSurface
       // Pass down disabled from the popup context to ensure the surface acts
       // as disabled when the popup menu is.
-      disabled={disabled || surfaceProps.disabled}
+      disabled={disabled || actionSurfaceProps.disabled}
       mergeProps={triggerProps}
-      {...surfaceProps}>
+      {...actionSurfaceProps}>
       {(props) => <div {...props} />}
-    </ConnectSurface>
+    </ConnectActionSurface>
   )
 })
 
@@ -274,7 +278,7 @@ export type PopupDialogArrowMergeableProps<ArrowElement extends HTMLElement> = {
 
 export function usePopupDialogArrowProps<
   ArrowElement extends HTMLElement = HTMLElement,
-  MergeProps extends PopupDialogArrowMergeableProps<ArrowElement> = {}
+  MergeProps extends PopupDialogArrowMergeableProps<ArrowElement> = {},
 >(
   mergeProps?: MergeProps & {
     ref?: React.Ref<ArrowElement | null>

@@ -1,7 +1,7 @@
 import React from 'react'
 
 import { Boundary } from 'retil-boundary'
-import { NavLinkSurface } from 'retil-interaction'
+import { MatchedLinkSurface } from 'retil-interaction'
 import {
   EnvSource,
   Mount,
@@ -35,9 +35,9 @@ export const App: React.FunctionComponent<AppProps> = ({ env }) => {
   return (
     <Mount env={env} loader={appLoader} transitionTimeoutMs={500}>
       <nav>
-        <NavLinkSurface to="/">Home</NavLinkSurface>
+        <MatchedLinkSurface href="/">Home</MatchedLinkSurface>
         &nbsp;&middot;&nbsp;
-        <NavLinkSurface to="/about">About</NavLinkSurface>
+        <MatchedLinkSurface href="/about">About</MatchedLinkSurface>
       </nav>
       <main>
         <Boundary fallback="loading fallback...">

@@ -1,5 +1,5 @@
 import { Mount, MountedContent } from 'retil-mount'
-import { NavLinkSurface } from 'retil-interaction'
+import { MatchedLinkSurface, inToggledSurface } from 'retil-interaction'
 import {
   getDefaultBrowserNavEnvService,
   loadMatch,
@@ -16,13 +16,13 @@ const rootLoader = loadNotFoundBoundary(
 )
 
 const NavLinkBody = (props: any) => {
-  const media = useCSS()
+  const css = useCSS()
   return (
     <span
       css={[
-        media.localLink`
+        inToggledSurface(css`
           color: red;
-        `,
+        `),
       ]}>
       {props.children}
     </span>
@@ -35,17 +35,17 @@ function App() {
   return (
     <Mount env={navSource} loader={rootLoader}>
       <nav>
-        <NavLinkSurface to="/" exact>
+        <MatchedLinkSurface href="/" match="/">
           <NavLinkBody>Home</NavLinkBody>
-        </NavLinkSurface>
+        </MatchedLinkSurface>
         &nbsp;&middot;&nbsp;
-        <NavLinkSurface to="/about">
+        <MatchedLinkSurface href="/about">
           <NavLinkBody>About</NavLinkBody>
-        </NavLinkSurface>
+        </MatchedLinkSurface>
         &nbsp;&middot;&nbsp;
-        <NavLinkSurface to="/not-found">
+        <MatchedLinkSurface href="/not-found">
           <NavLinkBody>Not Found</NavLinkBody>
-        </NavLinkSurface>
+        </MatchedLinkSurface>
       </nav>
       <MountedContent />
     </Mount>

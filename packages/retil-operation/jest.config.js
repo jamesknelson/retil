@@ -5,7 +5,7 @@ const { compilerOptions } = require('../../tsconfig')
 
 module.exports = {
   moduleNameMapper: pathsToModuleNameMapper(compilerOptions.paths, {
-    prefix: '<rootDir>/../',
+    prefix: '<rootDir>/../../',
   }),
   modulePaths: ['<rootDir>/src/'],
   modulePathIgnorePatterns: ['<rootDir>/demo/'],

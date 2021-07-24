@@ -1,10 +1,9 @@
 import { render, cleanup } from '@testing-library/react'
 import 'jest-styled-components'
 import React, { forwardRef } from 'react'
-import { useHighStyle } from 'retil-style'
 import styled, { CSSProp } from 'styled-components'
 
-import { ButtonSurface, ConnectSurface } from '../src'
+import { ConnectSurface, highStyle } from '../../retil-style/src'
 
 afterEach(cleanup)
 

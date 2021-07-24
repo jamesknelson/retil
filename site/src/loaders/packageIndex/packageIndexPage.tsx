@@ -1,5 +1,5 @@
-import { NavLinkSurface } from 'retil-interaction'
-import { useCSS } from 'retil-style'
+import { css } from '@emotion/react'
+import { LinkSurface } from 'retil-interaction'
 
 import { PackageMeta } from 'site/src/data/packageMeta'
 
@@ -8,7 +8,6 @@ interface Props {
 }
 
 function Page(props: Props) {
-  const css = useCSS()
   const { data } = props
 
   return (
@@ -30,9 +29,9 @@ function Page(props: Props) {
             css={css`
               margin: 0.5rem 0;
             `}>
-            <NavLinkSurface to={`./${packageMeta.packageName}`}>
+            <LinkSurface href={`./${packageMeta.packageName}`}>
               {packageMeta.title}
-            </NavLinkSurface>
+            </LinkSurface>
           </li>
         ))}
       </ul>

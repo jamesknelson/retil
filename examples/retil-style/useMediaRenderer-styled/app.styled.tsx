@@ -1,21 +1,29 @@
-import styled, { css } from 'styled-components'
+import styled, { ThemeContext, css } from 'styled-components'
+
 import {
+  createMediaSelector,
   defaultMediaQueries,
-  StyleProvider,
   useMediaRenderer,
-} from 'retil-style'
+} from 'retil-media'
+import { StyleProvider } from 'retil-style'
+
+const media = {
+  large: createMediaSelector(defaultMediaQueries.large),
+  medium: createMediaSelector(defaultMediaQueries.medium),
+  small: createMediaSelector(defaultMediaQueries.small),
+}
 
 const StyledDiv = styled.div<{ x: any }>`
   ${(props) => props.x}
 `
 
 const App = () => {
-  const renderWhenLarge = useMediaRenderer(defaultMediaQueries.large)
-  const renderWhenMedium = useMediaRenderer(defaultMediaQueries.medium)
-  const renderWhenSmall = useMediaRenderer(defaultMediaQueries.small)
+  const renderWhenLarge = useMediaRenderer(media.large)
+  const renderWhenMedium = useMediaRenderer(media.medium)
+  const renderWhenSmall = useMediaRenderer(media.small)
 
   return (
-    <StyleProvider cssFunction={css}>
+    <>
       {renderWhenLarge((x) => (
         <StyledDiv x={x}>Large</StyledDiv>
       ))}
@@ -25,8 +33,14 @@ const App = () => {
       {renderWhenSmall((x) => (
         <StyledDiv x={x}>Small</StyledDiv>
       ))}
-    </StyleProvider>
+    </>
   )
 }
 
-export default App
+const Root = () => (
+  <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+    <App />
+  </StyleProvider>
+)
+
+export default Root

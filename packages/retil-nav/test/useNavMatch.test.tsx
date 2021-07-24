@@ -2,9 +2,9 @@ import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode } from 'react'
 import { render } from '@testing-library/react'
 
-import { NavProvider, createStaticNavEnv, useNavMatch } from '../src'
+import { NavProvider, createStaticNavEnv, useNavMatcher } from '../src'
 
-function testUseMatchRoute(
+function testUseNavMatcher(
   description: string,
   pattern: string,
   pathname: string,
@@ -12,7 +12,8 @@ function testUseMatchRoute(
 ) {
   test(description, async () => {
     const env = createStaticNavEnv({ url: pathname })
-    const Test = () => <>{useNavMatch(pattern) ? 'match' : 'miss'}</>
+    const matcher = useNavMatcher()
+    const Test = () => <>{matcher(pattern) ? 'match' : 'miss'}</>
     const { container } = render(
       <StrictMode>
         <NavProvider env={env}>
@@ -24,27 +25,27 @@ function testUseMatchRoute(
   })
 }
 
-describe('useNavMatch()', () => {
-  testUseMatchRoute(
+describe('useNavMatcher()', () => {
+  testUseNavMatcher(
     'matches nested paths on wildcard patterns',
     '/test*',
     '/test/nested',
     true,
   )
 
-  testUseMatchRoute(
+  testUseNavMatcher(
     'matches exact paths on wildcard patterns',
     '/test*',
     '/test',
     true,
   )
 
-  testUseMatchRoute(
+  testUseNavMatcher(
     'matches exact paths on exact patterns',
     '/test',
     '/test',
     true,
   )
 
-  testUseMatchRoute('does not match parent paths', '/test*', '/', false)
+  testUseNavMatcher('does not match parent paths', '/test*', '/', false)
 })

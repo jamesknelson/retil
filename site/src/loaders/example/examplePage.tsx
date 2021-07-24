@@ -2,7 +2,7 @@ import { css } from '@emotion/react'
 import { MDXProvider } from '@mdx-js/react'
 import React, { createContext, useContext } from 'react'
 import { StyleProvider } from 'retil-style'
-import { css as styledCSS } from 'styled-components'
+import { css as styledCSS, ThemeContext } from 'styled-components'
 
 import { CodeBlock } from 'site/src/components/codeBlock'
 import { DocumentContent, DocumentFooter } from 'site/src/components/document'
@@ -29,7 +29,11 @@ export default function ExamplePage(props: ExamplePageProps) {
     </ExampleContext.Provider>
   )
   if (props.content.styledComponents) {
-    return <StyleProvider cssFunction={styledCSS}>{result}</StyleProvider>
+    return (
+      <StyleProvider cssFunction={styledCSS} themeContext={ThemeContext}>
+        {result}
+      </StyleProvider>
+    )
   } else {
     return result
   }

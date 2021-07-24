@@ -10,6 +10,7 @@
       "retil-interaction": ["packages/retil-interaction/src"],
       "retil-issues": ["packages/retil-issues/src"],
       "retil-link": ["packages/retil-link/src"],
+      "retil-media": ["packages/retil-media/src"],
       "retil-mount": ["packages/retil-mount/src"],
       "retil-nav": ["packages/retil-nav/src"],
       "retil-operation": ["packages/retil-operation/src"],
