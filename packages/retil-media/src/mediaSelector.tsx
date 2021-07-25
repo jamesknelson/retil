@@ -1,5 +1,10 @@
 import React, { useCallback } from 'react'
-import { CSSTheme, CustomSelector, registerSelectorType } from 'retil-style'
+import {
+  CSSSelector,
+  CSSTheme,
+  Selector,
+  getOrRegisterSelectorType,
+} from 'retil-style'
 import { useFirstInstanceOfLatestValue } from 'retil-support'
 
 export type MediaSelectorConfig = string | boolean
@@ -8,21 +13,23 @@ export type MediaSelectorContext = {
   [selectorId: string]: MediaSelectorConfig | null
 }
 
-export type MediaSelector = CustomSelector<MediaSelectorConfig>
+export type MediaSelector = string & Selector<MediaSelectorConfig>
 
-const {
-  createSelector: createMediaSelector,
-  parseSelectorDefinition,
-  useSelectorProvider,
-} = registerSelectorType<MediaSelectorContext, MediaSelectorConfig>(
-  (selectorId, defaultValueConfig, context) => {
-    const override = context?.[selectorId]
-    const config = override ?? defaultValueConfig
-    return typeof config === 'boolean' ? config : '@media ' + config
-  },
-)
+const mediaSelectorTypeKey = (
+  selectorId: string,
+  defaultConfig: MediaSelectorConfig,
+  context?: MediaSelectorContext,
+): CSSSelector => {
+  const override = context?.[selectorId]
+  const config = override ?? defaultConfig
+  return typeof config === 'boolean' ? config : '@media ' + config
+}
 
-export { createMediaSelector }
+export function createMediaSelector(
+  config: MediaSelectorConfig,
+): MediaSelector {
+  return getOrRegisterSelectorType(mediaSelectorTypeKey).createSelector(config)
+}
 
 export interface ProvideMediaQueriesProps {
   children: React.ReactNode
@@ -34,6 +41,9 @@ export interface ProvideMediaQueriesProps {
 
 export function ProvideMediaSelectors(props: ProvideMediaQueriesProps) {
   const { children, override, themeContext } = props
+
+  const { parseSelectorDefinition, useSelectorProvider } =
+    getOrRegisterSelectorType(mediaSelectorTypeKey)
 
   const unmemoizedRawEntries = Array.isArray(override)
     ? override
@@ -54,7 +64,7 @@ export function ProvideMediaSelectors(props: ProvideMediaQueriesProps) {
         `An unrecoganized selector was passed to the "override" prop of <ProvideMediaSelectors>.`,
       )
     }
-    return [String(definition.id), definition.config, context]
+    return [String(definition.key), definition.config, context]
   })
 
   const entries = useFirstInstanceOfLatestValue(

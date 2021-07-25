@@ -1,3 +1,4 @@
+import { css } from '@emotion/react'
 import { Mount, MountedContent } from 'retil-mount'
 import { MatchedLinkSurface, inToggledSurface } from 'retil-interaction'
 import {
@@ -5,7 +6,6 @@ import {
   loadMatch,
   loadNotFoundBoundary,
 } from 'retil-nav'
-import { useCSS } from 'retil-style'
 
 const rootLoader = loadNotFoundBoundary(
   loadMatch({
@@ -16,7 +16,6 @@ const rootLoader = loadNotFoundBoundary(
 )
 
 const NavLinkBody = (props: any) => {
-  const css = useCSS()
   return (
     <span
       css={[

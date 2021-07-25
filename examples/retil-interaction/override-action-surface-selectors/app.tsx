@@ -8,24 +8,20 @@ import {
   useState,
 } from 'react'
 import {
-  ConnectSurfaceSelectors,
-  createSurfaceSelector,
+  ConnectActionSurface,
+  inFocusedSurface,
+  inDisabledSurface,
+  inHoveredSurface,
 } from 'retil-interaction'
-import { StyleProvider, highStyle } from 'retil-style'
-
-const inFocusedSurface = createSurfaceSelector(
-  (selector, surface) => selector`${surface}:focus`,
-)
-const inDisabledSurface = createSurfaceSelector(false)
-const inHoveredSurface = createSurfaceSelector(':hover')
+import { highStyle } from 'retil-style'
 
 const App = () => {
   return (
-    <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+    <>
       <ToggleableOverrideExample override="focus" />
       <ToggleableOverrideExample override="disabled" />
       <ToggleableOverrideExample override="hover" />
-    </StyleProvider>
+    </>
   )
 }
 
@@ -59,43 +55,48 @@ const ToggleableOverrideExample: React.FunctionComponent<{
         `}>
         Override "{override}" state - <code>{JSON.stringify(steps[step])}</code>
       </h2>
-      <ButtonSurface {...{ [override]: steps[step] }} onClick={handleClick}>
+      <OverrideButtonSurface
+        {...{ [override]: steps[step] }}
+        onClick={handleClick}>
         {wrapperBody}
-      </ButtonSurface>
-      <ButtonSurface {...{ [override]: steps[step] }} onClick={handleClick}>
+      </OverrideButtonSurface>
+      <OverrideButtonSurface
+        {...{ [override]: steps[step] }}
+        onClick={handleClick}>
         {highStyleBody}
-      </ButtonSurface>
+      </OverrideButtonSurface>
     </section>
   )
 }
 
-type ButtonSurfaceProps = Omit<JSX.IntrinsicElements['button'], 'ref'> & {
+type ButtonSurfaceProps = Omit<JSX.IntrinsicElements['div'], 'ref'> & {
   focus?: boolean
   disabled?: boolean
   hover?: boolean
 }
 
-const ButtonSurface = ({
+const OverrideButtonSurface = ({
   focus,
   disabled,
   hover,
   ...mergeProps
 }: ButtonSurfaceProps) => {
   return (
-    <ConnectSurfaceSelectors
+    <ConnectActionSurface
       mergeProps={mergeProps}
-      override={[
+      overrideSelectors={[
         [inFocusedSurface, focus ?? null],
         [inDisabledSurface, disabled ?? null],
         [inHoveredSurface, disabled ? false : hover ?? null],
       ]}>
       {(props) => (
-        <button
+        <div
           css={[
             css`
               background-color: transparent;
               border: none;
               cursor: pointer;
+              display: inline-block;
             `,
             inDisabledSurface(css`
               cursor: not-allowed;
@@ -104,7 +105,7 @@ const ButtonSurface = ({
           {...props}
         />
       )}
-    </ConnectSurfaceSelectors>
+    </ConnectActionSurface>
   )
 }
 

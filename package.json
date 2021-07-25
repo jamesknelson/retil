@@ -5,12 +5,12 @@
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "UNLICENSED",
   "scripts": {
-    "build": "lerna run --stream build",
-    "build:es-and-types": "lerna  run --stream build:es-and-types",
+    "build": "lerna run --stream build --ignore retil.tech",
+    "build:es-and-types": "lerna run --stream build:es-and-types --ignore retil.tech",
     "build:watch": "lerna run --stream build:watch",
-    "publish": "lerna publish",
-    "test": "lerna run --stream test",
-    "test:watch": "lerna run --stream test:watch"
+    "publish": "lerna publish --ignore retil.tech",
+    "test": "lerna run --stream test --ignore retil.tech",
+    "test:watch": "lerna run --stream test:watch --ignore retil.tech"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.11.9",

@@ -14,7 +14,7 @@ import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
 import { Mount, fuseEnvSource, useEnv } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
-import { StyleProvider } from 'retil-style'
+import { CSSProvider } from 'retil-style'
 
 import { AppEnv } from './appEnv'
 import { App } from './components/app'
@@ -56,12 +56,12 @@ function Head() {
 
 reactRoot.render(
   <StyleCacheProvider value={styleCache}>
-    <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+    <CSSProvider runtime={css} themeContext={ThemeContext}>
       <AppGlobalStyles />
       <Mount loader={appLoader} env={envSource}>
         <Head />
         <App />
       </Mount>
-    </StyleProvider>
+    </CSSProvider>
   </StyleCacheProvider>,
 )

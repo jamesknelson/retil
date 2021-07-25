@@ -1,15 +1,8 @@
 import { isPlainObject } from 'retil-support'
 
-import {
-  CSSObject,
-  CSSInterpolationFunction,
-  CSSInterpolationContext,
-} from './cssTypes'
-import {
-  RetilCSSInterpolationContext,
-  retilCSSInterpolationContextSymbol,
-} from './context'
-import { getCSSSelector } from './customSelector'
+import { CSSInterpolationContext, CSSObject, CSSTheme } from './cssTypes'
+import { CSSThemeRider, cssThemeRiderSymbol } from './cssContext'
+import { getCSSSelector } from './selector'
 
 /**
  * An extended style object, which allows you to specify each property as
@@ -19,76 +12,78 @@ import { getCSSSelector } from './customSelector'
  * - a function mapping your theme to a value
  * - an object mapping selectors or media queries to nested High Style objects
  */
-export type HighStyle<
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
-> = {
-  [K in keyof CSSObject]?: HighStyleValue<CSSObject[K], Props>
+export type HighStyle<InterpolationContext = unknown> = {
+  [K in keyof CSSObject]?: HighStyleValue<CSSObject[K], InterpolationContext>
 }
 
-export type HighStyleValue<
-  Value,
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
-> =
-  | ((props: Props) => HighStyleValue<Value, Props>)
-  | HighStyleScopedValues<Value, Props>
+export type HighStyleValue<Value, InterpolationContext = unknown> =
+  | ((
+      interpolationContext: InterpolationContext,
+    ) => HighStyleValue<Value, InterpolationContext>)
+  | HighStyleScopedValues<Value, InterpolationContext>
   | Value
 
-export type HighStyleScopedValues<
-  Value,
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
-> = {
-  [selector: string]: HighStyleValue<Value, Props>
+export type HighStyleScopedValues<Value, InterpolationContext = unknown> = {
+  [selector: string]: HighStyleValue<Value, InterpolationContext>
 }
 
 export function highStyle<
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
->(input: HighStyle<Props>): CSSInterpolationFunction<Props> {
-  const cssPropFunction = (props: Props): CSSObject => {
+  TTheme extends CSSTheme,
+  TInterpolationContext extends CSSInterpolationContext<TTheme>,
+  TStyles,
+>(
+  highStyle: HighStyle<TInterpolationContext>,
+): (interpolationContext: TInterpolationContext) => TStyles {
+  const interpolation = (context: TInterpolationContext): TStyles => {
     const theme =
-      'theme' in props
+      'theme' in context
         ? (
-            props as {
+            context as {
               theme: {
-                [retilCSSInterpolationContextSymbol]: RetilCSSInterpolationContext
+                [cssThemeRiderSymbol]: CSSThemeRider
               }
             }
           )['theme']
-        : (props as {
-            [retilCSSInterpolationContextSymbol]: RetilCSSInterpolationContext
+        : (context as {
+            [cssThemeRiderSymbol]: CSSThemeRider
           })
-    const rx = theme[retilCSSInterpolationContextSymbol]
+    const rx = theme[cssThemeRiderSymbol]
 
-    const styleProperties = Object.keys(input)
+    const styleProperties = Object.keys(highStyle)
     const output: CSSObject = {}
     for (const styleProperty of styleProperties) {
       mutableCompileHighStyle(
-        props,
+        context,
         rx,
         output,
         styleProperty,
-        input[styleProperty],
+        highStyle[styleProperty],
       )
     }
 
-    return output
+    return output as TStyles
   }
 
-  return cssPropFunction
+  return interpolation
 }
 
-function mutableCompileHighStyle<
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
->(
-  props: Props,
-  rx: RetilCSSInterpolationContext,
+function mutableCompileHighStyle<InterpolationContext>(
+  context: InterpolationContext,
+  themeRider: CSSThemeRider,
   output: CSSObject,
   property: string,
-  highValue: HighStyleValue<any, Props>,
+  highValue: HighStyleValue<any, InterpolationContext>,
 ): void {
   if (typeof highValue === 'number' || typeof highValue === 'string') {
     output[property] = highValue
   } else if (typeof highValue === 'function') {
-    mutableCompileHighStyle(props, rx, output, property, highValue(props))
+    mutableCompileHighStyle(
+      context,
+      themeRider,
+      output,
+      property,
+      highValue(context),
+    )
   } else if (isPlainObject(highValue)) {
     // Ensure the default selector is always first, so that it doesn't override
     // other selectors.
@@ -99,8 +94,8 @@ function mutableCompileHighStyle<
       selectorKeys.unshift('default')
     }
 
-    for (const maybeCustomSelectorString of selectorKeys) {
-      const selector = getCSSSelector(maybeCustomSelectorString, rx)
+    for (const selectorString of selectorKeys) {
+      const selector = getCSSSelector(selectorString, themeRider)
 
       let selectorOutput: CSSObject | undefined
       if (selector === true || selector === 'default') {
@@ -112,11 +107,11 @@ function mutableCompileHighStyle<
 
       if (selectorOutput) {
         mutableCompileHighStyle(
-          props,
-          rx,
+          context,
+          themeRider,
           selectorOutput,
           property,
-          highValue[maybeCustomSelectorString],
+          highValue[selectorString],
         )
       }
     }

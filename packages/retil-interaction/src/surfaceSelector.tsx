@@ -5,7 +5,12 @@ import {
   fromEntries,
   useFirstInstanceOfLatestValue,
 } from 'retil-support'
-import { CSSTheme, CustomSelector, registerSelectorType } from 'retil-style'
+import {
+  CSSSelector,
+  CSSTheme,
+  Selector,
+  getOrRegisterSelectorType,
+} from 'retil-style'
 
 const baseSelectorSymbol = Symbol.for('retil:css:surfaceSelectorBaseSelector')
 const surfaceClassPrefix = 'rx-'
@@ -38,14 +43,14 @@ export type SurfaceSelectorInput =
 
 export type SurfaceSelectorConfig = boolean | SurfaceSelectorTemplate[]
 
-export type SurfaceSelector = CustomSelector<SurfaceSelectorConfig>
+export type SurfaceSelector = string & Selector<SurfaceSelectorConfig>
 
 export type SurfaceSelectorOverridesObject = Record<
   string,
   null | SurfaceSelectorInput
 >
 export type SurfaceSelectorOverridesArray = (readonly [
-  string | CustomSelector<SurfaceSelectorConfig>,
+  string | Selector<SurfaceSelectorConfig>,
   null | SurfaceSelectorInput,
 ])[]
 export type SurfaceSelectorOverrides =
@@ -63,46 +68,43 @@ export interface SurfaceSelectorContext {
   }
 }
 
-const {
-  createSelector,
-  parseSelectorDefinition,
-  useSelectorContext,
-  useSelectorProvider,
-} = registerSelectorType<SurfaceSelectorContext, SurfaceSelectorConfig>(
-  (selectorId, defaultConfig, context) => {
-    const {
-      booleanClassPrefixes,
-      boundary = false,
-      depth = 0,
-      templateOverrides,
-    } = context || {}
-    const templateOverride = templateOverrides?.[selectorId]
-    const config = templateOverride ?? defaultConfig
-    const booleanClassPrefix = booleanClassPrefixes?.[selectorId]
-    if (typeof config === 'boolean' && !booleanClassPrefix) {
-      return config
-    } else {
-      const baseSelector =
-        '.' +
-        surfaceClassPrefix +
-        depth +
-        (booleanClassPrefix ? `:not(.${booleanClassPrefix}-off)` : '')
-      const selectors =
-        config === true
-          ? [baseSelector]
-          : !config
-          ? []
-          : config.map(
-              (config) =>
-                config[1] + config.slice(2).map((part) => baseSelector + part),
-            )
-      return stringifySelectorArray(
-        selectors.concat(booleanClassPrefix ? `.${booleanClassPrefix}-on` : []),
-        boundary,
-      )
-    }
-  },
-)
+const surfaceSelectorTypeKey = (
+  selectorId: string,
+  defaultConfig: SurfaceSelectorConfig,
+  context?: SurfaceSelectorContext,
+): CSSSelector => {
+  const {
+    booleanClassPrefixes,
+    boundary = false,
+    depth = 0,
+    templateOverrides,
+  } = context || {}
+  const templateOverride = templateOverrides?.[selectorId]
+  const config = templateOverride ?? defaultConfig
+  const booleanClassPrefix = booleanClassPrefixes?.[selectorId]
+  if (typeof config === 'boolean' && !booleanClassPrefix) {
+    return config
+  } else {
+    const baseSelector =
+      '.' +
+      surfaceClassPrefix +
+      depth +
+      (booleanClassPrefix ? `:not(.${booleanClassPrefix}-off)` : '')
+    const selectors =
+      config === true
+        ? [baseSelector]
+        : !config
+        ? []
+        : config.map(
+            (config) =>
+              config[1] + config.slice(2).map((part) => baseSelector + part),
+          )
+    return stringifySelectorArray(
+      selectors.concat(booleanClassPrefix ? `.${booleanClassPrefix}-on` : []),
+      boundary,
+    )
+  }
+}
 
 function getConfigFromInput(
   input: SurfaceSelectorInput,
@@ -124,7 +126,9 @@ function getConfigFromInput(
 export function createSurfaceSelector(
   input: SurfaceSelectorInput,
 ): SurfaceSelector {
-  return createSelector(getConfigFromInput(input))
+  return getOrRegisterSelectorType(surfaceSelectorTypeKey).createSelector(
+    getConfigFromInput(input),
+  )
 }
 
 export interface ConnectSurfaceProps<
@@ -161,6 +165,9 @@ export function ConnectSurfaceSelectors<
     themeContext,
   } = props
 
+  const { parseSelectorDefinition, useSelectorContext, useSelectorProvider } =
+    getOrRegisterSelectorType(surfaceSelectorTypeKey)
+
   const rawEntries = Array.isArray(override)
     ? override
     : Object.keys(override).map(
@@ -177,7 +184,7 @@ export function ConnectSurfaceSelectors<
           `An unrecoganized selector was passed to the "override" prop of <ProvideMediaSelectors>.`,
         )
       }
-      return [definition.id, input === null ? null : getConfigFromInput(input)]
+      return [definition.key, input === null ? null : getConfigFromInput(input)]
     })
 
   const [unmemoizedStringEntries, maybeBooleanEntries] = partition(
@@ -305,15 +312,19 @@ function stringifySelectorArray(
 export function mergeOverrides(
   ...overrides: (SurfaceSelectorOverrides | null | false | undefined)[]
 ): SurfaceSelectorOverridesArray {
-  return ([] as SurfaceSelectorOverridesArray).concat(
-    ...overrides.map((override) =>
-      !override
-        ? []
-        : Array.isArray(override)
-        ? override
-        : Object.keys(override).map(
-            (selector) => [selector, override[selector]] as const,
-          ),
-    ),
+  return Array.from(
+    new Map(
+      ([] as SurfaceSelectorOverridesArray).concat(
+        ...overrides.map((override) =>
+          !override
+            ? []
+            : Array.isArray(override)
+            ? override
+            : Object.keys(override).map(
+                (selector) => [selector, override[selector]] as const,
+              ),
+        ),
+      ),
+    ).entries(),
   )
 }

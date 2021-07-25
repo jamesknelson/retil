@@ -1,9 +1,9 @@
-import { css, ThemeContext } from 'styled-components'
+import styled, { css, ThemeContext } from 'styled-components'
 import {
   ConnectSurfaceSelectors,
   createSurfaceSelector,
 } from 'retil-interaction'
-import { StyleProvider } from 'retil-style'
+import { CSSProvider } from 'retil-style'
 
 const selectActive = createSurfaceSelector(
   (selector, surface) => selector`${surface}:active`,
@@ -34,39 +34,34 @@ const ButtonSurface = ({
   </ConnectSurfaceSelectors>
 )
 
-const ButtonBody = () => (
-  <div
-    css={css`
-      border-radius: 8px;
-      border: 2px solid black;
-      background: white;
-      cursor: pointer;
-      padding: 8px;
+const StyledButtonBody = styled.div`
+  border-radius: 8px;
+  border: 2px solid black;
+  background: white;
+  cursor: pointer;
+  padding: 8px;
 
-      ${selectHover(css`
-        border-color: red;
-      `)}
-    `}>
-    Button
-  </div>
-)
+  ${selectHover(css`
+    border-color: red;
+  `)}
+`
 
 const App = () => {
   return (
-    <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+    <CSSProvider runtime={css} themeContext={ThemeContext}>
       <h2>Basic usage</h2>
       <ButtonSurface>
-        <ButtonBody />
+        <StyledButtonBody>Button</StyledButtonBody>
       </ButtonSurface>
       <h2>Hover on</h2>
       <ButtonSurface hover>
-        <ButtonBody />
+        <StyledButtonBody>Button</StyledButtonBody>
       </ButtonSurface>
       <h2>Hover off</h2>
       <ButtonSurface hover={false}>
-        <ButtonBody />
+        <StyledButtonBody>Button</StyledButtonBody>
       </ButtonSurface>
-    </StyleProvider>
+    </CSSProvider>
   )
 }
 

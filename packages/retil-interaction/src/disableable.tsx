@@ -9,12 +9,12 @@ import { preventDefaultEventHandler } from 'retil-support'
 import {
   inActiveSurface,
   inDisabledSurface,
-  inHoverSurface,
+  inHoveredSurface,
 } from './defaultSurfaceSelectors'
 import { useJoinedEventHandler } from './joinEventHandlers'
 import { mergeOverrides, SurfaceSelector } from './surfaceSelector'
 
-const defaultDisabledSelectors = [inActiveSurface, inHoverSurface]
+const defaultDisabledSelectors = [inActiveSurface, inHoveredSurface]
 
 const disabledContext = createContext<boolean>(false)
 
@@ -64,7 +64,7 @@ export function useDisableableSurface(
 
   const mergeDisabledProps = useCallback<MergeDisableableSurfaceProps>(
     ({ disabled: _, ...rest }: any) => ({
-      'aria-disabled': disabled,
+      'aria-disabled': disabled || undefined,
       ...rest,
     }),
     [disabled],

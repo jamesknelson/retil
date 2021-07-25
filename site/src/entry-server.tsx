@@ -14,7 +14,7 @@ import { renderToString } from 'react-dom/server'
 import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
 import { Mount, ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
-import { StyleProvider } from 'retil-style'
+import { CSSProvider } from 'retil-style'
 import { ServerStyleSheet } from 'styled-components'
 
 import { App } from './components/app'
@@ -57,12 +57,12 @@ export async function render(
           sheet.collectStyles(
             mount.provide(
               <StyleCacheProvider value={styleCache}>
-                <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+                <CSSProvider runtime={css} themeContext={ThemeContext}>
                   <AppGlobalStyles />
                   <Mount loader={appLoader} env={env}>
                     <App />
                   </Mount>
-                </StyleProvider>
+                </CSSProvider>
               </StyleCacheProvider>,
             ),
           ),

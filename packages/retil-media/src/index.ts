@@ -1,4 +1,4 @@
-export * from './defaultMediaQueries'
+export * from './defaultMedia'
 export * from './mediaSelector'
 export * from './useFirstMatchingMediaSelector'
 export * from './useMediaRenderer'

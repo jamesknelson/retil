@@ -1,37 +1,25 @@
 import * as CSS from 'csstype'
 
-import {
-  RetilCSSInterpolationContext,
-  retilCSSInterpolationContextSymbol,
-} from './context'
-import { CustomSelector } from './customSelector'
+import { CSSThemeRider, cssThemeRiderSymbol } from './cssContext'
 
 export type BaseExtensibleObject = {
   [key: string]: any
 }
 
 export type CSSInterpolationContext<Theme extends CSSTheme = CSSTheme> =
-  BaseExtensibleObject & {
-    theme?: Theme
-  } & Theme
+  | Theme
+  | (BaseExtensibleObject & {
+      theme?: Theme
+    })
 
 export type CSSTheme = BaseExtensibleObject & {
-  [retilCSSInterpolationContextSymbol]?: RetilCSSInterpolationContext
+  [cssThemeRiderSymbol]?: CSSThemeRider
 }
 
-export interface CSSRuntimeFunction<
-  Context extends CSSInterpolationContext = any,
-> {
-  (
-    template: TemplateStringsArray,
-    ...args: Array<CSSInterpolation<Context>>
-  ): any
-  (...args: Array<CSSInterpolation<Context>>): any
+export interface CSSRuntime {
+  (template: TemplateStringsArray, ...args: Array<any>): any
+  (...args: Array<any>): any
 }
-
-export type CSSInterpolationFunction<
-  Context extends CSSInterpolationContext = CSSInterpolationContext,
-> = (themeOrProps: Context) => CSSInterpolation<Context>
 
 // Equivalent to the CSSObject type expected by styled-components and emotion.
 export type CSSProperties = CSS.Properties<string | number>
@@ -42,36 +30,14 @@ export type CSSPropertiesWithMultiValues = {
 }
 
 export type CSSPseudos = { [K in CSS.Pseudos]?: CSSObject }
-export interface ArrayCSSInterpolation<
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
-> extends Array<CSSInterpolation<Props>> {}
-
-export type InterpolationPrimitive<
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
-> =
-  | null
-  | undefined
-  | boolean
-  | number
-  | string
-  // TODO:
-  // | Keyframes
-  // | ComponentSelector
-  | CSSObject
-  | CSSInterpolationFunction<Props>
-  | CustomSelector<any>
 
 export interface CSSObject
   extends CSSPropertiesWithMultiValues,
     CSSPseudos,
     CSSOthersObject {}
 
-export type CSSInterpolation<
-  Props extends CSSInterpolationContext = CSSInterpolationContext,
-> = InterpolationPrimitive<Props> | ArrayCSSInterpolation<Props>
-
 export interface CSSOthersObject {
-  [propertiesName: string]: CSSInterpolation
+  [propertiesName: string]: any
 }
 
 // When an array of CSS selector strings is provided, any of those selectors

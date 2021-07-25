@@ -1,7 +1,7 @@
 import { css } from '@emotion/react'
 import { MDXProvider } from '@mdx-js/react'
 import React, { createContext, useContext } from 'react'
-import { StyleProvider } from 'retil-style'
+import { CSSProvider } from 'retil-style'
 import { css as styledCSS, ThemeContext } from 'styled-components'
 
 import { CodeBlock } from 'site/src/components/codeBlock'
@@ -30,9 +30,9 @@ export default function ExamplePage(props: ExamplePageProps) {
   )
   if (props.content.styledComponents) {
     return (
-      <StyleProvider cssFunction={styledCSS} themeContext={ThemeContext}>
+      <CSSProvider cssFunction={styledCSS} themeContext={ThemeContext}>
         {result}
-      </StyleProvider>
+      </CSSProvider>
     )
   } else {
     return result

@@ -63,7 +63,7 @@ export interface ConnectActionSurfaceMergedProps<
   className: string
   onFocus?: (event: React.FocusEvent<TElement>) => void
   onMouseDown?: (event: React.MouseEvent<TElement>) => void
-  ref?: React.Ref<TElement | null>
+  ref?: React.Ref<TElement>
   tabIndex: number
 }
 
@@ -73,7 +73,7 @@ export type ConnectActionSurfaceMergeableProps<
   className?: string
   onFocus?: (event: React.FocusEvent<TElement>) => void
   onMouseDown?: (event: React.MouseEvent<TElement>) => void
-  ref?: React.Ref<TElement | null>
+  ref?: React.Ref<TElement>
   tabIndex?: number
 } & {
   [propName: string]: any

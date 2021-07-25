@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import { useIsHydrating } from 'retil-hydration'
+import { useHasHydrated } from 'retil-hydration'
 
 import {
   ActionSurfaceProps,
@@ -33,7 +33,7 @@ export const SubmitButtonSurface = forwardRef<
 
   // By default, we'll disable the form during hydration to prevent accidental
   // submits. To enable the form anyway, pass an `enableBeforeHydration` prop.
-  const isHydrating = useIsHydrating() && !enableBeforeHydration
+  const isHydrating = !useHasHydrated() && !enableBeforeHydration
 
   return (
     <ConnectActionSurface

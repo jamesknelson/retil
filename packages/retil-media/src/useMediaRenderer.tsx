@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { useCSSContext, useCSSSelectors } from 'retil-style'
+import { useCSSTheme, useCSSSelectors } from 'retil-style'
 
 import { MediaSelector } from './mediaSelector'
 import { useMediaSelector } from './useMediaSelector'
@@ -9,7 +9,7 @@ export function useMediaRenderer(
 ): (
   render: (mediaCSS: any) => React.ReactElement,
 ) => React.ReactElement | null {
-  const { runtime: css } = useCSSContext()
+  const { runtime: css } = useCSSTheme()
   const [selectorString] = useCSSSelectors([mediaSelector])
   const result = useMediaSelector(mediaSelector)
   const mediaCSS = useMemo(

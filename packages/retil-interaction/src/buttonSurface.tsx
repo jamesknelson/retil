@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react'
-import { useIsHydrating } from 'retil-hydration'
+import { useHasHydrated } from 'retil-hydration'
 
 import {
   ActionSurfaceProps,
@@ -38,7 +38,7 @@ export interface ButtonSurfaceProps
 
 export const ButtonSurface = forwardRef<HTMLButtonElement, ButtonSurfaceProps>(
   (props, ref) => {
-    const isHydrating = useIsHydrating()
+    const isHydrating = !useHasHydrated()
 
     const [actionSurfaceProps, { onClick, onTrigger, pressed, ...rest }] =
       splitActionSurfaceProps(props)

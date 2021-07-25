@@ -1,26 +1,17 @@
-import { css, ThemeContext } from 'styled-components'
-import {
-  ProvideMediaSelectors,
-  createMediaSelector,
-  defaultMediaQueries,
-} from 'retil-media'
-import { StyleProvider, highStyle } from 'retil-style'
-
-const media = {
-  small: createMediaSelector(defaultMediaQueries.small),
-  large: createMediaSelector(defaultMediaQueries.large),
-}
+import { css, ThemeContext } from '@emotion/react'
+import { ProvideMediaSelectors, media, mediaQueries } from 'retil-media'
+import { CSSProvider, highStyle } from 'retil-style'
 
 const App = () => {
   return (
-    <StyleProvider cssRuntime={css} themeContext={ThemeContext}>
+    <CSSProvider runtime={css} themeContext={ThemeContext}>
       <h2>With default media queries</h2>
       <PrintMediaQueryState />
       <h2>With media queries reversed via override</h2>
       <ProvideMediaSelectors
         override={{
-          [media.small]: defaultMediaQueries.large,
-          [media.large]: defaultMediaQueries.small,
+          [media.small]: mediaQueries.large,
+          [media.large]: mediaQueries.small,
         }}>
         <PrintMediaQueryState />
       </ProvideMediaSelectors>
@@ -44,7 +35,7 @@ const App = () => {
         }}>
         <PrintMediaQueryState />
       </ProvideMediaSelectors>
-    </StyleProvider>
+    </CSSProvider>
   )
 }
 
@@ -52,39 +43,47 @@ function PrintMediaQueryState() {
   return (
     <div>
       <div
-        css={css`
-          ${media.small`
+        css={media.small(
+          css`
             color: red;
-          `}
-        `}>
-        Small
+          `,
+          (_theme) => css`
+            font-weight: bold;
+          `,
+        )}>
+        Small wrapper
       </div>
       <div
-        css={css`
-          ${highStyle({
-            color: {
-              [media.small]: 'red',
-            },
-          })}
-        `}>
+        css={highStyle({
+          color: {
+            [media.small]: 'red',
+          },
+          fontWeight: {
+            [media.small]: 'bold',
+          },
+        })}>
         Small high style
       </div>
       <div
-        css={css`
-          ${media.large`
+        css={media.large(
+          css`
             color: red;
-          `}
-        `}>
-        Large
+          `,
+          (_theme) => css`
+            font-weight: bold;
+          `,
+        )}>
+        Large wrapper
       </div>
       <div
-        css={css`
-          ${highStyle({
-            color: {
-              [media.large]: 'red',
-            },
-          })}
-        `}>
+        css={highStyle({
+          color: {
+            [media.large]: 'red',
+          },
+          fontWeight: {
+            [media.large]: 'bold',
+          },
+        })}>
         Large high style
       </div>
     </div>
