@@ -1,13 +1,14 @@
 import React, { useContext, useMemo } from 'react'
 import { memoizeOne } from 'retil-support'
 
+import { themeRiderSymbol } from './constants'
+import { cssThemeContextContext, useCSSTheme } from './context'
 import {
+  CSSInterpolationContext,
+  CSSSelector,
+  CSSTheme,
   CSSThemeRider,
-  cssThemeRiderSymbol,
-  cssThemeContextContext,
-  useCSSTheme,
-} from './cssContext'
-import { CSSInterpolationContext, CSSSelector, CSSTheme } from './cssTypes'
+} from './types'
 
 const serializedSelectorTuplePrefix = ':rx-'
 const selectorTypeSymbol = Symbol.for('retil:style:selectorType')
@@ -136,15 +137,15 @@ function registerSelectorType<Context, Config>(
             ? (
                 props as {
                   theme: {
-                    [cssThemeRiderSymbol]: CSSThemeRider
+                    [themeRiderSymbol]: CSSThemeRider
                   }
                 }
               )['theme']
             : (props as {
-                [cssThemeRiderSymbol]: CSSThemeRider
+                [themeRiderSymbol]: CSSThemeRider
               })
 
-        const { selectorTypeContexts, runtime } = theme[cssThemeRiderSymbol]
+        const { selectorTypeContexts, runtime } = theme[themeRiderSymbol]
         const context = selectorTypeContexts[typeIndex] as Context | undefined
         const selector = keyFunction(key, config, context)
 
@@ -252,7 +253,7 @@ function mergeContextIntoTheme<Context>(
   typeIndex: number,
   updateContext: (context?: Context) => Context | null,
 ): CSSTheme {
-  const { selectorTypeContexts, runtime } = theme?.[cssThemeRiderSymbol]!
+  const { selectorTypeContexts, runtime } = theme?.[themeRiderSymbol]!
   const context = selectorTypeContexts[typeIndex] as Context | undefined
   const updatedContext = updateContext(context)
 
@@ -260,7 +261,7 @@ function mergeContextIntoTheme<Context>(
     ? theme
     : {
         ...theme,
-        [cssThemeRiderSymbol]: {
+        [themeRiderSymbol]: {
           runtime: runtime,
           selectorTypeContexts: {
             ...selectorTypeContexts,

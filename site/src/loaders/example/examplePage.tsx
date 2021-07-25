@@ -1,7 +1,7 @@
 import { css } from '@emotion/react'
 import { MDXProvider } from '@mdx-js/react'
 import React, { createContext, useContext } from 'react'
-import { CSSProvider } from 'retil-style'
+import { CSSProvider } from 'retil-css'
 import { css as styledCSS, ThemeContext } from 'styled-components'
 
 import { CodeBlock } from 'site/src/components/codeBlock'

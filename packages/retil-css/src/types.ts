@@ -1,9 +1,14 @@
 import * as CSS from 'csstype'
 
-import { CSSThemeRider, cssThemeRiderSymbol } from './cssContext'
+import type { themeRiderSymbol } from './constants'
 
 export type BaseExtensibleObject = {
   [key: string]: any
+}
+
+export interface CSSThemeRider {
+  runtime: CSSRuntime
+  selectorTypeContexts: unknown[]
 }
 
 export type CSSInterpolationContext<Theme extends CSSTheme = CSSTheme> =
@@ -13,7 +18,7 @@ export type CSSInterpolationContext<Theme extends CSSTheme = CSSTheme> =
     })
 
 export type CSSTheme = BaseExtensibleObject & {
-  [cssThemeRiderSymbol]?: CSSThemeRider
+  [themeRiderSymbol]?: CSSThemeRider
 }
 
 export interface CSSRuntime {

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useIsHydrating } from 'retil-hydration'
-import { CSSSelector, useCSSSelectors } from 'retil-style'
+import { CSSSelector, useCSSSelectors } from 'retil-css'
 import { areArraysShallowEqual, identity, memoizeOne } from 'retil-support'
 
 import { MediaSelector } from './mediaSelector'

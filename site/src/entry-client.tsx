@@ -14,7 +14,7 @@ import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
 import { Mount, fuseEnvSource, useEnv } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
-import { CSSProvider } from 'retil-style'
+import { CSSProvider } from 'retil-css'
 
 import { AppEnv } from './appEnv'
 import { App } from './components/app'

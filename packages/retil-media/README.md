@@ -16,7 +16,7 @@ Media selectors give you a powerful and declarative way to work with media queri
 At their simplest, they're almost self explanatory – just wrap your Emotion or Styled Components tagged `css` template strings to apply the appropriate media selector.
 
 ```jsx
-import 'retil-styled-components'
+import 'retil-cssd-components'
 import { createMediaSelector } from 'retil-media'
 import { css } from 'styled-components'
 

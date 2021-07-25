@@ -1,9 +1,9 @@
 import styled, { css, ThemeContext } from 'styled-components'
+import { CSSProvider } from 'retil-css'
 import {
   ConnectSurfaceSelectors,
   createSurfaceSelector,
 } from 'retil-interaction'
-import { CSSProvider } from 'retil-style'
 
 const selectActive = createSurfaceSelector(
   (selector, surface) => selector`${surface}:active`,

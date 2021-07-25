@@ -21,7 +21,7 @@
   "dependencies": {
     "retil-hydration": "^0.20.1",
     "retil-support": "^0.20.1",
-    "retil-style": "^0.20.1",
+    "retil-css": "^0.20.1",
     "tslib": "^2.2.0"
   },
   "devDependencies": {

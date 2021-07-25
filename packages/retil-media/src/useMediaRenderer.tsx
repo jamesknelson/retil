@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { useCSSTheme, useCSSSelectors } from 'retil-style'
+import { useCSSTheme, useCSSSelectors } from 'retil-css'
 
 import { MediaSelector } from './mediaSelector'
 import { useMediaSelector } from './useMediaSelector'

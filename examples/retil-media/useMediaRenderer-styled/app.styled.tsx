@@ -1,7 +1,7 @@
 import styled, { ThemeContext, css } from 'styled-components'
 
 import { media, useMediaRenderer } from 'retil-media'
-import { CSSProvider } from 'retil-style'
+import { CSSProvider } from 'retil-css'
 
 const StyledDiv = styled.div<{ x: any }>`
   ${(props) => props.x}

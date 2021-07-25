@@ -13,7 +13,7 @@ import {
   inDisabledSurface,
   inHoveredSurface,
 } from 'retil-interaction'
-import { highStyle } from 'retil-style'
+import { highStyle } from 'retil-css'
 
 const App = () => {
   return (

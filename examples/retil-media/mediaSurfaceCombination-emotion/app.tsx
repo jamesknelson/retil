@@ -1,7 +1,7 @@
 import { css, ThemeContext } from '@emotion/react'
 import { ButtonSurface, inHoveredSurface } from 'retil-interaction'
 import { ProvideMediaSelectors, media, mediaQueries } from 'retil-media'
-import { CSSProvider, highStyle } from 'retil-style'
+import { CSSProvider, highStyle } from 'retil-css'
 
 const App = () => {
   return (

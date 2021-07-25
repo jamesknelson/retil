@@ -4,7 +4,7 @@ import {
   CSSTheme,
   Selector,
   getOrRegisterSelectorType,
-} from 'retil-style'
+} from 'retil-css'
 import { useFirstInstanceOfLatestValue } from 'retil-support'
 
 export type MediaSelectorConfig = string | boolean

@@ -1,9 +1,8 @@
 import { render, cleanup } from '@testing-library/react'
 import 'jest-styled-components'
 import React, { forwardRef } from 'react'
+import { ConnectSurface, highStyle } from 'retil-css'
 import styled, { CSSProp } from 'styled-components'
-
-import { ConnectSurface, highStyle } from '../../retil-style/src'
 
 afterEach(cleanup)
 
@@ -14,7 +13,7 @@ describe('Surfaces', () => {
     <TestDiv
       {...props}
       ref={ref}
-      css={useHighStyle()({
+      css={highStyle({
         color: {
           default: 'black',
           hover: 'red',

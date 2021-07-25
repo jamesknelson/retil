@@ -10,7 +10,7 @@ import {
   CSSTheme,
   Selector,
   getOrRegisterSelectorType,
-} from 'retil-style'
+} from 'retil-css'
 
 const baseSelectorSymbol = Symbol.for('retil:css:surfaceSelectorBaseSelector')
 const surfaceClassPrefix = 'rx-'

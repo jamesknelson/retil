@@ -14,7 +14,7 @@ import { renderToString } from 'react-dom/server'
 import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
 import { Mount, ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
-import { CSSProvider } from 'retil-style'
+import { CSSProvider } from 'retil-css'
 import { ServerStyleSheet } from 'styled-components'
 
 import { App } from './components/app'

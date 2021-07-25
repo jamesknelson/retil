@@ -1,8 +1,8 @@
 import React, { Context, createContext, useContext, useMemo } from 'react'
 
-import type { CSSRuntime, CSSTheme } from './cssTypes'
+import { themeRiderSymbol } from './constants'
+import { CSSRuntime, CSSTheme } from './types'
 
-export const cssThemeRiderSymbol = Symbol.for('retil:css:themeRider')
 export const cssThemeContextContext = createContext<Context<CSSTheme>>({
   get Provider() {
     throw new Error(
@@ -10,11 +10,6 @@ export const cssThemeContextContext = createContext<Context<CSSTheme>>({
     )
   },
 } as unknown as Context<CSSTheme>)
-
-export interface CSSThemeRider {
-  runtime: CSSRuntime
-  selectorTypeContexts: unknown[]
-}
 
 export interface CSSProviderProps {
   children: React.ReactNode
@@ -31,7 +26,7 @@ export function CSSProvider({
   const extendedTheme = useMemo(
     () => ({
       ...theme,
-      [cssThemeRiderSymbol]: {
+      [themeRiderSymbol]: {
         selectorTypeContexts: [],
         runtime,
       },
@@ -52,5 +47,5 @@ export function useCSSTheme(themeContextArg?: React.Context<CSSTheme>) {
   const defaultThemeContext = useContext(cssThemeContextContext)
   const themeContext = themeContextArg ?? defaultThemeContext
   const theme = useContext(themeContext)
-  return theme[cssThemeRiderSymbol]!
+  return theme[themeRiderSymbol]!
 }

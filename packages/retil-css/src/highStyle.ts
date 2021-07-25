@@ -1,8 +1,13 @@
 import { isPlainObject } from 'retil-support'
 
-import { CSSInterpolationContext, CSSObject, CSSTheme } from './cssTypes'
-import { CSSThemeRider, cssThemeRiderSymbol } from './cssContext'
+import { themeRiderSymbol } from './constants'
 import { getCSSSelector } from './selector'
+import {
+  CSSInterpolationContext,
+  CSSObject,
+  CSSTheme,
+  CSSThemeRider,
+} from './types'
 
 /**
  * An extended style object, which allows you to specify each property as
@@ -40,14 +45,14 @@ export function highStyle<
         ? (
             context as {
               theme: {
-                [cssThemeRiderSymbol]: CSSThemeRider
+                [themeRiderSymbol]: CSSThemeRider
               }
             }
           )['theme']
         : (context as {
-            [cssThemeRiderSymbol]: CSSThemeRider
+            [themeRiderSymbol]: CSSThemeRider
           })
-    const rx = theme[cssThemeRiderSymbol]
+    const rx = theme[themeRiderSymbol]
 
     const styleProperties = Object.keys(highStyle)
     const output: CSSObject = {}
