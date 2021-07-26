@@ -1,5 +1,4 @@
-import styled, { css, ThemeContext } from 'styled-components'
-import { CSSProvider } from 'retil-css'
+import styled, { css } from 'styled-components'
 import {
   ConnectSurfaceSelectors,
   createSurfaceSelector,
@@ -48,7 +47,7 @@ const StyledButtonBody = styled.div`
 
 const App = () => {
   return (
-    <CSSProvider runtime={css} themeContext={ThemeContext}>
+    <>
       <h2>Basic usage</h2>
       <ButtonSurface>
         <StyledButtonBody>Button</StyledButtonBody>
@@ -61,7 +60,7 @@ const App = () => {
       <ButtonSurface hover={false}>
         <StyledButtonBody>Button</StyledButtonBody>
       </ButtonSurface>
-    </CSSProvider>
+    </>
   )
 }
 

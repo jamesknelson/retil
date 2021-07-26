@@ -1,7 +1,5 @@
-import styled, { ThemeContext, css } from 'styled-components'
-
 import { media, useMediaRenderer } from 'retil-media'
-import { CSSProvider } from 'retil-css'
+import styled from 'styled-components'
 
 const StyledDiv = styled.div<{ x: any }>`
   ${(props) => props.x}
@@ -27,10 +25,4 @@ const App = () => {
   )
 }
 
-const Root = () => (
-  <CSSProvider runtime={css} themeContext={ThemeContext}>
-    <App />
-  </CSSProvider>
-)
-
-export default Root
+export default App

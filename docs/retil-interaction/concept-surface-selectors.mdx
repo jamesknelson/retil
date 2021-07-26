@@ -1,0 +1,87 @@
+# Surface Selectors
+
+Gone are the days where you'd need to create different variations of your styles for links, buttons, submit buttons, any any other kind of behavior you came across.
+
+Now you simply create re-usable **style components** that can be rendered inside *any* **surface component**.
+
+```jsx
+const inFocusedSurface = createSurfaceSelector(':focus')
+
+const ButtonStyle = ({ children, color = 'red' }) => (
+  <div css={css`
+    background-color: ${color};
+    border-radius: 4px;
+    color: white;
+
+    ${inFocusSurface} {
+      box-shadow: 0 0 0 2px blue;
+    }
+  `}>
+    {children}
+  </div>
+)
+
+render(
+  <>
+    <ButtonSurface>
+      <ButtonStyle>
+        I'm a button!
+      </ButtonStyle>
+    </ButtonSurface>
+    <LinkSurface>
+      <ButtonStyle>
+        I'm a link that looks like a button!
+      </ButtonStyle>
+    </LinkSurface>
+  </>
+)
+```
+
+## Selectors for application-specific behaviors
+
+With retil's surface selectors, you're no longer limited to the CSS selectors that the internet gods deigned fit to include in the browsers of yore. Because with custom selectors, you can create any behavior-based CSS selector that you can imagine!
+
+For example, custom selectors allow you to create components whose styles vary when mounted in a link to the currently active page –– using the `<ConnectSurface>` component.
+
+```jsx
+const inLocalLinkSurface = createSurfaceSelector(':local-link')
+
+const LinkSurface = ({ href, ...rest }) => {
+  // Return true if the given href matches the current URL
+  const active = useNavMatch(href)
+  const linkProps = useNavLinkProps(href)
+
+  return (
+    <ConnectSurface
+      mergeProps={{ ...rest, ...linkProps }}
+      overrideSelectors={[
+        [inLocalLinkSurface, active]
+      ]}
+    >
+      {props => <a {...props} />}
+    </ConnectSurface>
+  )
+}
+```
+
+Now that you have a `<LinkSurface>` component and `inLocalLink` selector, you can use them just like the in-built surfaces and selectors!
+
+```jsx
+const NavLinkStyle = ({ children }) => (
+  <div css={css`
+    ${inLocalLinkSurface} {
+      border-bottom: 2px solid gray;
+    }
+  `}>
+    {children}
+  </div>
+)
+
+render(
+  <LinkSurface>
+    <NavLinkStyle>
+      I'm a link that looks like a button!
+    </NavLinkStyle>
+  </LinkSurface>
+)
+```

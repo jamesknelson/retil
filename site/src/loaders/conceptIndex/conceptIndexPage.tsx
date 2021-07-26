@@ -23,7 +23,7 @@ function Page(props: Props) {
         css={css`
           margin-top: 2rem;
         `}>
-        Examples
+        Concepts
       </h1>
       {packageNames.map((name) => (
         <section key={name}>

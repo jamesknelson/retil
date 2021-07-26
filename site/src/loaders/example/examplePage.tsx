@@ -30,7 +30,7 @@ export default function ExamplePage(props: ExamplePageProps) {
   )
   if (props.content.styledComponents) {
     return (
-      <CSSProvider cssFunction={styledCSS} themeContext={ThemeContext}>
+      <CSSProvider runtime={styledCSS} themeContext={ThemeContext}>
         {result}
       </CSSProvider>
     )
