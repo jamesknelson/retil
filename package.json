@@ -33,7 +33,7 @@
     "eslint-plugin-react": "^7.20.3",
     "eslint-plugin-react-hooks": "^4.0.8",
     "jest": "^27.0.6",
-    "lerna": "^3.22.1",
+    "lerna": "^4.0.0",
     "path-to-regexp": "^6.2.0",
     "react": "0.0.0-experimental-1a2d79250",
     "react-dom": "0.0.0-experimental-1a2d79250",
