@@ -13,8 +13,8 @@ export interface PackageContent {
 export async function getPackageContent(
   packageName: string,
 ): Promise<null | PackageContent> {
-  const loaders = import.meta.glob('../../../docs/*/index.mdx')
-  const key = `../../../docs/${packageName}/index.mdx`
+  const loaders = import.meta.glob('../../../docs/packages/*/document.mdx')
+  const key = `../../../docs/packages/${packageName}/document.mdx`
   const loader = loaders[key]
 
   if (!loader) {
@@ -32,11 +32,11 @@ export async function getPackageContent(
   ])
 
   const meta = getPackageMeta(packageName, moduleMeta)
-  const concepts = conceptIndex.filter(
-    (meta) => meta.packageName === packageName,
+  const concepts = conceptIndex.filter((meta) =>
+    meta.packages?.includes(packageName),
   )
-  const examples = exampleIndex.filter(
-    (meta) => meta.packageName === packageName,
+  const examples = exampleIndex.filter((meta) =>
+    meta.packages?.includes(packageName),
   )
 
   return { Doc, concepts, examples, meta }

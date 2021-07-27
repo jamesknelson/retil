@@ -4,6 +4,7 @@ import { LinkSurface } from 'retil-interaction'
 
 import { DocumentContent } from 'site/src/components/document'
 import { PackageContent } from 'site/src/data/packageContent'
+import { urls } from 'site/src/utils/urlScheme'
 
 const PackageContext = createContext<PackageContent>(undefined as any)
 
@@ -27,7 +28,7 @@ const ConceptList = () => (
   <ul>
     {useContext(PackageContext).concepts.map((concept) => (
       <li key={concept.slug}>
-        <LinkSurface href={`./concepts/${concept.slug}`}>
+        <LinkSurface href={urls.conceptPage(concept)}>
           {concept.title}
         </LinkSurface>
       </li>
@@ -39,7 +40,7 @@ const ExampleList = () => (
   <ul>
     {useContext(PackageContext).examples.map((example) => (
       <li key={example.slug}>
-        <LinkSurface href={`./examples/${example.slug}`}>
+        <LinkSurface href={urls.examplePage(example)}>
           {example.title}
         </LinkSurface>
       </li>

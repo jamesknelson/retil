@@ -6,6 +6,7 @@ import {
 } from 'retil-interaction'
 
 import { colors } from 'site/src/styles/colors'
+import { urls } from 'site/src/utils/urlScheme'
 
 const NavLinkBody: React.FunctionComponent<JSX.IntrinsicElements['span']> = (
   props,
@@ -39,7 +40,7 @@ export const AppLayout = ({ children }: AppLayoutProps) => (
         display: flex;
         padding: 0 1rem;
       `}>
-      <MatchedLinkSurface href="/" match="/">
+      <MatchedLinkSurface href={urls.landingPage()} match={urls.landingPage()}>
         <NavLinkBody
           css={css`
             color: ${colors.ink.black};
@@ -59,13 +60,13 @@ export const AppLayout = ({ children }: AppLayoutProps) => (
         css={css`
           margin: 0 1rem;
         `}>
-        <MatchedLinkSurface href="/examples">
+        <MatchedLinkSurface href={urls.exampleIndex()}>
           <NavLinkBody>examples</NavLinkBody>
         </MatchedLinkSurface>{' '}
-        <MatchedLinkSurface href="/concepts">
+        <MatchedLinkSurface href={urls.conceptIndex()}>
           <NavLinkBody>concepts</NavLinkBody>
         </MatchedLinkSurface>{' '}
-        <MatchedLinkSurface href="/packages">
+        <MatchedLinkSurface href={urls.packageIndex()}>
           <NavLinkBody>packages</NavLinkBody>
         </MatchedLinkSurface>
       </div>

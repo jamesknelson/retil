@@ -23,7 +23,7 @@ export default function ExamplePage(props: ExamplePageProps) {
       <MDXProvider components={{ Example, Source, Sources, Title }}>
         <DocumentContent Component={props.content.Doc} />
         <DocumentFooter
-          githubEditURL={`https://github.com/jamesknelson/retil/tree/master/examples/${meta.packageName}/${meta.slug}`}
+          githubEditURL={`https://github.com/jamesknelson/retil/tree/master/examples/${meta.slug}`}
         />
       </MDXProvider>
     </ExampleContext.Provider>

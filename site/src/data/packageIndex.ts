@@ -9,9 +9,9 @@ import { getPackageMeta } from './packageMeta'
 //
 // prettier-ignore
 const glob =
-  '../../../docs/*/index.mdx'
+  '../../../docs/packages/*/document.mdx'
 const frontMatters = import.meta.frontMatterGlobEager(
-  '../../../docs/*/index.mdx',
+  '../../../docs/packages/*/document.mdx',
 )
 
 const metas = extractGlobData(glob, frontMatters)

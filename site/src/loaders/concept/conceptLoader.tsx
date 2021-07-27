@@ -8,10 +8,7 @@ const conceptLoader = loadAsync<AppEnv>(async (props) => {
   const { mount, head, ...env } = props
   const params = env.nav.params
   const pageModule = import('./conceptPage')
-  const content = await getConceptContent(
-    params.packageName as string,
-    params.slug as string,
-  )
+  const content = await getConceptContent(params.slug as string)
 
   if (!content) {
     return notFoundLoader(props)
@@ -20,11 +17,7 @@ const conceptLoader = loadAsync<AppEnv>(async (props) => {
   const meta = content.meta
   const { default: ConceptPage } = await pageModule
 
-  head.push(
-    <title>
-      {meta.title} example – {meta.packageName}
-    </title>,
-  )
+  head.push(<title>{meta.title} example</title>)
 
   return <ConceptPage content={content} />
 })

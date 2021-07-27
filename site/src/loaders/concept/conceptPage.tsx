@@ -16,7 +16,7 @@ function ConceptPage({ content }: ConceptPageProps) {
       <MDXProvider components={{ Title }}>
         <DocumentContent Component={content.Doc} />
         <DocumentFooter
-          githubEditURL={`https://github.com/jamesknelson/retil/edit/master/docs/${content.meta.packageName}/concept-${content.meta.slug}.mdx`}
+          githubEditURL={`https://github.com/jamesknelson/retil/edit/master/docs/concept-${content.meta.slug}`}
         />
       </MDXProvider>
     </ExampleContext.Provider>

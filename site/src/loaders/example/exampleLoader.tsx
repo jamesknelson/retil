@@ -19,10 +19,7 @@ const exampleLoader = loadAsync<AppEnv>(async (props) => {
   const basename = env.nav.matchname
   const params = env.nav.params
   const pageModule = import('./examplePage')
-  const content = await getExampleContent(
-    params.packageName as string,
-    params.slug as string,
-  )
+  const content = await getExampleContent(params.slug as string)
 
   if (!content) {
     return notFoundLoader(props)
@@ -31,11 +28,7 @@ const exampleLoader = loadAsync<AppEnv>(async (props) => {
   const { clientMain, matchNestedRoutes, meta, serverMain } = content
   const disableSSR = serverMain === false
 
-  head.push(
-    <title>
-      {meta.title} example – {meta.packageName}
-    </title>,
-  )
+  head.push(<title>{meta.title} example</title>)
 
   const createNestedEnv = (env: NavEnv) => ({
     ...env,

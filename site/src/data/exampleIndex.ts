@@ -9,14 +9,13 @@ import { getExampleMeta } from './exampleMeta'
 //
 // prettier-ignore
 const glob =
-  '../../../examples/*/*/example.mdx'
+  '../../../examples/*/example.mdx'
 const frontMatters = import.meta.frontMatterGlobEager(
-  '../../../examples/*/*/example.mdx',
+  '../../../examples/*/example.mdx',
 )
 
 const metas = extractGlobData(glob, frontMatters).map(
-  ({ value, matches: [packageName, slug] }) =>
-    getExampleMeta(packageName, slug, value),
+  ({ value, matches: [slug] }) => getExampleMeta(slug, value),
 )
 
 export default metas

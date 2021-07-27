@@ -35,11 +35,10 @@ export type ExampleServerMain = (
 ) => Promise<void>
 
 export async function getExampleContent(
-  packageName: string,
   slug: string,
 ): Promise<null | ExampleContent> {
-  const loaders = import.meta.glob('../../../examples/*/*/index.tsx')
-  const key = `../../../examples/${packageName}/${slug}/index.tsx`
+  const loaders = import.meta.glob('../../../examples/*/index.tsx')
+  const key = `../../../examples/${slug}/index.tsx`
   const loader = loaders[key]
 
   if (!loader) {
@@ -50,7 +49,7 @@ export async function getExampleContent(
 
   if (!mod.clientMain && !mod.App) {
     throw new Error(
-      `Example "${packageName}/${slug}" requires one of its "clientMain" or "App" props to be set.`,
+      `Example "${slug}" requires one of its "clientMain" or "App" props to be set.`,
     )
   }
 
@@ -68,7 +67,7 @@ export async function getExampleContent(
     // Match nested routes by default when providing a main function
     matchNestedRoutes = !!mod.clientMain,
   } = mod
-  const meta = getExampleMeta(packageName, slug, moduleMeta)
+  const meta = getExampleMeta(slug, moduleMeta)
   const clientMain = moduleClientMain || createClientMain(mod)
 
   return {

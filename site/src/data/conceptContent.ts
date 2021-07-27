@@ -7,11 +7,10 @@ export interface ConceptContent {
 }
 
 export async function getConceptContent(
-  packageName: string,
   slug: string,
 ): Promise<null | ConceptContent> {
-  const loaders = import.meta.glob('../../../docs/*/concept-*.mdx')
-  const key = `../../../docs/${packageName}/concept-${slug}.mdx`
+  const loaders = import.meta.glob('../../../docs/concepts/*/document.mdx')
+  const key = `../../../docs/concepts/${slug}/document.mdx`
   const loader = loaders[key]
 
   if (!loader) {
@@ -19,7 +18,7 @@ export async function getConceptContent(
   }
 
   const { default: Doc, meta: frontMatter } = await loader()
-  const meta = getConceptMeta(packageName, slug, frontMatter)
+  const meta = getConceptMeta(slug, frontMatter)
 
   return { Doc, meta }
 }

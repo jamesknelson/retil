@@ -9,14 +9,13 @@ import { getConceptMeta } from './conceptMeta'
 //
 // prettier-ignore
 const glob =
-  '../../../docs/*/concept-*.mdx'
+  '../../../docs/concepts/*/document.mdx'
 const frontMatters = import.meta.frontMatterGlobEager(
-  '../../../docs/*/concept-*.mdx',
+  '../../../docs/concepts/*/document.mdx',
 )
 
 const metas = extractGlobData(glob, frontMatters).map(
-  ({ value, matches: [packageName, slug] }) =>
-    getConceptMeta(packageName, slug, value),
+  ({ value, matches: [slug] }) => getConceptMeta(slug, value),
 )
 
 export default metas
