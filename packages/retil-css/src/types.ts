@@ -48,4 +48,4 @@ export interface CSSOthersObject {
 // When an array of CSS selector strings is provided, any of those selectors
 // will be used to match the state. When `true`, the applicable styles will
 // always be used. When `false`, they never will be.
-export type CSSSelector = string | boolean
+export type CSSSelector = string[] | string | boolean

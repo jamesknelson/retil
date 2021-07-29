@@ -15,6 +15,7 @@
 
 import React from 'react'
 
+import { inFocusedSurface, inHoveredSurface } from './defaultSurfaceSelectors'
 import { useDisableableSurface } from './disableable'
 import { Focusable, useFocusable } from './focusable'
 import {
@@ -108,6 +109,10 @@ export function ConnectActionSurface<
     <ConnectSurfaceSelectors
       children={children}
       override={mergeDisabledSelectorOverrides(
+        [
+          [inFocusedSurface, ':focus'],
+          [inHoveredSurface, ':hover'],
+        ],
         defaultSelectorOverrides,
         overrideSelectors,
       )}

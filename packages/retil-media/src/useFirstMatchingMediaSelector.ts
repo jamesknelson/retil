@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useIsHydrating } from 'retil-hydration'
-import { CSSSelector, useCSSSelectors } from 'retil-css'
+import { useCSSSelectors } from 'retil-css'
 import { areArraysShallowEqual, identity, memoizeOne } from 'retil-support'
 
 import { MediaSelector } from './mediaSelector'
@@ -21,14 +21,20 @@ export function useFirstMatchingMediaSelector(
     typeof window !== 'undefined' &&
     typeof window.matchMedia !== 'undefined'
 
-  const unmemoizedMediaQueries = useCSSSelectors(mediaSelectors).map((query) =>
-    typeof query === 'string' ? query.replace('@media', '').trim() : query,
+  const unmemoizedMediaQueries = useCSSSelectors(mediaSelectors).map(
+    (query) => {
+      const nonArrayQuery = (Array.isArray(query) ? query.join(',') : query) as
+        | string
+        | boolean
+      return typeof nonArrayQuery === 'string'
+        ? nonArrayQuery.replace('@media', '').trim()
+        : nonArrayQuery
+    },
   )
 
-  const memoArray = useMemo<(array: CSSSelector[]) => CSSSelector[]>(
-    () => memoizeOne(identity, (x, y) => areArraysShallowEqual(x[0], y[0])),
-    [],
-  )
+  const memoArray = useMemo<
+    (array: (string | boolean)[]) => (string | boolean)[]
+  >(() => memoizeOne(identity, (x, y) => areArraysShallowEqual(x[0], y[0])), [])
   const mediaQueries = memoArray(unmemoizedMediaQueries)
 
   const matchesRef = useRef<undefined | boolean[]>()

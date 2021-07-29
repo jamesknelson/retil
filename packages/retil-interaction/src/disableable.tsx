@@ -4,24 +4,22 @@
  */
 
 import React, { createContext, useCallback, useContext } from 'react'
-import { preventDefaultEventHandler } from 'retil-support'
 
 import {
   inActiveSurface,
   inDisabledSurface,
   inHoveredSurface,
 } from './defaultSurfaceSelectors'
-import { useJoinedEventHandler } from './joinEventHandlers'
 import { mergeOverrides, SurfaceSelector } from './surfaceSelector'
 
 const defaultDisabledSelectors = [inActiveSurface, inHoveredSurface]
 
-const disabledContext = createContext<boolean>(false)
+const disabledDefaultContext = createContext<boolean>(false)
 
-export const DisabledProvider = disabledContext.Provider
+export const DisabledDefaultProvider = disabledDefaultContext.Provider
 
 export function useDisabled(disabledArg: boolean | undefined) {
-  const context = useContext(disabledContext)
+  const context = useContext(disabledDefaultContext)
   const disabled = disabledArg ?? context
   return disabled
 }
@@ -52,7 +50,12 @@ export function useDisableableSurface(
   const mergeDisabledSelectorOverrides = useCallback<typeof mergeOverrides>(
     (...overrides) =>
       mergeOverrides(
-        [[inDisabledSurface, !!disabled as boolean | null] as const].concat(
+        [
+          [
+            inDisabledSurface,
+            '[aria-disabled="true"]' as boolean | string | null,
+          ] as const,
+        ].concat(
           selectors.map(
             (selector) => [selector, disabled ? false : null] as const,
           ),
@@ -90,8 +93,5 @@ export function useDisableableEventHandler<E extends React.SyntheticEvent>(
   eventHandler: React.EventHandler<E> | undefined,
 ): React.EventHandler<E> | undefined {
   const disabled = useDisabled(disabledArg)
-  return useJoinedEventHandler(
-    disabled ? preventDefaultEventHandler : undefined,
-    eventHandler,
-  )
+  return disabled ? undefined : eventHandler
 }

@@ -1,11 +1,11 @@
-import { css, ThemeContext } from '@emotion/react'
+import { css } from '@emotion/react'
 import { ButtonSurface, inHoveredSurface } from 'retil-interaction'
 import { ProvideMediaSelectors, media, mediaQueries } from 'retil-media'
-import { CSSProvider, highStyle } from 'retil-css'
+import { highStyle } from 'retil-css'
 
 const App = () => {
   return (
-    <CSSProvider runtime={css} themeContext={ThemeContext}>
+    <>
       <h2>With default media queries</h2>
       <PrintMediaQueryState />
       <h2>With media queries reversed via override</h2>
@@ -36,7 +36,7 @@ const App = () => {
         }}>
         <PrintMediaQueryState />
       </ProvideMediaSelectors>
-    </CSSProvider>
+    </>
   )
 }
 

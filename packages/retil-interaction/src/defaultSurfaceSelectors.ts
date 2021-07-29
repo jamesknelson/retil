@@ -2,8 +2,9 @@ import { createSurfaceSelector } from './surfaceSelector'
 
 export const inActiveSurface = /*#__PURE__*/ createSurfaceSelector(':active')
 
-export const inDisabledSurface =
-  /*#__PURE__*/ createSurfaceSelector('[aria-disabled]')
+export const inDisabledSurface = /*#__PURE__*/ createSurfaceSelector(
+  '[aria-disabled="true"]',
+)
 
 /**
  * Allows you to apply styles to a surface that is in an error state, e.g. when

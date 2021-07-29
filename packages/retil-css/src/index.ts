@@ -1,4 +1,5 @@
-export * from './context'
+export type { CSSProviderProps } from './context'
+export { CSSProvider, useCSSRuntime } from './context'
 export * from './highStyle'
 export * from './selector'
 export * from './stringifyTransition'

@@ -6,6 +6,11 @@ import {
   preventDefaultEventHandler,
 } from 'retil-support'
 
+export interface FocusableElement {
+  blur?: () => void
+  focus: () => void
+}
+
 /**
  * A callback which will be called, if possible, before an element will receive
  * focus, and otherwise after it does. This callback should be used to
@@ -19,18 +24,36 @@ export type FocusDelegationCallback = (
   event?: React.SyntheticEvent,
 ) => void
 
-export type Focusable = boolean | FocusDelegationCallback
+export type FocusDelegationRef = React.RefObject<FocusableElement>
+
+export type Focusable = boolean | FocusDelegationCallback | FocusDelegationRef
 
 export const focusableDefaultContext = createContext<Focusable | undefined>(
   undefined,
 )
+
+export interface FocusableDefaultProviderProps {
+  children: React.ReactNode
+  value?: Focusable
+}
+
+export function FocusableDefaultProvider(props: FocusableDefaultProviderProps) {
+  const { children, value } = props
+  const parentDefault = useContext(focusableDefaultContext)
+  return (
+    <focusableDefaultContext.Provider
+      children={children}
+      value={value ?? parentDefault}
+    />
+  )
+}
 
 export interface FocusableMergedProps<
   TElement extends HTMLElement | SVGElement,
 > {
   onFocus?: (event: React.FocusEvent<TElement>) => void
   onMouseDown?: (event: React.MouseEvent<TElement>) => void
-  ref?: React.Ref<TElement | null>
+  ref?: React.Ref<TElement>
   tabIndex: number
 }
 
@@ -38,7 +61,7 @@ export type FocusableMergeableProps<TElement extends HTMLElement | SVGElement> =
   {
     onFocus?: (event: React.FocusEvent<TElement>) => void
     onMouseDown?: (event: React.MouseEvent<TElement>) => void
-    ref?: React.Ref<TElement | null>
+    ref?: React.Ref<TElement>
     tabIndex?: number
   } & {
     [propName: string]: any
@@ -57,43 +80,53 @@ export function useFocusable(focusableProp?: Focusable): MergeFocusableProps {
   const joinFocusHandler = useMemo(() => memoizeOne(joinEventHandlers), [])
   const joinMouseDownHandler = useMemo(() => memoizeOne(joinEventHandlers), [])
   const joinRefCallback = useMemo(() => memoizeOne(joinRefs), [])
-
-  // TODO:
-  // - instead of doing a plain ref join, proxy the element passed to any
-  //   ref passed to `mergeProps` so that if `focus` is called, we're
-  //   able to prevent or delegate focus
+  const focusableDelegationCallback: FocusDelegationCallback | undefined =
+    useMemo(
+      () =>
+        typeof focusable === 'boolean'
+          ? undefined
+          : typeof focusable === 'function'
+          ? focusable
+          : (node: HTMLElement | SVGElement, event?: React.SyntheticEvent) => {
+              const target = focusable.current
+              if (target && target !== (node as unknown as FocusableElement)) {
+                event?.preventDefault()
+                target.focus()
+              }
+            },
+      [focusable],
+    )
 
   const maybeRefCallback = useMemo(
     () =>
-      focusable === true
-        ? undefined
-        : (element: HTMLElement | SVGElement | null) => {
+      focusable === false || focusableDelegationCallback
+        ? (element: HTMLElement | SVGElement | null) => {
             // If the attached element is already focused, and the configuraiton
             // doesn't allow it to be, then take action.
             if (element && document.activeElement === element) {
-              if (!focusable) {
-                element.blur()
+              if (focusableDelegationCallback) {
+                focusableDelegationCallback(element)
               } else {
-                focusable(element)
+                element.blur()
               }
             }
-          },
-    [focusable],
+          }
+        : undefined,
+    [focusable, focusableDelegationCallback],
   )
 
-  const maybeFocusDelegationHandler = useMemo(
+  const focusableDelegationHandler = useMemo(
     () =>
-      typeof focusable === 'boolean'
-        ? undefined
-        : (event: React.SyntheticEvent<HTMLElement | SVGElement>) => {
-            // Ensure that the focus event originated on whichever element this
-            // focusable instance is attached to before calling any focus
-            // delegation callback.
-            if (event.target === event.currentTarget) {
-              focusable(event.currentTarget, event)
-            }
-          },
-    [focusable],
+      focusableDelegationCallback &&
+      ((event: React.SyntheticEvent<HTMLElement | SVGElement>) => {
+        // Ensure that the focus event originated on whichever element this
+        // focusable instance is attached to before calling any focus
+        // delegation callback.
+        if (event.target === event.currentTarget) {
+          focusableDelegationCallback(event.currentTarget, event)
+        }
+      }),
+    [focusableDelegationCallback],
   )
 
   const merge: MergeFocusableProps = (mergeProps) => ({
@@ -104,13 +137,13 @@ export function useFocusable(focusableProp?: Focusable): MergeFocusableProps {
         ? // Focus can't be prevented using `preventDefault`, so if the element is
           // unfocusable, we'll need to immediate blur it on focus
           blur
-        : maybeFocusDelegationHandler,
+        : focusableDelegationHandler,
     ),
     onMouseDown: joinMouseDownHandler(
       // This handler handles focus delegation, prevents focus if focusable is set
       // to false, and also calls any handler which was passed in via props.
       mergeProps?.onMouseDown,
-      !focusable ? preventDefaultEventHandler : maybeFocusDelegationHandler,
+      !focusable ? preventDefaultEventHandler : focusableDelegationHandler,
     ),
     ref: joinRefCallback(mergeProps?.ref, maybeRefCallback),
     tabIndex: focusable === true ? mergeProps?.tabIndex ?? 0 : -1,
@@ -118,44 +151,6 @@ export function useFocusable(focusableProp?: Focusable): MergeFocusableProps {
 
   return merge
 }
-
-export interface FocusableElement {
-  blur?: () => void
-  focus: () => void
-}
-
-export interface FocusDelegationProviderProps {
-  children: React.ReactNode
-  target?: false | React.RefObject<FocusableElement>
-}
-
-export function FocusDelegationProvider(props: FocusDelegationProviderProps) {
-  const { children, target: maybeTargetRefOrFalse } = props
-
-  const parentDefault = useContext(focusableDefaultContext)
-  const nestedDefault = useMemo(
-    () =>
-      !maybeTargetRefOrFalse
-        ? maybeTargetRefOrFalse
-        : (node: HTMLElement | SVGElement, event?: React.SyntheticEvent) => {
-            const target = maybeTargetRefOrFalse.current
-            if (target !== (node as unknown as FocusableElement)) {
-              event?.preventDefault()
-              target?.focus()
-            }
-          },
-    [maybeTargetRefOrFalse],
-  )
-
-  return (
-    <focusableDefaultContext.Provider
-      children={children}
-      value={nestedDefault ?? parentDefault}
-    />
-  )
-}
-
-export const FocusableDefaultProvider = focusableDefaultContext.Provider
 
 function blur(element: React.FocusEvent<HTMLElement | SVGElement>) {
   element.target.blur()

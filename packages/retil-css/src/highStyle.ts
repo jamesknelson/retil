@@ -1,6 +1,6 @@
 import { isPlainObject } from 'retil-support'
 
-import { themeRiderSymbol } from './constants'
+import { getThemeRider } from './context'
 import { getCSSSelector } from './selector'
 import {
   CSSInterpolationContext,
@@ -40,26 +40,13 @@ export function highStyle<
   highStyle: HighStyle<TInterpolationContext>,
 ): (interpolationContext: TInterpolationContext) => TStyles {
   const interpolation = (context: TInterpolationContext): TStyles => {
-    const theme =
-      'theme' in context
-        ? (
-            context as {
-              theme: {
-                [themeRiderSymbol]: CSSThemeRider
-              }
-            }
-          )['theme']
-        : (context as {
-            [themeRiderSymbol]: CSSThemeRider
-          })
-    const rx = theme[themeRiderSymbol]
-
+    const themeRider = getThemeRider(context)
     const styleProperties = Object.keys(highStyle)
     const output: CSSObject = {}
     for (const styleProperty of styleProperties) {
       mutableCompileHighStyle(
         context,
-        rx,
+        themeRider,
         output,
         styleProperty,
         highStyle[styleProperty],
@@ -101,13 +88,21 @@ function mutableCompileHighStyle<InterpolationContext>(
 
     for (const selectorString of selectorKeys) {
       const selector = getCSSSelector(selectorString, themeRider)
+      const selectorStringOrBoolean = Array.isArray(selector)
+        ? selector.join(',')
+        : selector
 
       let selectorOutput: CSSObject | undefined
-      if (selector === true || selector === 'default') {
+      if (
+        selectorStringOrBoolean === true ||
+        selectorStringOrBoolean === 'default'
+      ) {
         selectorOutput = output
-      } else if (selector) {
-        selectorOutput = (output[selector] || {}) as CSSObject | undefined
-        output[selector] = selectorOutput
+      } else if (selectorStringOrBoolean) {
+        selectorOutput = (output[selectorStringOrBoolean] || {}) as
+          | CSSObject
+          | undefined
+        output[selectorStringOrBoolean] = selectorOutput
       }
 
       if (selectorOutput) {

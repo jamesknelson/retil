@@ -4,7 +4,6 @@ import {
   DocUnorderedList,
   DocWrapper,
 } from 'site/src/components/document'
-
 import { ConceptMeta } from 'site/src/data/conceptMeta'
 import { urls } from 'site/src/utils/urlScheme'
 

@@ -9,6 +9,7 @@ import React, {
   useLayoutEffect,
 } from 'react'
 
+import { inHydratingSurface, inToggledSurface } from './defaultSurfaceSelectors'
 import { useJoinRefs } from './joinRefs'
 import {
   PopupHandle,
@@ -21,6 +22,7 @@ import {
   ConnectActionSurface,
   splitActionSurfaceProps,
 } from './actionSurface'
+import { useHasHydrated } from 'retil-hydration'
 
 const useOpaqueIdentifier = (React as any)
   .unstable_useOpaqueIdentifier as () => any
@@ -248,8 +250,15 @@ export const PopupDialogTriggerSurface = forwardRef<
     ref,
   })
 
+  const isHydrating = !useHasHydrated()
+  const isToggled = useContext(PopupDialogActiveContext)
+
   return (
     <ConnectActionSurface
+      defaultSelectorOverrides={[
+        [inHydratingSurface, !!isHydrating],
+        [inToggledSurface, !!isToggled],
+      ]}
       // Pass down disabled from the popup context to ensure the surface acts
       // as disabled when the popup menu is.
       disabled={disabled || actionSurfaceProps.disabled}

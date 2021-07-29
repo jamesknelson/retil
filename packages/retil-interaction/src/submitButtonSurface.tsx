@@ -1,5 +1,6 @@
 import React, { forwardRef } from 'react'
 import { useHasHydrated } from 'retil-hydration'
+import { preventDefaultEventHandler } from 'retil-support'
 
 import {
   ActionSurfaceProps,
@@ -7,7 +8,7 @@ import {
   splitActionSurfaceProps,
 } from './actionSurface'
 import { inHydratingSurface } from './defaultSurfaceSelectors'
-import { useDisableableEventHandler } from './disableable'
+import { useDisabled } from './disableable'
 import { useJoinedEventHandler } from './joinEventHandlers'
 
 export interface SubmitButtonSurfaceProps
@@ -26,9 +27,10 @@ export const SubmitButtonSurface = forwardRef<
     splitActionSurfaceProps(props)
 
   // Don't submit the form if the button is disabled.
+  const disabled = useDisabled(props.disabled)
   const handleClick = useJoinedEventHandler(
     onClick,
-    useDisableableEventHandler(props.disabled),
+    disabled ? preventDefaultEventHandler : undefined,
   )
 
   // By default, we'll disable the form during hydration to prevent accidental

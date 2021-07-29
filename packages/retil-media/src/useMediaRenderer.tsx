@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
-import { useCSSTheme, useCSSSelectors } from 'retil-css'
+import { useCSSRuntime, useCSSSelectors } from 'retil-css'
 
 import { MediaSelector } from './mediaSelector'
 import { useMediaSelector } from './useMediaSelector'
@@ -9,23 +9,26 @@ export function useMediaRenderer(
 ): (
   render: (mediaCSS: any) => React.ReactElement,
 ) => React.ReactElement | null {
-  const { runtime: css } = useCSSTheme()
-  const [selectorString] = useCSSSelectors([mediaSelector])
+  const css = useCSSRuntime()
+  const [selector] = useCSSSelectors([mediaSelector])
+  const nonArraySelector = (
+    Array.isArray(selector) ? selector.join(',') : selector
+  ) as string | boolean
   const result = useMediaSelector(mediaSelector)
   const mediaCSS = useMemo(
     () =>
-      selectorString === false
+      nonArraySelector === false
         ? css`
             display: none;
           `
-        : selectorString === true
+        : nonArraySelector === true
         ? undefined
         : css`
-            @media not ${selectorString.replace('@media ', '')} {
+            @media not ${nonArraySelector.replace('@media ', '')} {
               display: none !important;
             }
           `,
-    [css, selectorString],
+    [css, nonArraySelector],
   )
   const cssRenderer = useCallback(
     (render: (mediaCSS: any) => React.ReactElement): React.ReactElement =>

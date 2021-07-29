@@ -1,8 +1,10 @@
+import cartesian from 'fast-cartesian'
+import partition from 'lodash/partition'
 import React, { useContext, useMemo } from 'react'
 import { memoizeOne } from 'retil-support'
 
-import { themeRiderSymbol } from './constants'
-import { cssThemeContextContext, useCSSTheme } from './context'
+import { selectionsSymbol, themeRiderSymbol } from './constants'
+import { cssThemeContextContext, getThemeRider, useThemeRider } from './context'
 import {
   CSSInterpolationContext,
   CSSSelector,
@@ -52,16 +54,36 @@ export interface SelectorDefinition<Config> {
   readonly config: Config
 }
 
-export interface Selector<Config> extends SelectorDefinition<Config> {
-  toString(): string
-
+export interface SelectorFunction {
   <
     TTheme extends CSSTheme,
     TInterpolationContext extends CSSInterpolationContext<TTheme>,
     TStyles extends boolean | string | any[] | Record<string, any>,
   >(
     ...styles: (((context: TInterpolationContext) => TStyles) | TStyles)[]
-  ): (interpolationContext: TInterpolationContext) => TStyles
+  ): SelectorInterpolation<TTheme, TInterpolationContext, TStyles>
+}
+
+export interface SelectorInterpolation<
+  TTheme extends CSSTheme,
+  TInterpolationContext extends CSSInterpolationContext<TTheme>,
+  TStyles extends boolean | string | any[] | Record<string, any>,
+> {
+  (interpolationContext: TInterpolationContext): TStyles
+
+  // These are stored to enable nesting of selectors
+  [selectionsSymbol]?: SelectorSelection[]
+}
+
+interface SelectorSelection {
+  args: any[]
+  selectors: Selector<any>[]
+}
+
+export interface Selector<Config>
+  extends SelectorDefinition<Config>,
+    SelectorFunction {
+  toString(): string
 }
 
 export function resetRegisteredSelectorTypes() {
@@ -81,13 +103,13 @@ export function useCSSSelectors(
   selectors: (string | Selector<unknown>)[],
   themeContextArg?: React.Context<CSSTheme>,
 ): CSSSelector[] {
-  const context = useCSSTheme(themeContextArg)
+  const context = useThemeRider(themeContextArg)
   return selectors.map((selector) => getCSSSelector(selector, context))
 }
 
 export function getCSSSelector(
   selector: Selector<unknown> | string,
-  context?: CSSThemeRider,
+  themeRider?: CSSThemeRider,
 ): CSSSelector {
   const tuple =
     typeof selector === 'string'
@@ -105,9 +127,72 @@ export function getCSSSelector(
     return keyFunction(
       selectorId,
       config,
-      context?.selectorTypeContexts[selectorTypeIndex],
+      themeRider?.selectorTypeContexts[selectorTypeIndex],
     )
   }
+}
+
+export function all(
+  ...selectors: (Selector<unknown> | string)[]
+): SelectorFunction {
+  const allSelectorsWrapper = (initialArg: any, ...args: any[]): Function => {
+    if (args.length === 0 && Array.isArray(initialArg)) {
+      args = initialArg
+    } else {
+      args = [initialArg].concat(args)
+    }
+
+    const cssFunction = (props: any) => {
+      const themeRider = getThemeRider(props)
+      const cssSelectors = selectors.map((selector) =>
+        getCSSSelector(selector, themeRider),
+      )
+      const cartesianInput = [] as string[][]
+
+      for (const cssSelector of cssSelectors) {
+        if (cssSelector === false) {
+          return
+        } else if (cssSelector !== true) {
+          cartesianInput.push(
+            Array.isArray(cssSelector) ? cssSelector : [cssSelector],
+          )
+        }
+      }
+
+      if (cartesianInput.length === 0) {
+        return args
+      } else {
+        // selector arrays returned from `getCSSSelector` are treated as a
+        // list of any selector that'll cause the styles to be applied, so
+        // in order to combine them, we'll need to apply cartesian product.
+        const selectorStrings = cartesian(cartesianInput).map(
+          (selectorStrings) => {
+            // TODO: figure out what to do if not all selectors have the same tail,
+            // or if a selector is using an unsupported tail format
+            const firstSelector = selectorStrings[0] as string
+            const tailMatch = firstSelector.match(/\s+(~?\s*&?)\s*$/)
+            const tail = tailMatch?.[1]
+            return (
+              selectorStrings
+                .map((selector) =>
+                  (selector as string).replace(/\s+~?\s*&?\s*$/g, ''),
+                )
+                .join('') +
+              ' ' +
+              tail
+            )
+          },
+        )
+        return themeRider.runtime`${selectorStrings.join(', ')} { ${args.map(
+          (arg) => (typeof arg === 'function' ? arg(props) : arg),
+        )} }`
+      }
+    }
+
+    return cssFunction
+  }
+
+  return allSelectorsWrapper as SelectorFunction
 }
 
 function registerSelectorType<Context, Config>(
@@ -124,45 +209,74 @@ function registerSelectorType<Context, Config>(
 
     const toString = () => serializedConfig
 
-    const runtimeWrapper = (initialArg: any, ...args: any[]): Function => {
+    const selectorWrapper = (initialArg: any, ...args: any[]): Function => {
       if (args.length === 0 && Array.isArray(initialArg)) {
         args = initialArg
       } else {
         args = [initialArg].concat(args)
       }
 
-      const cssFunction = (props: any) => {
-        const theme =
-          'theme' in props
-            ? (
-                props as {
-                  theme: {
-                    [themeRiderSymbol]: CSSThemeRider
-                  }
-                }
-              )['theme']
-            : (props as {
-                [themeRiderSymbol]: CSSThemeRider
-              })
+      const [selectionArgs, styleArgs] = partition(
+        args,
+        (arg) =>
+          typeof arg === 'function' &&
+          selectionsSymbol in arg &&
+          arg[selectionsSymbol][0].selectors[0][selectorTypeSymbol] ===
+            typeIndex,
+      )
 
-        const { selectorTypeContexts, runtime } = theme[themeRiderSymbol]
+      const cssInterpolation = (props: any) => {
+        const { selectorTypeContexts, runtime } = getThemeRider(props)
         const context = selectorTypeContexts[typeIndex] as Context | undefined
-        const selector = keyFunction(key, config, context)
+        const cssSelector = keyFunction(key, config, context)
 
-        if (selector === true) {
+        if (cssSelector === true) {
           return args
-        } else if (selector) {
-          return runtime`${selector} { ${args.map((arg) =>
-            typeof arg === 'function' ? arg(props) : arg,
-          )} }`
+        } else if (cssSelector) {
+          const selectorString = Array.isArray(cssSelector)
+            ? cssSelector.join(',')
+            : cssSelector
+
+          return [
+            styleArgs.length > 0 &&
+              runtime`${selectorString} { ${args.map((arg) =>
+                typeof arg === 'function' ? arg(props) : arg,
+              )} }`,
+          ]
+            .concat(
+              ...selectionArgs.map((interpolation) =>
+                interpolation[selectionsSymbol].map(
+                  ({ args, selectors }: SelectorSelection) =>
+                    all(selector, ...selectors)(...args),
+                ),
+              ),
+            )
+            .filter(Boolean)
         }
       }
 
-      return cssFunction
+      return Object.assign(cssInterpolation, {
+        [selectionsSymbol]: [
+          styleArgs.length > 0 && {
+            args: styleArgs,
+            selectors: [selector],
+          },
+          ...([] as SelectorSelection[]).concat(
+            ...selectionArgs.map((interpolation) =>
+              interpolation[selectionsSymbol].map(
+                ({ args, selectors }: SelectorSelection) => ({
+                  args,
+                  selectors: selectors.concat(selector),
+                }),
+              ),
+            ),
+          ),
+        ].filter(Boolean),
+      })
     }
 
     const selector: Selector<Config> = Object.assign(
-      runtimeWrapper as (interpolationContext: any) => any,
+      selectorWrapper as (interpolationContext: any) => any,
       {
         [selectorTypeSymbol]: typeIndex,
         key,
@@ -193,7 +307,7 @@ function registerSelectorType<Context, Config>(
   const useSelectorContext = (
     themeContextArg?: React.Context<CSSTheme>,
   ): Context | undefined =>
-    useCSSTheme(themeContextArg)?.selectorTypeContexts?.[typeIndex] as
+    useThemeRider(themeContextArg)?.selectorTypeContexts?.[typeIndex] as
       | Context
       | undefined
 

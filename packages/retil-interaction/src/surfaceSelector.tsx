@@ -61,7 +61,6 @@ export interface SurfaceSelectorContext {
   booleanClassPrefixes?: {
     [selectorId: string]: string | null
   }
-  boundary?: boolean
   depth?: number
   templateOverrides?: {
     [selectorId: string]: SurfaceSelectorTemplate[] | null
@@ -73,12 +72,7 @@ const surfaceSelectorTypeKey = (
   defaultConfig: SurfaceSelectorConfig,
   context?: SurfaceSelectorContext,
 ): CSSSelector => {
-  const {
-    booleanClassPrefixes,
-    boundary = false,
-    depth = 0,
-    templateOverrides,
-  } = context || {}
+  const { booleanClassPrefixes, depth = 0, templateOverrides } = context || {}
   const templateOverride = templateOverrides?.[selectorId]
   const config = templateOverride ?? defaultConfig
   const booleanClassPrefix = booleanClassPrefixes?.[selectorId]
@@ -99,9 +93,8 @@ const surfaceSelectorTypeKey = (
             (config) =>
               config[1] + config.slice(2).map((part) => baseSelector + part),
           )
-    return stringifySelectorArray(
+    return addAmpersands(
       selectors.concat(booleanClassPrefix ? `.${booleanClassPrefix}-on` : []),
-      boundary,
     )
   }
 }
@@ -131,7 +124,7 @@ export function createSurfaceSelector(
   )
 }
 
-export interface ConnectSurfaceProps<
+export interface ConnectSurfaceSelectorsProps<
   TMergeProps extends ConnectSurfaceSelectorsMergeableProps,
 > {
   children: (
@@ -157,7 +150,7 @@ export type ConnectSurfaceSelectorsMergeableProps = {
 
 export function ConnectSurfaceSelectors<
   TMergeProps extends ConnectSurfaceSelectorsMergeableProps,
->(props: ConnectSurfaceProps<TMergeProps>) {
+>(props: ConnectSurfaceSelectorsProps<TMergeProps>) {
   const {
     children,
     mergeProps = emptyObject as TMergeProps,
@@ -167,6 +160,9 @@ export function ConnectSurfaceSelectors<
 
   const { parseSelectorDefinition, useSelectorContext, useSelectorProvider } =
     getOrRegisterSelectorType(surfaceSelectorTypeKey)
+
+  const context = useSelectorContext(themeContext)
+  const depth = (context?.depth || 0) + 1
 
   const rawEntries = Array.isArray(override)
     ? override
@@ -220,93 +216,60 @@ export function ConnectSurfaceSelectors<
     unmemoizedStringEntries as [string, SurfaceSelectorTemplate[]][],
   )
 
-  const updateBoundaryContext = useCallback(
-    (context?: SurfaceSelectorContext) => {
-      const depth = (context?.depth || 0) + 1
-      return {
-        booleanClassPrefixes: {
-          ...context?.booleanClassPrefixes,
-          // Remove any boolean bindings for selectors we're now overriding
-          // with a template-based selector
-          ...fromEntries(
-            templateEntries.map(([selectorId]) => [selectorId, null]),
-          ),
-          // Add in new boolean classes
-          ...fromEntries(
-            booleanSelectorIds.map((selectorId, i) => [
-              selectorId,
-              `${surfaceClassPrefix}${depth}-${i}`,
-            ]),
-          ),
-        },
-        boundary: true,
-        depth,
-        templateOverrides: {
-          ...context?.templateOverrides,
-          ...fromEntries(templateEntries),
-        },
-      }
-    },
-    [booleanSelectorIds, templateEntries],
-  )
-
-  const updateInnerContext = useCallback(
+  const updateContext = useCallback(
     (context?: SurfaceSelectorContext) => ({
-      ...updateBoundaryContext(context),
-      boundary: false,
+      booleanClassPrefixes: {
+        ...context?.booleanClassPrefixes,
+        // Remove any boolean bindings for selectors we're now overriding
+        // with a template-based selector
+        ...fromEntries(
+          templateEntries.map(([selectorId]) => [selectorId, null]),
+        ),
+        // Add in new boolean classes
+        ...fromEntries(
+          booleanSelectorIds.map((selectorId, i) => [
+            selectorId,
+            `${surfaceClassPrefix}${depth}-${i}`,
+          ]),
+        ),
+      },
+      depth,
+      templateOverrides: {
+        ...context?.templateOverrides,
+        ...fromEntries(templateEntries),
+      },
     }),
-    [updateBoundaryContext],
+    [booleanSelectorIds, depth, templateEntries],
   )
 
-  const context = useSelectorContext(themeContext)
-  const provideBoundaryContext = useSelectorProvider(
-    updateBoundaryContext,
-    themeContext,
-  )
-  const provideInnerContext = useSelectorProvider(
-    updateInnerContext,
-    themeContext,
-  )
+  const provideContext = useSelectorProvider(updateContext, themeContext)
 
   const renderProps: ConnectSurfaceSelectorsMergedProps & TMergeProps = {
     ...mergeProps,
-    children: mergeProps?.children && provideInnerContext(mergeProps?.children),
     className: maybeBooleanEntries
       .map(([selectorId, binding]) =>
         binding === null
           ? ''
-          : `${surfaceClassPrefix}${
-              context?.depth || 1
-            }-${booleanSelectorIds.indexOf(selectorId)}-${
-              binding ? 'on' : 'off'
-            }`,
+          : `${surfaceClassPrefix}${depth}-${booleanSelectorIds.indexOf(
+              selectorId,
+            )}-${binding ? 'on' : 'off'}`,
       )
-      .concat(`${surfaceClassPrefix}${context?.depth || 1}`)
+      .concat(`${surfaceClassPrefix}${depth}`)
       .concat(mergeProps?.className || [])
       .join(' '),
   }
 
-  return provideBoundaryContext(children(renderProps))
+  return provideContext(children(renderProps))
 }
 
 /**
- * Take an array of relative selectors, and add '&' characters as appropriate
- * for the location of this selector relative to the surface it is targeting.
- *
- * Also strips any trailing `~` character, allowing surfaces to be targeted
- * at subsequent siblings.
+ * Take an array of relative selectors, and add '&' characters if they're not
+ * already specified.
  */
-function stringifySelectorArray(
-  selectors: string[],
-  isOnBoundary: boolean,
-): string {
-  return selectors
-    .map((selector) =>
-      isOnBoundary
-        ? '&' + selector.replace(/\s*~\s*&*\s*$/g, '')
-        : selector + (selector.trim().slice(-1) !== '&' ? ' &' : ''),
-    )
-    .join(',')
+function addAmpersands(selectors: string[]): string[] {
+  return selectors.map(
+    (selector) => selector + (selector.indexOf('&') === -1 ? ' &' : ''),
+  )
 }
 
 export function mergeOverrides(

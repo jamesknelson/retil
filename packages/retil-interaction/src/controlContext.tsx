@@ -5,7 +5,7 @@
  * A control is free to move focus around *inside* of it, and to move the
  * tabIndex of any of its internal markup around.
  *
- * Custom control components eed to:
+ * Custom control components need to:
  *
  * 1. Wrap the markup with <ControlProvider>
  * 2. Call the `connectControl()` function on the element that should receive
@@ -23,13 +23,13 @@ import React, {
   useMemo,
   useRef,
 } from 'react'
-import { noop } from 'retil-support'
+import { joinRefs, noop } from 'retil-support'
 
 import { useConnectRef } from './connectRef'
-import { FocusDelegationProvider, FocusableElement } from './focusable'
+import { FocusableDefaultProvider, FocusableElement } from './focusable'
 
 export interface ControlContext {
-  ref: React.RefCallback<FocusableElement | null>
+  ref: React.Ref<FocusableElement>
   tabIndex: number
 }
 
@@ -49,37 +49,26 @@ export interface ControlProviderProps {
 export const ControlProvider = forwardRef<
   FocusableElement,
   ControlProviderProps
->((props, ref) => {
-  const { children, tabIndex } = props
-
-  const handleRef = useRef<FocusableElement | null>(null)
-
-  const setHandle = useCallback(
-    (handle: FocusableElement | null) => {
-      handleRef.current = handle
-
-      if (typeof ref === 'function') {
-        ref(handle)
-      } else if (ref) {
-        ref.current = handle
-      }
-    },
-    [ref],
+>((props, refProp) => {
+  const { children, tabIndex = 0 } = props
+  const focusableHandleRef = useRef<FocusableElement | null>(null)
+  const ref = useMemo(
+    () => joinRefs(focusableHandleRef, refProp),
+    [refProp, focusableHandleRef],
   )
-
   const context = useMemo(
     () => ({
-      ref: setHandle,
-      tabIndex: tabIndex || -1,
+      ref,
+      tabIndex,
     }),
-    [setHandle, tabIndex],
+    [ref, tabIndex],
   )
 
   return (
     <ControlContext.Provider value={context}>
-      <FocusDelegationProvider target={handleRef}>
+      <FocusableDefaultProvider value={focusableHandleRef}>
         {children}
-      </FocusDelegationProvider>
+      </FocusableDefaultProvider>
     </ControlContext.Provider>
   )
 })

@@ -1,4 +1,4 @@
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useMemo } from 'react'
 import { useHasHydrated } from 'retil-hydration'
 
 import {
@@ -11,9 +11,7 @@ import { useDisableableEventHandler } from './disableable'
 import { useJoinedEventHandler } from './joinEventHandlers'
 
 export interface ButtonSurfaceProps
-  // Note that we've removed "type", as we don't want to support submit
-  // buttons. They behave differently, so they deserve a separate surface.
-  extends Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, 'role' | 'type'>,
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, 'aria-pressed' | 'role'>,
     ActionSurfaceProps {
   /**
    * Called after `onClick`, unless the `onClick` handle calls
@@ -36,7 +34,7 @@ export interface ButtonSurfaceProps
   pressed?: boolean
 }
 
-export const ButtonSurface = forwardRef<HTMLButtonElement, ButtonSurfaceProps>(
+export const ButtonSurface = forwardRef<HTMLDivElement, ButtonSurfaceProps>(
   (props, ref) => {
     const isHydrating = !useHasHydrated()
 
@@ -46,6 +44,22 @@ export const ButtonSurface = forwardRef<HTMLButtonElement, ButtonSurfaceProps>(
     const handleClick = useJoinedEventHandler(
       onClick,
       useDisableableEventHandler(props.disabled, onTrigger),
+    )
+
+    const handleKeyDown = useDisableableEventHandler(
+      props.disabled,
+      useMemo(
+        () =>
+          !onTrigger
+            ? undefined
+            : (event: React.KeyboardEvent) => {
+                if (event.key === ' ' || event.key === 'Enter') {
+                  onTrigger(event)
+                  event.preventDefault()
+                }
+              },
+        [onTrigger],
+      ),
     )
 
     return (
@@ -58,9 +72,10 @@ export const ButtonSurface = forwardRef<HTMLButtonElement, ButtonSurfaceProps>(
         mergeProps={{
           ...rest,
           onClick: handleClick,
+          onKeyDown: handleKeyDown,
           ref,
         }}>
-        {(props) => <button {...props} aria-pressed={pressed} type="button" />}
+        {(props) => <div {...props} aria-pressed={pressed} role="button" />}
       </ConnectActionSurface>
     )
   },

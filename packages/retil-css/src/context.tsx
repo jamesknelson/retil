@@ -1,7 +1,12 @@
 import React, { Context, createContext, useContext, useMemo } from 'react'
 
 import { themeRiderSymbol } from './constants'
-import { CSSRuntime, CSSTheme } from './types'
+import {
+  CSSInterpolationContext,
+  CSSRuntime,
+  CSSTheme,
+  CSSThemeRider,
+} from './types'
 
 export const cssThemeContextContext = createContext<Context<CSSTheme>>({
   get Provider() {
@@ -43,9 +48,32 @@ export function CSSProvider({
   )
 }
 
-export function useCSSTheme(themeContextArg?: React.Context<CSSTheme>) {
+export function useCSSRuntime(themeContextArg?: React.Context<CSSTheme>) {
+  return useThemeRider(themeContextArg).runtime
+}
+
+export function useThemeRider(themeContextArg?: React.Context<CSSTheme>) {
   const defaultThemeContext = useContext(cssThemeContextContext)
   const themeContext = themeContextArg ?? defaultThemeContext
   const theme = useContext(themeContext)
   return theme[themeRiderSymbol]!
+}
+
+export function getThemeRider<
+  TTheme extends CSSTheme,
+  TInterpolationContext extends CSSInterpolationContext<TTheme>,
+>(interpolationContext: TInterpolationContext): CSSThemeRider {
+  const theme =
+    'theme' in interpolationContext
+      ? (
+          interpolationContext as {
+            theme: {
+              [themeRiderSymbol]: CSSThemeRider
+            }
+          }
+        )['theme']
+      : (interpolationContext as {
+          [themeRiderSymbol]: CSSThemeRider
+        })
+  return theme[themeRiderSymbol]
 }

@@ -122,12 +122,6 @@ But wait, there's more.
 
 ## The Rules of Surfaces
 
-- a surface is some typically unstyled element which has an area in the layout
-  which it "owns", with behavior attached to clicks/touches on this area,
-  where styles can be applied to the surface itself *and* child elements based
-  on the current state.
-  retil-interactions exports a number of selectors for typical behaviors,
-  including `disabled`, `hover`, `active`, `focused`, etc.
 - surfaces have an action in responsive to pointer events. for example,
   navigating, submitting a form, communicating with the server, or if
   nothing else, the surface should be focusable.
@@ -135,42 +129,42 @@ But wait, there's more.
   delegate focus and keyboard handling elsewhere via their `delegateFocus` prop,
   or it may be that the primary action is to delegate focus to a child.
 - disabled surfaces can still receive focus. however, surfaces may be made
-  unfocusable by passing a focusable={false} prop, or via `delegateFocus`
-- surfaces should expose `focus`, `blur` and `dispatch` functions via ref,
-  where dispatch() has the same effect as the primary action. other actions
-  may be triggered by passing an action to `dispatch`. `dispatch` is
-  asynchronous, and returns a `Promise<void>`. `dispatch` cannot be called
-  while a previous dispatch is in progress.
-
-  > surfaces are not necessarily focusable, as their primary action may
-    be to redirect focus elsewhere!
-  > surfaces can not necessarily have focus delegated elsewhere, as their
-    primary action may be to take focus for themselves – in which case
-    it doesn't make sense to perform the primary action while redirecting
-    focus!
-
+  unfocusable by passing a focusable prop with a value of `false` or a
+  focus delegation function
+- surfaces should expose `focus`, `blur` functions via ref
+- not all surfaces necessarily have to support focus delegation, as their
+  primary action may be to take focus for themselves – in which case
+  it doesn't make sense to perform the primary action while redirecting
+  focus!
 - *all* surfaces can be disabled to prevent their primary action from occuring
 - *disabled* surfaces can also set to unfocusable to prevent the surface
-  accepting focus, and also prevent it from delegating focus elsewhere
+  accepting focus, and also prevent it from delegating focus elsewhere.
+  disabling by itself does not prevent focus delegation
 - if a surface where the primary action is to accept focus is disabled, it
   will also become unfocusable, but it will still be able to delegate focus.
   this can be used to delegate focus of a disabled input to a wrapper surface,
   and when *not* disabled, to redirect from the wrapper to the input
 
-... update docs to remove mention of nested surface selectors targeting a single
-    surface. it's probably possible to get the same effect with hacks, and implementing
-    it will be a PITA. it can be a v2 feature.
- 
-... for surfaces, why not just use a global `.surface` class to target
-    surfaces, instead of applying different classes for different depths?
-    and for specific actions, .surface.hover, .surface.focus,
-    .surface.localLink, etc.?
 
-    a:
-    because we want to be able to target the *deepest* surface parent, so that
-    we can have nested surfaces where styles on the nested surface only respond
-    to behaviors on *it*, and not its parent.
+## Nesting surfaces
 
-    .surface:hover .surface:not(:hover) & {
-      // this should revert any styles
-    }
+**todo: clean up this section**
+
+q: 
+
+for surfaces, why not just use a global `.surface` class to target
+surfaces, instead of applying different classes for different depths?
+and for specific actions, .surface.hover, .surface.focus,
+.surface.localLink, etc.?
+
+a:
+
+because we want to be able to target the *deepest* surface parent, so that
+we can have nested surfaces where styles on the nested surface only respond
+to behaviors on *it*, and not its parent.
+
+```cs
+.surface:hover .surface:not(:hover) & {
+  // this should revert any styles
+}
+```
