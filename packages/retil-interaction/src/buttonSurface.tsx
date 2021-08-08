@@ -1,18 +1,20 @@
-import React, { forwardRef, useMemo } from 'react'
+import React, { forwardRef } from 'react'
 import { useHasHydrated } from 'retil-hydration'
 
 import {
-  ActionSurfaceProps,
-  ConnectActionSurface,
-  splitActionSurfaceProps,
+  ActionSurfaceOptions,
+  splitActionSurfaceOptions,
+  useActionSurfaceConnector,
 } from './actionSurface'
 import { inHydratingSurface, inToggledSurface } from './defaultSurfaceSelectors'
-import { useDisableableEventHandler } from './disableable'
+import { useMergeKeyboardProps } from './keyboard'
 import { useJoinedEventHandler } from './joinEventHandlers'
+import { useKeyMapHandler } from './keyboard'
+import { mergeOverrides } from './surfaceSelector'
 
 export interface ButtonSurfaceProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'aria-pressed' | 'role'>,
-    ActionSurfaceProps {
+    ActionSurfaceOptions {
   /**
    * Called after `onClick`, unless the `onClick` handle calls
    * `event.preventDefault()`.
@@ -35,48 +37,51 @@ export interface ButtonSurfaceProps
 }
 
 export const ButtonSurface = forwardRef<HTMLDivElement, ButtonSurfaceProps>(
-  (props, ref) => {
+  function ButtonSurface(props, ref) {
     const isHydrating = !useHasHydrated()
 
-    const [actionSurfaceProps, { onClick, onTrigger, pressed, ...rest }] =
-      splitActionSurfaceProps(props)
+    const [actionSurfaceOptions, { onClick, onTrigger, pressed, ...rest }] =
+      splitActionSurfaceOptions(props)
+    const [actionSurfaceState, mergeActionSurfaceProps, provideActionSurface] =
+      useActionSurfaceConnector({
+        ...actionSurfaceOptions,
+        overrideSelectors: mergeOverrides(
+          [
+            [inHydratingSurface, !!isHydrating],
+            [inToggledSurface, '[aria-pressed="true"]'],
+          ],
+          actionSurfaceOptions.overrideSelectors,
+        ),
+      })
 
-    const handleClick = useJoinedEventHandler(
-      onClick,
-      useDisableableEventHandler(props.disabled, onTrigger),
+    const keyboardHandler = useKeyMapHandler({
+      ' ': onTrigger,
+      Enter: onTrigger,
+    })
+    const mergeKeyboardProps = useMergeKeyboardProps(
+      actionSurfaceState.disabled ? null : keyboardHandler,
+      {
+        capture:
+          actionSurfaceState.focusable !== true &&
+          !!actionSurfaceState.selected,
+      },
     )
 
-    const handleKeyDown = useDisableableEventHandler(
-      props.disabled,
-      useMemo(
-        () =>
-          !onTrigger
-            ? undefined
-            : (event: React.KeyboardEvent) => {
-                if (event.key === ' ' || event.key === 'Enter') {
-                  onTrigger(event)
-                  event.preventDefault()
-                }
-              },
-        [onTrigger],
-      ),
-    )
-
-    return (
-      <ConnectActionSurface
-        {...actionSurfaceProps}
-        defaultSelectorOverrides={[
-          [inToggledSurface, '[aria-pressed="true"]'],
-          [inHydratingSurface, !!isHydrating],
-        ]}
-        mergeProps={{
-          ...rest,
-          onClick: handleClick,
-          onKeyDown: handleKeyDown,
-          ref,
-        }}>
-        {(props) => <div {...props} aria-pressed={pressed} role="button" />}
-      </ConnectActionSurface>
+    return provideActionSurface(
+      <div
+        {...mergeKeyboardProps(
+          mergeActionSurfaceProps({
+            ...rest,
+            'aria-pressed': pressed,
+            onClick: useJoinedEventHandler(
+              onClick,
+              actionSurfaceState.disabled ? undefined : onTrigger,
+            ),
+            ref,
+            role: 'button',
+          }),
+        )}
+      />,
     )
   },
 )

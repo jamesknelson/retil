@@ -1,16 +1,7 @@
 import partition from 'lodash/partition'
 import React, { useCallback, useEffect, useRef } from 'react'
-import {
-  emptyObject,
-  fromEntries,
-  useFirstInstanceOfLatestValue,
-} from 'retil-support'
-import {
-  CSSSelector,
-  CSSTheme,
-  Selector,
-  getOrRegisterSelectorType,
-} from 'retil-css'
+import { fromEntries, useFirstInstanceOfLatestValue } from 'retil-support'
+import { CSSSelector, Selector, getOrRegisterSelectorType } from 'retil-css'
 
 const baseSelectorSymbol = Symbol.for('retil:css:surfaceSelectorBaseSelector')
 const surfaceClassPrefix = 'rx-'
@@ -68,14 +59,14 @@ export interface SurfaceSelectorContext {
 }
 
 const surfaceSelectorTypeKey = (
-  selectorId: string,
+  selectorKey: string,
   defaultConfig: SurfaceSelectorConfig,
   context?: SurfaceSelectorContext,
 ): CSSSelector => {
   const { booleanClassPrefixes, depth = 0, templateOverrides } = context || {}
-  const templateOverride = templateOverrides?.[selectorId]
+  const templateOverride = templateOverrides?.[selectorKey]
   const config = templateOverride ?? defaultConfig
-  const booleanClassPrefix = booleanClassPrefixes?.[selectorId]
+  const booleanClassPrefix = booleanClassPrefixes?.[selectorKey]
   if (typeof config === 'boolean' && !booleanClassPrefix) {
     return config
   } else {
@@ -124,44 +115,35 @@ export function createSurfaceSelector(
   )
 }
 
-export interface ConnectSurfaceSelectorsProps<
-  TMergeProps extends ConnectSurfaceSelectorsMergeableProps,
-> {
-  children: (
-    props: TMergeProps & ConnectSurfaceSelectorsMergedProps,
-  ) => React.ReactNode
-  mergeProps?: TMergeProps
-  // A `null` override value gives the surface a hint that the selector
-  // may be overridden to true/false – allowing us to add extra classes to
-  // handle these situations without updating context.
-  override?: SurfaceSelectorOverrides
-  themeContext?: React.Context<CSSTheme>
-}
-
-export interface ConnectSurfaceSelectorsMergedProps {
+export interface SurfaceSelectorsMergedProps {
   className: string
 }
 
-export type ConnectSurfaceSelectorsMergeableProps = {
+export type SurfaceSelectorsMergeableProps = {
   className?: string
-} & {
-  [propName: string]: any
 }
 
-export function ConnectSurfaceSelectors<
-  TMergeProps extends ConnectSurfaceSelectorsMergeableProps,
->(props: ConnectSurfaceSelectorsProps<TMergeProps>) {
-  const {
-    children,
-    mergeProps = emptyObject as TMergeProps,
-    override = [] as SurfaceSelectorOverridesArray,
-    themeContext,
-  } = props
+export type MergeSurfaceSelectorsProps = <
+  TMergeProps extends SurfaceSelectorsMergeableProps & Record<string, any> = {},
+>(
+  mergeProps?: TMergeProps,
+) => Omit<TMergeProps, keyof SurfaceSelectorsMergeableProps> &
+  SurfaceSelectorsMergedProps
 
+export function useSurfaceSelectorsConnector(
+  ...overrides: (SurfaceSelectorOverrides | null | false | undefined)[]
+): readonly [
+  state: {
+    getSelector: (selector: Selector<SurfaceSelectorConfig>) => CSSSelector
+  },
+  mergeProps: MergeSurfaceSelectorsProps,
+  provide: (children: React.ReactNode) => React.ReactElement,
+] {
+  const override = mergeOverrides(...overrides)
   const { parseSelectorDefinition, useSelectorContext, useSelectorProvider } =
     getOrRegisterSelectorType(surfaceSelectorTypeKey)
 
-  const context = useSelectorContext(themeContext)
+  const context = useSelectorContext()
   const depth = (context?.depth || 0) + 1
 
   const rawEntries = Array.isArray(override)
@@ -242,24 +224,32 @@ export function ConnectSurfaceSelectors<
     [booleanSelectorIds, depth, templateEntries],
   )
 
-  const provideContext = useSelectorProvider(updateContext, themeContext)
+  const getSelector = useCallback(
+    (selector: Selector<SurfaceSelectorConfig>) =>
+      surfaceSelectorTypeKey(selector.key, selector.config, context),
+    [context],
+  )
 
-  const renderProps: ConnectSurfaceSelectorsMergedProps & TMergeProps = {
-    ...mergeProps,
-    className: maybeBooleanEntries
-      .map(([selectorId, binding]) =>
-        binding === null
-          ? ''
-          : `${surfaceClassPrefix}${depth}-${booleanSelectorIds.indexOf(
-              selectorId,
-            )}-${binding ? 'on' : 'off'}`,
-      )
-      .concat(`${surfaceClassPrefix}${depth}`)
-      .concat(mergeProps?.className || [])
-      .join(' '),
-  }
+  const mergedClassNames = maybeBooleanEntries
+    .map(([selectorId, binding]) =>
+      binding === null
+        ? ''
+        : `${surfaceClassPrefix}${depth}-${booleanSelectorIds.indexOf(
+            selectorId,
+          )}-${binding ? 'on' : 'off'}`,
+    )
+    .concat(`${surfaceClassPrefix}${depth}`)
 
-  return provideContext(children(renderProps))
+  const mergeSurfaceSelectorsProps: MergeSurfaceSelectorsProps = (
+    mergeProps,
+  ) => ({
+    ...mergeProps!,
+    className: mergedClassNames.concat(mergeProps?.className || []).join(' '),
+  })
+
+  const provideContext = useSelectorProvider(updateContext)
+
+  return [{ getSelector }, mergeSurfaceSelectorsProps, provideContext]
 }
 
 /**

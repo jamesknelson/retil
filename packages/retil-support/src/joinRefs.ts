@@ -9,13 +9,17 @@ export function joinRefs<T>(
   y: RefCallback<T>,
 ): RefCallback<T>
 export function joinRefs<T>(
-  x?: RefCallback<T> | MutableRefObject<T | null> | null,
+  x: Ref<T>,
   y?: RefCallback<T> | MutableRefObject<T | null> | null,
-): Ref<T> | null
+): Ref<T>
 export function joinRefs<T>(
   x?: RefCallback<T> | MutableRefObject<T | null> | null,
   y?: RefCallback<T> | MutableRefObject<T | null> | null,
-): Ref<T> | null {
+): Ref<T> | undefined
+export function joinRefs<T>(
+  x?: RefCallback<T> | MutableRefObject<T | null> | null,
+  y?: RefCallback<T> | MutableRefObject<T | null> | null,
+): Ref<T> | undefined {
   return (
     (!x || !y
       ? x || y
@@ -30,6 +34,6 @@ export function joinRefs<T>(
           } else {
             y.current = value
           }
-        }) || null
+        }) || undefined
   )
 }

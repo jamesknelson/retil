@@ -1,37 +1,59 @@
 /**
  * An action surface is a surface with a single primary action, which can be
- * triggered by pressing the action with a pointer, or when focused, by using
- * the enter key.
+ * triggered by pressing the action with a pointer, or when focused or selected,
+ * by using at least one of the enter or space key.
  *
  * Action surfaces can be configured to not be self-focusable, but instead to
  * to delegate their focus to another element in situations where they would
  * typically receive focus. This can be used to add clickable surfaces which
  * perform individual actions in larger controls where only a single element
- * should be focused.
+ * should be focused. In such situations, the surfaces can still be
+ * "selectable", if placed in a selectable item context.
  *
  * Action surfaces can also be configured to be disabled (i.e. to not perform
  * their single primary action) while remaining focusable.
  */
 
-import React from 'react'
+import React, { useMemo } from 'react'
+import { compose } from 'retil-support'
 
-import { inFocusedSurface, inHoveredSurface } from './defaultSurfaceSelectors'
-import { useDisableableSurface } from './disableable'
-import { Focusable, useFocusable } from './focusable'
 import {
-  ConnectSurfaceSelectors,
+  inActiveSurface,
+  inHoveredSurface,
+  inSelectedSurface,
+} from './defaultSurfaceSelectors'
+import {
+  DisableableMergeableProps,
+  DisableableMergedProps,
+  useDisableableConnector,
+} from './disableable'
+import {
+  Focusable,
+  FocusableMergeableProps,
+  FocusableMergedProps,
+  useFocusableConnector,
+} from './focusable'
+import {
+  SelectableMergeableProps,
+  SelectableMergedProps,
+  useSelectableConnector,
+} from './selectable'
+import {
   SurfaceSelectorOverrides,
+  SurfaceSelectorsMergeableProps,
+  SurfaceSelectorsMergedProps,
+  useSurfaceSelectorsConnector,
 } from './surfaceSelector'
 
-export interface ActionSurfaceProps {
+export interface ActionSurfaceOptions {
   disabled?: boolean
   focusable?: Focusable
   overrideSelectors?: SurfaceSelectorOverrides
 }
 
-export function splitActionSurfaceProps<P extends ActionSurfaceProps>(
+export function splitActionSurfaceOptions<P extends ActionSurfaceOptions>(
   props: P,
-): readonly [ActionSurfaceProps, Omit<P, keyof ActionSurfaceProps>] {
+): readonly [ActionSurfaceOptions, Omit<P, keyof ActionSurfaceOptions>] {
   const { disabled, focusable, overrideSelectors, ...other } = props
 
   return [
@@ -44,79 +66,85 @@ export function splitActionSurfaceProps<P extends ActionSurfaceProps>(
   ]
 }
 
-// These props can be supplied by the extending surface themselves, and
-// should not be passed through.
-export interface ConnectActionSurfaceProps<
+export type ActionSurfaceMergedProps<
   TElement extends HTMLElement | SVGElement,
-  TMergeProps extends ConnectActionSurfaceMergeableProps<TElement>,
-> extends ActionSurfaceProps {
-  children: (
-    props: TMergeProps & ConnectActionSurfaceMergedProps<TElement>,
-  ) => React.ReactNode
-  defaultSelectorOverrides?: SurfaceSelectorOverrides
-  mergeProps?: TMergeProps
-}
+> = DisableableMergedProps &
+  FocusableMergedProps<TElement> &
+  SelectableMergedProps<TElement> &
+  SurfaceSelectorsMergedProps
 
-export interface ConnectActionSurfaceMergedProps<
+export type ActionSurfaceMergableProps<
   TElement extends HTMLElement | SVGElement,
-> {
-  'aria-disabled': boolean
-  className: string
-  onFocus?: (event: React.FocusEvent<TElement>) => void
-  onMouseDown?: (event: React.MouseEvent<TElement>) => void
-  ref?: React.Ref<TElement>
-  tabIndex: number
-}
+> = DisableableMergeableProps &
+  FocusableMergeableProps<TElement> &
+  SelectableMergeableProps<TElement> &
+  SurfaceSelectorsMergeableProps
 
-export type ConnectActionSurfaceMergeableProps<
-  TElement extends HTMLElement | SVGElement,
-> = {
-  className?: string
-  onFocus?: (event: React.FocusEvent<TElement>) => void
-  onMouseDown?: (event: React.MouseEvent<TElement>) => void
-  ref?: React.Ref<TElement>
-  tabIndex?: number
-} & {
-  [propName: string]: any
-}
-
-export function ConnectActionSurface<
-  TElement extends HTMLElement | SVGElement,
-  MergeProps extends ConnectActionSurfaceMergeableProps<TElement>,
+export type MergeActionSurfaceFocusableProps = <
+  TElement extends HTMLElement | SVGElement = HTMLElement | SVGElement,
+  MergeProps extends ActionSurfaceMergableProps<TElement> &
+    Record<string, any> = {},
 >(
-  props: ConnectActionSurfaceProps<TElement, MergeProps> & {
-    mergeProps?: {
-      onFocus?: (event: React.FocusEvent<TElement>) => void
-      onMouseDown?: (event: React.MouseEvent<TElement>) => void
-      ref?: React.Ref<TElement | null>
-    }
-  },
-) {
-  const {
-    children,
-    focusable,
-    defaultSelectorOverrides,
-    disabled,
-    overrideSelectors,
-    mergeProps,
-  } = props
+  mergeProps?: MergeProps &
+    ActionSurfaceMergableProps<TElement> &
+    Record<string, any>,
+) => Omit<MergeProps, keyof ActionSurfaceMergableProps<TElement>> &
+  ActionSurfaceMergedProps<TElement>
 
-  const mergeFocusableProps = useFocusable(focusable)
-  const [mergeDisabledProps, mergeDisabledSelectorOverrides] =
-    useDisableableSurface(disabled)
-
-  return (
-    <ConnectSurfaceSelectors
-      children={children}
-      override={mergeDisabledSelectorOverrides(
-        [
-          [inFocusedSurface, ':focus'],
-          [inHoveredSurface, ':hover'],
-        ],
-        defaultSelectorOverrides,
-        overrideSelectors,
-      )}
-      mergeProps={mergeDisabledProps(mergeFocusableProps(mergeProps))}
-    />
+export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
+  const [disableableState, mergeDisableableProps, provideDisableable] =
+    useDisableableConnector(options.disabled)
+  const [
+    focusableState,
+    mergeFocusableProps,
+    provideFocusable,
+    focusableHandle,
+  ] = useFocusableConnector(options.focusable)
+  const [
+    selectableState,
+    mergeSelectableProps,
+    provideSelectable,
+    selectableHandle,
+  ] = useSelectableConnector()
+  const [
+    surfaceSelectorsState,
+    mergeSurfaceSelectorProps,
+    provideSurfaceSelectors,
+  ] = useSurfaceSelectorsConnector(
+    [[inActiveSurface, disableableState.disabled || null]],
+    [[inHoveredSurface, disableableState.disabled || null]],
+    [[inSelectedSurface, selectableState.selected]],
+    options.overrideSelectors,
   )
+
+  const handle = useMemo(
+    () => ({
+      ...focusableHandle,
+      ...selectableHandle,
+    }),
+    [focusableHandle, selectableHandle],
+  )
+
+  const state = {
+    ...disableableState,
+    ...focusableState,
+    ...selectableState,
+    ...surfaceSelectorsState,
+  }
+
+  const mergeProps: MergeActionSurfaceFocusableProps = compose(
+    mergeDisableableProps,
+    mergeSelectableProps,
+    mergeFocusableProps,
+    mergeSurfaceSelectorProps,
+  )
+
+  const provide: (children: React.ReactNode) => React.ReactElement = compose(
+    provideDisableable,
+    provideSelectable,
+    provideFocusable,
+    provideSurfaceSelectors,
+  )
+
+  return [state, mergeProps, provide, handle] as const
 }

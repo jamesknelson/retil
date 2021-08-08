@@ -1,40 +1,22 @@
 import { css } from '@emotion/react'
 import styled from '@emotion/styled'
-import React, {
-  forwardRef,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import React, { forwardRef, useCallback, useRef, useState } from 'react'
 import {
   ButtonSurface as RetilButtonSurface,
   ButtonSurfaceProps,
-  ConnectSurfaceSelectors,
-  DisabledDefaultProvider,
-  FocusableDefaultProvider,
   inDisabledSurface,
   inFocusedSurface,
   inHoveredSurface,
   inToggledSurface,
-  useFocusable,
+  useDisableableConnector,
+  useFocusableConnector,
+  useKeyMapHandler,
+  useSurfaceSelectorsConnector,
 } from 'retil-interaction'
+import { compose } from 'retil-support'
 
 const controlOverrides = [
-  [
-    inDisabledSurface,
-    [
-      ' > .rx-control-input[aria-disabled="true"] ~ &',
-      ' > &.rx-control-input[aria-disabled="true"]',
-    ] as string[],
-  ] as const,
-  [
-    inFocusedSurface,
-    [
-      ' > .rx-control-input:focus ~ &',
-      ' > &.rx-control-input:focus',
-    ] as string[],
-  ] as const,
+  [inFocusedSurface, [' > :focus ~ &', ' > &:focus'] as string[]] as const,
 ]
 
 const App = () => {
@@ -55,27 +37,32 @@ const App = () => {
     [],
   )
 
-  const handleKeyDown = useMemo(
-    () => (event: React.KeyboardEvent<HTMLInputElement>) => {
-      const key = event.key
-
-      if (event.defaultPrevented) return
-      else if (key === 'ArrowDown') {
-        event.preventDefault()
-        decrement()
-      } else if (key === 'ArrowUp') {
-        event.preventDefault()
-        increment()
-      }
-    },
-    [decrement, increment],
-  )
-
   const inputRef = useRef<HTMLInputElement | null>(null)
   const incrementRef = useRef<HTMLDivElement | null>(null)
   const decrementRef = useRef<HTMLDivElement | null>(null)
 
-  const connectFocusableWrapperProps = useFocusable(inputRef)
+  const handleKeyDown = useKeyMapHandler({
+    ArrowUp: increment,
+    ArrowDown: decrement,
+  })
+
+  const [, mergeDisableableProps, provideDisableable] =
+    useDisableableConnector(disabled)
+  const [, mergeFocusableProps, provideFocusable, focusableHandle] =
+    useFocusableConnector(inputRef)
+  const [, mergeSufaceSelectorsProps, provideSurfaceSelectors] =
+    useSurfaceSelectorsConnector(controlOverrides)
+
+  const provide = compose(
+    provideDisableable,
+    provideFocusable,
+    provideSurfaceSelectors,
+  )
+  const mergeProps = compose(
+    mergeDisableableProps,
+    mergeFocusableProps,
+    mergeSufaceSelectorsProps,
+  )
 
   return (
     <>
@@ -84,57 +71,41 @@ const App = () => {
           display: inline-block;
         `}>
         Number <br />
-        <DisabledDefaultProvider value={disabled}>
-          <FocusableDefaultProvider value={inputRef}>
-            <ConnectSurfaceSelectors override={controlOverrides}>
-              {(props) => (
-                <StyledControlSurfaceWrapper
-                  {...connectFocusableWrapperProps(props)}
-                  css={css`
-                    width: 200px;
-                    margin: 1rem;
-                  `}>
-                  <StyledNumberInput
-                    aria-disabled={disabled ? 'true' : 'false'}
-                    className="rx-control-input"
-                    readOnly={disabled}
-                    ref={inputRef}
-                    value={number}
-                    onChange={parseAndSetNumber}
-                    onKeyDown={disabled ? undefined : handleKeyDown}
-                  />
-                  <StyledNumberInputButtons>
-                    <ButtonSurface
-                      className="rx-control-surface"
-                      onTrigger={increment}
-                      ref={incrementRef}>
-                      <StyledNumberInputButtonBody>
-                        +
-                      </StyledNumberInputButtonBody>
-                    </ButtonSurface>
-                    <ButtonSurface
-                      className="rx-control-surface"
-                      onTrigger={decrement}
-                      ref={decrementRef}>
-                      <StyledNumberInputButtonBody>
-                        -
-                      </StyledNumberInputButtonBody>
-                    </ButtonSurface>
-                  </StyledNumberInputButtons>
-                  <StyledControlSurfaceBackground aria-hidden />
-                  <StyledControlSurfaceBorder aria-hidden />
-                </StyledControlSurfaceWrapper>
-              )}
-            </ConnectSurfaceSelectors>
-          </FocusableDefaultProvider>
-        </DisabledDefaultProvider>
+        {provide(
+          <StyledControlSurfaceWrapper
+            {...mergeProps({})}
+            css={css`
+              width: 200px;
+              margin: 1rem;
+            `}>
+            <StyledNumberInput
+              {...mergeDisableableProps()}
+              className="rx-control-input"
+              readOnly={disabled}
+              ref={inputRef}
+              value={number}
+              onChange={parseAndSetNumber}
+              onKeyDown={disabled ? undefined : handleKeyDown}
+            />
+            <StyledNumberInputButtons>
+              <ButtonSurface onTrigger={increment} ref={incrementRef}>
+                <StyledNumberInputButtonBody>+</StyledNumberInputButtonBody>
+              </ButtonSurface>
+              <ButtonSurface onTrigger={decrement} ref={decrementRef}>
+                <StyledNumberInputButtonBody>-</StyledNumberInputButtonBody>
+              </ButtonSurface>
+            </StyledNumberInputButtons>
+            <StyledControlSurfaceBackground aria-hidden />
+            <StyledControlSurfaceBorder aria-hidden />
+          </StyledControlSurfaceWrapper>,
+        )}
       </label>
       <div>
         <h3>Controls</h3>
         <ButtonSurface onTrigger={toggleDisabled} pressed={disabled}>
           <StyledButtonBody>Disable</StyledButtonBody>
         </ButtonSurface>
-        <ButtonSurface onTrigger={() => inputRef.current?.focus()}>
+        <ButtonSurface onTrigger={() => focusableHandle.focus()}>
           <StyledButtonBody>Focus input</StyledButtonBody>
         </ButtonSurface>
         <ButtonSurface onTrigger={() => incrementRef.current?.focus()}>

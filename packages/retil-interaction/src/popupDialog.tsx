@@ -8,6 +8,7 @@ import React, {
   useMemo,
   useLayoutEffect,
 } from 'react'
+import { useOpaqueIdentifier } from 'retil-support'
 
 import { inHydratingSurface, inToggledSurface } from './defaultSurfaceSelectors'
 import { useJoinRefs } from './joinRefs'
@@ -18,17 +19,15 @@ import {
   usePopupPosition,
 } from './popup'
 import {
-  ActionSurfaceProps,
-  ConnectActionSurface,
-  splitActionSurfaceProps,
+  ActionSurfaceOptions,
+  splitActionSurfaceOptions,
+  useActionSurfaceConnector,
 } from './actionSurface'
 import { useHasHydrated } from 'retil-hydration'
-
-const useOpaqueIdentifier = (React as any)
-  .unstable_useOpaqueIdentifier as () => any
+import { mergeOverrides } from './surfaceSelector'
 
 export interface PopupDialogConfig {
-  disabled: boolean
+  disabled?: boolean
   popupId: string
   triggerId: string
   triggerOnFocus: boolean
@@ -61,7 +60,7 @@ export const ProvidePopupDialog = forwardRef<
   } = props
 
   const triggerOnFocus = popupConfig.triggerOnFocus ?? false
-  const disabled = !!props.disabled
+  const disabled = props.disabled
   const config = useMemo(
     () => ({
       disabled,
@@ -174,7 +173,7 @@ export interface PopupDialogTriggerProps<TriggerElement extends HTMLElement> {
   'aria-controls': string
   'aria-expanded': boolean
   'aria-haspopup': boolean
-  disabled: boolean
+  disabled?: boolean
   id: string
   ref: (element: TriggerElement | null) => void
   role: 'button'
@@ -233,7 +232,7 @@ export function usePopupDialogTriggerProps<
 }
 
 export interface PopupDialogTriggerSurfaceProps
-  extends ActionSurfaceProps,
+  extends ActionSurfaceOptions,
     Omit<
       React.HTMLAttributes<HTMLDivElement>,
       'aria-controls' | 'aria-expanded' | 'aria-haspopup' | 'id' | 'role'
@@ -244,7 +243,7 @@ export const PopupDialogTriggerSurface = forwardRef<
   HTMLDivElement,
   PopupDialogTriggerSurfaceProps
 >((props, ref) => {
-  const [actionSurfaceProps, divProps] = splitActionSurfaceProps(props)
+  const [actionSurfaceOptions, divProps] = splitActionSurfaceOptions(props)
   const { disabled, ...triggerProps } = usePopupDialogTriggerProps({
     ...divProps,
     ref,
@@ -253,19 +252,21 @@ export const PopupDialogTriggerSurface = forwardRef<
   const isHydrating = !useHasHydrated()
   const isToggled = useContext(PopupDialogActiveContext)
 
-  return (
-    <ConnectActionSurface
-      defaultSelectorOverrides={[
-        [inHydratingSurface, !!isHydrating],
-        [inToggledSurface, !!isToggled],
-      ]}
-      // Pass down disabled from the popup context to ensure the surface acts
-      // as disabled when the popup menu is.
-      disabled={disabled || actionSurfaceProps.disabled}
-      mergeProps={triggerProps}
-      {...actionSurfaceProps}>
-      {(props) => <div {...props} />}
-    </ConnectActionSurface>
+  const [, mergeActionSurfaceProps, provideActionSurface] =
+    useActionSurfaceConnector({
+      ...actionSurfaceOptions,
+      disabled: disabled || actionSurfaceOptions.disabled,
+      overrideSelectors: mergeOverrides(
+        [
+          [inHydratingSurface, !!isHydrating],
+          [inToggledSurface, !!isToggled],
+        ],
+        actionSurfaceOptions.overrideSelectors,
+      ),
+    })
+
+  return provideActionSurface(
+    <div {...mergeActionSurfaceProps(triggerProps)} />,
   )
 })
 

@@ -30,6 +30,8 @@ export const inHydratingSurface = /*#__PURE__*/ createSurfaceSelector(false)
  */
 export const inInvalidSurface = /*#__PURE__*/ createSurfaceSelector(false)
 
+export const inSelectedSurface = /*#__PURE__*/ createSurfaceSelector(false)
+
 /**
  * Used to represent an "on", "current", "checked", etc. state, for example, to
  * represent check boxes, toggle buttons, or navigation links.
@@ -46,10 +48,6 @@ export const inValidSurface = /*#__PURE__*/ createSurfaceSelector(false)
 export const inWorkingSurface = /*#__PURE__*/ createSurfaceSelector(false)
 
 // Other possible surface selectors:
-// - selected
-//   * when an item that is selected, not checked, and not focused
-//     i.e. selected item in a multi-select list, where focus is on the list
-//          itself, and hitting enter/space toggles checked
 // - success
 //   * when an action was taken successfully, and this prevents the action
 //     from being performed again

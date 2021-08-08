@@ -2,14 +2,13 @@ import React, { forwardRef } from 'react'
 import { NavAction, UseNavLinkPropsOptions, useNavLinkProps } from 'retil-nav'
 
 import {
-  ConnectActionSurface,
-  ActionSurfaceProps,
-  splitActionSurfaceProps,
+  ActionSurfaceOptions,
+  splitActionSurfaceOptions,
+  useActionSurfaceConnector,
 } from './actionSurface'
-import { useDisabled } from './disableable'
 
 export interface LinkSurfaceProps
-  extends ActionSurfaceProps,
+  extends ActionSurfaceOptions,
     UseNavLinkPropsOptions,
     Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   children: React.ReactNode
@@ -18,7 +17,7 @@ export interface LinkSurfaceProps
 
 export const LinkSurface = forwardRef(
   (props: LinkSurfaceProps, anchorRef: React.Ref<HTMLAnchorElement>) => {
-    const [actionSurfaceProps, linkProps] = splitActionSurfaceProps(props)
+    const [actionSurfaceOptions, linkProps] = splitActionSurfaceOptions(props)
     const {
       href,
       onClick: onClickProp,
@@ -29,11 +28,11 @@ export const LinkSurface = forwardRef(
       ...rest
     } = linkProps
 
-    // Ensure we pick up any default value for `disabled` from context
-    const disabled = useDisabled(props.disabled)
+    const [actionSurfaceState, mergeActionSurfaceProps, provideActionSurface] =
+      useActionSurfaceConnector(actionSurfaceOptions)
 
     const navLinkProps = useNavLinkProps(href, {
-      disabled,
+      disabled: actionSurfaceState.disabled,
       onClick: onClickProp,
       onMouseEnter: onMouseEnterProp,
       precacheOn,
@@ -47,21 +46,17 @@ export const LinkSurface = forwardRef(
       ? onMouseEnterProp
       : navLinkProps.onMouseEnter
 
-    return (
-      <ConnectActionSurface
-        {...actionSurfaceProps}
-        mergeProps={{
+    return provideActionSurface(
+      // eslint-disable-next-line jsx-a11y/anchor-has-content
+      <a
+        {...mergeActionSurfaceProps({
           ...rest,
           ...navLinkProps,
           onClick,
           onMouseEnter,
           ref: anchorRef,
-        }}>
-        {(props) => (
-          // eslint-disable-next-line jsx-a11y/anchor-has-content
-          <a {...props} />
-        )}
-      </ConnectActionSurface>
+        })}
+      />,
     )
   },
 )

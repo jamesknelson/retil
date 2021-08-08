@@ -9,16 +9,15 @@ import {
 import { joinClassNames } from 'retil-support'
 
 import {
-  ConnectActionSurface,
-  ActionSurfaceProps,
-  splitActionSurfaceProps,
+  ActionSurfaceOptions,
+  splitActionSurfaceOptions,
+  useActionSurfaceConnector,
 } from './actionSurface'
 import { inToggledSurface } from './defaultSurfaceSelectors'
-import { useDisabled } from './disableable'
-import { SurfaceSelector } from './surfaceSelector'
+import { mergeOverrides, SurfaceSelector } from './surfaceSelector'
 
 export interface MatchedLinkSurfaceProps
-  extends ActionSurfaceProps,
+  extends ActionSurfaceOptions,
     UseNavLinkPropsOptions,
     Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, 'href'> {
   children: React.ReactNode
@@ -56,7 +55,8 @@ export const MatchedLinkSurface: React.FunctionComponent<MatchedLinkSurfaceProps
       props: MatchedLinkSurfaceProps,
       anchorRef: React.Ref<HTMLAnchorElement>,
     ) => {
-      const [actionSurfaceProps, linkProps] = splitActionSurfaceProps(props)
+      const [actionSurfaceOptions, linkProps] = splitActionSurfaceOptions(props)
+
       const {
         className: classNameProp,
         href,
@@ -83,11 +83,20 @@ export const MatchedLinkSurface: React.FunctionComponent<MatchedLinkSurfaceProps
               match ? resolver(match).pathname : hrefLocation.pathname + '*',
             )
 
-      // Ensure we pick up any default value for `disabled` from context
-      const disabled = useDisabled(props.disabled)
+      const [
+        actionSurfaceState,
+        mergeActionSurfaceProps,
+        provideActionSurface,
+      ] = useActionSurfaceConnector({
+        ...actionSurfaceOptions,
+        overrideSelectors: mergeOverrides(
+          [[inToggledSurface, isMatch]],
+          actionSurfaceOptions.overrideSelectors,
+        ),
+      })
 
       const navLinkProps = useNavLinkProps(href, {
-        disabled,
+        disabled: actionSurfaceState.disabled,
         onClick: onClickProp,
         onMouseEnter: onMouseEnterProp,
         precacheOn,
@@ -101,11 +110,10 @@ export const MatchedLinkSurface: React.FunctionComponent<MatchedLinkSurfaceProps
         ? onMouseEnterProp
         : navLinkProps.onMouseEnter
 
-      return (
-        <ConnectActionSurface
-          {...actionSurfaceProps}
-          defaultSelectorOverrides={[[inToggledSurface, isMatch]]}
-          mergeProps={{
+      return provideActionSurface(
+        // eslint-disable-next-line jsx-a11y/anchor-has-content
+        <a
+          {...mergeActionSurfaceProps({
             ...rest,
             ...navLinkProps,
             className: joinClassNames(classNameProp, isMatch && matchClassName),
@@ -119,12 +127,8 @@ export const MatchedLinkSurface: React.FunctionComponent<MatchedLinkSurfaceProps
             onClick,
             onMouseEnter,
             ref: anchorRef,
-          }}>
-          {(props) => (
-            // eslint-disable-next-line jsx-a11y/anchor-has-content
-            <a {...props} />
-          )}
-        </ConnectActionSurface>
+          })}
+        />,
       )
     },
   )

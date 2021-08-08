@@ -5,93 +5,53 @@
 
 import React, { createContext, useCallback, useContext } from 'react'
 
-import {
-  inActiveSurface,
-  inDisabledSurface,
-  inHoveredSurface,
-} from './defaultSurfaceSelectors'
-import { mergeOverrides, SurfaceSelector } from './surfaceSelector'
+const disabledContext = createContext<boolean>(false)
 
-const defaultDisabledSelectors = [inActiveSurface, inHoveredSurface]
+export const DisabledProvider = disabledContext.Provider
 
-const disabledDefaultContext = createContext<boolean>(false)
-
-export const DisabledDefaultProvider = disabledDefaultContext.Provider
-
-export function useDisabled(disabledArg: boolean | undefined) {
-  const context = useContext(disabledDefaultContext)
-  const disabled = disabledArg ?? context
-  return disabled
+export function useDisabled() {
+  return useContext(disabledContext)
 }
 
-export interface DisableableSurfaceMergedProps {
-  'aria-disabled': boolean
+export interface DisableableMergedProps {
+  'aria-disabled': boolean | 'false' | 'true'
 }
 
-export type DisableableSurfaceMergeableProps = {
+export type DisableableMergeableProps = {
   'aria-disabled'?: boolean | 'false' | 'true'
   disabled?: never
-} & {
-  [propName: string]: any
 }
 
-export type MergeDisableableSurfaceProps = <
-  MergeProps extends DisableableSurfaceMergeableProps = {},
+export type MergeDisableableProps = <
+  MergeProps extends DisableableMergeableProps & Record<string, any> = {},
 >(
-  mergeProps?: MergeProps & DisableableSurfaceMergeableProps,
-) => MergeProps & DisableableSurfaceMergedProps
+  mergeProps?: MergeProps,
+) => Omit<MergeProps, keyof DisableableMergeableProps> & DisableableMergedProps
 
-export function useDisableableSurface(
+export function useDisableableConnector(
   disabledArg: boolean | undefined,
-  selectors: SurfaceSelector[] = defaultDisabledSelectors,
-) {
-  const disabled = useDisabled(disabledArg)
+): readonly [
+  state: { disabled: boolean },
+  mergeProps: MergeDisableableProps,
+  provide: (children: React.ReactNode) => React.ReactElement,
+] {
+  const disabledDefault = useContext(disabledContext)
+  const disabled = disabledArg ?? disabledDefault
 
-  const mergeDisabledSelectorOverrides = useCallback<typeof mergeOverrides>(
-    (...overrides) =>
-      mergeOverrides(
-        [
-          [
-            inDisabledSurface,
-            '[aria-disabled="true"]' as boolean | string | null,
-          ] as const,
-        ].concat(
-          selectors.map(
-            (selector) => [selector, disabled ? false : null] as const,
-          ),
-        ),
-        ...overrides,
-      ),
-    [disabled, selectors],
-  )
-
-  const mergeDisabledProps = useCallback<MergeDisableableSurfaceProps>(
-    ({ disabled: _, ...rest }: any) => ({
+  const mergeDisabledProps = useCallback<MergeDisableableProps>(
+    ({ disabled: _, ...rest }: any = {}) => ({
       'aria-disabled': disabled || undefined,
       ...rest,
     }),
     [disabled],
   )
 
-  return [mergeDisabledProps, mergeDisabledSelectorOverrides] as const
-}
+  const provider = useCallback(
+    (children: React.ReactNode) => (
+      <DisabledProvider value={disabled}>{children}</DisabledProvider>
+    ),
+    [disabled],
+  )
 
-export function useDisableableEventHandler<E extends React.SyntheticEvent>(
-  disabledArg: boolean | undefined,
-  eventHandler: React.EventHandler<E>,
-): React.EventHandler<E>
-export function useDisableableEventHandler<E extends React.SyntheticEvent>(
-  disabledArg: boolean | undefined,
-  eventHandler?: undefined,
-): React.EventHandler<E> | undefined
-export function useDisableableEventHandler<E extends React.SyntheticEvent>(
-  disabledArg: boolean | undefined,
-  eventHandler: React.EventHandler<E> | undefined,
-): React.EventHandler<E> | undefined
-export function useDisableableEventHandler<E extends React.SyntheticEvent>(
-  disabledArg: boolean | undefined,
-  eventHandler: React.EventHandler<E> | undefined,
-): React.EventHandler<E> | undefined {
-  const disabled = useDisabled(disabledArg)
-  return disabled ? undefined : eventHandler
+  return [{ disabled }, mergeDisabledProps, provider]
 }

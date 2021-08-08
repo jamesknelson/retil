@@ -7,39 +7,33 @@
 import React, { forwardRef } from 'react'
 
 import {
-  ActionSurfaceProps,
-  ConnectActionSurface,
-  splitActionSurfaceProps,
+  ActionSurfaceOptions,
+  splitActionSurfaceOptions,
+  useActionSurfaceConnector,
 } from './actionSurface'
-import { useDisabled } from './disableable'
 
 export interface AnchorSurfaceProps
   extends React.AnchorHTMLAttributes<HTMLAnchorElement>,
-    ActionSurfaceProps {}
+    ActionSurfaceOptions {}
 
 export const AnchorSurface = forwardRef<HTMLAnchorElement, AnchorSurfaceProps>(
   (props, ref) => {
-    const [actionSurfaceProps, rest] = splitActionSurfaceProps(props)
-    const disabled = useDisabled(props.disabled)
+    const [actionSurfaceOptions, rest] = splitActionSurfaceOptions(props)
+    const [actionSurfaceState, mergeActionSurfaceProps, provideActionSurface] =
+      useActionSurfaceConnector(actionSurfaceOptions)
 
-    return (
-      <ConnectActionSurface
-        {...actionSurfaceProps}
-        mergeProps={{
+    return provideActionSurface(
+      // eslint-disable-next-line jsx-a11y/anchor-has-content
+      <a
+        {...mergeActionSurfaceProps({
           ...rest,
           ref,
-        }}>
-        {(props) => (
-          // eslint-disable-next-line jsx-a11y/anchor-has-content
-          <a
-            {...props}
-            // <a> tags can't be disabled during SSR, but are still rendered
-            // before the page becomes active, so if necessary we'll disable
-            // them by removing the `href`.
-            href={disabled ? undefined : props.href}
-          />
-        )}
-      </ConnectActionSurface>
+          // <a> tags can't be disabled during SSR, but are still rendered
+          // before the page becomes active, so if necessary we'll disable
+          // them by removing the `href`.
+          href: actionSurfaceState.disabled ? undefined : props.href,
+        })}
+      />,
     )
   },
 )

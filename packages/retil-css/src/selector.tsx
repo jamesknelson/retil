@@ -200,10 +200,10 @@ function registerSelectorType<Context, Config>(
 ): SelectorType<Context, Config> {
   const typeIndex = selectorTypeRegister.length
 
-  let nextSelectorId = 1
+  let nextSelectorKey = 1
 
   const createSelector = (config: Config): Selector<Config> & string => {
-    const key = String(nextSelectorId++)
+    const key = String(nextSelectorKey++)
 
     const serializedConfig = serializeSelectorTuple([typeIndex, key, config])
 
@@ -295,10 +295,10 @@ function registerSelectorType<Context, Config>(
     if (!tuple || tuple[0] !== typeIndex) {
       return null
     } else {
-      const [, selectorId, config] = tuple
+      const [, selectorKey, config] = tuple
       return {
         [selectorTypeSymbol]: typeIndex,
-        key: selectorId,
+        key: selectorKey,
         config: config as Config,
       }
     }
