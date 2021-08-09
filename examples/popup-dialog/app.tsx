@@ -2,38 +2,43 @@ import { createPortal } from 'react-dom'
 import styled from 'styled-components'
 
 import {
-  ProvidePopupDialog,
   PopupDialogArrowDiv,
+  PopupConsumer,
+  PopupDialogSurface,
   PopupDialogTriggerSurface,
-  ConnectPopupDialog,
+  PopupProvider,
 } from 'retil-interaction'
 
 function App() {
   return (
-    <ProvidePopupDialog
-      offset={[0, 6]}
-      placement="top-start"
-      triggerOnHover
-      triggerOnFocus
-      triggerOnPress>
-      <StyledTrigger data-testid="trigger">trigger</StyledTrigger>
-      <ConnectPopupDialog>
-        {(props) =>
-          !props.hidden &&
+    <PopupProvider>
+      <StyledPopupDialogTriggerSurface
+        triggerOnHover
+        triggerOnFocus
+        triggerOnPress>
+        trigger
+      </StyledPopupDialogTriggerSurface>
+      <PopupConsumer>
+        {(active) =>
+          active &&
           createPortal(
-            <StyledCard data-testid="popup" {...props}>
+            <StyledPopupDialogSurface
+              active
+              offset={[0, 6]}
+              placement="top-start"
+              strategy="absolute">
               <StyledPopupDialogArrow />
               popup
-            </StyledCard>,
+            </StyledPopupDialogSurface>,
             document.body,
           )
         }
-      </ConnectPopupDialog>
-    </ProvidePopupDialog>
+      </PopupConsumer>
+    </PopupProvider>
   )
 }
 
-const StyledTrigger = styled(PopupDialogTriggerSurface)`
+const StyledPopupDialogTriggerSurface = styled(PopupDialogTriggerSurface)`
   cursor: pointer;
   border-radius: 99px;
   line-height: 30px;
@@ -45,7 +50,7 @@ const StyledTrigger = styled(PopupDialogTriggerSurface)`
   user-select: none;
 `
 
-const StyledCard = styled.div`
+const StyledPopupDialogSurface = styled(PopupDialogSurface)`
   cursor: pointer;
   border-radius: 4px;
   line-height: 30px;
@@ -59,10 +64,11 @@ const StyledCard = styled.div`
 
 const StyledPopupDialogArrow = styled(PopupDialogArrowDiv)`
   border: transparent 5px solid;
-  margin-top: -10px;
+  bottom: 0;
+  margin-bottom: -10px;
 
-  &[data-placement*='bottom'] {
-    border-bottom-color: #333;
+  &[data-placement*='top'] {
+    border-top-color: #333;
   }
 `
 

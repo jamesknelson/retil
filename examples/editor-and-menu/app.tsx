@@ -1,6 +1,7 @@
 import { css } from '@emotion/react'
 import styled from '@emotion/styled'
-import React, { forwardRef, useRef, useState } from 'react'
+import React, { forwardRef, useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useHasHydrated } from 'retil-hydration'
 import {
   ButtonSurface as RetilButtonSurface,
@@ -10,12 +11,28 @@ import {
   inFocusedSurface,
   inHoveredSurface,
   inSelectedSurface,
+  PopupConsumer,
+  PopupProvider,
+  PopupDialogTriggerSurface,
+  PopupDialogSurface,
 } from 'retil-interaction'
 
 const App = () => {
   const [text, setText] = useState('test')
   const textAreaRef = useRef<HTMLTextAreaElement | null>(null)
   const hasHydrated = useHasHydrated()
+
+  const insertY = useCallback(
+    () =>
+      setText(
+        (text) =>
+          text.slice(0, textAreaRef.current?.selectionStart) +
+          'y' +
+          text.slice(textAreaRef.current?.selectionStart),
+      ),
+
+    [],
+  )
 
   // TODO: add dropdown menu
 
@@ -29,18 +46,40 @@ const App = () => {
         focusable={textAreaRef}
         actions={[
           <ButtonSurface onTrigger={() => setText((text) => text + 'x')}>
-            <StyledMenuButton>Append "x"</StyledMenuButton>
+            <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
           </ButtonSurface>,
-          <ButtonSurface
-            onTrigger={() =>
-              setText(
-                (text) =>
-                  text.slice(0, textAreaRef.current?.selectionStart) +
-                  'y' +
-                  text.slice(textAreaRef.current?.selectionStart),
-              )
-            }>
-            <StyledMenuButton>Insert "y"</StyledMenuButton>
+          <PopupProvider>
+            <PopupDialogTriggerSurface
+              triggerOnKeys={['Enter', ' ']}
+              triggerOnPress>
+              <StyledMenuButtonBody>Popup</StyledMenuButtonBody>
+            </PopupDialogTriggerSurface>
+            <PopupConsumer>
+              {(active) =>
+                active &&
+                createPortal(
+                  <StyledPopupDialogSurface
+                    active
+                    offset={[0, 6]}
+                    placement="bottom-start"
+                    strategy="absolute">
+                    <StyledPopupMenuSurface
+                      actions={[
+                        <ButtonSurface onTrigger={insertY}>
+                          <StyledMenuButtonBody>
+                            Insert "y"
+                          </StyledMenuButtonBody>
+                        </ButtonSurface>,
+                      ]}
+                    />
+                  </StyledPopupDialogSurface>,
+                  document.body,
+                )
+              }
+            </PopupConsumer>
+          </PopupProvider>,
+          <ButtonSurface onTrigger={insertY}>
+            <StyledMenuButtonBody>Insert "y"</StyledMenuButtonBody>
           </ButtonSurface>,
         ]}
       />
@@ -101,6 +140,33 @@ const StyledTextArea: any = styled.textarea(
   `),
 )
 
+const StyledPopupDialogSurface: any = styled(PopupDialogSurface)(
+  css`
+    cursor: pointer;
+    border-radius: 4px;
+    line-height: 30px;
+    width: 100px;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.93);
+    background-color: #333;
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+    font-family: sans-serif;
+  `,
+)
+
+const StyledPopupMenuSurface: any = styled(MenuSurface)(
+  css`
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: white;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    border-bottom: 2px solid blue;
+    transition: background-color 150ms ease-out, border-color 150ms ease-out;
+  `,
+)
+
 const StyledMenuSurface: any = styled(MenuSurface)(
   css`
     display: flex;
@@ -113,7 +179,7 @@ const StyledMenuSurface: any = styled(MenuSurface)(
   `,
 )
 
-const StyledMenuButton: any = styled.div(
+const StyledMenuButtonBody: any = styled.div(
   css`
     background-color: transparent;
     color: blue;

@@ -18,7 +18,7 @@ export type PopupPositionerReferenceElement = Element | VirtualElement
 
 export type PopupPositionerService = Service<
   PopupPositionerSnapshot,
-  PopupPositionerController
+  PopupPositionerHandle
 >
 
 export type PopupPositionerServiceConfigurator = Configurator<
@@ -31,10 +31,38 @@ export interface PopupPositionerConfig {
   adaptive?: boolean
   gpuAcceleration?: boolean
   defaultReference?: ClientRect | DOMRect // TODO
+  delayTeardownPopup?: number
   offset?: readonly [along: number, away: number]
   placement?: Placement
   strategy?: PositioningStrategy
-  delayTeardownPopup?: number
+}
+
+export function splitPopupPositionerConfig<P extends PopupPositionerConfig>(
+  props: P,
+): readonly [PopupPositionerConfig, Omit<P, keyof PopupPositionerConfig>] {
+  const {
+    adaptive,
+    gpuAcceleration,
+    defaultReference,
+    delayTeardownPopup,
+    offset,
+    placement,
+    strategy,
+    ...other
+  } = props
+
+  return [
+    {
+      adaptive,
+      gpuAcceleration,
+      defaultReference,
+      delayTeardownPopup,
+      offset,
+      placement,
+      strategy,
+    },
+    other,
+  ]
 }
 
 type PopupPositionerConfigWithDefaults = Omit<
@@ -61,135 +89,134 @@ export interface PopupPositionerSnapshot {
   popupStyles: CSS.Properties | undefined
 }
 
-export interface PopupPositionerController {
+export interface PopupPositionerHandle {
   update: () => void
   forceUpdate: () => void
-  setArrowElement: (node: HTMLElement | null) => void
+  setArrowElement: (node: HTMLElement | SVGElement | null) => void
   setReferenceElement: (node: PopupPositionerReferenceElement | null) => void
-  setPopupElement: (node: HTMLElement | null) => void
+  setPopupElement: (node: HTMLElement | SVGElement | null) => void
 }
 
-export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigurator = (
-  initialConfig: PopupPositionerConfig,
-) => {
-  let mutableArrowElement: HTMLElement | null = null
-  let mutablePopupElement: HTMLElement | null = null
-  let mutableReferenceElement: PopupPositionerReferenceElement | null = null
+export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigurator =
+  (initialConfig: PopupPositionerConfig) => {
+    let mutableArrowElement: HTMLElement | SVGElement | null = null
+    let mutablePopupElement: HTMLElement | SVGElement | null = null
+    let mutableReferenceElement: PopupPositionerReferenceElement | null = null
 
-  let mutableConfig: PopupPositionerConfigWithDefaults = {
-    ...popupPositionerConfigDefaults,
-    ...initialConfig,
-  }
-
-  let mutableInstance: PopperInstance | null = null
-
-  const [source, setSnapshot] = createState(
-    createSnapshot(mutableConfig),
-    areSnapshotsEqual,
-  )
-
-  const updateInstance = () => {
-    if (mutableTeardownPopupTimeout) {
-      clearTimeout(mutableTeardownPopupTimeout)
-      mutableTeardownPopupTimeout = undefined
+    let mutableConfig: PopupPositionerConfigWithDefaults = {
+      ...popupPositionerConfigDefaults,
+      ...initialConfig,
     }
 
-    if (mutableInstance) {
-      mutableInstance.destroy()
-    }
-    if (mutableReferenceElement && mutablePopupElement) {
-      // Unfortunately the popper doesn't synchronously produce styles, so
-      // we can't immediately emit a snapshot. Instead, we'll need to hide the
-      // initial element with { visibility: hidden }, before revealing it once
-      // the styles are available.
-      mutableInstance = createPopper(
-        mutableReferenceElement,
-        mutablePopupElement,
-        getPopperOptions(mutableConfig, setSnapshot, mutableArrowElement),
-      )
-    } else if (mutableInstance) {
-      setSnapshot(createSnapshot(mutableConfig))
-      mutableInstance = null
-    }
-  }
+    let mutableInstance: PopperInstance | null = null
 
-  const setArrowElement = (element: HTMLElement | null) => {
-    if (element !== mutableArrowElement) {
-      mutableArrowElement = element
-      if (mutableInstance) {
-        if (mutablePopupElement) {
-          mutableInstance.setOptions(
-            getPopperOptions(mutableConfig, setSnapshot, element),
-          )
-        } else {
-          updateInstance()
-        }
-      }
-    }
-  }
+    const [source, setSnapshot] = createState(
+      createSnapshot(mutableConfig),
+      areSnapshotsEqual,
+    )
 
-  const setReferenceElement = (
-    element: PopupPositionerReferenceElement | null,
-  ) => {
-    if (element !== mutableReferenceElement) {
-      mutableReferenceElement = element
-      updateInstance()
-    }
-  }
-
-  let mutableTeardownPopupTimeout: any | undefined
-  const setPopupElement = (element: HTMLElement | null) => {
-    if (element !== mutablePopupElement) {
+    const updateInstance = () => {
       if (mutableTeardownPopupTimeout) {
         clearTimeout(mutableTeardownPopupTimeout)
         mutableTeardownPopupTimeout = undefined
       }
 
-      mutablePopupElement = element
-
-      if (element !== null) {
-        updateInstance()
-      } else {
-        // Delay reaction teardowns to avoid closing popups due to badly
-        // written libraries nulling out elements in the wrong order.
-        mutableTeardownPopupTimeout = setTimeout(
-          updateInstance,
-          mutableConfig.delayTeardownPopup ??
-            popupPositionerConfigDefaults.delayTeardownPopup,
-        )
-      }
-    }
-  }
-
-  const controller: PopupPositionerController = {
-    update: () => {
-      mutableInstance?.update()
-    },
-    forceUpdate: () => {
-      mutableInstance?.forceUpdate()
-    },
-    setArrowElement,
-    setReferenceElement,
-    setPopupElement,
-  }
-
-  const reconfigure = (nextConfig: PopupPositionerConfig) => {
-    const nextConfigWithDefaults = {
-      ...popupPositionerConfigDefaults,
-      ...nextConfig,
-    }
-    if (!areConfigsEqual(mutableConfig, nextConfigWithDefaults)) {
-      mutableConfig = nextConfigWithDefaults
       if (mutableInstance) {
-        mutableInstance.setOptions(
+        mutableInstance.destroy()
+      }
+      if (mutableReferenceElement && mutablePopupElement) {
+        // Unfortunately the popper doesn't synchronously produce styles, so
+        // we can't immediately emit a snapshot. Instead, we'll need to hide the
+        // initial element with { visibility: hidden }, before revealing it once
+        // the styles are available.
+        mutableInstance = createPopper(
+          mutableReferenceElement,
+          mutablePopupElement as HTMLElement,
           getPopperOptions(mutableConfig, setSnapshot, mutableArrowElement),
         )
+      } else if (mutableInstance) {
+        setSnapshot(createSnapshot(mutableConfig))
+        mutableInstance = null
       }
     }
-  }
 
-  return [reconfigure, [source, controller]]
-}
+    const setArrowElement = (element: HTMLElement | SVGElement | null) => {
+      if (element !== mutableArrowElement) {
+        mutableArrowElement = element
+        if (mutableInstance) {
+          if (mutablePopupElement) {
+            mutableInstance.setOptions(
+              getPopperOptions(mutableConfig, setSnapshot, element),
+            )
+          } else {
+            updateInstance()
+          }
+        }
+      }
+    }
+
+    const setReferenceElement = (
+      element: PopupPositionerReferenceElement | null,
+    ) => {
+      if (element !== mutableReferenceElement) {
+        mutableReferenceElement = element
+        updateInstance()
+      }
+    }
+
+    let mutableTeardownPopupTimeout: any | undefined
+    const setPopupElement = (element: HTMLElement | SVGElement | null) => {
+      if (element !== mutablePopupElement) {
+        if (mutableTeardownPopupTimeout) {
+          clearTimeout(mutableTeardownPopupTimeout)
+          mutableTeardownPopupTimeout = undefined
+        }
+
+        mutablePopupElement = element
+
+        if (element !== null) {
+          updateInstance()
+        } else {
+          // Delay reaction teardowns to avoid closing popups due to badly
+          // written libraries nulling out elements in the wrong order.
+          mutableTeardownPopupTimeout = setTimeout(
+            updateInstance,
+            mutableConfig.delayTeardownPopup ??
+              popupPositionerConfigDefaults.delayTeardownPopup,
+          )
+        }
+      }
+    }
+
+    const controller: PopupPositionerHandle = {
+      update: () => {
+        mutableInstance?.update()
+      },
+      forceUpdate: () => {
+        mutableInstance?.forceUpdate()
+      },
+      setArrowElement,
+      setReferenceElement,
+      setPopupElement,
+    }
+
+    const reconfigure = (nextConfig: PopupPositionerConfig) => {
+      const nextConfigWithDefaults = {
+        ...popupPositionerConfigDefaults,
+        ...nextConfig,
+      }
+      if (!areConfigsEqual(mutableConfig, nextConfigWithDefaults)) {
+        mutableConfig = nextConfigWithDefaults
+        if (mutableInstance) {
+          mutableInstance.setOptions(
+            getPopperOptions(mutableConfig, setSnapshot, mutableArrowElement),
+          )
+        }
+      }
+    }
+
+    return [reconfigure, [source, controller]]
+  }
 
 // Hide the popup until we have the styles to avoid a flash of incorrectly
 // positioned content.
@@ -219,7 +246,7 @@ const createSnapshot = (
 const getPopperOptions = (
   config: PopupPositionerConfigWithDefaults,
   setSnapshot: (snapshot: PopupPositionerSnapshot) => void,
-  arrowElement: HTMLElement | null,
+  arrowElement: HTMLElement | SVGElement | null,
 ): PopperOptions => ({
   modifiers: [
     {
