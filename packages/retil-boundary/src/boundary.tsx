@@ -12,21 +12,25 @@ import React, {
 
 type Destructor = () => void
 
-interface TDelegatedEffect {
+interface BoundaryEffect {
+  id: number
   fn: EffectCallback
   teardown?: void | Destructor
 }
 
-interface TBoundary {
-  delegatedEffects: TDelegatedEffect[]
-  delegatedLayoutEffects: TDelegatedEffect[]
+interface BoundaryContext {
+  effectLock: boolean
+  effectQueues: BoundaryEffect[][]
+  layoutEffectLock: boolean
+  layoutEffectQueues: BoundaryEffect[][]
 }
 
-interface TBoundaryContext {
-  nestedBoundaryContext?: TBoundary
-}
-
-const BoundaryContext = createContext<TBoundaryContext>({})
+const boundaryContext = createContext<BoundaryContext>({
+  effectLock: false,
+  effectQueues: [[]],
+  layoutEffectLock: false,
+  layoutEffectQueues: [[]],
+})
 
 export interface BoundaryProps {
   children: ReactNode
@@ -34,95 +38,104 @@ export interface BoundaryProps {
 }
 
 // The outer boundary should render in the same pass as any ancestor *inner*
-// boundary, and is tasked with letting the ancestor inner boundary know that
-// it is no longer the active boundary.
+// boundary, and is tasked with indicating to any ancestor boundary when it
+// needs to wait for us to handle its effects.
 export const Boundary = (props: BoundaryProps) => {
   const { children, fallback } = props
-  const boundaryContext = useContext(BoundaryContext)
-  const { current: boundary } = useRef<TBoundary>({
-    delegatedEffects: [],
-    delegatedLayoutEffects: [],
-  })
+  const context = useContext(boundaryContext)
 
-  // Note: So long as there are no <Suspense> or error boundaries between here
-  // and the <InnerBoundary> that set the context, it will be safe to set this
-  // during render instead of doing so in an effect, as if this tree is
-  // dropped due to suspense or an error boundary, then the provider that set
-  // the context in the first place will be too.
-  boundaryContext.nestedBoundaryContext = boundary
+  // Prevent boundary effects from occuring for the most recent render in any
+  // ancestor boundary. A new render in an ancestor will cancel this effect;
+  // we assume that any new renders of an ancestor before an effect here will
+  // *also* cause, re-render here, allowing us to re-lock parent boundary
+  // effects.
+  context.effectLock = true
+  context.layoutEffectLock = true
 
-  if (process.env.NODE_ENV !== 'production') {
-    // eslint-disable-next-line react-hooks/rules-of-hooks
-    useEffect(() => {
-      if (boundaryContext.nestedBoundaryContext !== boundary) {
-        console.warn(
-          'Nesting multiple <Boundary> elements within a single ' +
-            'parent <Boundary> is not supported.',
-        )
-      }
-    }, [boundaryContext, boundary])
-  }
-
-  useEffect(() => {
-    return () => {
-      if (boundaryContext.nestedBoundaryContext === boundary) {
-        boundaryContext.nestedBoundaryContext = undefined
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  // Create a store for any boundary effects queued in descendants of this
+  // component, so that we're able to easily remove this if this component.
+  const { current: effectQueues } = useRef<BoundaryEffect[][]>(
+    context.effectQueues.concat([[]]),
+  )
+  const { current: layoutEffectQueues } = useRef<BoundaryEffect[][]>(
+    context.layoutEffectQueues.concat([[]]),
+  )
 
   return (
     <Suspense fallback={fallback}>
-      <InnerBoundary boundary={boundary} children={children} />
+      <InnerBoundary
+        children={children}
+        effectQueues={effectQueues}
+        layoutEffectQueues={layoutEffectQueues}
+      />
     </Suspense>
   )
 }
 
 interface InnerBoundaryProps {
-  boundary: TBoundary
   children: React.ReactNode
+
+  effectQueues: BoundaryEffect[][]
+  layoutEffectQueues: BoundaryEffect[][]
 }
 
 // The inner boundary is tasked with actually executing any effects that need
 // to be executed once the app has loaded at the deepest level – so long as it
 // *is* in fact at the deepest level.
 const InnerBoundary = (props: InnerBoundaryProps) => {
-  const { boundary, children } = props
-  const contextRef = useRef<TBoundaryContext>({})
+  const { children, effectQueues, layoutEffectQueues } = props
 
-  // Run any effects that were set up by ancestors, but which are waiting for
-  // a boundary – unless there are further nested boundaries, in which case
-  // we'll delegate to them.
+  const parentContext = useContext(boundaryContext)
+
+  // Create a new context with reset locks on every render, in case a child
+  // boundary started renedering on the previous pass and then was abandoned.
+  const context: BoundaryContext = {
+    effectLock: false,
+    effectQueues,
+    layoutEffectLock: false,
+    layoutEffectQueues,
+  }
+
   useBoundaryEffect(
     () => {
-      const effects = boundary.delegatedEffects
-      while (effects.length) {
-        const effect = effects.shift()!
-        effect.teardown = effect?.fn()
+      parentContext.effectLock = false
+
+      for (const effectQueue of effectQueues) {
+        const effects = effectQueue
+        while (effects.length) {
+          const effect = effects.shift()!
+          effect.teardown = effect?.fn()
+        }
       }
     },
     undefined,
-    contextRef.current,
+    context,
   )
+
   useBoundaryLayoutEffect(
     () => {
-      const effects = boundary.delegatedLayoutEffects
-      while (effects.length) {
-        const effect = effects.shift()!
-        effect.teardown = effect?.fn()
+      parentContext.layoutEffectLock = false
+
+      for (const effectQueue of layoutEffectQueues) {
+        const effects = effectQueue
+        while (effects.length) {
+          const effect = effects.shift()!
+          effect.teardown = effect?.fn()
+        }
       }
     },
     undefined,
-    contextRef.current,
+    context,
   )
 
   return (
-    <BoundaryContext.Provider value={contextRef.current}>
+    <boundaryContext.Provider value={context}>
       {children}
-    </BoundaryContext.Provider>
+    </boundaryContext.Provider>
   )
 }
+
+let nextBoundaryEffectId = 1
 
 /**
  * Execute an effect using `useEffect()`, but only once any <Boundary> elements
@@ -131,37 +144,37 @@ const InnerBoundary = (props: InnerBoundaryProps) => {
 export function useBoundaryEffect(
   fn: EffectCallback,
   deps?: DependencyList,
-  contextOverride?: TBoundaryContext,
+  contextOverride?: BoundaryContext,
   effectHook = useEffect,
-  delegationArrayName:
-    | 'delegatedLayoutEffects'
-    | 'delegatedEffects' = 'delegatedEffects',
+  lockName: 'effectLock' | 'layoutEffectLock' = 'effectLock',
+  queuesName: 'effectQueues' | 'layoutEffectQueues' = 'effectQueues',
 ) {
-  const { current: delegatedEffect } = useRef<TDelegatedEffect>({
+  const { current: id } = useRef(nextBoundaryEffectId++)
+  const boundaryEffect: BoundaryEffect = {
+    id,
     fn,
-  })
-  const contextBoundaryContext = useContext(BoundaryContext)
-  const context = contextOverride || contextBoundaryContext
+  }
+  const contextDefault = useContext(boundaryContext)
+  const context = contextOverride || contextDefault
 
   effectHook(() => {
-    const delegatedEffects =
-      context?.nestedBoundaryContext?.[delegationArrayName]
-    if (delegatedEffects) {
-      // The existence of this array means that we have a not-yet-loaded
-      // boundary – and we'll delegate the effect to that boundary to run
-      // once it is ready.
-      delegatedEffects.push(delegatedEffect)
+    if (!context[lockName]) {
+      return fn()
+    } else {
+      const queues = context[queuesName]
+      const queue = queues[queues.length - 1].filter(
+        (effect) => effect.id !== id,
+      )
+      queue.push(boundaryEffect)
       return () => {
-        const index = delegatedEffects.indexOf(delegatedEffect)
+        const index = queue.indexOf(boundaryEffect)
         if (index >= 0) {
-          delegatedEffects.splice(index, 1)
+          queue.splice(index, 1)
         }
-        if (delegatedEffect.teardown) {
-          delegatedEffect.teardown()
+        if (boundaryEffect.teardown) {
+          boundaryEffect.teardown()
         }
       }
-    } else {
-      return fn()
     }
   }, deps)
 }
@@ -173,7 +186,7 @@ export function useBoundaryEffect(
 export function useBoundaryLayoutEffect(
   fn: EffectCallback,
   deps?: DependencyList,
-  contextOverride?: TBoundaryContext,
+  contextOverride?: BoundaryContext,
 ) {
   if (typeof window !== 'undefined') {
     // eslint-disable-next-line react-hooks/rules-of-hooks
@@ -182,7 +195,8 @@ export function useBoundaryLayoutEffect(
       deps,
       contextOverride,
       useLayoutEffect,
-      'delegatedLayoutEffects',
+      'layoutEffectLock',
+      'layoutEffectQueues',
     )
   }
 }
