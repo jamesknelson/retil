@@ -18,7 +18,14 @@
     "prepare": "yarn build"
   },
   "dependencies": {
+    "retil-boundary": "^0.21.0",
+    "retil-css": "^0.21.0",
+    "retil-hydration": "^0.21.0",
+    "retil-interaction": "^0.21.0",
     "retil-issues": "^0.21.0",
+    "retil-media": "^0.21.0",
+    "retil-mount": "^0.21.0",
+    "retil-nav": "^0.21.0",
     "retil-operation": "^0.21.0",
     "retil-source": "^0.21.0",
     "retil-support": "^0.21.0",
