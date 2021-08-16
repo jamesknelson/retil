@@ -1,6 +1,6 @@
 {
   "name": "retil-hydration",
-  "version": "0.20.1",
+  "version": "0.21.0",
   "description": "Superpowers for hydration of server-rendered React.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -19,10 +19,10 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-boundary": "^0.20.1",
-    "retil-mount": "^0.20.1",
-    "retil-source": "^0.20.1",
-    "retil-support": "^0.20.1",
+    "retil-boundary": "^0.21.0",
+    "retil-mount": "^0.21.0",
+    "retil-source": "^0.21.0",
+    "retil-support": "^0.21.0",
     "tslib": "^2.2.0"
   },
   "devDependencies": {
