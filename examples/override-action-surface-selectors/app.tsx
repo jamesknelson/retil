@@ -8,7 +8,7 @@ import {
   useState,
 } from 'react'
 import {
-  ConnectActionSurface,
+  useActionSurfaceConnector,
   inFocusedSurface,
   inDisabledSurface,
   inHoveredSurface,
@@ -79,33 +79,31 @@ const OverrideButtonSurface = ({
   focus,
   disabled,
   hover,
-  ...mergeProps
+  ...restProps
 }: ButtonSurfaceProps) => {
-  return (
-    <ConnectActionSurface
-      mergeProps={mergeProps}
-      overrideSelectors={[
-        [inFocusedSurface, focus ?? null],
-        [inDisabledSurface, disabled ?? null],
-        [inHoveredSurface, disabled ? false : hover ?? null],
-      ]}>
-      {(props) => (
-        <div
-          css={[
-            css`
-              background-color: transparent;
-              border: none;
-              cursor: pointer;
-              display: inline-block;
-            `,
-            inDisabledSurface(css`
-              cursor: not-allowed;
-            `),
-          ]}
-          {...props}
-        />
-      )}
-    </ConnectActionSurface>
+  const [, mergeProps, provide] = useActionSurfaceConnector({
+    overrideSelectors: [
+      [inFocusedSurface, focus ?? null],
+      [inDisabledSurface, disabled ?? null],
+      [inHoveredSurface, disabled ? false : hover ?? null],
+    ],
+  })
+
+  return provide(
+    <div
+      css={[
+        css`
+          background-color: transparent;
+          border: none;
+          cursor: pointer;
+          display: inline-block;
+        `,
+        inDisabledSurface(css`
+          cursor: not-allowed;
+        `),
+      ]}
+      {...mergeProps(restProps)}
+    />,
   )
 }
 

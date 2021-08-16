@@ -12,8 +12,10 @@ function testUseNavMatcher(
 ) {
   test(description, async () => {
     const env = createStaticNavEnv({ url: pathname })
-    const matcher = useNavMatcher()
-    const Test = () => <>{matcher(pattern) ? 'match' : 'miss'}</>
+    const Test = () => {
+      const matcher = useNavMatcher()
+      return <>{matcher(pattern) ? 'match' : 'miss'}</>
+    }
     const { container } = render(
       <StrictMode>
         <NavProvider env={env}>

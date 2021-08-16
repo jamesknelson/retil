@@ -37,16 +37,18 @@ export function useFirstMatchingMediaSelector(
   >(() => memoizeOne(identity, (x, y) => areArraysShallowEqual(x[0], y[0])), [])
   const mediaQueries = memoArray(unmemoizedMediaQueries)
 
-  const matchesRef = useRef<undefined | boolean[]>()
-  if (hasValue && !matchesRef.current) {
+  const matchesRef = useRef<(undefined | boolean)[]>()
+  if (!matchesRef.current) {
     matchesRef.current = mediaQueries.map((mediaQuery) =>
       typeof mediaQuery === 'string'
-        ? window.matchMedia(mediaQuery).matches
+        ? hasValue
+          ? window.matchMedia(mediaQuery).matches
+          : undefined
         : mediaQuery,
     )
   }
-  const [firstMatchIndex, setFirstMatchIndex] = useState<number | undefined>(
-    () => matchesRef.current?.findIndex(Boolean),
+  const [firstMatchIndex, setFirstMatchIndex] = useState<number>(() =>
+    matchesRef.current!.findIndex(Boolean),
   )
 
   useEffect(() => {
@@ -85,5 +87,5 @@ export function useFirstMatchingMediaSelector(
     }
   }, [hasValue, mediaQueries])
 
-  return firstMatchIndex
+  return firstMatchIndex === -1 && !hasValue ? undefined : firstMatchIndex
 }

@@ -1,5 +1,6 @@
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useMemo } from 'react'
 import { NavAction, UseNavLinkPropsOptions, useNavLinkProps } from 'retil-nav'
+import { useJoinedEventHandler } from 'retil-support'
 
 import {
   ActionSurfaceOptions,
@@ -28,11 +29,14 @@ export const LinkSurface = forwardRef(
       ...rest
     } = linkProps
 
-    const [actionSurfaceState, mergeActionSurfaceProps, provideActionSurface] =
-      useActionSurfaceConnector(actionSurfaceOptions)
+    const [
+      { complete, disabled },
+      mergeActionSurfaceProps,
+      provideActionSurface,
+    ] = useActionSurfaceConnector(actionSurfaceOptions)
 
     const navLinkProps = useNavLinkProps(href, {
-      disabled: actionSurfaceState.disabled,
+      disabled: disabled,
       onClick: onClickProp,
       onMouseEnter: onMouseEnterProp,
       precacheOn,
@@ -41,7 +45,26 @@ export const LinkSurface = forwardRef(
     })
 
     // Don't handle events on links with a `target` prop.
-    const onClick = props.target ? onClickProp : navLinkProps.onClick
+    const onClick = useJoinedEventHandler(
+      complete,
+      props.target ? onClickProp : navLinkProps.onClick,
+    )
+
+    // We can't just use a standard event handler join becausfe we always
+    // want to run complete, even if trigger cancels the default action.
+    const onClickAndComplete = useMemo(
+      () =>
+        !complete && !onClick
+          ? undefined
+          : !complete || !onClick
+          ? complete || onClick
+          : (event: React.MouseEvent<HTMLAnchorElement>) => {
+              onClick(event)
+              complete()
+            },
+      [complete, onClick],
+    )
+
     const onMouseEnter = props.target
       ? onMouseEnterProp
       : navLinkProps.onMouseEnter
@@ -52,7 +75,7 @@ export const LinkSurface = forwardRef(
         {...mergeActionSurfaceProps({
           ...rest,
           ...navLinkProps,
-          onClick,
+          onClick: onClickAndComplete,
           onMouseEnter,
           ref: anchorRef,
         })}

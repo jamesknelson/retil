@@ -2,7 +2,6 @@ import React, {
   createContext,
   useCallback,
   useContext,
-  useImperativeHandle,
   useMemo,
   useRef,
 } from 'react'
@@ -14,15 +13,20 @@ import {
   preventDefaultEventHandler,
 } from 'retil-support'
 
-export interface FocusableHandle {
+import { Connector } from './connector'
+
+interface FocusableHandle {
   blur: () => void
   focus: () => void
 }
 
-const noopHandle: FocusableHandle = {
-  blur: noop,
-  focus: noop,
+export interface FocusableSnapshot {
+  blur: () => void
+  focus: () => void
+  focusable: Focusable
 }
+
+export type Focusable = boolean | FocusDelegationCallback | FocusDelegationRef
 
 /**
  * A callback which will be called, if possible, before an element will receive
@@ -39,9 +43,12 @@ export type FocusDelegationCallback = (
 
 export type FocusDelegationRef = React.RefObject<FocusableHandle>
 
-export type Focusable = boolean | FocusDelegationCallback | FocusDelegationRef
+const noopHandle: FocusableHandle = {
+  blur: noop,
+  focus: noop,
+}
 
-export const focusableContext = createContext<Focusable | undefined>(undefined)
+const focusableContext = createContext<Focusable | undefined>(undefined)
 
 export interface FocusableDefaultProviderProps {
   children: React.ReactNode
@@ -68,13 +75,14 @@ export interface FocusableMergedProps<
   tabIndex: number
 }
 
-export type FocusableMergeableProps<TElement extends HTMLElement | SVGElement> =
-  {
-    onFocus?: (event: React.FocusEvent<TElement>) => void
-    onMouseDown?: (event: React.MouseEvent<TElement>) => void
-    ref?: React.Ref<TElement>
-    tabIndex?: number
-  }
+export interface FocusableMergeableProps<
+  TElement extends HTMLElement | SVGElement,
+> {
+  onFocus?: (event: React.FocusEvent<TElement>) => void
+  onMouseDown?: (event: React.MouseEvent<TElement>) => void
+  ref?: React.Ref<TElement>
+  tabIndex?: number
+}
 
 export type MergeFocusableProps = <
   TElement extends HTMLElement | SVGElement = HTMLElement | SVGElement,
@@ -87,16 +95,22 @@ export type MergeFocusableProps = <
 ) => Omit<MergeProps, keyof FocusableMergeableProps<TElement>> &
   FocusableMergedProps<TElement>
 
-export function useFocusableConnector(
-  focusableProp?: Focusable,
-): readonly [
-  state: { focusable: Focusable },
-  mergeProps: MergeFocusableProps,
-  provide: (children: React.ReactNode) => React.ReactElement,
-  handle: FocusableHandle,
-] {
+export type FocusableConnector = Connector<
+  FocusableSnapshot,
+  MergeFocusableProps
+>
+
+export function useFocusableContext(focusableOverride?: Focusable): Focusable {
   const focusableDefault = useContext(focusableContext)
-  const focusable = focusableProp ?? focusableDefault ?? true
+  return focusableOverride ?? focusableDefault ?? true
+}
+
+export function useFocusableConnector(
+  focusableOverride?: Focusable,
+): FocusableConnector {
+  const context = useContext(focusableContext)
+  const focusable = useFocusableContext(focusableOverride)
+
   const joinFocusHandler = useMemo(() => memoizeOne(joinEventHandlers), [])
   const joinMouseDownHandler = useMemo(() => memoizeOne(joinEventHandlers), [])
   const joinRefCallback = useMemo(() => memoizeOne(joinRefs), [])
@@ -111,7 +125,7 @@ export function useFocusableConnector(
               const target = focusable.current
               if (
                 target &&
-                target !== (node as unknown as FocusableHandle) &&
+                target !== (node as unknown as FocusableSnapshot) &&
                 (target as unknown) !== document.activeElement
               ) {
                 event?.preventDefault()
@@ -121,19 +135,12 @@ export function useFocusableConnector(
       [focusable],
     )
 
-  // Split the implementation into a separate ref, so that we can emit a
-  // constant handle with an implementation that changes with the received
+  // Split the implementation into a separate ref, so that we can emit
+  // constant handles with an implementation that changes with the received
   // element -– which can change without causing a separate render.
   const handleImplementationRef = useRef<FocusableHandle>(noopHandle)
-  const handleRef = useRef<FocusableHandle>(undefined!)
-  useImperativeHandle(
-    handleRef,
-    () => ({
-      blur: () => handleImplementationRef.current.blur(),
-      focus: () => handleImplementationRef.current.focus(),
-    }),
-    [],
-  )
+  const doBlur = useCallback(() => handleImplementationRef.current.blur(), [])
+  const doFocus = useCallback(() => handleImplementationRef.current.focus(), [])
 
   const refCallback = useCallback(
     (element: HTMLElement | SVGElement | null) => {
@@ -182,8 +189,7 @@ export function useFocusableConnector(
   // When focusable but rendered in a non-focusable/focus delegation
   // context, we'll need to stop propagation so that the parent control
   // doesn't move the focus away from us.
-  const focusableInUnfocusableParent =
-    focusableDefault !== true && focusable === true
+  const focusableInUnfocusableParent = context !== true && focusable === true
   const stopPropagationToUnfocusableIfRequired = useMemo(
     () =>
       !focusableInUnfocusableParent
@@ -218,16 +224,19 @@ export function useFocusableConnector(
     tabIndex: focusable === true ? mergeProps?.tabIndex ?? 0 : -1,
   })
 
-  const provider = useCallback(
-    (children: React.ReactNode) => (
-      <focusableContext.Provider value={focusable}>
-        {children}
-      </focusableContext.Provider>
-    ),
-    [focusable],
+  const provider = (children: React.ReactNode) => (
+    <focusableContext.Provider value={focusable}>
+      {children}
+    </focusableContext.Provider>
   )
 
-  return [{ focusable }, mergeFocusableProps, provider, handleRef.current]
+  const snapshot: FocusableSnapshot = {
+    blur: doBlur,
+    focus: doFocus,
+    focusable,
+  }
+
+  return [snapshot, mergeFocusableProps, provider]
 }
 
 function blur(event: React.FocusEvent<HTMLElement | SVGElement>) {

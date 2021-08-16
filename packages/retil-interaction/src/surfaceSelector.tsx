@@ -1,7 +1,9 @@
 import partition from 'lodash/partition'
-import React, { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 import { fromEntries, useFirstInstanceOfLatestValue } from 'retil-support'
 import { CSSSelector, Selector, getOrRegisterSelectorType } from 'retil-css'
+
+import { Connector } from './connector'
 
 const baseSelectorSymbol = Symbol.for('retil:css:surfaceSelectorBaseSelector')
 const surfaceClassPrefix = 'rx-'
@@ -115,6 +117,10 @@ export function createSurfaceSelector(
   )
 }
 
+export interface SurfaceSelectorsSnapshot {
+  getSelector: (selector: Selector<SurfaceSelectorConfig>) => CSSSelector
+}
+
 export interface SurfaceSelectorsMergedProps {
   className: string
 }
@@ -130,15 +136,14 @@ export type MergeSurfaceSelectorsProps = <
 ) => Omit<TMergeProps, keyof SurfaceSelectorsMergeableProps> &
   SurfaceSelectorsMergedProps
 
+export type SurfaceSelectorsConnector = Connector<
+  SurfaceSelectorsSnapshot,
+  MergeSurfaceSelectorsProps
+>
+
 export function useSurfaceSelectorsConnector(
   ...overrides: (SurfaceSelectorOverrides | null | false | undefined)[]
-): readonly [
-  state: {
-    getSelector: (selector: Selector<SurfaceSelectorConfig>) => CSSSelector
-  },
-  mergeProps: MergeSurfaceSelectorsProps,
-  provide: (children: React.ReactNode) => React.ReactElement,
-] {
+): SurfaceSelectorsConnector {
   const override = mergeOverrides(...overrides)
   const { parseSelectorDefinition, useSelectorContext, useSelectorProvider } =
     getOrRegisterSelectorType(surfaceSelectorTypeKey)

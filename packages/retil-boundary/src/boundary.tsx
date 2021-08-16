@@ -19,6 +19,7 @@ interface BoundaryEffect {
 }
 
 interface BoundaryContext {
+  ancestors: BoundaryContext[]
   effectLock: boolean
   effectQueues: BoundaryEffect[][]
   layoutEffectLock: boolean
@@ -26,6 +27,7 @@ interface BoundaryContext {
 }
 
 const boundaryContext = createContext<BoundaryContext>({
+  ancestors: [],
   effectLock: false,
   effectQueues: [[]],
   layoutEffectLock: false,
@@ -90,6 +92,7 @@ const InnerBoundary = (props: InnerBoundaryProps) => {
   // Create a new context with reset locks on every render, in case a child
   // boundary started renedering on the previous pass and then was abandoned.
   const context: BoundaryContext = {
+    ancestors: parentContext.ancestors.concat(parentContext),
     effectLock: false,
     effectQueues,
     layoutEffectLock: false,
@@ -98,7 +101,9 @@ const InnerBoundary = (props: InnerBoundaryProps) => {
 
   useBoundaryEffect(
     () => {
-      parentContext.effectLock = false
+      context.ancestors.forEach((context) => {
+        context.effectLock = false
+      })
 
       for (const effectQueue of effectQueues) {
         const effects = effectQueue
@@ -114,7 +119,9 @@ const InnerBoundary = (props: InnerBoundaryProps) => {
 
   useBoundaryLayoutEffect(
     () => {
-      parentContext.layoutEffectLock = false
+      context.ancestors.forEach((context) => {
+        context.layoutEffectLock = false
+      })
 
       for (const effectQueue of layoutEffectQueues) {
         const effects = effectQueue
@@ -162,9 +169,11 @@ export function useBoundaryEffect(
       return fn()
     } else {
       const queues = context[queuesName]
-      const queue = queues[queues.length - 1].filter(
-        (effect) => effect.id !== id,
-      )
+      const queue = queues[queues.length - 1]
+      const index = queue.findIndex((effect) => effect.id === id)
+      if (index >= 0) {
+        queue.splice(index, 1)
+      }
       queue.push(boundaryEffect)
       return () => {
         const index = queue.indexOf(boundaryEffect)

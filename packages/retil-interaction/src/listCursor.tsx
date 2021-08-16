@@ -17,7 +17,7 @@ export interface ListCursorOptions {
 }
 
 export interface ListCursor {
-  select: (index: number) => void
+  select: (index: number | ((index: number) => number)) => void
   selectFirst: () => void
   selectLast: () => void
   selectNext: () => void
@@ -66,7 +66,8 @@ export function useListCursor(
   const cursorRef = useRef<ListCursor>(undefined!)
   if (!cursorRef.current) {
     cursorRef.current = {
-      select: (index: number) => dispatch(['select', index]),
+      select: (updater: number | ((index: number) => number)) =>
+        dispatch(['select', updater]),
       selectFirst: () => dispatch(['selectFirst']),
       selectLast: () => dispatch(['selectLast']),
       selectNext: () => dispatch(['selectNext']),
@@ -104,7 +105,7 @@ interface ListCursorState {
 }
 
 type ListCursorAction =
-  | ['select', number]
+  | ['select', number | ((index: number) => number)]
   | ['selectFirst']
   | ['selectLast']
   | ['selectNext']
@@ -124,11 +125,13 @@ function listCursorReducer(
 
   switch (action[0]) {
     case 'select':
-      return action[1] === state.index
+      const nextIndex =
+        typeof action[1] === 'function' ? action[1](state.index) : action[1]
+      return nextIndex === state.index
         ? state
         : {
             ...state,
-            index: action[1],
+            index: nextIndex,
           }
 
     case 'selectFirst':

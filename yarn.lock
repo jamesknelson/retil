@@ -4882,10 +4882,10 @@ extsprintf@^1.2.0:
   resolved "https://registry.yarnpkg.com/extsprintf/-/extsprintf-1.4.0.tgz#e2689f8f356fad62cca65a3a91c5df5f9551692f"
   integrity sha1-4mifjzVvrWLMplo6kcXfX5VRaS8=
 
-fast-cartesian@^6.0.1:
-  version "6.0.1"
-  resolved "https://registry.yarnpkg.com/fast-cartesian/-/fast-cartesian-6.0.1.tgz#270f64e2ab54f2c11ef42bc4cb14c093f5d7efdc"
-  integrity sha512-wu9JQdFdtzlcIlI18Px9xeDrRvmu85bMljD+3Hta5V2f5JnnJCLjV44QdiTEdAmz80xj5pBPHRvGybioyIFbxA==
+fast-cartesian@^5.1.0:
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/fast-cartesian/-/fast-cartesian-5.1.0.tgz#496ff07b4d60d9e4ba6888d0f04a97b2115f4aca"
+  integrity sha512-sZqtZoSpvB64whoAfZYaHY2EMF4yX039MlXoL7UpXpy38OxaN2ZJcZbS1qu7hsEkPrrReqTi0EBrfx5bd+HNBQ==
 
 fast-deep-equal@^3.1.1, fast-deep-equal@^3.1.3:
   version "3.1.3"
@@ -5008,12 +5008,12 @@ flatted@^2.0.0:
   resolved "https://registry.yarnpkg.com/flatted/-/flatted-2.0.2.tgz#4575b21e2bcee7434aa9be662f4b7b5f9c2b5138"
   integrity sha512-r5wGx7YeOwNWNlCA0wQ86zKyDLMQr+/RB8xy74M4hTphfmjlijTSSXGuH8rnvKZnfT9i+75zmd8jcKdMR4O6jA==
 
-focus-trap@^6.3.0:
-  version "6.3.0"
-  resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-6.3.0.tgz#31c08f0b6099705f71f6e0a16d88fbcc4c012586"
-  integrity sha512-BBzvFfkPg5PqrVVCdQ1YOIVNKGvqG9YNVkiAUQFuDM66N8J9uADhs6mlYKrd30ofDJIzEniBnBKM7GO45iCzKQ==
+focus-trap@^6.6.1:
+  version "6.6.1"
+  resolved "https://registry.yarnpkg.com/focus-trap/-/focus-trap-6.6.1.tgz#761ce2c82ddd72beeb049e968bc8414e25b704aa"
+  integrity sha512-x9BWuAeF5UrfWuYKJ3jYrjcVYSYptS9CqtxH5IH7lPlZrMsaugKeAa0HtoZSBZe5DmeTMx2m0qY464ZMzqarzw==
   dependencies:
-    tabbable "^5.1.5"
+    tabbable "^5.2.1"
 
 foreach@~2.0.1:
   version "2.0.5"
@@ -8575,30 +8575,15 @@ react-helmet-async@^1.0.9:
     react-fast-compare "^3.2.0"
     shallowequal "^1.1.0"
 
-react-is@0.0.0-experimental-1a2d79250:
+react-is@0.0.0-experimental-1a2d79250, react-is@^16.12.0, "react-is@^16.12.0 || ^17.0.0", react-is@^16.7.0, react-is@^16.8.1, react-is@^17.0.1:
   version "0.0.0-experimental-1a2d79250"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-0.0.0-experimental-1a2d79250.tgz#344cb83e231f284632c114bb86cc474ee34dfeb0"
   integrity sha512-CfmVgp8wfpC1t+AWyYOH0Y9BTngHDkHJALFTnHtheskBCWWqFnl+dO1hX5D2V2xagJM38dTo+yP3bV6uYo5Hcg==
 
-react-is@^16.12.0, react-is@^16.7.0, react-is@^16.8.1:
-  version "16.13.1"
-  resolved "https://registry.yarnpkg.com/react-is/-/react-is-16.13.1.tgz#789729a4dc36de2999dc156dd6c1d9c18cea56a4"
-  integrity sha512-24e6ynE2H+OKt4kqsOvNd8kBpV65zoxbA4BVsEOB3ARVWQki/DHzaUoC5KuON/BiccDaCCTZBuOcfZs70kR8bQ==
-
-"react-is@^16.12.0 || ^17.0.0", react-is@^17.0.1:
-  version "17.0.2"
-  resolved "https://registry.yarnpkg.com/react-is/-/react-is-17.0.2.tgz#e691d4a8e9c789365655539ab372762b0efb54f0"
-  integrity sha512-w2GsyukL62IJnlaff/nRegPQR94C/XXamvMWmSHRJ4y7Ts/4ocGRmTHvOs8PSE6pB3dWOrD/nueuU5sduBsQ4w==
-
-react-refresh@0.0.0-experimental-1a2d79250:
+react-refresh@0.0.0-experimental-1a2d79250, react-refresh@^0.9.0:
   version "0.0.0-experimental-1a2d79250"
   resolved "https://registry.yarnpkg.com/react-refresh/-/react-refresh-0.0.0-experimental-1a2d79250.tgz#a384043ecfdf6e699f1229b3cebcf76dda0283cf"
   integrity sha512-KKqklawtW9g8EVAKyN3CgTq8a2P7Rw3dnEBSky0wcUvZ7REf7w0OZv6tFOeiVqa6FQNdakiPBB+T289fVV5nzQ==
-
-react-refresh@^0.9.0:
-  version "0.9.0"
-  resolved "https://registry.yarnpkg.com/react-refresh/-/react-refresh-0.9.0.tgz#71863337adc3e5c2f8a6bfddd12ae3bfe32aafbf"
-  integrity sha512-Gvzk7OZpiqKSkxsQvO/mbTN1poglhmAV7gR/DdIrRrSMXraRQQlfikRJOr3Nb9GTMPC5kof948Zy6jJZIFtDvQ==
 
 react-shallow-renderer@^16.13.1:
   version "16.14.1"
@@ -9773,10 +9758,10 @@ symbol-tree@^3.2.4:
   resolved "https://registry.yarnpkg.com/symbol-tree/-/symbol-tree-3.2.4.tgz#430637d248ba77e078883951fb9aa0eed7c63fa2"
   integrity sha512-9QNk5KwDF+Bvz+PyObkmSYjI5ksVUYtjW7AU22r2NKcfLJcXp96hkDWU3+XndOsUb+AQ9QhfzfCT2O+CNWT5Tw==
 
-tabbable@^5.1.5:
-  version "5.1.6"
-  resolved "https://registry.yarnpkg.com/tabbable/-/tabbable-5.1.6.tgz#dd495abe81d5e41e003fbfa70952e20d5e1e1e89"
-  integrity sha512-KSlGaSX9PbL7FHDTn2dB+zv61prkY8BeGioTsKfeN7dKhw5uz1S4U2iFaWMK4GR8oU+5OFBkFuxbMsaUxVVlrQ==
+tabbable@^5.2.1:
+  version "5.2.1"
+  resolved "https://registry.yarnpkg.com/tabbable/-/tabbable-5.2.1.tgz#e3fda7367ddbb172dcda9f871c0fdb36d1c4cd9c"
+  integrity sha512-40pEZ2mhjaZzK0BnI+QGNjJO8UYx9pP5v7BGe17SORTO0OEuuaAwQTkAp8whcZvqon44wKFOikD+Al11K3JICQ==
 
 table@^5.2.3:
   version "5.4.6"

@@ -1,15 +1,12 @@
-import React, { createContext, useContext, useMemo, useCallback } from 'react'
+import React, { createContext, useContext, useMemo } from 'react'
 import { noop } from 'retil-support'
 
-import {
-  MergeKeyboardProps,
-  useMergeKeyboardProps,
-  useKeyMapHandler,
-} from './keyboard'
+import { Connector } from './connector'
+import { MergeKeyboardProps, useKeyboard, useKeyMapHandler } from './keyboard'
 
-export type EscapeCallback = null | (() => void)
+export type EscapeCallback = () => void
 
-const escapeContext = createContext<EscapeCallback>(null)
+const escapeContext = createContext<EscapeCallback>(noop)
 
 export type MergeEscapeProps = MergeKeyboardProps
 
@@ -21,19 +18,19 @@ export interface EscapeOptions {
   override?: boolean
 }
 
-export function useEscapeConnector(
-  callback: EscapeCallback,
+export interface EscapeSnapshot {
+  escape: () => void
+}
+
+export type EsapeConnector = Connector<EscapeSnapshot, MergeEscapeProps>
+
+export function useEscapeContext(
+  callback?: EscapeCallback,
   options: EscapeOptions = {},
-): [
-  state: {
-    escape: () => void
-  },
-  mergeProps: MergeKeyboardProps,
-  provide: (children: React.ReactNode) => React.ReactElement,
-] {
+): EscapeCallback {
   const { override = false } = options
   const parentEscape = useContext(escapeContext)
-  const escape = useMemo(
+  return useMemo(
     () =>
       override
         ? callback || noop
@@ -43,18 +40,31 @@ export function useEscapeConnector(
           },
     [callback, override, parentEscape],
   )
+}
+
+export function useEscapeConnector(
+  callback: EscapeCallback | null,
+  options: EscapeOptions = {},
+): EsapeConnector {
+  const escape = useEscapeContext(callback || noop, options)
   const keyMapHandler = useKeyMapHandler({
     Escape: escape,
   })
-  const mergeKeyboardProps = useMergeKeyboardProps(keyMapHandler, {
-    capture: true,
-  })
-  const provide = useCallback(
-    (children: React.ReactNode) => (
-      <escapeContext.Provider value={escape}>{children}</escapeContext.Provider>
-    ),
-    [escape],
+  const [keyboardSnapshot, mergeKeyboardProps, provideKeyboard] = useKeyboard(
+    keyMapHandler,
+    {
+      capture: true,
+    },
   )
-
-  return [{ escape }, mergeKeyboardProps, provide]
+  const provide = (children: React.ReactNode) =>
+    provideKeyboard(
+      <escapeContext.Provider value={escape}>
+        {children}
+      </escapeContext.Provider>,
+    )
+  const snapshot = {
+    ...keyboardSnapshot,
+    escape,
+  }
+  return [snapshot, mergeKeyboardProps, provide]
 }

@@ -4,17 +4,12 @@ import { identity, delayOne } from 'retil-support'
 import { Configurator } from './configurator'
 import { Service } from './service'
 
-export type PopupTriggerService = Service<
-  PopupTriggerSnapshot,
-  PopupTriggerHandle
->
+export type PopupTriggerService = Service<boolean, PopupTriggerHandle>
 
 export type PopupTriggerServiceConfigurator = Configurator<
   PopupTriggerConfig,
   PopupTriggerService
 >
-
-export type PopupTriggerSnapshot = boolean
 
 export interface PopupTriggerHandle {
   close: () => void
@@ -327,7 +322,13 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
 
         // Add window-wide handlers that close the popup
         if (mutableConfig.triggerOnPress) {
-          window.addEventListener('focusin', handleWindowInteraction, false)
+          if (mutableConfig.triggerOnFocus) {
+            // If we've got a focus trigger *and* a press trigger, then we'll
+            // want to close the menu if anything else is focused. However,
+            // we don't want to do this with just a press trigger, as the
+            // trigger itself may focus other elements.
+            window.addEventListener('focusin', handleWindowInteraction, false)
+          }
           window.addEventListener('keydown', handleWindowKeyDown, false)
           window.addEventListener('click', handleWindowInteraction, false)
           window.addEventListener('touchend', handleWindowInteraction, false)
@@ -348,7 +349,13 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
         }
 
         if (mutableConfig.triggerOnPress) {
-          window.removeEventListener('focusin', handleWindowInteraction, false)
+          if (mutableConfig.triggerOnFocus) {
+            window.removeEventListener(
+              'focusin',
+              handleWindowInteraction,
+              false,
+            )
+          }
           window.removeEventListener('keydown', handleWindowKeyDown, false)
           window.removeEventListener('click', handleWindowInteraction, false)
           window.removeEventListener('touchend', handleWindowInteraction, false)
@@ -358,7 +365,7 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
 
     const delaySnapshot = delayOne(identity, null)
 
-    const source: Source<PopupTriggerSnapshot> = fuse((use) => {
+    const source: Source<boolean> = fuse((use) => {
       const state = use(stateSource)
 
       const focusCount = state.triggerFocusCount + state.popupFocusCount
@@ -405,22 +412,43 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
 
     const toggle = () => setState(toggleReducer)
 
+    let nextTriggerElement: HTMLElement | SVGElement | null
     const setTriggerElement = (element: HTMLElement | SVGElement | null) => {
       if (element !== mutableTriggerElement) {
-        teardownTriggerEvents()
-        mutableMouseDownTarget = null
-        mutableTriggerElement = element
-        if (element) {
-          setupTriggerEvents()
+        nextTriggerElement = element
+        if (element === null) {
+          // Wait for a microtask to set the trigger to null, to deal with badly
+          // written hooks/components which cause refs to be recreated on each
+          // render and thus cycle between null and the same element.
+          // While delaying teardown by a tick, this shouldn't affect performance
+          // as if the element has really become null, the trigger has already
+          // been unmounted.
+          Promise.resolve(() => {
+            if (nextTriggerElement === null) {
+              performTriggerElementUpdate(null)
+            }
+          })
         } else {
-          clearTimeouts(mutableTimeouts.trigger)
+          performTriggerElementUpdate(element)
         }
-        setState((state) =>
-          changeTriggerElementReducer(state, {
-            triggerHasFocus: !!element && document.activeElement === element,
-          }),
-        )
       }
+    }
+    const performTriggerElementUpdate = (
+      element: HTMLElement | SVGElement | null,
+    ) => {
+      teardownTriggerEvents()
+      mutableMouseDownTarget = null
+      mutableTriggerElement = element
+      if (element) {
+        setupTriggerEvents()
+      } else {
+        clearTimeouts(mutableTimeouts.trigger)
+      }
+      setState((state) =>
+        changeTriggerElementReducer(state, {
+          triggerHasFocus: !!element && document.activeElement === element,
+        }),
+      )
     }
 
     let mutableTeardownPopupTimeout: any | undefined

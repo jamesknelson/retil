@@ -1,6 +1,6 @@
 import styled, { css } from 'styled-components'
 import {
-  ConnectSurfaceSelectors,
+  useSurfaceSelectorsConnector,
   createSurfaceSelector,
 } from 'retil-interaction'
 
@@ -20,18 +20,16 @@ const ButtonSurface = ({
   active,
   disabled,
   hover,
-  ...mergeProps
-}: ButtonSurfaceProps) => (
-  <ConnectSurfaceSelectors
-    mergeProps={mergeProps}
-    override={[
-      [selectActive, active ?? null],
-      [selectDisabled, disabled ?? null],
-      [selectHover, hover ?? null],
-    ]}>
-    {(props) => <button {...props} />}
-  </ConnectSurfaceSelectors>
-)
+  ...restProps
+}: ButtonSurfaceProps) => {
+  const [, mergeProps, provide] = useSurfaceSelectorsConnector([
+    [selectActive, active ?? null],
+    [selectDisabled, disabled ?? null],
+    [selectHover, hover ?? null],
+  ])
+
+  return provide(<button {...mergeProps(restProps)} />)
+}
 
 const StyledButtonBody = styled.div`
   border-radius: 8px;

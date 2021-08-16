@@ -1,5 +1,6 @@
-import React, { forwardRef } from 'react'
+import React, { forwardRef, useMemo } from 'react'
 import { useHasHydrated } from 'retil-hydration'
+import { useJoinedEventHandler } from 'retil-support'
 
 import {
   ActionSurfaceOptions,
@@ -7,8 +8,7 @@ import {
   useActionSurfaceConnector,
 } from './actionSurface'
 import { inHydratingSurface, inToggledSurface } from './defaultSurfaceSelectors'
-import { useMergeKeyboardProps } from './keyboard'
-import { useJoinedEventHandler } from './joinEventHandlers'
+import { useKeyboard } from './keyboard'
 import { useKeyMapHandler } from './keyboard'
 import { mergeOverrides } from './surfaceSelector'
 
@@ -42,46 +42,64 @@ export const ButtonSurface = forwardRef<HTMLDivElement, ButtonSurfaceProps>(
 
     const [actionSurfaceOptions, { onClick, onTrigger, pressed, ...rest }] =
       splitActionSurfaceOptions(props)
-    const [actionSurfaceState, mergeActionSurfaceProps, provideActionSurface] =
-      useActionSurfaceConnector({
-        ...actionSurfaceOptions,
-        overrideSelectors: mergeOverrides(
-          [
-            [inHydratingSurface, !!isHydrating],
-            [inToggledSurface, '[aria-pressed="true"]'],
-          ],
-          actionSurfaceOptions.overrideSelectors,
-        ),
-      })
+    const [
+      { complete, disabled, focusable, selected },
+      mergeActionSurfaceProps,
+      provideActionSurface,
+    ] = useActionSurfaceConnector({
+      ...actionSurfaceOptions,
+      overrideSelectors: mergeOverrides(
+        [
+          [inHydratingSurface, !!isHydrating],
+          [inToggledSurface, '[aria-pressed="true"]'],
+        ],
+        actionSurfaceOptions.overrideSelectors,
+      ),
+    })
+
+    // We can't just use a standard event handler join becausfe we always
+    // want to run complete, even if trigger cancels the default action.
+    const triggerAndComplete = useMemo(
+      () =>
+        !complete && !onTrigger
+          ? undefined
+          : !complete || !onTrigger
+          ? complete || onTrigger
+          : (event: React.SyntheticEvent) => {
+              onTrigger(event)
+              complete()
+            },
+      [complete, onTrigger],
+    )
 
     const keyboardHandler = useKeyMapHandler({
-      ' ': onTrigger,
-      Enter: onTrigger,
+      ' ': triggerAndComplete,
+      Enter: triggerAndComplete,
     })
-    const mergeKeyboardProps = useMergeKeyboardProps(
-      actionSurfaceState.disabled ? null : keyboardHandler,
+    const [, mergeKeyboardProps, provideKeyboard] = useKeyboard(
+      disabled ? null : keyboardHandler,
       {
-        capture:
-          actionSurfaceState.focusable !== true &&
-          !!actionSurfaceState.selected,
+        capture: focusable !== true && !!selected,
       },
     )
 
-    return provideActionSurface(
-      <div
-        {...mergeKeyboardProps(
-          mergeActionSurfaceProps({
-            ...rest,
-            'aria-pressed': pressed,
-            onClick: useJoinedEventHandler(
-              onClick,
-              actionSurfaceState.disabled ? undefined : onTrigger,
-            ),
-            ref,
-            role: 'button',
-          }),
-        )}
-      />,
+    return provideKeyboard(
+      provideActionSurface(
+        <div
+          {...mergeKeyboardProps(
+            mergeActionSurfaceProps({
+              ...rest,
+              'aria-pressed': pressed,
+              onMouseUp: useJoinedEventHandler(
+                onClick,
+                disabled && selected === false ? undefined : triggerAndComplete,
+              ),
+              ref,
+              role: 'button',
+            }),
+          )}
+        />,
+      ),
     )
   },
 )

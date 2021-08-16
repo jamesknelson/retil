@@ -27,6 +27,7 @@ import {
   DisableableMergedProps,
   useDisableableConnector,
 } from './disableable'
+import { useEscapeContext } from './escape'
 import {
   Focusable,
   FocusableMergeableProps,
@@ -34,10 +35,11 @@ import {
   useFocusableConnector,
 } from './focusable'
 import {
-  SelectableMergeableProps,
-  SelectableMergedProps,
-  useSelectableConnector,
-} from './selectable'
+  FocusableSelectableMergeableProps,
+  FocusableSelectableMergedProps,
+  useFocusableSelectableConnector,
+} from './focusableSelectable'
+import { useMenuContext } from './menu'
 import {
   SurfaceSelectorOverrides,
   SurfaceSelectorsMergeableProps,
@@ -70,14 +72,14 @@ export type ActionSurfaceMergedProps<
   TElement extends HTMLElement | SVGElement,
 > = DisableableMergedProps &
   FocusableMergedProps<TElement> &
-  SelectableMergedProps<TElement> &
+  FocusableSelectableMergedProps<TElement> &
   SurfaceSelectorsMergedProps
 
 export type ActionSurfaceMergableProps<
   TElement extends HTMLElement | SVGElement,
 > = DisableableMergeableProps &
   FocusableMergeableProps<TElement> &
-  SelectableMergeableProps<TElement> &
+  FocusableSelectableMergeableProps<TElement> &
   SurfaceSelectorsMergeableProps
 
 export type MergeActionSurfaceFocusableProps = <
@@ -92,40 +94,40 @@ export type MergeActionSurfaceFocusableProps = <
   ActionSurfaceMergedProps<TElement>
 
 export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
+  const escape = useEscapeContext()
+  const menu = useMenuContext()
+
   const [disableableState, mergeDisableableProps, provideDisableable] =
     useDisableableConnector(options.disabled)
-  const [
-    focusableState,
-    mergeFocusableProps,
-    provideFocusable,
-    focusableHandle,
-  ] = useFocusableConnector(options.focusable)
-  const [
-    selectableState,
-    mergeSelectableProps,
-    provideSelectable,
-    selectableHandle,
-  ] = useSelectableConnector()
+  const [focusableState, mergeFocusableProps, provideFocusable] =
+    useFocusableConnector(options.focusable)
+  const [selectableState, mergeSelectableProps, provideSelectable] =
+    useFocusableSelectableConnector()
   const [
     surfaceSelectorsState,
     mergeSurfaceSelectorProps,
     provideSurfaceSelectors,
   ] = useSurfaceSelectorsConnector(
-    [[inActiveSurface, disableableState.disabled || null]],
-    [[inHoveredSurface, disableableState.disabled || null]],
+    [[inActiveSurface, disableableState.disabled ? false : null]],
+    [
+      [
+        inHoveredSurface,
+        disableableState.disabled || selectableState.deselectedDuringHover
+          ? false
+          : null,
+      ],
+    ],
     [[inSelectedSurface, selectableState.selected]],
     options.overrideSelectors,
   )
 
-  const handle = useMemo(
-    () => ({
-      ...focusableHandle,
-      ...selectableHandle,
-    }),
-    [focusableHandle, selectableHandle],
+  const complete = useMemo(
+    () => (!!menu && escape) || undefined,
+    [escape, menu],
   )
 
   const state = {
+    complete,
     ...disableableState,
     ...focusableState,
     ...selectableState,
@@ -146,5 +148,5 @@ export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
     provideSurfaceSelectors,
   )
 
-  return [state, mergeProps, provide, handle] as const
+  return [state, mergeProps, provide] as const
 }

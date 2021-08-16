@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { createPortal } from 'react-dom'
 import styled from 'styled-components'
 
@@ -5,11 +6,13 @@ import {
   PopupDialogArrowDiv,
   PopupConsumer,
   PopupDialogSurface,
-  PopupDialogTriggerSurface,
+  PopupTriggerSurface,
   PopupProvider,
 } from 'retil-interaction'
 
 function App() {
+  const initialFocusRef = useRef<HTMLInputElement | null>(null)
+
   return (
     <PopupProvider>
       <StyledPopupDialogTriggerSurface
@@ -23,12 +26,19 @@ function App() {
           active &&
           createPortal(
             <StyledPopupDialogSurface
-              active
+              initialFocusRef={initialFocusRef}
               offset={[0, 6]}
-              placement="top-start"
+              placement="bottom-start"
               strategy="absolute">
               <StyledPopupDialogArrow />
-              popup
+              <label>
+                <div>Email</div>
+                <input ref={initialFocusRef} type="text" />
+              </label>
+              <label>
+                <div>Password</div>
+                <input type="text" />
+              </label>
             </StyledPopupDialogSurface>,
             document.body,
           )
@@ -38,7 +48,7 @@ function App() {
   )
 }
 
-const StyledPopupDialogTriggerSurface = styled(PopupDialogTriggerSurface)`
+const StyledPopupDialogTriggerSurface = styled(PopupTriggerSurface)`
   cursor: pointer;
   border-radius: 99px;
   line-height: 30px;
@@ -54,7 +64,7 @@ const StyledPopupDialogSurface = styled(PopupDialogSurface)`
   cursor: pointer;
   border-radius: 4px;
   line-height: 30px;
-  width: 100px;
+  width: 200px;
   text-align: center;
   color: rgba(255, 255, 255, 0.93);
   background-color: #333;
@@ -64,11 +74,11 @@ const StyledPopupDialogSurface = styled(PopupDialogSurface)`
 
 const StyledPopupDialogArrow = styled(PopupDialogArrowDiv)`
   border: transparent 5px solid;
-  bottom: 0;
-  margin-bottom: -10px;
+  top: 0;
+  margin-top: -10px;
 
-  &[data-placement*='top'] {
-    border-top-color: #333;
+  &[data-placement*='bottom'] {
+    border-bottom-color: #333;
   }
 `
 

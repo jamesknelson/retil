@@ -26,10 +26,10 @@ import React, {
 import { joinRefs, noop } from 'retil-support'
 
 import { useConnectRef } from './connectRef'
-import { FocusableDefaultProvider, FocusableHandle } from './focusable'
+import { FocusableDefaultProvider, FocusableSnapshot } from './focusable'
 
 export interface ControlContext {
-  ref: React.Ref<FocusableHandle>
+  ref: React.Ref<FocusableSnapshot>
   tabIndex: number
 }
 
@@ -47,11 +47,11 @@ export interface ControlProviderProps {
 }
 
 export const ControlProvider = forwardRef<
-  FocusableHandle,
+  FocusableSnapshot,
   ControlProviderProps
 >((props, refProp) => {
   const { children, tabIndex = 0 } = props
-  const focusableHandleRef = useRef<FocusableHandle | null>(null)
+  const focusableHandleRef = useRef<FocusableSnapshot | null>(null)
   const ref = useMemo(
     () => joinRefs(focusableHandleRef, refProp),
     [refProp, focusableHandleRef],

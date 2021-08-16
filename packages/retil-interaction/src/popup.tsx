@@ -11,26 +11,19 @@ import React, {
   useLayoutEffect,
 } from 'react'
 import { Source, createState, fuse, useSource } from 'retil-source'
-import { fromEntries, identity, useOpaqueIdentifier } from 'retil-support'
+import { identity, useJoinRefs, useOpaqueIdentifier } from 'retil-support'
 
 import { useConfigurator } from './configurator'
+import { Connector } from './connector'
 import { useEscapeConnector } from './escape'
-import { useJoinRefs } from './joinRefs'
-import { useKeyMapHandler, useMergeKeyboardProps } from './keyboard'
 import {
   PopupPositionerConfig,
-  PopupPositionerHandle,
   PopupPositionerReferenceElement,
   PopupPositionerSnapshot,
   popupPositionerServiceConfigurator,
   splitPopupPositionerConfig,
 } from './popupPositioner'
-import {
-  PopupTriggerConfig,
-  PopupTriggerHandle,
-  popupTriggerServiceConfigurator,
-  splitPopupTriggerConfig,
-} from './popupTrigger'
+import { PopupTriggerHandle, PopupTriggerService } from './popupTrigger'
 
 // ---
 
@@ -67,17 +60,14 @@ export function PopupConsumer(props: PopupConsumerProps) {
 
 // ---
 
-export type PopupTriggerService = readonly [
-  activeSource: Source<boolean>,
-  setPopupElement: (element: HTMLElement | SVGElement | null) => void,
-]
-
 export interface PopupIds {
   popupId: any
   triggerId: any
 }
 
 export interface PopupHandle {
+  close: () => void
+
   setPopup: (
     element: HTMLElement | SVGElement,
     setReferenceElement: (
@@ -95,14 +85,17 @@ export interface UsePopupProviderOptions {
   triggerId?: string
 }
 
+export interface PopupProviderSnapshot {
+  active: boolean
+  handle: PopupHandle
+  ids: PopupIds
+}
+
+export type PopupProviderConnector = Connector<PopupProviderSnapshot>
+
 export const usePopupProviderConnector = (
   options: UsePopupProviderOptions = {},
-): readonly [
-  state: { active: boolean },
-  mergeProps: typeof identity,
-  provide: (children: React.ReactNode) => React.ReactElement,
-  handle: PopupHandle,
-] => {
+): PopupProviderConnector => {
   const defaultPopupId = useOpaqueIdentifier()
   const defaultTriggerId = useOpaqueIdentifier()
 
@@ -128,9 +121,7 @@ export const usePopupProviderConnector = (
   useEffect(() => sealActiveSourceSource, [sealActiveSourceSource])
 
   const popupElementRef = useRef<HTMLElement | SVGElement | null>(null)
-  const setPopupElementCallbackRef = useRef<
-    null | ((element: HTMLElement | SVGElement | null) => void)
-  >(null)
+  const popupTriggerHandleRef = useRef<null | PopupTriggerHandle>(null)
 
   const referenceElementRef = useRef<PopupPositionerReferenceElement | null>(
     null,
@@ -157,15 +148,15 @@ export const usePopupProviderConnector = (
       setReferenceElement(referenceElementRef.current)
 
       popupElementRef.current = element
-      if (setPopupElementCallbackRef.current) {
-        setPopupElementCallbackRef.current(element)
+      if (popupTriggerHandleRef.current) {
+        popupTriggerHandleRef.current.setPopupElement(element)
       }
 
       return () => {
         if (popupElementRef.current === element) {
           popupElementRef.current = null
-          if (setPopupElementCallbackRef.current) {
-            setPopupElementCallbackRef.current(null)
+          if (popupTriggerHandleRef.current) {
+            popupTriggerHandleRef.current.setPopupElement(null)
           }
         }
 
@@ -189,24 +180,22 @@ export const usePopupProviderConnector = (
   )
 
   const setTriggerService = useCallback(
-    (service: PopupTriggerService) => {
-      const [activeSource, setPopupElement] = service
-
+    ([activeSource, triggerHandle]: PopupTriggerService) => {
       if (
-        setPopupElementCallbackRef.current &&
-        setPopupElementCallbackRef.current !== setPopupElement
+        popupTriggerHandleRef.current &&
+        popupTriggerHandleRef.current !== triggerHandle
       ) {
-        setPopupElementCallbackRef.current(null)
+        popupTriggerHandleRef.current.setPopupElement(null)
       }
 
-      setPopupElementCallbackRef.current = setPopupElement
-      setPopupElement(popupElementRef.current)
+      popupTriggerHandleRef.current = triggerHandle
+      triggerHandle.setPopupElement(popupElementRef.current)
 
       setActiveSource(activeSource)
 
       return () => {
-        if (setPopupElementCallbackRef.current === setPopupElement) {
-          setPopupElementCallbackRef.current = null
+        if (popupTriggerHandleRef.current === triggerHandle) {
+          popupTriggerHandleRef.current = null
         }
         setActiveSource((currentActiveSource) =>
           activeSource === currentActiveSource ? null : currentActiveSource,
@@ -216,13 +205,18 @@ export const usePopupProviderConnector = (
     [setActiveSource],
   )
 
+  const close = useCallback(() => {
+    popupTriggerHandleRef.current?.close()
+  }, [])
+
   const handle = useMemo<PopupHandle>(
     () => ({
+      close,
       setPopup,
       setReferenceElement,
       setTriggerService,
     }),
-    [setPopup, setReferenceElement, setTriggerService],
+    [close, setPopup, setReferenceElement, setTriggerService],
   )
 
   const ids = useMemo(
@@ -246,7 +240,7 @@ export const usePopupProviderConnector = (
     [active, handle, ids],
   )
 
-  return [{ active }, identity, provide, handle]
+  return [{ active, handle, ids }, identity, provide]
 }
 
 export interface PopupProviderProps extends UsePopupProviderOptions {
@@ -259,158 +253,6 @@ export function PopupProvider({ children, ...options }: PopupProviderProps) {
 }
 
 // ---
-
-export interface PopupTriggerMergedProps<
-  TElement extends HTMLElement | SVGElement,
-> {
-  'aria-controls': string
-  'aria-expanded': boolean
-  'aria-haspopup': boolean
-  id: string
-  onKeyDown?: (event: React.KeyboardEvent<TElement>) => void
-  ref: (element: TElement) => void
-}
-
-export type PopupTriggerMergeableProps<
-  TElement extends HTMLElement | SVGElement,
-> = {
-  'aria-controls'?: never
-  'aria-expanded'?: never
-  'aria-haspopup'?: never
-  id?: never
-  onKeyDown?: (event: React.KeyboardEvent<TElement>) => void
-  ref?: React.Ref<TElement>
-}
-
-export type MergePopupTriggerProps = <
-  TElement extends HTMLElement | SVGElement,
-  TMergeProps extends PopupTriggerMergeableProps<TElement> = {},
->(
-  mergeProps?: TMergeProps &
-    PopupTriggerMergeableProps<TElement> &
-    Record<string, any>,
-) => TMergeProps & PopupTriggerMergedProps<TElement>
-
-export interface PopupTriggerOptions extends PopupTriggerConfig {
-  captureKeyboard?: boolean
-  externalReference?: boolean
-  triggerOnKeys?: string[]
-}
-
-export function splitPopupTriggerOptions<P extends PopupTriggerOptions>(
-  props: P,
-): readonly [PopupTriggerOptions, Omit<P, keyof PopupTriggerOptions>] {
-  const { captureKeyboard, externalReference, triggerOnKeys, ...notOurs } =
-    props
-  const [popupTriggerConfig, rest] = splitPopupTriggerConfig(notOurs)
-
-  return [
-    {
-      captureKeyboard,
-      externalReference,
-      triggerOnKeys,
-      ...popupTriggerConfig,
-    },
-    rest as Omit<P, keyof PopupTriggerOptions>,
-  ]
-}
-
-export function usePopupTriggerConnector(
-  options: PopupTriggerOptions,
-): readonly [
-  state: { active: boolean },
-  mergeProps: MergePopupTriggerProps,
-  provide: (children: React.ReactNode) => React.ReactElement,
-  handle: PopupTriggerHandle,
-] {
-  const {
-    captureKeyboard = false,
-    externalReference = false,
-    triggerOnKeys = ['Enter', ' '],
-    ...triggerConfig
-  } = options
-
-  const active = useContext(popupActiveContext)
-  const ids = useContext(popupIdsContext)
-  const popupHandle = useContext(popupHandleContext)
-
-  const [activeSource, triggerHandle] = useConfigurator(
-    popupTriggerServiceConfigurator,
-    triggerConfig,
-  )
-  const { close, open, setPopupElement, setTriggerElement } = triggerHandle
-
-  const cleanupRef = useRef<(() => void) | null>()
-
-  useEffect(
-    () => () => {
-      if (cleanupRef.current) {
-        cleanupRef.current()
-      }
-    },
-    [],
-  )
-
-  const keyMapHandler = useKeyMapHandler(
-    fromEntries(triggerOnKeys.map((key) => [key, open])),
-  )
-  const mergeKeyboardProps = useMergeKeyboardProps(
-    options.disabled ? null : keyMapHandler,
-    {
-      capture: captureKeyboard,
-    },
-  )
-  const [, mergeEscapeProps, provideEscape] = useEscapeConnector(close)
-
-  const triggerRef = useCallback(
-    (element: SVGElement | HTMLElement | null) => {
-      // Adds event handlers, but does not cause any changes in state
-      setTriggerElement(element)
-
-      if (cleanupRef.current) {
-        cleanupRef.current()
-      }
-      if (!externalReference) {
-        popupHandle.setReferenceElement(element)
-      }
-      if (element) {
-        cleanupRef.current = popupHandle.setTriggerService([
-          activeSource,
-          setPopupElement,
-        ])
-      }
-    },
-    [
-      activeSource,
-      externalReference,
-      popupHandle,
-      setPopupElement,
-      setTriggerElement,
-    ],
-  )
-
-  const joinRefs = useJoinRefs()
-
-  const mergeProps: MergePopupTriggerProps = (rawMergeProps = {} as any) => {
-    const mergeProps = mergeEscapeProps(mergeKeyboardProps(rawMergeProps))
-
-    const popupTriggerMergedProps: PopupTriggerMergedProps<any> = {
-      ...mergeProps,
-      id: ids.triggerId,
-      ref: joinRefs(triggerRef, mergeProps?.ref),
-      'aria-controls': ids.popupId,
-      'aria-expanded': active,
-      'aria-haspopup': true,
-    }
-
-    return {
-      ...mergeProps,
-      ...popupTriggerMergedProps,
-    }
-  }
-
-  return [{ active }, mergeProps, provideEscape, triggerHandle]
-}
 
 // ---
 
@@ -432,31 +274,35 @@ export type PopupMergeableProps<TElement extends HTMLElement | SVGElement> = {
 
 export type MergePopupProps = <
   TElement extends HTMLElement | SVGElement,
-  TMergeProps extends PopupMergeableProps<TElement> = {},
+  TMergeProps extends PopupMergeableProps<TElement> & Record<string, any> = {},
 >(
   mergeProps?: TMergeProps &
     PopupMergeableProps<TElement> &
     Record<string, any>,
-) => TMergeProps & PopupMergedProps<TElement>
+) => Omit<TMergeProps, keyof PopupMergeableProps<TElement>> &
+  PopupMergedProps<TElement>
 
 export interface PopupOptions extends PopupPositionerConfig {}
 
 export const splitPopupOptions = splitPopupPositionerConfig
 
+export interface PopupConnectorSnapshot extends PopupPositionerSnapshot {
+  updatePosition: () => void
+  forceUpdatePosition: () => void
+}
+
+export type PopupConnector = Connector<PopupConnectorSnapshot, MergePopupProps>
+
 export function usePopupConnector(
   /**
    * While `active` is available from the context, we require it to be passed in
    * manually, either via a <PopupConsumer> or `usePopupContext()`. This ensures
-   * that the popup can be animated in/out.
+   * that the popup can be animated in/out without being affected by stale
+   * context.
    */
   popupActive: boolean,
   options: PopupOptions = {},
-): readonly [
-  state: PopupPositionerSnapshot,
-  mergeProps: MergePopupProps,
-  provide: (children: React.ReactNode) => React.ReactElement,
-  handle: PopupPositionerHandle,
-] {
+): PopupConnector {
   const popupHandle = useContext(popupHandleContext)
   const popupIds = useContext(popupIdsContext)
 
@@ -500,6 +346,10 @@ export function usePopupConnector(
     [popupHandle, setPopupElement, setReferenceElement],
   )
 
+  const [, mergeEscapeProps, provideEscape] = useEscapeConnector(
+    popupHandle.close,
+  )
+
   const isVisible = popupActive && popupStyles?.visibility !== 'hidden'
   const popupArrow = useMemo(
     () => ({
@@ -512,31 +362,43 @@ export function usePopupConnector(
     [arrowStyles, forceUpdate, isVisible, placement, setArrowElement],
   )
 
-  const provideArrow = useCallback(
-    (children: React.ReactNode) => (
+  const provide = (children: React.ReactNode) =>
+    provideEscape(
       <popupArrowContext.Provider value={popupArrow}>
         {children}
-      </popupArrowContext.Provider>
-    ),
-    [popupArrow],
-  )
+      </popupArrowContext.Provider>,
+    )
 
   const joinRefs = useJoinRefs()
-  const mergeProps: MergePopupProps = (mergeProps = {} as any) => ({
-    ...mergeProps,
-    hidden: mergeProps?.hidden ?? !popupActive,
-    id: popupIds.popupId as string,
-    ref: joinRefs(popupRef, mergeProps?.ref),
-    style:
-      typeof mergeProps?.mergeStyle === 'function'
-        ? mergeProps.mergeStyle(position.popupStyles)
-        : {
-            ...position.popupStyles,
-            ...mergeProps?.mergeStyle,
-          },
-  })
+  const mergeProps: MergePopupProps = (rawMergeProps = {} as any) => {
+    const { id, ...mergeProps } = mergeEscapeProps(rawMergeProps)
+    const popupMergedProps: PopupMergedProps<any> = {
+      ...mergeProps,
+      hidden: mergeProps.hidden ?? !popupActive,
+      id: popupIds.popupId as string,
+      ref: joinRefs(popupRef, mergeProps?.ref),
+      style:
+        typeof mergeProps?.mergeStyle === 'function'
+          ? mergeProps.mergeStyle(position.popupStyles)
+          : {
+              ...position.popupStyles,
+              ...mergeProps?.mergeStyle,
+            },
+    }
 
-  return [position, mergeProps, provideArrow, positionerHandle]
+    return Object.assign({
+      ...mergeProps,
+      ...popupMergedProps,
+    })
+  }
+
+  const snapshot: PopupConnectorSnapshot = {
+    ...position,
+    forceUpdatePosition: positionerHandle.forceUpdate,
+    updatePosition: positionerHandle.update,
+  }
+
+  return [snapshot, mergeProps, provide]
 }
 
 // ---

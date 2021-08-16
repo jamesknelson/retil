@@ -49,14 +49,14 @@ export function CSSProvider({
 }
 
 export function useCSSRuntime(themeContextArg?: React.Context<CSSTheme>) {
-  return useThemeRider(themeContextArg).runtime
+  return useThemeRider(themeContextArg)?.runtime!
 }
 
 export function useThemeRider(themeContextArg?: React.Context<CSSTheme>) {
   const defaultThemeContext = useContext(cssThemeContextContext)
   const themeContext = themeContextArg ?? defaultThemeContext
   const theme = useContext(themeContext)
-  return theme[themeRiderSymbol]!
+  return theme?.[themeRiderSymbol]
 }
 
 export function getThemeRider<
@@ -75,5 +75,5 @@ export function getThemeRider<
       : (interpolationContext as {
           [themeRiderSymbol]: CSSThemeRider
         })
-  return theme[themeRiderSymbol]
+  return theme?.[themeRiderSymbol]
 }

@@ -48,7 +48,7 @@ const App = () => {
 
   const [, mergeDisableableProps, provideDisableable] =
     useDisableableConnector(disabled)
-  const [, mergeFocusableProps, provideFocusable, focusableHandle] =
+  const [focusableHandle, mergeFocusableProps, provideFocusable] =
     useFocusableConnector(inputRef)
   const [, mergeSufaceSelectorsProps, provideSurfaceSelectors] =
     useSurfaceSelectorsConnector(controlOverrides)

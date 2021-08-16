@@ -1,17 +1,22 @@
-import React, { forwardRef, useCallback, useContext } from 'react'
+import React, {
+  createContext,
+  forwardRef,
+  useCallback,
+  useContext,
+  useMemo,
+} from 'react'
 import { useHasHydrated } from 'retil-hydration'
-import { compose } from 'retil-support'
+import { compose, emptyObject } from 'retil-support'
 
 import {
   inHydratingSurface,
   inSelectedSurface,
 } from './defaultSurfaceSelectors'
 import { useDisableableConnector } from './disableable'
-import { useEscapeConnector } from './escape'
-import { Focusable, focusableContext } from './focusable'
-import { useMergeKeyboardProps } from './keyboard'
+import { Focusable, useFocusableContext } from './focusable'
+import { useKeyboard } from './keyboard'
 import { useListCursor, useListCursorKeyDownHandler } from './listCursor'
-import { useFocusableSelection } from './selection'
+import { useFocusableSelection } from './focusableSelection'
 import {
   SurfaceSelectorOverrides,
   useSurfaceSelectorsConnector,
@@ -23,8 +28,19 @@ import {
  * handler for the list cursor.
  */
 
+export type MenuOrientation = 'vertical' | 'horizontal'
+
+export interface MenuContext {}
+
+const menuContext = createContext<null | MenuContext>(null)
+
+export function useMenuContext(): MenuContext | null {
+  return useContext(menuContext)
+}
+
 export interface MenuSurfaceProps
   extends Omit<React.HTMLAttributes<HTMLDivElement>, 'children' | 'onSelect'> {
+  actions: (React.ReactElement | null)[]
   /**
    *
    * By default, the surface will render its options directly as children.
@@ -33,58 +49,69 @@ export interface MenuSurfaceProps
    */
   children?: (actions: (React.ReactElement | null)[]) => React.ReactNode
   /**
-   * By default, a focusable menu won't be deselectable, an unfocusable
-   * or delegated focus menu will be deselectable, or a nested unfocusable/
-   * deletgated focus menu will be 'self' selectable, i.e. deselection will
-   * select the menu itself, which will still capture keyboard events.
+   * If true, this will make the menu itself selectable, with any deselections
+   * causing the menu to be selected.
+   *
+   * Except in nested menus, this will be false by default – with focusable
+   * menus not supporting deselection, and unfocsuable menus deselecting to a
+   * null selection.
    */
-  deselectable?: boolean | 'self'
-  actions: (React.ReactElement | null)[]
+  defaultIndex?: number
+  deselectable?: boolean | null
   disabled?: boolean
   focusable?: Focusable
-  orientation?: 'vertical' | 'horizontal'
+  orientation?: MenuOrientation
   overrideSelectors?: SurfaceSelectorOverrides
+  selectOnPointerMovements?: boolean
   tabIndex?: number
 }
 
 export const MenuSurface = forwardRef<HTMLDivElement, MenuSurfaceProps>(
   function MenuSurface(props, ref) {
     const {
-      children,
-      deselectable: deselectableProp,
       actions,
+      children,
+      defaultIndex,
+      deselectable: deselectableProp,
       disabled: disabledProp,
       focusable: focusableProp,
       orientation,
       overrideSelectors,
+      selectOnPointerMovements: selectOnPointerMovementsProp,
       tabIndex,
       ...rest
     } = props
 
     const isHydrating = !useHasHydrated()
 
-    const focusableDefault = useContext(focusableContext)
-    const focusable = focusableProp ?? focusableDefault ?? true
+    const nested = !!useMenuContext()
+    const focusable = useFocusableContext(focusableProp)
 
-    // The menu should typically be deselectable when not focusable.
-    const deselectableDefault = focusable !== true
-    const deselectable = deselectableProp ?? deselectableDefault
+    const deselectable =
+      deselectableProp !== undefined
+        ? deselectableProp
+        : focusable === true
+        ? null
+        : true
 
     // If the menu is deselectable or self-selectable, then calling deselect
     // will set the cursor to the index to one above the final index.
     const itemCount = props.actions.filter(Boolean).length
-    const [index, cursor] = useListCursor(
-      itemCount + Number(deselectable === 'self'),
-    )
+    const [index, cursor] = useListCursor(itemCount, {
+      defaultIndex: defaultIndex ?? (deselectable === true ? -1 : 0),
+    })
+
+    const selectOnPointerMovements =
+      selectOnPointerMovementsProp ?? focusable === true
+        ? undefined
+        : index !== -1
+
     const selectCursorIndex = cursor.select
-    const handleSelect = useCallback(
-      (index: number | null) => {
-        if (deselectable || index !== null) {
-          selectCursorIndex(
-            index === null ? (deselectable === 'self' ? itemCount : -1) : index,
-          )
-        }
-      },
+    const deselect = useMemo(
+      () =>
+        deselectable === false
+          ? undefined
+          : () => selectCursorIndex(deselectable === null ? itemCount : -1),
       [deselectable, itemCount, selectCursorIndex],
     )
 
@@ -101,24 +128,35 @@ export const MenuSurface = forwardRef<HTMLDivElement, MenuSurfaceProps>(
       useDisableableConnector(disabledProp)
 
     const [
-      focusableSelectionState,
+      focusableSelectionSnapshot,
       mergeFocusableSelectionProps,
       provideFocusableSelection,
-      focusableSelectionHandle,
-    ] = useFocusableSelection({
+    ] = useFocusableSelection<number, number>({
       focusable: props.focusable,
-      onSelect: handleSelect,
-      ref: selectedElementRefCallback,
+      emptySelection: deselectable === false ? undefined : itemCount,
+      onDeselect: deselect,
+      onSelect: selectCursorIndex,
+      selectableRef: selectedElementRefCallback,
       selection: index,
-      selfSelection: deselectable === 'self' ? itemCount : undefined,
+      selectOnPointerMovements,
       tabIndex,
     })
 
-    const [, mergeEscapeProps, provideEscape] = useEscapeConnector(
-      deselectable ? focusableSelectionHandle?.deselect : null,
+    const cursorKeyboardHandler = useListCursorKeyDownHandler(
+      cursor,
+      orientation,
     )
-    const keyboardHandler = useListCursorKeyDownHandler(cursor, orientation)
-    const mergeKeyboardProps = useMergeKeyboardProps(
+    const keyboardHandler = useCallback(
+      (event: React.KeyboardEvent) => {
+        cursorKeyboardHandler(event)
+        // Prevent default if we have selection and not focus
+        if (!nested && focusable !== true) {
+          event.preventDefault()
+        }
+      },
+      [cursorKeyboardHandler, focusable, nested],
+    )
+    const [, mergeKeyboardProps, provideKeyboard] = useKeyboard(
       index >= 0 ? keyboardHandler : null,
       { capture: focusable !== true },
     )
@@ -127,40 +165,48 @@ export const MenuSurface = forwardRef<HTMLDivElement, MenuSurfaceProps>(
       useSurfaceSelectorsConnector(
         [
           [inHydratingSurface, isHydrating],
-          [inSelectedSurface, deselectable === 'self' && index === 0],
+          [inSelectedSurface, index === itemCount],
         ],
         overrideSelectors,
       )
 
-    const selectableItems = [] as (null | React.ReactElement)[]
-    let i = 0
-    for (const item of actions) {
-      if (item) {
-        selectableItems.push(
-          React.cloneElement(
-            focusableSelectionState.provideSelectableContext(i, item),
-            { key: i },
-          ),
-        )
-        i += 1
-      } else {
-        selectableItems.push(item)
+    const provideSelectableContext =
+      focusableSelectionSnapshot.provideSelectableContext
+    const selectableItems = useMemo(() => {
+      const selectableItems = [] as (null | React.ReactElement)[]
+      let i = 0
+      for (const item of actions) {
+        if (item) {
+          selectableItems.push(
+            React.cloneElement(provideSelectableContext(i, item), { key: i }),
+          )
+          i += 1
+        } else {
+          selectableItems.push(item)
+        }
       }
-    }
+      return selectableItems
+    }, [actions, provideSelectableContext])
 
     const mergeProps = compose(
       mergeDisableableProps,
       mergeFocusableSelectionProps,
       mergeSurfaceSelectorProps,
-      mergeEscapeProps,
       mergeKeyboardProps,
+    )
+
+    const provideMenuContext = (children: React.ReactNode) => (
+      <menuContext.Provider value={emptyObject}>
+        {children}
+      </menuContext.Provider>
     )
 
     const provide: (children: React.ReactNode) => React.ReactElement = compose(
       provideDisableable,
       provideFocusableSelection,
+      provideMenuContext,
       provideSurfaceSelectors,
-      provideEscape,
+      provideKeyboard,
     )
 
     return provide(
@@ -169,7 +215,10 @@ export const MenuSurface = forwardRef<HTMLDivElement, MenuSurfaceProps>(
           ref,
           ...rest,
         })}>
-        {children ? children(selectableItems) : selectableItems}
+        {useMemo(
+          () => (children ? children(selectableItems) : selectableItems),
+          [children, selectableItems],
+        )}
       </div>,
     )
   },

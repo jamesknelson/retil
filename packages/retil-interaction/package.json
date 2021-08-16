@@ -21,9 +21,9 @@
   "dependencies": {
     "@popperjs/core": "^2.9.1",
     "fast-deep-equal": "^3.1.3",
-    "focus-trap": "^6.3.0",
-    "retil-source": "^0.20.1",
+    "focus-trap": "^6.6.1",
     "retil-css": "^0.20.1",
+    "retil-source": "^0.20.1",
     "retil-support": "^0.20.1",
     "tslib": "^2.2.0"
   },

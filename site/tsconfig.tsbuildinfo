@@ -342,8 +342,8 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-boundary/src/boundary.tsx": {
-        "version": "30ec215030788233388b2a6b30eec32599866887ea84e1263b808405c1402148",
-        "signature": "316691411d7309ac996b5098332bc8d1841285837556827d29a4cb8a2bbaad78",
+        "version": "48e3be00849dfa454f4ce7a614ecc05afcd0912f77e35fc782c71d82f62dc767",
+        "signature": "96957cf7f457d564234c5080dcd967d1f26a806186a29727fb4ed808ffbed664",
         "affectsGlobalScope": false
       },
       "../packages/retil-boundary/src/index.ts": {
@@ -374,6 +374,11 @@
       "../packages/retil-support/src/areshallowequal.ts": {
         "version": "5dccc1c83f1e53315a9bd6f558d445ed1c417b433add7b6d9b0a777bc92e1351",
         "signature": "a88cc3e7d0ab7d6ca797534c87ec89fa16fd9acc43234bedd398c0c5ade87a06",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-support/src/compose.ts": {
+        "version": "73d5971233cf8cca3be224972605ba14a569ff8da623b567f5f35f4751a96df3",
+        "signature": "d30f0008b33d0c6833135af8ed01b183fe0e8e972b812c6ebc5c85ba968c38d1",
         "affectsGlobalScope": false
       },
       "../packages/retil-support/src/deferred.ts": {
@@ -512,8 +517,8 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-support/src/joinrefs.ts": {
-        "version": "82a415e8f52f6039a3271270795a77fd3a719d92493bfb95fd7cebb14c6c1149",
-        "signature": "7db57d538a78a20d34975cc25785c15825307a72cc058382074f67ee5e88428e",
+        "version": "3de85d89a7be63493a76e7dcdc6554636d735048813dbe8ea7a883f9fdaa633b",
+        "signature": "051d14fd623ec4cdf90b3c19bc60b7f635d7f536d799d10427cd67869a17f4d3",
         "affectsGlobalScope": false
       },
       "../packages/retil-support/src/memo.ts": {
@@ -551,9 +556,14 @@
         "signature": "e63703380b7a922127867440308007c2e57be56a1627c41c9ef3deedd298e587",
         "affectsGlobalScope": false
       },
+      "../packages/retil-support/src/useopaqueidentifier.ts": {
+        "version": "e2c5535262ceebcabca3db803cba3afb72c43071581dbb4dfaf98887e0c002be",
+        "signature": "5fed2b799fb7df94ad14b01c1fea4241e468962d415941acaa89f7f3439fffdb",
+        "affectsGlobalScope": false
+      },
       "../packages/retil-support/src/index.ts": {
-        "version": "74f02a917ed916dd506d66172a97ffa488ef5f20114eebf8409aacb2561ea87d",
-        "signature": "22d12080731a9dcba19d0661b54467928b5d9daa9926a97a5386ab03066871c3",
+        "version": "12c0cb91977b6c80928e58bf0e1836f295ee922a3deb4695185693e9e79830db",
+        "signature": "24f916236be164f0529fa8a78ddcd05931936c7252bd5e44dcb5dcd8ba85a89f",
         "affectsGlobalScope": false
       },
       "../packages/retil-source/src/source.ts": {
@@ -732,8 +742,8 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-nav/src/hooks/useboundarynavscroller.ts": {
-        "version": "f34d9e6390df99193d339d2934968df6f8edf4e011e769a73e01d3099e8dfb3f",
-        "signature": "de1a8635e4c609ef7a229b92236adac015de5c03f7fb6dc94c802b2d61d0b142",
+        "version": "273ecce2b260e33270a6e9a208fdc13b7b2467432aece0780b7268652721c069",
+        "signature": "823836b67a12bb4a0ff65c11537dd83ff5e95de13567f15dc5bc56f784088ccb",
         "affectsGlobalScope": false
       },
       "../node_modules/querystring/decode.d.ts": {
@@ -803,7 +813,7 @@
       },
       "../packages/retil-nav/src/loaders/loadnotfoundboundary.tsx": {
         "version": "539e59c44befe23bda71bb3c599635fbbb844755710de0bd871ac3eefb304854",
-        "signature": "dc26a2cec562f00c0351918e0054b32a6a1e9fe9da3264ba31626dca0e054f56",
+        "signature": "c45505a80a873c25c9dacb8619fc8a2b2efad5bf04b13a405bfcccb743163434",
         "affectsGlobalScope": false
       },
       "../packages/retil-nav/src/loaders/loadmatch.tsx": {
@@ -857,8 +867,8 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-css/src/constants.ts": {
-        "version": "7b68646d7726027d94fd44ef6f5adf25081f6dd1dc59d81c3b12a4041ddd1e5f",
-        "signature": "353f4cdcb8cc6eded196fb3efec5f72afeec0b884c2d4f9f7ee6ea621f20f1ce",
+        "version": "fd4e419ef4e01f061a9c387cb40cf81cb6ab99f12483ada02f92ad25a241cbf5",
+        "signature": "2d68b4c5c33dd3abcdd4615b8688faf579ee907c6540f4f40c1b78cb39e519c7",
         "affectsGlobalScope": false
       },
       "../packages/retil-css/src/types.ts": {
@@ -867,8 +877,8 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-css/src/context.tsx": {
-        "version": "dbb9c03f34ee3a3c86abac56cb85f65622bffbe4893ae2a692fad0b3234d5c17",
-        "signature": "bfff74a118734e7bf588ab0b3b3d92a72f0da711eea86708ddf577c8295bebe4",
+        "version": "1e773c2ede1077e8a51c2e3e8cfd07861844e69c7c98411ecb14838de7a40dc9",
+        "signature": "6383d6d8a03c94f58edda0bfaa245fc34af008a824254602f279256f242d344e",
         "affectsGlobalScope": false
       },
       "../node_modules/fast-cartesian/build/src/main.d.ts": {
@@ -876,9 +886,14 @@
         "signature": "8d2c1fe65472812a1c00d704faa429271e24b18846595e03531e4f2aea8edcbb",
         "affectsGlobalScope": false
       },
+      "../node_modules/@types/lodash/partition.d.ts": {
+        "version": "4e75455424f9f86f7c08c919b0ea45951fc81dc2142ac99c4da3f007fefe67c7",
+        "signature": "4e75455424f9f86f7c08c919b0ea45951fc81dc2142ac99c4da3f007fefe67c7",
+        "affectsGlobalScope": false
+      },
       "../packages/retil-css/src/selector.tsx": {
-        "version": "e15b31c0e3626c26f1e8eac7c2da9467f8fdfc7eabddcc6d53f1806f8e8b4d09",
-        "signature": "7bdfa9c61a65ab5ec32d14ef0fd235427efcee9da5034acb6ca9eaa92b160d2e",
+        "version": "081d03f3f1547b2a9f61ee29c066def095c6ed4174d0628c2661711df2d5bf0c",
+        "signature": "ffb6e56795239c8dbf09d5f0856197f7d221e5fc38c8a0ceea09ad2ade9d6bc3",
         "affectsGlobalScope": false
       },
       "../packages/retil-css/src/highstyle.ts": {
@@ -892,43 +907,48 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-css/src/index.ts": {
-        "version": "bcb3c0eb6f3da2f61bcc5c38ce6ecdac042d4be5932e04c41a95a31fb7148aa2",
-        "signature": "1c20bb5f5bce3c8ce24de0d8fbccaf07cf5d1454d6342bb11a2908504c05b850",
-        "affectsGlobalScope": false
-      },
-      "../node_modules/@types/lodash/partition.d.ts": {
-        "version": "4e75455424f9f86f7c08c919b0ea45951fc81dc2142ac99c4da3f007fefe67c7",
-        "signature": "4e75455424f9f86f7c08c919b0ea45951fc81dc2142ac99c4da3f007fefe67c7",
+        "version": "d25f9fa477e6aadb8b26ebe444bca5df2b2b0bb73420a49d06290fda9cffcc8f",
+        "signature": "23b1b906fd3c6af9fb00595da3121cc042904e4a25ecdd0d8332bf939d160097",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/surfaceselector.tsx": {
-        "version": "b9e1de5b71f7b21598b0dce09abe4d229b0d11a856c3e24fe2dddeb92f642434",
-        "signature": "f815b6575b5b1c0390021b6b5dcea470d2527f5ad67f475593a1eb83268d433d",
+        "version": "711519aeb51ba9dce76d657fd812c0964e135588669ad02f174eaec418cc4790",
+        "signature": "57ebb0d05334d7f7110a79f22a79ab06f2ad7f19b1fd246c5d8bdc2f1e613307",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/defaultsurfaceselectors.ts": {
-        "version": "283378e8b4ed39e42708e76ea3a77ab5ba48021583a3fd69e47e4b763cfb0fea",
-        "signature": "af3a92e34df493ad6aae5d39d6c46e0c6a0647a581d3b033eda7be90ba170d0a",
+        "version": "34d247615643281b0701a1a935e1284ba338f153897e02566cb7fa4d968178ef",
+        "signature": "a4981704a48f168855a02a296a3cb9e3edf0e1391788f9df13a8313d0fd03337",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/disableable.tsx": {
-        "version": "2e31f93d8a5458240321bdf52d605d31cdb0b78f201f6c0900f0bd79a3169cbf",
-        "signature": "d6dfa855e2ea495f31a935b20af68989b124deb6d50380cefd59fb8e43c84ebc",
+        "version": "45f7c0176bc604e8e1a22eb166ef065ce2a2584a798c2ae6814d2fbe0430b792",
+        "signature": "4467d272f6579e8245e0cc1888f0795aaa6167311653c9eaf97dd530b7db0bac",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/focusable.tsx": {
-        "version": "2bf2d045ef7f73a0e2c5af4d15b18e2767b28690ce65855fdbd5df3cf02a7bf4",
-        "signature": "0ca6297c9185339b1b813a9e24e9e84a09c009bfac2e20690fbd5acba8bdb3e2",
+        "version": "648afc8d4c3ca4ed546a5f6019ece70a7e795eda6524c92e09d6c240a0560f4a",
+        "signature": "8360603f67766f26edf1664434293128097181eb4f71da48d14bb82dd4a10931",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/selectable.tsx": {
+        "version": "c6d31efd99fd8d85ee158ab5f95a296698442f6debf6b83772be0add2801b421",
+        "signature": "612b7bb5538272e7f359416d8147a2d1c669f748864ff3aaf41e886214fc1c53",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/actionsurface.tsx": {
-        "version": "0d8a317851aee7739b09fcd550dd02d87e168578785e87446bab37d3ecb23e79",
-        "signature": "6aec45caebe6c5eb8c06afe86615c8afba5cbfb7e0e31bdb142a7e628b3002d9",
+        "version": "b9d8ee83df193f0a8abd23cfd4aa4d1c2340be600184f6e5b89056d40c4679e0",
+        "signature": "3f235afefe01ac9da35132752bc6516ba0d03313f2c5c278987d0d962566d935",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/anchorsurface.tsx": {
-        "version": "71f7de41ab022130d806bf79514d2ba88bad1cb4cb2de3e06ca408911e330f28",
-        "signature": "9a6b8483caefdfe010d2597d99526dc9bb7c88f965ea12120a2add2cb93e1e4e",
+        "version": "ab62e3f899e14cb7dea26eaea3bf8d117a91b181c4da66191a4d1601ccb4768b",
+        "signature": "57c186b99fb82f2aeed59a2d928b052b2954f197fcc6e6df3522bb163e069460",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/keyboard.ts": {
+        "version": "d4baf6831a3ce3084d691a55cdaa66ed82708691f411e07afdb559d0ede20e86",
+        "signature": "91af58e397e3aa23e5b18d9f889cb1172b29d2f726f316eacca7afa3f0ff20e8",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/joineventhandlers.ts": {
@@ -937,8 +957,8 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/buttonsurface.tsx": {
-        "version": "206fe27baaa35c1e839101a5c468bda40bf267413199a4278acef42ea6b5fa9c",
-        "signature": "32946d1a483bf8839bbf0a45fa1e10a8459d0b30ebf819c442016b1825b5a38b",
+        "version": "1d23cda9086d42bc7b8fea5b63748c49e30b035f1f8e81fc494354610f075630",
+        "signature": "a24bdfffb0349242681384c1c3b0dc6b87cfc491fd1b140ad931d0f1a2bf7fd4",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/configurator.ts": {
@@ -952,18 +972,43 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/controlcontext.tsx": {
-        "version": "23591fc89340182258be0fd0eb4408fe3b0de55d6589ab09693d0f4cab0e03ee",
-        "signature": "cb286526ede4c1ab7b8fdde17dd7d10d28d09a2d4465ac2e7514839f5bf37f5d",
+        "version": "f3bdbb4ad433e086a6fd97ac78317f1be6dcf7ed2d480986f5dd7c30886ce702",
+        "signature": "e3ba67d15e6cf43ac8b9f6107c7c8c58894cf049f791a778a1a4af7eddbf7881",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/escape.tsx": {
+        "version": "ed696d993a27a2021df56f4c1c28dbc4e6755ae27d295764280f1ce1b8db7c9b",
+        "signature": "c084886cff746416fff348ff51730316ac86c291f760fa3203f4efe996f5f3e3",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/linksurface.tsx": {
-        "version": "49032ca902869468dbcffd9f1e0b461d9c0e2260cdcd132d9ce68d16e64256bf",
-        "signature": "c0dca11a857582112ccf947cb89d6bfa7da931731ed8a2c984573ff3a719383f",
+        "version": "fa82269e297993dc364dd9733b310af8e3bcf1b52b752feb6150a4a16a189e31",
+        "signature": "1578bb2b84e0b1ae95474e226ae7502715554be5c65376b719f38f9ba413b16b",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/listcursor.tsx": {
+        "version": "25dc9b5aa739da4f1f9da5fde01caee63a05f96e74a606baec0a21f11fbc43db",
+        "signature": "0f431dc39ab07a7394cf85a20f347ea39539b77d0603d384a192729ac96c744b",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/matchedlinksurface.tsx": {
-        "version": "fceef0a308ac56462183398cdf9c2a381216a7d4406f6ae02144fbaa823af1d5",
-        "signature": "733b14471447587957a1b6b5d12861e242be375925127f714d2f2589a798f4f8",
+        "version": "7e570e2ab81323f70a80d2a584f729bb6ecdc2235783f1a4b3f2bf4a93d41e4e",
+        "signature": "656e3b97ee98e9b9ff1b9fa55a4ea4c99ab4a805b94da10ce2c0bbae6afc8920",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/selection.tsx": {
+        "version": "bcf6c51c19a0bf0b1cf73d323125be8ebd98b5604512f3bb4c17bbcd54eb3cfd",
+        "signature": "2169e3cedc329e98cc9cbf38ab56f28c22f2cab3387421f650c0ce046ea1f78d",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/menu.tsx": {
+        "version": "c4f11f82b1c74bf3fa80a6c31d66fbb97462385013cfadf836d50a943e5d29a5",
+        "signature": "4707b2adf305d463757955e5419e055d37754406ff81ea4e6ecbec37b0f1f47d",
+        "affectsGlobalScope": false
+      },
+      "../packages/retil-interaction/src/joinrefs.ts": {
+        "version": "5c3fe62cf0ca9b3696ec7622415fc6c63ba4cee1133d7cc94f60e2223ab0a923",
+        "signature": "2a19418367c66071173b1d61c619b389cd460e5d9d4bad1d9dbf24d7fd634068",
         "affectsGlobalScope": false
       },
       "../node_modules/@popperjs/core/lib/enums.d.ts": {
@@ -1062,38 +1107,33 @@
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/popuppositioner.ts": {
-        "version": "49b77c4693bdcdb343fa83213b5b351b2ed0caee02fdf180b82f5facd82668f7",
-        "signature": "89d2aa4d4d20ec4ce9ed259c03c701cbbbb26ac9b32b69db1d09f014b23c93b3",
+        "version": "edd3f634baaf15b6a9e91c4ab117da07cd1f66e291d76415641e2d42b61d7aa3",
+        "signature": "55a882a82c4bef9545d42c8a6ef63b769cdc1a7b13fd0e1d52d43cd6100f9c82",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/popuptrigger.ts": {
-        "version": "59ccc00a21a9ef084a628d66458976f2db4a01b3f0d639173a017e1aecf078f0",
-        "signature": "0d90392c4527a9409929825d71b083169107b9ba7b32d5a6d95370e0121c6a2b",
+        "version": "aabeb433e6ee6ca112134765971a6990d144610a2d2e0a133b3785feac84d4b8",
+        "signature": "b249ad739d71e4c268e641426c6a6a1aa0c0717438aaee6a87357e9d433ac56f",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/popup.tsx": {
-        "version": "dd1ea36a61eb74339cdfae3c52c45f8b5bbf1fa9ab5c07ff3046cba064e70b86",
-        "signature": "c4227935597294c2738b6b9bf8ce4d6029a73c5bbe24dbeb924b65fef50082c6",
-        "affectsGlobalScope": false
-      },
-      "../packages/retil-interaction/src/joinrefs.ts": {
-        "version": "5c3fe62cf0ca9b3696ec7622415fc6c63ba4cee1133d7cc94f60e2223ab0a923",
-        "signature": "2a19418367c66071173b1d61c619b389cd460e5d9d4bad1d9dbf24d7fd634068",
+        "version": "400b18527e5420daef14d66b5cfa94117bb691bc0550acde7c402cd7b27371d7",
+        "signature": "1aac5de78ea0295dc9cea9ab8a25f4b4c08aeb480c6564346a71df479fb0729e",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/popupdialog.tsx": {
-        "version": "074933ec7b0c413fbea8a7f7a488f429cc3361740ebfec5b2b9a4791e3b56a5f",
-        "signature": "ac74cb1d72ce854c1f2c158d7b9057875cd53d33c6f7487ed258b351fc31c209",
+        "version": "35972cfba1ca1053b16fe5e8fcb91981821e4cead3f760dc92116dcb834a7efb",
+        "signature": "e02563ace6e8ce1355555dd9cb73e919d96f02141a0d9c3aab23a6a2fa3e808c",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/submitbuttonsurface.tsx": {
-        "version": "e5571a2ecc15a6436df2f74f35845fbfa96c8dfc4b3209b66e2b940a321a47a6",
-        "signature": "7821a5b87b8e4ff29ace4c583ca3266cf383ed4df01ca23b9ebdfee7ff914c46",
+        "version": "694dcd462fecc2a04c3f4785da5ce942e15c289fd3d6a0961750ed8154c6b1f7",
+        "signature": "456706e37216bd4670bf8b527b674700edb8b7e045c713ad75df58b152fd8e6f",
         "affectsGlobalScope": false
       },
       "../packages/retil-interaction/src/index.ts": {
-        "version": "8545fd8e1d7fd354e4308f504d2e5195cade143eddb7a87be297793774c2e1b0",
-        "signature": "b748681ffce28b7b667812444028664badaa2ba3f725665241878ebaaf5266c1",
+        "version": "5fc82b162151adb404469574ac0731b5d71c2d0ad5fcac4d9c2f7251c8b4c9cb",
+        "signature": "a652cb5946e2f54c382320d3d6bd333d85858431592acd03ef0f846ba111cbdc",
         "affectsGlobalScope": false
       },
       "../node_modules/polished/lib/color/adjusthue.d.ts": {
@@ -4478,6 +4518,7 @@
       ],
       "../packages/retil-css/src/selector.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/lodash/partition.d.ts",
         "../node_modules/@types/node/fs.d.ts",
         "../node_modules/@types/node/process.d.ts",
         "../node_modules/@types/node/ts3.2/fs.d.ts",
@@ -4578,9 +4619,12 @@
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/react/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
         "../packages/retil-interaction/src/disableable.tsx",
         "../packages/retil-interaction/src/focusable.tsx",
-        "../packages/retil-interaction/src/surfaceselector.tsx"
+        "../packages/retil-interaction/src/selectable.tsx",
+        "../packages/retil-interaction/src/surfaceselector.tsx",
+        "../packages/retil-support/src/index.ts"
       ],
       "../packages/retil-interaction/src/anchorsurface.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4592,8 +4636,7 @@
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/react/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
-        "../packages/retil-interaction/src/actionsurface.tsx",
-        "../packages/retil-interaction/src/disableable.tsx"
+        "../packages/retil-interaction/src/actionsurface.tsx"
       ],
       "../packages/retil-interaction/src/buttonsurface.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4608,8 +4651,9 @@
         "../packages/retil-hydration/src/index.ts",
         "../packages/retil-interaction/src/actionsurface.tsx",
         "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
-        "../packages/retil-interaction/src/disableable.tsx",
-        "../packages/retil-interaction/src/joineventhandlers.ts"
+        "../packages/retil-interaction/src/joineventhandlers.ts",
+        "../packages/retil-interaction/src/keyboard.ts",
+        "../packages/retil-interaction/src/surfaceselector.tsx"
       ],
       "../packages/retil-interaction/src/configurator.ts": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4669,9 +4713,20 @@
         "../node_modules/@types/node/ts3.2/util.d.ts",
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts"
+      ],
+      "../packages/retil-interaction/src/escape.tsx": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
-        "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
-        "../packages/retil-interaction/src/surfaceselector.tsx"
+        "../packages/retil-interaction/src/keyboard.ts",
+        "../packages/retil-support/src/index.ts"
       ],
       "../packages/retil-interaction/src/focusable.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4701,13 +4756,19 @@
         "../packages/retil-interaction/src/controlcontext.tsx",
         "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
         "../packages/retil-interaction/src/disableable.tsx",
+        "../packages/retil-interaction/src/escape.tsx",
         "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/keyboard.ts",
         "../packages/retil-interaction/src/linksurface.tsx",
+        "../packages/retil-interaction/src/listcursor.tsx",
         "../packages/retil-interaction/src/matchedlinksurface.tsx",
+        "../packages/retil-interaction/src/menu.tsx",
         "../packages/retil-interaction/src/popup.tsx",
         "../packages/retil-interaction/src/popupdialog.tsx",
         "../packages/retil-interaction/src/popuppositioner.ts",
         "../packages/retil-interaction/src/popuptrigger.ts",
+        "../packages/retil-interaction/src/selectable.tsx",
+        "../packages/retil-interaction/src/selection.tsx",
         "../packages/retil-interaction/src/service.ts",
         "../packages/retil-interaction/src/submitbuttonsurface.tsx",
         "../packages/retil-interaction/src/surfaceselector.tsx"
@@ -4736,6 +4797,18 @@
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-support/src/index.ts"
       ],
+      "../packages/retil-interaction/src/keyboard.ts": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-support/src/index.ts"
+      ],
       "../packages/retil-interaction/src/linksurface.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
         "../node_modules/@types/node/fs.d.ts",
@@ -4747,8 +4820,19 @@
         "../node_modules/@types/react/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-interaction/src/actionsurface.tsx",
-        "../packages/retil-interaction/src/disableable.tsx",
         "../packages/retil-nav/src/index.ts"
+      ],
+      "../packages/retil-interaction/src/listcursor.tsx": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-interaction/src/keyboard.ts"
       ],
       "../packages/retil-interaction/src/matchedlinksurface.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4762,9 +4846,29 @@
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-interaction/src/actionsurface.tsx",
         "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
-        "../packages/retil-interaction/src/disableable.tsx",
         "../packages/retil-interaction/src/surfaceselector.tsx",
         "../packages/retil-nav/src/index.ts",
+        "../packages/retil-support/src/index.ts"
+      ],
+      "../packages/retil-interaction/src/menu.tsx": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-hydration/src/index.ts",
+        "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
+        "../packages/retil-interaction/src/disableable.tsx",
+        "../packages/retil-interaction/src/escape.tsx",
+        "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/keyboard.ts",
+        "../packages/retil-interaction/src/listcursor.tsx",
+        "../packages/retil-interaction/src/selection.tsx",
+        "../packages/retil-interaction/src/surfaceselector.tsx",
         "../packages/retil-support/src/index.ts"
       ],
       "../packages/retil-interaction/src/popup.tsx": [
@@ -4778,10 +4882,13 @@
         "../node_modules/@types/react/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-interaction/src/configurator.ts",
+        "../packages/retil-interaction/src/escape.tsx",
+        "../packages/retil-interaction/src/joinrefs.ts",
+        "../packages/retil-interaction/src/keyboard.ts",
         "../packages/retil-interaction/src/popuppositioner.ts",
         "../packages/retil-interaction/src/popuptrigger.ts",
-        "../packages/retil-interaction/src/service.ts",
-        "../packages/retil-source/src/index.ts"
+        "../packages/retil-source/src/index.ts",
+        "../packages/retil-support/src/index.ts"
       ],
       "../packages/retil-interaction/src/popupdialog.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4793,9 +4900,14 @@
         "../node_modules/@types/node/util.d.ts",
         "../node_modules/@types/react/index.d.ts",
         "../node_modules/tslib/tslib.d.ts",
-        "../packages/retil-interaction/src/actionsurface.tsx",
-        "../packages/retil-interaction/src/joinrefs.ts",
-        "../packages/retil-interaction/src/popup.tsx"
+        "../packages/retil-hydration/src/index.ts",
+        "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
+        "../packages/retil-interaction/src/disableable.tsx",
+        "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/popup.tsx",
+        "../packages/retil-interaction/src/selectable.tsx",
+        "../packages/retil-interaction/src/surfaceselector.tsx",
+        "../packages/retil-support/src/index.ts"
       ],
       "../packages/retil-interaction/src/popuppositioner.ts": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -4827,6 +4939,33 @@
         "../packages/retil-source/src/index.ts",
         "../packages/retil-support/src/index.ts"
       ],
+      "../packages/retil-interaction/src/selectable.tsx": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-support/src/index.ts"
+      ],
+      "../packages/retil-interaction/src/selection.tsx": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts",
+        "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/selectable.tsx",
+        "../packages/retil-support/src/index.ts"
+      ],
       "../packages/retil-interaction/src/service.ts": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
         "../node_modules/@types/node/fs.d.ts",
@@ -4852,8 +4991,8 @@
         "../packages/retil-hydration/src/index.ts",
         "../packages/retil-interaction/src/actionsurface.tsx",
         "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
-        "../packages/retil-interaction/src/disableable.tsx",
         "../packages/retil-interaction/src/joineventhandlers.ts",
+        "../packages/retil-interaction/src/surfaceselector.tsx",
         "../packages/retil-support/src/index.ts"
       ],
       "../packages/retil-interaction/src/surfaceselector.tsx": [
@@ -5524,6 +5663,16 @@
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-support/src/maybe.ts"
       ],
+      "../packages/retil-support/src/compose.ts": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/tslib/tslib.d.ts"
+      ],
       "../packages/retil-support/src/deferred.ts": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
         "../node_modules/@types/node/fs.d.ts",
@@ -5627,6 +5776,7 @@
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-support/src/areshallowequal.ts",
         "../packages/retil-support/src/arraykeyedmap.ts",
+        "../packages/retil-support/src/compose.ts",
         "../packages/retil-support/src/deferred.ts",
         "../packages/retil-support/src/delay.ts",
         "../packages/retil-support/src/delayone.ts",
@@ -5647,7 +5797,8 @@
         "../packages/retil-support/src/pendingpromiselike.ts",
         "../packages/retil-support/src/preventdefaulteventhandler.ts",
         "../packages/retil-support/src/usefirstinstanceoflatestvalue.ts",
-        "../packages/retil-support/src/usememoizeonevalue.ts"
+        "../packages/retil-support/src/usememoizeonevalue.ts",
+        "../packages/retil-support/src/useopaqueidentifier.ts"
       ],
       "../packages/retil-support/src/isplainobject.ts": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -5778,6 +5929,17 @@
         "../node_modules/tslib/tslib.d.ts",
         "../packages/retil-support/src/areshallowequal.ts",
         "../packages/retil-support/src/identity.ts"
+      ],
+      "../packages/retil-support/src/useopaqueidentifier.ts": [
+        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
+        "../node_modules/@types/node/fs.d.ts",
+        "../node_modules/@types/node/process.d.ts",
+        "../node_modules/@types/node/ts3.2/fs.d.ts",
+        "../node_modules/@types/node/ts3.2/process.d.ts",
+        "../node_modules/@types/node/ts3.2/util.d.ts",
+        "../node_modules/@types/node/util.d.ts",
+        "../node_modules/@types/react/index.d.ts",
+        "../node_modules/tslib/tslib.d.ts"
       ],
       "../packages/retil/node_modules/typescript/lib/lib.dom.d.ts": [
         "../node_modules/@types/node/fs.d.ts",
@@ -9048,6 +9210,7 @@
       ],
       "../packages/retil-css/src/selector.tsx": [
         "../node_modules/@types/react/index.d.ts",
+        "../packages/retil-css/src/constants.ts",
         "../packages/retil-css/src/types.ts"
       ],
       "../packages/retil-css/src/stringifytransition.tsx": [
@@ -9073,9 +9236,11 @@
         "../packages/retil-hydration/src/hydrationtypes.ts"
       ],
       "../packages/retil-interaction/src/actionsurface.tsx": [
-        "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
         "../node_modules/@types/react/index.d.ts",
+        "../packages/retil-css/src/index.ts",
+        "../packages/retil-interaction/src/disableable.tsx",
         "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/selectable.tsx",
         "../packages/retil-interaction/src/surfaceselector.tsx"
       ],
       "../packages/retil-interaction/src/anchorsurface.tsx": [
@@ -9094,8 +9259,11 @@
         "../packages/retil-interaction/src/surfaceselector.tsx"
       ],
       "../packages/retil-interaction/src/disableable.tsx": [
+        "../node_modules/@types/react/index.d.ts"
+      ],
+      "../packages/retil-interaction/src/escape.tsx": [
         "../node_modules/@types/react/index.d.ts",
-        "../packages/retil-interaction/src/surfaceselector.tsx"
+        "../packages/retil-interaction/src/keyboard.ts"
       ],
       "../packages/retil-interaction/src/focusable.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
@@ -9109,13 +9277,19 @@
         "../packages/retil-interaction/src/controlcontext.tsx",
         "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
         "../packages/retil-interaction/src/disableable.tsx",
+        "../packages/retil-interaction/src/escape.tsx",
         "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/keyboard.ts",
         "../packages/retil-interaction/src/linksurface.tsx",
+        "../packages/retil-interaction/src/listcursor.tsx",
         "../packages/retil-interaction/src/matchedlinksurface.tsx",
+        "../packages/retil-interaction/src/menu.tsx",
         "../packages/retil-interaction/src/popup.tsx",
         "../packages/retil-interaction/src/popupdialog.tsx",
         "../packages/retil-interaction/src/popuppositioner.ts",
         "../packages/retil-interaction/src/popuptrigger.ts",
+        "../packages/retil-interaction/src/selectable.tsx",
+        "../packages/retil-interaction/src/selection.tsx",
         "../packages/retil-interaction/src/service.ts",
         "../packages/retil-interaction/src/submitbuttonsurface.tsx",
         "../packages/retil-interaction/src/surfaceselector.tsx"
@@ -9125,6 +9299,9 @@
       ],
       "../packages/retil-interaction/src/joinrefs.ts": [
         "../packages/retil-support/src/index.ts"
+      ],
+      "../packages/retil-interaction/src/keyboard.ts": [
+        "../node_modules/@types/react/index.d.ts"
       ],
       "../packages/retil-interaction/src/linksurface.tsx": [
         "../node_modules/@types/react/index.d.ts",
@@ -9137,16 +9314,24 @@
         "../packages/retil-interaction/src/surfaceselector.tsx",
         "../packages/retil-nav/src/index.ts"
       ],
-      "../packages/retil-interaction/src/popup.tsx": [
-        "../packages/retil-interaction/src/popuppositioner.ts",
-        "../packages/retil-interaction/src/popuptrigger.ts",
-        "../packages/retil-source/src/index.ts"
+      "../packages/retil-interaction/src/menu.tsx": [
+        "../node_modules/@types/react/index.d.ts",
+        "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/surfaceselector.tsx"
       ],
-      "../packages/retil-interaction/src/popupdialog.tsx": [
+      "../packages/retil-interaction/src/popup.tsx": [
         "../node_modules/@emotion/react/types/jsx-runtime.d.ts",
         "../node_modules/@types/react/index.d.ts",
-        "../packages/retil-interaction/src/actionsurface.tsx",
-        "../packages/retil-interaction/src/popup.tsx"
+        "../packages/retil-interaction/src/popuppositioner.ts",
+        "../packages/retil-interaction/src/popuptrigger.ts",
+        "../packages/retil-source/src/index.ts",
+        "../packages/retil-support/src/index.ts"
+      ],
+      "../packages/retil-interaction/src/popupdialog.tsx": [
+        "../node_modules/@types/react/index.d.ts",
+        "../packages/retil-interaction/src/focusable.tsx",
+        "../packages/retil-interaction/src/popup.tsx",
+        "../packages/retil-interaction/src/surfaceselector.tsx"
       ],
       "../packages/retil-interaction/src/popuppositioner.ts": [
         "../node_modules/@popperjs/core/index.d.ts",
@@ -9157,6 +9342,14 @@
       "../packages/retil-interaction/src/popuptrigger.ts": [
         "../packages/retil-interaction/src/configurator.ts",
         "../packages/retil-interaction/src/service.ts"
+      ],
+      "../packages/retil-interaction/src/selectable.tsx": [
+        "../node_modules/@types/react/index.d.ts",
+        "../packages/retil-interaction/src/focusable.tsx"
+      ],
+      "../packages/retil-interaction/src/selection.tsx": [
+        "../node_modules/@types/react/index.d.ts",
+        "../packages/retil-interaction/src/focusable.tsx"
       ],
       "../packages/retil-interaction/src/service.ts": [
         "../packages/retil-source/src/index.ts"
@@ -9362,6 +9555,7 @@
         "../node_modules/memoize-one/dist/memoize-one.d.ts",
         "../packages/retil-support/src/areshallowequal.ts",
         "../packages/retil-support/src/arraykeyedmap.ts",
+        "../packages/retil-support/src/compose.ts",
         "../packages/retil-support/src/deferred.ts",
         "../packages/retil-support/src/delay.ts",
         "../packages/retil-support/src/delayone.ts",
@@ -9382,7 +9576,8 @@
         "../packages/retil-support/src/pendingpromiselike.ts",
         "../packages/retil-support/src/preventdefaulteventhandler.ts",
         "../packages/retil-support/src/usefirstinstanceoflatestvalue.ts",
-        "../packages/retil-support/src/usememoizeonevalue.ts"
+        "../packages/retil-support/src/usememoizeonevalue.ts",
+        "../packages/retil-support/src/useopaqueidentifier.ts"
       ],
       "../packages/retil-support/src/joineventhandlers.ts": [
         "../node_modules/@types/react/index.d.ts"
@@ -10171,16 +10366,22 @@
       "../packages/retil-interaction/src/controlcontext.tsx",
       "../packages/retil-interaction/src/defaultsurfaceselectors.ts",
       "../packages/retil-interaction/src/disableable.tsx",
+      "../packages/retil-interaction/src/escape.tsx",
       "../packages/retil-interaction/src/focusable.tsx",
       "../packages/retil-interaction/src/index.ts",
       "../packages/retil-interaction/src/joineventhandlers.ts",
       "../packages/retil-interaction/src/joinrefs.ts",
+      "../packages/retil-interaction/src/keyboard.ts",
       "../packages/retil-interaction/src/linksurface.tsx",
+      "../packages/retil-interaction/src/listcursor.tsx",
       "../packages/retil-interaction/src/matchedlinksurface.tsx",
+      "../packages/retil-interaction/src/menu.tsx",
       "../packages/retil-interaction/src/popup.tsx",
       "../packages/retil-interaction/src/popupdialog.tsx",
       "../packages/retil-interaction/src/popuppositioner.ts",
       "../packages/retil-interaction/src/popuptrigger.ts",
+      "../packages/retil-interaction/src/selectable.tsx",
+      "../packages/retil-interaction/src/selection.tsx",
       "../packages/retil-interaction/src/service.ts",
       "../packages/retil-interaction/src/submitbuttonsurface.tsx",
       "../packages/retil-interaction/src/surfaceselector.tsx",
@@ -10232,6 +10433,7 @@
       "../packages/retil-source/src/wait.ts",
       "../packages/retil-support/src/areshallowequal.ts",
       "../packages/retil-support/src/arraykeyedmap.ts",
+      "../packages/retil-support/src/compose.ts",
       "../packages/retil-support/src/deferred.ts",
       "../packages/retil-support/src/delay.ts",
       "../packages/retil-support/src/delayone.ts",
@@ -10254,6 +10456,7 @@
       "../packages/retil-support/src/preventdefaulteventhandler.ts",
       "../packages/retil-support/src/usefirstinstanceoflatestvalue.ts",
       "../packages/retil-support/src/usememoizeonevalue.ts",
+      "../packages/retil-support/src/useopaqueidentifier.ts",
       "../packages/retil/node_modules/typescript/lib/lib.dom.d.ts",
       "../packages/retil/node_modules/typescript/lib/lib.dom.iterable.d.ts",
       "../packages/retil/node_modules/typescript/lib/lib.es2015.collection.d.ts",
@@ -11306,6 +11509,10 @@
         1
       ],
       [
+        "../packages/retil-interaction/src/escape.tsx",
+        1
+      ],
+      [
         "../packages/retil-interaction/src/focusable.tsx",
         1
       ],
@@ -11322,11 +11529,23 @@
         1
       ],
       [
+        "../packages/retil-interaction/src/keyboard.ts",
+        1
+      ],
+      [
         "../packages/retil-interaction/src/linksurface.tsx",
         1
       ],
       [
+        "../packages/retil-interaction/src/listcursor.tsx",
+        1
+      ],
+      [
         "../packages/retil-interaction/src/matchedlinksurface.tsx",
+        1
+      ],
+      [
+        "../packages/retil-interaction/src/menu.tsx",
         1
       ],
       [
@@ -11343,6 +11562,14 @@
       ],
       [
         "../packages/retil-interaction/src/popuptrigger.ts",
+        1
+      ],
+      [
+        "../packages/retil-interaction/src/selectable.tsx",
+        1
+      ],
+      [
+        "../packages/retil-interaction/src/selection.tsx",
         1
       ],
       [
@@ -11550,6 +11777,10 @@
         1
       ],
       [
+        "../packages/retil-support/src/compose.ts",
+        1
+      ],
+      [
         "../packages/retil-support/src/deferred.ts",
         1
       ],
@@ -11635,6 +11866,10 @@
       ],
       [
         "../packages/retil-support/src/usememoizeonevalue.ts",
+        1
+      ],
+      [
+        "../packages/retil-support/src/useopaqueidentifier.ts",
         1
       ],
       [

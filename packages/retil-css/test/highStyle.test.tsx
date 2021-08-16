@@ -1,5 +1,5 @@
 import {
-  registerSelectorType,
+  getOrRegisterSelectorType,
   resetRegisteredSelectorTypes,
   highStyle,
 } from '../src'
@@ -33,7 +33,7 @@ describe('useHighStyle()', () => {
   })
 
   test('accepts high selectors', () => {
-    const { createSelector } = registerSelectorType(
+    const { createSelector } = getOrRegisterSelectorType(
       (_selectorId, selectorString: string) => selectorString,
     )
     const inActive = createSelector(':active')
@@ -59,7 +59,7 @@ describe('useHighStyle()', () => {
   })
 
   test('accepts selector objects returned from theme functions', () => {
-    const { createSelector } = registerSelectorType(
+    const { createSelector } = getOrRegisterSelectorType(
       (_selectorId, selectorString: string) => selectorString,
     )
     const inActive = createSelector(':active')
@@ -85,7 +85,7 @@ describe('useHighStyle()', () => {
   })
 
   test('accepts nested selector objects', () => {
-    const { createSelector } = registerSelectorType(
+    const { createSelector } = getOrRegisterSelectorType(
       (_selectorId, selectorString: string) => selectorString,
     )
     const inMobile = createSelector('@media(max-width: 600px)')
@@ -145,7 +145,7 @@ describe('useHighStyle()', () => {
   })
 
   test('ignores "false" selectors', () => {
-    const { createSelector } = registerSelectorType(
+    const { createSelector } = getOrRegisterSelectorType(
       (_selectorId, selectorString: string | boolean) => selectorString,
     )
     const inNothing = createSelector(false)
@@ -163,7 +163,7 @@ describe('useHighStyle()', () => {
   })
 
   test('passes through "true" selectors', () => {
-    const { createSelector } = registerSelectorType(
+    const { createSelector } = getOrRegisterSelectorType(
       (_selectorId, selectorString: string | boolean) => selectorString,
     )
     const inSomething = createSelector(true)

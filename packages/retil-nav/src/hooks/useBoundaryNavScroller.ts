@@ -6,7 +6,7 @@ import { NavEnv } from '../navTypes'
 
 export interface UseNavScrollerOptions<Env extends NavEnv> {
   getShouldScroll?: (prevEnv: Env, nextEnv: Env) => boolean
-  scrollToLocation?: (env: Env) => boolean
+  scrollTo?: (env: Env) => boolean
 }
 
 let hasHydrated = false
@@ -16,7 +16,7 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
 ) {
   const {
     getShouldScroll = defaultGetShouldScroll,
-    scrollToLocation: scrollToRequest = defaultScrollToRequest,
+    scrollTo = defaultScrollTo,
   } = options
 
   const env = useEnv() as Env
@@ -50,11 +50,11 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
       window.history.scrollRestoration = 'manual'
       hasHydrated = true
     } else {
-      const didScroll = scrollToRequest(scrollRequest)
+      const didScroll = scrollTo(scrollRequest)
       if (!didScroll) {
         waitForStableMount().then(() => {
           if (!unmounted) {
-            scrollToRequest(scrollRequest)
+            scrollTo(scrollRequest)
           }
         })
       }
@@ -69,7 +69,7 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
 const defaultGetShouldScroll = (prev: NavEnv, next: NavEnv) =>
   prev.nav.hash !== next.nav.hash || prev.nav.pathname !== next.nav.pathname
 
-export const defaultScrollToRequest = (env: NavEnv) => {
+export const defaultScrollTo = (env: NavEnv) => {
   // TODO: if scrolling to a hash within the same page, ignore
   // the scroll history and just scroll directly there
 

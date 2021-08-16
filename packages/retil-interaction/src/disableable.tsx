@@ -3,15 +3,13 @@
  * or with the help of the <DisableableProvider>, in an entire subtree.
  */
 
-import React, { createContext, useCallback, useContext } from 'react'
+import React, { createContext, useContext } from 'react'
+
+import { Connector } from './connector'
 
 const disabledContext = createContext<boolean>(false)
 
 export const DisabledProvider = disabledContext.Provider
-
-export function useDisabled() {
-  return useContext(disabledContext)
-}
 
 export interface DisableableMergedProps {
   'aria-disabled': boolean | 'false' | 'true'
@@ -28,29 +26,34 @@ export type MergeDisableableProps = <
   mergeProps?: MergeProps,
 ) => Omit<MergeProps, keyof DisableableMergeableProps> & DisableableMergedProps
 
-export function useDisableableConnector(
-  disabledArg: boolean | undefined,
-): readonly [
-  state: { disabled: boolean },
-  mergeProps: MergeDisableableProps,
-  provide: (children: React.ReactNode) => React.ReactElement,
-] {
+export interface DisableableSnapshot {
+  disabled: boolean
+}
+
+export type DisableableConnector = Connector<
+  DisableableSnapshot,
+  MergeDisableableProps
+>
+
+export function useDisabledContext(
+  disabledOverride?: boolean | undefined,
+): boolean {
   const disabledDefault = useContext(disabledContext)
-  const disabled = disabledArg ?? disabledDefault
+  return disabledOverride ?? disabledDefault
+}
 
-  const mergeDisabledProps = useCallback<MergeDisableableProps>(
-    ({ disabled: _, ...rest }: any = {}) => ({
-      'aria-disabled': disabled || undefined,
-      ...rest,
-    }),
-    [disabled],
-  )
+export function useDisableableConnector(
+  disabledOverride?: boolean,
+): DisableableConnector {
+  const disabled = useDisabledContext(disabledOverride)
 
-  const provider = useCallback(
-    (children: React.ReactNode) => (
-      <DisabledProvider value={disabled}>{children}</DisabledProvider>
-    ),
-    [disabled],
+  const mergeDisabledProps = ({ disabled: _, ...rest }: any = {}) => ({
+    'aria-disabled': disabled || undefined,
+    ...rest,
+  })
+
+  const provider = (children: React.ReactNode) => (
+    <DisabledProvider value={disabled}>{children}</DisabledProvider>
   )
 
   return [{ disabled }, mergeDisabledProps, provider]

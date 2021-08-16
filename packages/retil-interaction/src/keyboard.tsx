@@ -1,10 +1,34 @@
-import React, { useCallback, useMemo } from 'react'
+import React, {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+} from 'react'
 import {
   joinEventHandlers,
-  joinRefs,
   memoizeOne,
   useFirstInstanceOfLatestValue,
 } from 'retil-support'
+import { Connector } from './connector'
+
+// ---
+
+const keyboardDepthContext = createContext(1)
+
+export const ProvideIncreasedKeyboardPriority: React.FunctionComponent = ({
+  children,
+}) => {
+  const depth = useContext(keyboardDepthContext) + 1
+
+  return (
+    <keyboardDepthContext.Provider value={depth}>
+      {children}
+    </keyboardDepthContext.Provider>
+  )
+}
+
+// ---
 
 export type KeyMap = Record<
   string,
@@ -61,78 +85,79 @@ type EventHandler<E extends object> = {
 export type KeyboardHandler<Event extends KeyboardEvent = KeyboardEvent> =
   EventHandler<Event>
 
-export interface KeyboardMergedProps<TElement extends Element> {
+export interface KeyboardMergedProps<
+  TElement extends SVGElement | HTMLElement,
+> {
   onKeyDown?: (event: React.KeyboardEvent<TElement>) => void
-  ref?: React.Ref<TElement>
 }
 
-export type KeyboardMergeableProps<TElement extends Element> =
+export type KeyboardMergeableProps<TElement extends SVGElement | HTMLElement> =
   KeyboardMergedProps<TElement>
 
 export type MergeKeyboardProps = <
-  TElement extends Element = Element,
-  TMergeProps extends KeyboardMergeableProps<TElement> = {},
+  TElement extends SVGElement | HTMLElement,
+  TMergeProps extends KeyboardMergeableProps<TElement> &
+    Record<string, any> = {},
 >(
   mergeProps?: TMergeProps &
     KeyboardMergeableProps<TElement> &
     Record<string, any>,
-) => TMergeProps & KeyboardMergedProps<TElement>
+) => Omit<TMergeProps, keyof KeyboardMergeableProps<TElement>> &
+  KeyboardMergedProps<TElement>
 
 export interface KeyboardOptions {
+  /**
+   * If true, instead of applying a keyDown handler directly to the element,
+   * it will instead add a global keyDown capture handler (i.e. one that is
+   * called in the earlier capture phase at the top of the document).
+   *
+   * Context is used to ensure that elements deeper in the React tree will
+   * still have their capture handlers called first, although all capture
+   * handlers will be run before non-capture handlers.
+   */
   capture?: boolean
+
+  /**
+   * Increase the priority of this element and its descdents' keyboard
+   * handlers compared to other keyboard handlers at the same depths.
+   *
+   * Defaults to `1`
+   */
+  capturePriority?: number
 }
 
-/**
- * Returns a mergeProps function when focusable, will merge in an `onKeyDown`
- * event handler, and when selected but *not* focusable, will merge in a ref
- * that finds the elements depth within the DOM, before using that depth to
- * register a global capture keydown handler with the specified priority - where
- * deeper elements' handlers are executed first.
- */
-export function useMergeKeyboardProps<Event extends KeyboardEvent>(
+export type KeyboardConnector = Connector<{}, MergeKeyboardProps>
+
+export function useKeyboard<Event extends KeyboardEvent>(
   handler: null | KeyboardHandler<Event>,
   options: KeyboardOptions = {},
-): MergeKeyboardProps {
-  const capture = options.capture ?? false
-  const captureKeyboardRefCallback = useMemo(() => {
+): KeyboardConnector {
+  const depth = useContext(keyboardDepthContext)
+  const { capture = false, capturePriority = 1 } = options
+
+  useEffect(() => {
     if (capture && handler) {
-      let stopCapturing: (() => void) | undefined
-      return <TElement extends Element>(element: TElement | null) => {
-        if (stopCapturing) {
-          stopCapturing()
-          stopCapturing = undefined
-        }
-        if (element) {
-          const priority = getElementDepth(element)
-          stopCapturing = captureDocumentKeyDown(handler, priority)
-        }
-      }
+      return captureDocumentKeyDown(handler, depth + capturePriority)
     }
-  }, [capture, handler])
+  }, [capture, capturePriority, depth, handler])
 
   const joinKeyDownHandler = useMemo(() => memoizeOne(joinEventHandlers), [])
-  const joinRefCallback = useMemo(() => memoizeOne(joinRefs), [])
 
-  return (props) =>
+  const provideKeyboard = (children: React.ReactNode) => (
+    <keyboardDepthContext.Provider value={depth + capturePriority}>
+      {children}
+    </keyboardDepthContext.Provider>
+  )
+
+  const mergeKeyboardProps: MergeKeyboardProps = (props = {} as any) =>
     capture
-      ? {
-          ...props!,
-          ref: joinRefCallback(captureKeyboardRefCallback, props?.ref),
-        }
+      ? props
       : {
-          ...props!,
+          ...props,
           onKeyDown: joinKeyDownHandler(props?.onKeyDown, handler as any),
         }
-}
 
-function getElementDepth(element: Element) {
-  let depth = 0
-  let node: Node | null | undefined = element
-  while (node) {
-    node = node.parentNode
-    depth += 1
-  }
-  return depth
+  return [{}, mergeKeyboardProps, provideKeyboard]
 }
 
 let captureDocumentKeyDownHandlers: (readonly [

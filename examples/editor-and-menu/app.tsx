@@ -13,8 +13,9 @@ import {
   inSelectedSurface,
   PopupConsumer,
   PopupProvider,
-  PopupDialogTriggerSurface,
-  PopupDialogSurface,
+  PopupMenuSurface,
+  PopupTriggerSurface,
+  inToggledSurface,
 } from 'retil-interaction'
 
 const App = () => {
@@ -34,8 +35,6 @@ const App = () => {
     [],
   )
 
-  // TODO: add dropdown menu
-
   return (
     <StyledControlSurfaceWrapper
       css={css`
@@ -49,30 +48,30 @@ const App = () => {
             <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
           </ButtonSurface>,
           <PopupProvider>
-            <PopupDialogTriggerSurface
-              triggerOnKeys={['Enter', ' ']}
+            <PopupTriggerSurface
+              triggerOnKeys={['Enter', ' ', 'ArrowDown']}
               triggerOnPress>
               <StyledMenuButtonBody>Popup</StyledMenuButtonBody>
-            </PopupDialogTriggerSurface>
+            </PopupTriggerSurface>
             <PopupConsumer>
               {(active) =>
                 active &&
                 createPortal(
-                  <StyledPopupDialogSurface
+                  <StyledPopupMenuSurface
                     active
                     offset={[0, 6]}
                     placement="bottom-start"
-                    strategy="absolute">
-                    <StyledPopupMenuSurface
-                      actions={[
-                        <ButtonSurface onTrigger={insertY}>
-                          <StyledMenuButtonBody>
-                            Insert "y"
-                          </StyledMenuButtonBody>
-                        </ButtonSurface>,
-                      ]}
-                    />
-                  </StyledPopupDialogSurface>,
+                    strategy="absolute"
+                    actions={[
+                      <ButtonSurface
+                        onTrigger={() => setText((text) => text + 'x')}>
+                        <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
+                      </ButtonSurface>,
+                      <ButtonSurface onTrigger={insertY}>
+                        <StyledMenuButtonBody>Insert "y"</StyledMenuButtonBody>
+                      </ButtonSurface>,
+                    ]}
+                  />,
                   document.body,
                 )
               }
@@ -140,7 +139,7 @@ const StyledTextArea: any = styled.textarea(
   `),
 )
 
-const StyledPopupDialogSurface: any = styled(PopupDialogSurface)(
+const StyledPopupMenuSurface: any = styled(PopupMenuSurface)(
   css`
     cursor: pointer;
     border-radius: 4px;
@@ -151,18 +150,10 @@ const StyledPopupDialogSurface: any = styled(PopupDialogSurface)(
     background-color: #333;
     box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
     font-family: sans-serif;
-  `,
-)
-
-const StyledPopupMenuSurface: any = styled(MenuSurface)(
-  css`
     display: flex;
     flex-direction: column;
     overflow: hidden;
     background-color: white;
-    border-top-left-radius: 8px;
-    border-top-right-radius: 8px;
-    border-bottom: 2px solid blue;
     transition: background-color 150ms ease-out, border-color 150ms ease-out;
   `,
 )
@@ -191,17 +182,21 @@ const StyledMenuButtonBody: any = styled.div(
   `,
   inHoveredSurface(
     css`
-      background-color: azure;
+      background-color: #f0f4f8;
       color: darkblue;
     `,
   ),
+  inSelectedSurface(css`
+    box-shadow: 0 0 0 2px blue;
+  `),
   // This is here to ensure that any accidental focus of these surfaces is
   // immediately visible
   inFocusedSurface(css`
     background-color: red !important;
   `),
-  inSelectedSurface(css`
-    box-shadow: 0 0 0 2px blue;
+  inToggledSurface(css`
+    background-color: deepskyblue !important;
+    color: white !important;
   `),
   inDisabledSurface(
     css`

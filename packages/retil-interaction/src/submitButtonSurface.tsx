@@ -1,6 +1,9 @@
 import React, { forwardRef } from 'react'
 import { useHasHydrated } from 'retil-hydration'
-import { preventDefaultEventHandler } from 'retil-support'
+import {
+  preventDefaultEventHandler,
+  useJoinedEventHandler,
+} from 'retil-support'
 
 import {
   ActionSurfaceOptions,
@@ -8,7 +11,6 @@ import {
   useActionSurfaceConnector,
 } from './actionSurface'
 import { inHydratingSurface } from './defaultSurfaceSelectors'
-import { useJoinedEventHandler } from './joinEventHandlers'
 import { mergeOverrides } from './surfaceSelector'
 
 export interface SubmitButtonSurfaceProps

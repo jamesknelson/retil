@@ -1,6 +1,7 @@
 import React, { ReactNode, createContext, useContext } from 'react'
 import { useBoundaryEffect } from 'retil-boundary'
-import { useEnv } from 'retil-mount'
+import { createEnvVector, useEnv } from 'retil-mount'
+import { useSource } from 'retil-source'
 
 import { getDefaultHydrationEnvService } from './hydrationEnvService'
 import { HydrationEnv } from './hydrationTypes'
@@ -56,10 +57,23 @@ export function useMarkAsHydrated() {
   return contextOnHydrationDetected || getDefaultHydrationEnvService()[1]
 }
 
+/**
+ * Pulls the latest hydration state from the first available source out of:
+ *
+ * - React Context (as set by a <HydrationProvider>)
+ * - retil-mount's useEnv hook, if hydration state is set on the env
+ * - the default hydration env service
+ *
+ *
+ */
 export function useIsHydrating() {
   const env = useEnv<HydrationEnv>()
   const contextHydrating = useContext(HydratingContext)
-  return contextHydrating ?? env.hydrating
+  const source = getDefaultHydrationEnvService()[0]
+  const serviceHydrating = useSource(env ? null : source, {
+    defaultValue: createEnvVector([env]),
+  })
+  return contextHydrating ?? serviceHydrating?.[1]?.hydrating
 }
 
 export function useHasHydrated() {

@@ -104,7 +104,9 @@ export function useCSSSelectors(
   themeContextArg?: React.Context<CSSTheme>,
 ): CSSSelector[] {
   const context = useThemeRider(themeContextArg)
-  return selectors.map((selector) => getCSSSelector(selector, context))
+  return context
+    ? selectors.map((selector) => getCSSSelector(selector, context))
+    : []
 }
 
 export function getCSSSelector(

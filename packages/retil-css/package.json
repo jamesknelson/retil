@@ -19,7 +19,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "fast-cartesian": "^6.0.1",
+    "fast-cartesian": "^5.1.0",
     "retil-hydration": "^0.20.1",
     "retil-support": "^0.20.1",
     "tslib": "^2.2.0"
