@@ -14,6 +14,8 @@ import { createState } from 'retil-source'
 import { Configurator } from './configurator'
 import { Service } from './service'
 
+export type PopupPlacement = Placement
+
 export type PopupPositionerReferenceElement = Element | VirtualElement
 
 export type PopupPositionerService = Service<
