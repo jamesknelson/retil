@@ -2,7 +2,7 @@
   "name": "retil.tech",
   "licence": "CC-BY-NC-4.0",
   "private": true,
-  "version": "0.21.0",
+  "version": "0.21.1",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "node server",
@@ -26,9 +26,9 @@
     "react-helmet-async": "^1.0.9",
     "retil-boundary": "^0.21.0",
     "retil-hydration": "^0.21.0",
-    "retil-interaction": "^0.21.0",
+    "retil-interaction": "^0.21.1",
     "retil-mount": "^0.21.0",
-    "retil-nav": "^0.21.0",
+    "retil-nav": "^0.21.1",
     "retil-support": "^0.21.0",
     "slugify": "^1.5.1",
     "tslib": "^2.2.0"
