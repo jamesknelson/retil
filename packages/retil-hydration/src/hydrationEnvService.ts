@@ -53,7 +53,15 @@ export function createBrowserHydrationEnvService(
   const hydratingEnvSource = fuseEnvSource((use) => ({
     hydrating: use(hydratingSource),
   }))
-  const hydrate = () => setHydrating(createEnvVector([false]))
+
+  let hasHydrated = false
+  const hydrate = () => {
+    if (!hasHydrated) {
+      hasHydrated = true
+      setHydrating(createEnvVector([false]))
+    }
+  }
+
   const service = [hydratingEnvSource, hydrate] as const
 
   if (

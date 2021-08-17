@@ -76,28 +76,32 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     } else {
       const [getVersion, subscribe] = core
       const change = () => {
-        const usedStates = used.get(core)!
-        const doesCoreHaveVersion = (usedCore.hasVersion = hasSnapshot([core]))
-        const coreVersion = (usedCore.version = usedCore.hasVersion
-          ? getVersion()
-          : undefined)
-        for (const usedState of usedStates) {
-          const hasDefaultValue = usedState.defaultValues.length
-          const doesSourceHaveResult = doesCoreHaveVersion || hasDefaultValue
-          const didSourceHaveResult = 'result' in usedState
-          if (
-            doesSourceHaveResult !== didSourceHaveResult ||
-            (didSourceHaveResult &&
-              usedState.result !==
-                (doesCoreHaveVersion
-                  ? usedState.select(coreVersion)
-                  : usedState.defaultValues[0]))
-          ) {
-            isInvalidated = true
-            if (!isInEffect && !isFusing) {
-              runFusor()
+        const usedStates = used.get(core)
+        if (usedStates) {
+          const doesCoreHaveVersion = (usedCore.hasVersion = hasSnapshot([
+            core,
+          ]))
+          const coreVersion = (usedCore.version = usedCore.hasVersion
+            ? getVersion()
+            : undefined)
+          for (const usedState of usedStates) {
+            const hasDefaultValue = usedState.defaultValues.length
+            const doesSourceHaveResult = doesCoreHaveVersion || hasDefaultValue
+            const didSourceHaveResult = 'result' in usedState
+            if (
+              doesSourceHaveResult !== didSourceHaveResult ||
+              (didSourceHaveResult &&
+                usedState.result !==
+                  (doesCoreHaveVersion
+                    ? usedState.select(coreVersion)
+                    : usedState.defaultValues[0]))
+            ) {
+              isInvalidated = true
+              if (!isInEffect && !isFusing) {
+                runFusor()
+              }
+              return
             }
-            return
           }
         }
       }
