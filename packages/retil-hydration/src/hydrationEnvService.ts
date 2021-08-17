@@ -1,15 +1,25 @@
 import { createEnvVector, fuseEnvSource } from 'retil-mount'
-import { createState } from 'retil-source'
+import { createState, constant } from 'retil-source'
 import { noop } from 'retil-support'
 
 import { HydrationEnvService } from './hydrationTypes'
+
+// Servers don't do hydrationg, so we don't modify the env at all.
+const serverHydratingEnvSource = constant(createEnvVector([{}]))
+const serverHydrationEnvService: HydrationEnvService = [
+  serverHydratingEnvSource,
+  noop,
+]
 
 export const getDefaultHydrationEnvService: {
   (): HydrationEnvService
   value?: HydrationEnvService
 } = (): HydrationEnvService => {
   if (!getDefaultHydrationEnvService.value) {
-    getDefaultHydrationEnvService.value = createHydrationEnvService()
+    const isBrowser = typeof window !== 'undefined'
+    getDefaultHydrationEnvService.value = isBrowser
+      ? createBrowserHydrationEnvService()
+      : serverHydrationEnvService
   }
   return getDefaultHydrationEnvService.value
 }
@@ -27,16 +37,14 @@ export interface HydrationEnvServiceOptions {
   disablePrecache?: boolean
 }
 
-export function createHydrationEnvService(
+export function createBrowserHydrationEnvService(
   options: HydrationEnvServiceOptions = {},
 ): HydrationEnvService {
-  const browser = typeof window !== 'undefined'
-  const { default: defaultHydrationService, disablePrecache = !browser } =
-    options
+  const { default: defaultHydrationService, disablePrecache } = options
 
   const hasDefault = hasDefaultHydrationEnvService()
   if (hasDefault && defaultHydrationService) {
-    throw new Error('Could not override the default nav service.')
+    throw new Error('Could not override the default hydration service.')
   }
 
   const [hydratingSource, setHydrating] = createState(
@@ -45,7 +53,7 @@ export function createHydrationEnvService(
   const hydratingEnvSource = fuseEnvSource((use) => ({
     hydrating: use(hydratingSource),
   }))
-  const hydrate = browser ? () => setHydrating(createEnvVector([false])) : noop
+  const hydrate = () => setHydrating(createEnvVector([false]))
   const service = [hydratingEnvSource, hydrate] as const
 
   if (

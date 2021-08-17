@@ -1,6 +1,6 @@
 export * from './hydrationContext'
 export {
-  createHydrationEnvService,
+  createBrowserHydrationEnvService,
   getDefaultHydrationEnvService,
 } from './hydrationEnvService'
 export * from './hydrationTypes'
