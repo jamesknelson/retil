@@ -49,7 +49,7 @@ export function styledComponentsPlugin(): Plugin {
         generatorOpts: {
           decoratorsBeforeExport: true,
         },
-        plugins: [require('babel-plugin-styled-components')],
+        plugins: [[require('babel-plugin-styled-components'), { ssr: true }]],
         ast: true,
         sourceMaps: true,
         sourceFileName: id,
