@@ -240,10 +240,19 @@ describe(`fuseEnvSource`, () => {
     expect(hasSnapshot(source)).toBe(true)
     setState(createEnvVector([0, 0, 0]))
     expect(hasSnapshot(source)).toBe(false)
+    setState(createEnvVector([1, 0, 0]))
+    expect(hasSnapshot(source)).toBe(true)
+    setState(createEnvVector([1, 1, 0]))
+    expect(hasSnapshot(source)).toBe(true)
+    setState(createEnvVector([1, 1, 1]))
+    expect(hasSnapshot(source)).toBe(true)
 
     expect(output.reverse()).toEqual([
       createEnvVector([1, 1]),
       createEnvVector([1]),
+      createEnvVector([1]),
+      createEnvVector([1, 1]),
+      createEnvVector([1, 1, 1]),
     ])
   })
 })
