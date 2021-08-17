@@ -1,5 +1,5 @@
 import { Source, fuse, hasSnapshot } from 'retil-source'
-import { ArrayKeyedMap, Maybe } from 'retil-support'
+import { ArrayKeyedMap, isPromiseLike, Maybe } from 'retil-support'
 
 type UseInvocation = [
   snapshot: unknown,
@@ -167,8 +167,8 @@ export function fuseEnvSource<T>(fusor: EnvFusor<T>): Source<EnvVector<T>> {
             let inject: T | U
             if (snapshot === ValuelessSymbol) {
               if (!defaultValues.length) {
-                // We have no default value, we'll have to interupt this fuse
-                // with an exception
+                // We have no default value for a missing source. We'll have to
+                // interrupt the fusor with an exception.
                 use(source)
               }
               inject = defaultValues[0] as U
@@ -192,7 +192,19 @@ export function fuseEnvSource<T>(fusor: EnvFusor<T>): Source<EnvVector<T>> {
           }
         }
 
-        result = fusor(wrappedUse)
+        try {
+          result = fusor(wrappedUse)
+        } catch (promiseOrError) {
+          if (!isPromiseLike(promiseOrError) || resultVector.length === 1) {
+            throw promiseOrError
+          } else {
+            // One of the vector items had a missing value, so we'll bail
+            // early, but still return the values we've found so far.
+            previousResults = results
+            previousNextQueue = nextQueue
+            return resultVector
+          }
+        }
       }
 
       results.set(useInjects, result)

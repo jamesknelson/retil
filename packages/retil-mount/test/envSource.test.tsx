@@ -4,6 +4,7 @@ import {
   createState,
   getSnapshot,
   hasSnapshot,
+  pendingSource,
   subscribe,
 } from 'retil-source'
 
@@ -18,7 +19,7 @@ export function sendToArray<T>(source: Source<T>): T[] {
   return array
 }
 
-describe(`vectorFuse`, () => {
+describe(`fuseEnvSource`, () => {
   test(`supports constant values`, () => {
     const source = fuseEnvSource(() => 'constant')
     const output = sendToArray(source)
@@ -223,6 +224,26 @@ describe(`vectorFuse`, () => {
     expect(output.reverse()).toEqual([
       createEnvVector([2]),
       createEnvVector([4]),
+    ])
+  })
+
+  test(`outputs a value for each vector item up until the first missing value.`, () => {
+    const [stateSource, setState] = createState(createEnvVector([1, 1, 0]))
+    const source = fuseEnvSource((use) => {
+      const state = use(stateSource)
+      return state || use(pendingSource)
+    })
+    const output = sendToArray(source)
+
+    expect(hasSnapshot(source)).toBe(true)
+    setState(createEnvVector([1, 0, 0]))
+    expect(hasSnapshot(source)).toBe(true)
+    setState(createEnvVector([0, 0, 0]))
+    expect(hasSnapshot(source)).toBe(false)
+
+    expect(output.reverse()).toEqual([
+      createEnvVector([1, 1]),
+      createEnvVector([1]),
     ])
   })
 })

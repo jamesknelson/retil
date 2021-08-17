@@ -1,6 +1,5 @@
 import React, { ReactElement } from 'react'
-import { getSnapshot, subscribe } from 'retil-source'
-import { noop } from 'retil-support'
+import { getSnapshot } from 'retil-source'
 
 import { mount } from './mount'
 import {
