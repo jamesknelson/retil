@@ -351,7 +351,7 @@ export function wrapMenuSurfaceChildren(
           ] as const)
         : ([
             childActionIndexes.concat(
-              <React.Fragment key={i}>child</React.Fragment>,
+              <React.Fragment key={i}>{child}</React.Fragment>,
             ),
             actionCount,
           ] as const)
