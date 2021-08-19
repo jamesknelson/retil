@@ -40,48 +40,42 @@ const App = () => {
       css={css`
         margin: 1rem;
       `}>
-      <StyledMenuSurface
-        orientation="horizontal"
-        focusable={textAreaRef}
-        actions={[
-          <ButtonSurface onTrigger={() => setText((text) => text + 'x')}>
-            <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
-          </ButtonSurface>,
-          <PopupProvider>
-            <PopupTriggerSurface
-              triggerOnKeys={['Enter', ' ', 'ArrowDown']}
-              triggerOnPress>
-              <StyledMenuButtonBody>Popup</StyledMenuButtonBody>
-            </PopupTriggerSurface>
-            <PopupConsumer>
-              {(active) =>
-                active &&
-                createPortal(
-                  <StyledPopupMenuSurface
-                    active
-                    offset={[0, 6]}
-                    placement="bottom-start"
-                    strategy="absolute"
-                    actions={[
-                      <ButtonSurface
-                        onTrigger={() => setText((text) => text + 'x')}>
-                        <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
-                      </ButtonSurface>,
-                      <ButtonSurface onTrigger={insertY}>
-                        <StyledMenuButtonBody>Insert "y"</StyledMenuButtonBody>
-                      </ButtonSurface>,
-                    ]}
-                  />,
-                  document.body,
-                )
-              }
-            </PopupConsumer>
-          </PopupProvider>,
-          <ButtonSurface onTrigger={insertY}>
-            <StyledMenuButtonBody>Insert "y"</StyledMenuButtonBody>
-          </ButtonSurface>,
-        ]}
-      />
+      <StyledMenuSurface orientation="horizontal" focusable={textAreaRef}>
+        <ButtonSurface onTrigger={() => setText((text) => text + 'x')}>
+          <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
+        </ButtonSurface>
+        <PopupProvider>
+          <PopupTriggerSurface
+            triggerOnKeys={['Enter', ' ', 'ArrowDown']}
+            triggerOnPress>
+            <StyledMenuButtonBody>Popup</StyledMenuButtonBody>
+          </PopupTriggerSurface>
+          <PopupConsumer>
+            {(active) =>
+              active &&
+              createPortal(
+                <StyledPopupMenuSurface
+                  active
+                  offset={[0, 6]}
+                  placement="bottom-start"
+                  strategy="absolute">
+                  <ButtonSurface
+                    onTrigger={() => setText((text) => text + 'x')}>
+                    <StyledMenuButtonBody>Append "x"</StyledMenuButtonBody>
+                  </ButtonSurface>
+                  <ButtonSurface onTrigger={insertY}>
+                    <StyledMenuButtonBody>Insert "y"</StyledMenuButtonBody>
+                  </ButtonSurface>
+                </StyledPopupMenuSurface>,
+                document.body,
+              )
+            }
+          </PopupConsumer>
+        </PopupProvider>
+        <ButtonSurface onTrigger={insertY}>
+          <StyledMenuButtonBody>Insert "y"</StyledMenuButtonBody>
+        </ButtonSurface>
+      </StyledMenuSurface>
       <StyledTextArea
         className="rx-control-input"
         readOnly={!hasHydrated}
@@ -139,7 +133,7 @@ const StyledTextArea: any = styled.textarea(
   `),
 )
 
-const StyledPopupMenuSurface: any = styled(PopupMenuSurface)(
+const StyledPopupMenuSurface = styled(PopupMenuSurface)(
   css`
     cursor: pointer;
     border-radius: 4px;
@@ -158,7 +152,7 @@ const StyledPopupMenuSurface: any = styled(PopupMenuSurface)(
   `,
 )
 
-const StyledMenuSurface: any = styled(MenuSurface)(
+const StyledMenuSurface = styled(MenuSurface)(
   css`
     display: flex;
     overflow: hidden;

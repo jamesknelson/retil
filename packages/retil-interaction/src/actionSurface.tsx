@@ -94,13 +94,15 @@ export type MergeActionSurfaceFocusableProps = <
   ActionSurfaceMergedProps<TElement>
 
 export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
+  const { disabled, focusable, overrideSelectors } = options
+
   const escape = useEscapeContext()
-  const menu = useMenuContext()
+  const menuContext = useMenuContext()
 
   const [disableableState, mergeDisableableProps, provideDisableable] =
-    useDisableableConnector(options.disabled)
+    useDisableableConnector(disabled)
   const [focusableState, mergeFocusableProps, provideFocusable] =
-    useFocusableConnector(options.focusable)
+    useFocusableConnector(focusable)
   const [selectableState, mergeSelectableProps, provideSelectable] =
     useFocusableSelectableConnector()
   const [
@@ -118,12 +120,12 @@ export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
       ],
     ],
     [[inSelectedSurface, selectableState.selected]],
-    options.overrideSelectors,
+    overrideSelectors,
   )
 
   const complete = useMemo(
-    () => (!!menu && escape) || undefined,
-    [escape, menu],
+    () => (!!menuContext && escape) || undefined,
+    [escape, menuContext],
   )
 
   const state = {
@@ -135,9 +137,9 @@ export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
   }
 
   const mergeProps: MergeActionSurfaceFocusableProps = compose(
-    mergeDisableableProps,
-    mergeSelectableProps,
-    mergeFocusableProps,
+    mergeDisableableProps as any,
+    mergeSelectableProps as any,
+    mergeFocusableProps as any,
     mergeSurfaceSelectorProps,
   )
 

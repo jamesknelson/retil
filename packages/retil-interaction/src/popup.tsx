@@ -11,17 +11,25 @@ import React, {
   useLayoutEffect,
 } from 'react'
 import { Source, createState, fuse, useSource } from 'retil-source'
-import { identity, useJoinRefs, useOpaqueIdentifier } from 'retil-support'
+import {
+  KeyPartitioner,
+  composeKeyPartitioners,
+  identity,
+  partitionByKeys,
+  useJoinRefs,
+  useOpaqueIdentifier,
+} from 'retil-support'
 
 import { useConfigurator } from './configurator'
 import { Connector } from './connector'
 import { useEscapeConnector } from './escape'
+import { ProvideIncreasedKeyboardPriority } from './keyboard'
 import {
   PopupPositionerConfig,
   PopupPositionerReferenceElement,
   PopupPositionerSnapshot,
   popupPositionerServiceConfigurator,
-  splitPopupPositionerConfig,
+  partitionPopupPositionerConfig,
 } from './popupPositioner'
 import { PopupTriggerHandle, PopupTriggerService } from './popupTrigger'
 
@@ -254,22 +262,18 @@ export function PopupProvider({ children, ...options }: PopupProviderProps) {
 
 // ---
 
-// ---
-
 export interface PopupMergedProps<TElement extends HTMLElement | SVGElement> {
   hidden: boolean
   id: string
   ref: (element: TElement | null) => void
-  style: CSSProperties
+  style?: CSSProperties
 }
 
 export type PopupMergeableProps<TElement extends HTMLElement | SVGElement> = {
   hidden?: boolean
   id?: never
   ref?: React.Ref<TElement>
-  mergeStyle?:
-    | React.CSSProperties
-    | ((popupStyles?: React.CSSProperties) => React.CSSProperties)
+  style?: CSSProperties
 }
 
 export type MergePopupProps = <
@@ -282,16 +286,29 @@ export type MergePopupProps = <
 ) => Omit<TMergeProps, keyof PopupMergeableProps<TElement>> &
   PopupMergedProps<TElement>
 
-export interface PopupOptions extends PopupPositionerConfig {}
+export interface PopupOwnOptions {
+  mergeStyle?: (
+    popupStyles?: React.CSSProperties,
+    elementStyles?: React.CSSProperties,
+  ) => React.CSSProperties | undefined
+}
 
-export const splitPopupOptions = splitPopupPositionerConfig
+const partitionOwnOptions: KeyPartitioner<PopupOwnOptions> = (object) =>
+  partitionByKeys(['mergeStyle'], object)
 
-export interface PopupConnectorSnapshot extends PopupPositionerSnapshot {
+export interface PopupOptions extends PopupPositionerConfig, PopupOwnOptions {}
+
+export const partitionPopupOptions = composeKeyPartitioners(
+  partitionPopupPositionerConfig,
+  partitionOwnOptions,
+)
+
+export interface PopupSnapshot extends PopupPositionerSnapshot {
   updatePosition: () => void
   forceUpdatePosition: () => void
 }
 
-export type PopupConnector = Connector<PopupConnectorSnapshot, MergePopupProps>
+export type PopupConnector = Connector<PopupSnapshot, MergePopupProps>
 
 export function usePopupConnector(
   /**
@@ -301,14 +318,18 @@ export function usePopupConnector(
    * context.
    */
   popupActive: boolean,
-  options: PopupOptions = {},
+  allOptions: PopupOptions = {},
 ): PopupConnector {
   const popupHandle = useContext(popupHandleContext)
   const popupIds = useContext(popupIdsContext)
 
+  const [ownOptions, popupPositionerOptions] = partitionOwnOptions(allOptions)
+
+  const { mergeStyle = defaultStyleMerger } = ownOptions
+
   const [positionSource, positionerHandle] = useConfigurator(
     popupPositionerServiceConfigurator,
-    options,
+    popupPositionerOptions,
   )
   const position = useSource(positionSource)
   const {
@@ -362,12 +383,15 @@ export function usePopupConnector(
     [arrowStyles, forceUpdate, isVisible, placement, setArrowElement],
   )
 
-  const provide = (children: React.ReactNode) =>
-    provideEscape(
-      <popupArrowContext.Provider value={popupArrow}>
-        {children}
-      </popupArrowContext.Provider>,
-    )
+  const provide = (children: React.ReactNode) => (
+    <ProvideIncreasedKeyboardPriority>
+      {provideEscape(
+        <popupArrowContext.Provider value={popupArrow}>
+          {children}
+        </popupArrowContext.Provider>,
+      )}
+    </ProvideIncreasedKeyboardPriority>
+  )
 
   const joinRefs = useJoinRefs()
   const mergeProps: MergePopupProps = (rawMergeProps = {} as any) => {
@@ -377,13 +401,7 @@ export function usePopupConnector(
       hidden: mergeProps.hidden ?? !popupActive,
       id: popupIds.popupId as string,
       ref: joinRefs(popupRef, mergeProps?.ref),
-      style:
-        typeof mergeProps?.mergeStyle === 'function'
-          ? mergeProps.mergeStyle(position.popupStyles)
-          : {
-              ...position.popupStyles,
-              ...mergeProps?.mergeStyle,
-            },
+      style: mergeStyle(position.popupStyles, mergeProps?.mergeStyle),
     }
 
     return Object.assign({
@@ -392,7 +410,7 @@ export function usePopupConnector(
     })
   }
 
-  const snapshot: PopupConnectorSnapshot = {
+  const snapshot: PopupSnapshot = {
     ...position,
     forceUpdatePosition: positionerHandle.forceUpdate,
     updatePosition: positionerHandle.update,
@@ -473,3 +491,14 @@ export const PopupDialogArrowDiv = forwardRef(function PopupDialogArrowDiv(
   const mergeArrowProps = useMergePopupArrowProps()
   return <div {...mergeArrowProps({ ...props, ref })} />
 })
+
+// ---
+
+function defaultStyleMerger(
+  popupStyles?: React.CSSProperties,
+  elementStyles?: React.CSSProperties,
+): React.CSSProperties | undefined {
+  return popupStyles || elementStyles
+    ? Object.assign({}, popupStyles, elementStyles)
+    : undefined
+}

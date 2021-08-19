@@ -1,43 +1,93 @@
-import React, { forwardRef } from 'react'
-import { compose } from 'retil-support'
+import React, { createElement, forwardRef } from 'react'
+import {
+  KeyPartitioner,
+  compose,
+  composeKeyPartitioners,
+  partitionByKeys,
+} from 'retil-support'
 
-import { useFocusableTrapConnector } from './focusableTrap'
-import { PopupOptions, splitPopupOptions, usePopupConnector } from './popup'
+import { Connector } from './connector'
+import {
+  FocusableTrapMergeableProps,
+  FocusableTrapMergedProps,
+  useFocusableTrapConnector,
+} from './focusableTrap'
+import {
+  PopupMergeableProps,
+  PopupMergedProps,
+  PopupSnapshot,
+  PopupOptions,
+  partitionPopupOptions,
+  usePopupConnector,
+  usePopupActive,
+} from './popup'
 import {
   SurfaceSelectorOverrides,
+  SurfaceSelectorsMergeableProps,
+  SurfaceSelectorsMergedProps,
   useSurfaceSelectorsConnector,
 } from './surfaceSelector'
 
-export interface PopupDialogSurfaceProps
+export interface PopupDialogSurfaceOptions
   extends PopupOptions,
-    Omit<React.HTMLAttributes<HTMLDivElement>, 'id' | 'style' | 'tabIndex'> {
-  active?: boolean
+    PopupDialogSurfaceOwnOptions {}
+
+interface PopupDialogSurfaceOwnOptions {
   initialFocusRef?: React.RefObject<HTMLElement | SVGElement | null>
-  mergeStyle?:
-    | React.CSSProperties
-    | ((popupStyles: React.CSSProperties) => React.CSSProperties)
   overrideSelectors?: SurfaceSelectorOverrides
-  placement: NonNullable<PopupOptions['placement']>
 }
 
-export const PopupDialogSurface = forwardRef<
-  HTMLDivElement,
-  PopupDialogSurfaceProps
->(function PopupDialogSurface(props, ref) {
-  const {
-    active = true,
-    initialFocusRef,
-    overrideSelectors,
-    ...divAndPopupProps
-  } = props
-  const [popupOptions, restProps] = splitPopupOptions(divAndPopupProps)
+const partitionPopupDialogSurfaceOwnOptions: KeyPartitioner<PopupDialogSurfaceOwnOptions> =
+  (object) => partitionByKeys(['initialFocusRef', 'overrideSelectors'], object)
+
+export const partitionPopupDialogSurfaceOptions = composeKeyPartitioners(
+  partitionPopupDialogSurfaceOwnOptions,
+  partitionPopupOptions,
+)
+
+export type PopupDialogSurfaceSnapshot = PopupSnapshot
+
+export type PopupDialogSurfaceMergedProps<
+  TElement extends HTMLElement | SVGElement,
+> = FocusableTrapMergedProps<TElement> &
+  SurfaceSelectorsMergedProps &
+  PopupMergedProps<TElement>
+
+export type PopupDialogSurfaceMergeableProps<
+  TElement extends HTMLElement | SVGElement,
+> = FocusableTrapMergeableProps<TElement> &
+  SurfaceSelectorsMergeableProps &
+  PopupMergeableProps<TElement>
+
+export type MergePopupDialogSurfaceProps = <
+  TElement extends HTMLElement | SVGElement,
+  TMergeProps extends PopupDialogSurfaceMergeableProps<TElement> &
+    Record<string, any> = {},
+>(
+  mergeProps?: TMergeProps &
+    PopupDialogSurfaceMergeableProps<TElement> &
+    Record<string, any>,
+) => Omit<TMergeProps, keyof PopupDialogSurfaceMergeableProps<TElement>> &
+  PopupDialogSurfaceMergedProps<TElement>
+
+export type PopupDialogSurfaceConnector = Connector<
+  PopupSnapshot,
+  MergePopupDialogSurfaceProps
+>
+
+export function usePopupDialogSurfaceConnector(
+  active: boolean,
+  options: PopupDialogSurfaceOptions = {},
+): PopupDialogSurfaceConnector {
+  const [{ initialFocusRef, overrideSelectors }, popupOptions] =
+    partitionPopupDialogSurfaceOwnOptions(options)
 
   const [, mergeFocusableTrapProps, provideFocusableTrap] =
     useFocusableTrapConnector(active, {
       initialFocusRef,
     })
 
-  const [, mergePopupProps, providePopup] = usePopupConnector(
+  const [popupSnapshot, mergePopupProps, providePopup] = usePopupConnector(
     active,
     popupOptions,
   )
@@ -45,26 +95,54 @@ export const PopupDialogSurface = forwardRef<
   const [, mergeSurfaceSelectorProps, provideSurfaceSelectors] =
     useSurfaceSelectorsConnector(overrideSelectors)
 
-  const mergeProps: any = compose(
-    mergeFocusableTrapProps,
-    mergeSurfaceSelectorProps,
-    mergePopupProps,
-  )
+  const mergeProps: MergePopupDialogSurfaceProps = (
+    rawMergeProps = {} as any,
+  ) => {
+    const { role, ...mergeProps } = mergePopupProps(
+      mergeSurfaceSelectorProps(mergeFocusableTrapProps(rawMergeProps)),
+    )
+    return {
+      ...mergeProps,
+      role: 'dialog',
+    } as any
+  }
 
-  const provide: (children: React.ReactNode) => React.ReactElement = compose(
+  const provide = compose(
     providePopup,
     provideFocusableTrap,
     provideSurfaceSelectors,
   )
 
+  return [popupSnapshot, mergeProps, provide]
+}
+
+// ---
+
+export interface PopupDialogSurfaceProps
+  extends PopupDialogSurfaceOptions,
+    Omit<React.HTMLAttributes<HTMLDivElement>, 'id' | 'tabIndex'> {
+  active?: boolean
+  as?: React.ElementType<React.RefAttributes<HTMLDivElement>>
+}
+
+export const PopupDialogSurface = forwardRef<
+  HTMLDivElement,
+  PopupDialogSurfaceProps
+>(function PopupDialogSurface(props, ref) {
+  const activeDefault = usePopupActive()
+  const [options, { active = activeDefault, as: asProp = 'div', ...rest }] =
+    partitionPopupDialogSurfaceOptions(props)
+  const [, mergeProps, provide] = usePopupDialogSurfaceConnector(
+    active,
+    options,
+  )
   return provide(
-    <div
-      {...mergeProps({
-        ...restProps,
+    createElement(
+      asProp,
+      mergeProps({
         ref,
-        role: 'dialog',
-        tabIndex: -1,
-      })}
-    />,
+        ...rest,
+      }),
+    ),
   )
 })

@@ -4,6 +4,7 @@ import React, {
   useContext,
   useEffect,
   useMemo,
+  useRef,
 } from 'react'
 import {
   joinEventHandlers,
@@ -118,12 +119,12 @@ export interface KeyboardOptions {
   capture?: boolean
 
   /**
-   * Increase the priority of this element and its descdents' keyboard
+   * Increase the priority of this element and its descendants' keyboard
    * handlers compared to other keyboard handlers at the same depths.
    *
    * Defaults to `1`
    */
-  capturePriority?: number
+  priority?: number
 }
 
 export type KeyboardConnector = Connector<{}, MergeKeyboardProps>
@@ -133,20 +134,25 @@ export function useKeyboard<Event extends KeyboardEvent>(
   options: KeyboardOptions = {},
 ): KeyboardConnector {
   const depth = useContext(keyboardDepthContext)
-  const { capture = false, capturePriority = 1 } = options
+  const { capture = false, priority: priorityProp = 1 } = options
+  const priorityRef = useRef(depth + priorityProp)
 
   useEffect(() => {
     if (capture && handler) {
-      return captureDocumentKeyDown(handler, depth + capturePriority)
+      return captureDocumentKeyDown(handler, depth + priorityRef.current)
     }
-  }, [capture, capturePriority, depth, handler])
+  }, [capture, depth, handler])
 
   const joinKeyDownHandler = useMemo(() => memoizeOne(joinEventHandlers), [])
 
+  // We provide a custom component that allows connectors to increase the
+  // keyboard priority of subsequent connectors. This is useful for e.g.
+  // increasing priority of the various types of popups / modals compared
+  // to their sibling components.
   const provideKeyboard = (children: React.ReactNode) => (
-    <keyboardDepthContext.Provider value={depth + capturePriority}>
+    <ProvideKeyboard priority={priorityProp} priorityRef={priorityRef}>
       {children}
-    </keyboardDepthContext.Provider>
+    </ProvideKeyboard>
   )
 
   const mergeKeyboardProps: MergeKeyboardProps = (props = {} as any) =>
@@ -154,10 +160,31 @@ export function useKeyboard<Event extends KeyboardEvent>(
       ? props
       : {
           ...props,
-          onKeyDown: joinKeyDownHandler(props?.onKeyDown, handler as any),
+          onKeyDown: joinKeyDownHandler(handler as any, props?.onKeyDown),
         }
 
   return [{}, mergeKeyboardProps, provideKeyboard]
+}
+
+interface ProvideKeyboardProps {
+  priority: number
+  priorityRef: { current: number }
+}
+
+const ProvideKeyboard: React.FunctionComponent<ProvideKeyboardProps> = ({
+  children,
+  priority = 1,
+  priorityRef,
+}) => {
+  const depth = useContext(keyboardDepthContext) + priority
+
+  priorityRef.current = depth
+
+  return (
+    <keyboardDepthContext.Provider value={depth}>
+      {children}
+    </keyboardDepthContext.Provider>
+  )
 }
 
 let captureDocumentKeyDownHandlers: (readonly [

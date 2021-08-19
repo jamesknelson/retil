@@ -251,11 +251,11 @@ export const PopupTriggerSurface = forwardRef<
     }
   }, [close, selected])
 
-  const mergeProps = compose(
+  const mergeProps: any = compose(
     mergeDisableableProps,
-    mergeSelectableProps,
+    mergeSelectableProps as any,
     mergeSurfaceSelectorProps,
-    mergePopupTriggerProps,
+    mergePopupTriggerProps as any,
   )
 
   const provide: (children: React.ReactNode) => React.ReactElement = compose(
@@ -267,11 +267,11 @@ export const PopupTriggerSurface = forwardRef<
 
   return provide(
     <div
-      {...(mergeProps({
+      {...mergeProps({
         ...restProps,
         ref,
         role: 'button',
-      }) as any)}
+      })}
     />,
   )
 })

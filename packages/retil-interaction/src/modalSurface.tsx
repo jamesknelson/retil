@@ -65,8 +65,8 @@ export const ModalSurface = forwardRef<HTMLDivElement, ModalSurfaceProps>(
       useSurfaceSelectorsConnector(overrideSelectors)
 
     const mergeProps: any = compose(
-      mergeEscapeProps,
-      mergeFocusableTrapProps,
+      mergeEscapeProps as any,
+      mergeFocusableTrapProps as any,
       mergeSurfaceSelectorProps,
     )
 

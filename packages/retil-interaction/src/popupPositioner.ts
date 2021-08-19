@@ -10,6 +10,7 @@ import {
 import * as CSS from 'csstype'
 import isDeepEqual from 'fast-deep-equal'
 import { createState } from 'retil-source'
+import { KeyPartitioner, partitionByKeys } from 'retil-support'
 
 import { Configurator } from './configurator'
 import { Service } from './service'
@@ -29,6 +30,7 @@ export type PopupPositionerServiceConfigurator = Configurator<
 >
 
 const areConfigsEqual = isDeepEqual
+
 export interface PopupPositionerConfig {
   adaptive?: boolean
   gpuAcceleration?: boolean
@@ -39,33 +41,20 @@ export interface PopupPositionerConfig {
   strategy?: PositioningStrategy
 }
 
-export function splitPopupPositionerConfig<P extends PopupPositionerConfig>(
-  props: P,
-): readonly [PopupPositionerConfig, Omit<P, keyof PopupPositionerConfig>] {
-  const {
-    adaptive,
-    gpuAcceleration,
-    defaultReference,
-    delayTeardownPopup,
-    offset,
-    placement,
-    strategy,
-    ...other
-  } = props
-
-  return [
-    {
-      adaptive,
-      gpuAcceleration,
-      defaultReference,
-      delayTeardownPopup,
-      offset,
-      placement,
-      strategy,
-    },
-    other,
-  ]
-}
+export const partitionPopupPositionerConfig: KeyPartitioner<PopupPositionerConfig> =
+  (object) =>
+    partitionByKeys(
+      [
+        'adaptive',
+        'gpuAcceleration',
+        'defaultReference',
+        'delayTeardownPopup',
+        'offset',
+        'placement',
+        'strategy',
+      ],
+      object,
+    )
 
 type PopupPositionerConfigWithDefaults = Omit<
   Required<PopupPositionerConfig>,
