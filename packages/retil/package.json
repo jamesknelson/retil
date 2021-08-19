@@ -18,16 +18,6 @@
     "prepare": "yarn build"
   },
   "dependencies": {
-    "retil-boundary": "^0.21.0",
-    "retil-css": "^0.21.5",
-    "retil-hydration": "^0.21.5",
-    "retil-interaction": "^0.21.5",
-    "retil-issues": "^0.21.5",
-    "retil-media": "^0.21.5",
-    "retil-mount": "^0.21.5",
-    "retil-nav": "^0.21.5",
-    "retil-operation": "^0.21.5",
-    "retil-source": "^0.21.5",
     "retil-support": "^0.21.5",
     "tslib": "^2.2.0"
   },
@@ -37,5 +27,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "c3d07b313e425c572bf9b7bce2ca8ff09fb0f446"
+  "gitHead": "80a95e998f0220739785783c71f94ec89d36053b"
 }
