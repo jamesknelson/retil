@@ -1,6 +1,6 @@
 {
   "name": "retil-mount",
-  "version": "0.21.4",
+  "version": "0.21.5",
   "description": "Superpowers for loading screens in React apps.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -20,8 +20,8 @@
   },
   "dependencies": {
     "abort-controller": "^3.0.0",
-    "retil-source": "^0.21.4",
-    "retil-support": "^0.21.0",
+    "retil-source": "^0.21.5",
+    "retil-support": "^0.21.5",
     "tslib": "^2.2.0"
   },
   "devDependencies": {
