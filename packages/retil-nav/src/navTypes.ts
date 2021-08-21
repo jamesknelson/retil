@@ -25,8 +25,8 @@ export interface NavRedirectFunction {
   (statusCode: number, action: string): Promise<void>
 }
 
-export type NavQuery = { [name: string]: string | string[] }
-export type NavParams = { [name: string]: string | string[] }
+export type NavQuery = { [name: string]: undefined | string | string[] }
+export type NavParams = { [name: string]: undefined | string | string[] }
 
 export interface NavEnv<
   TRequest extends NavRequest = NavRequest,
