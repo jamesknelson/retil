@@ -50,13 +50,11 @@ export const LinkSurface = forwardRef(
       props.target ? onClickProp : navLinkProps.onClick,
     )
 
-    // We can't just use a standard event handler join becausfe we always
+    // We can't just use a standard event handler join because we always
     // want to run complete, even if trigger cancels the default action.
     const onClickAndComplete = useMemo(
       () =>
-        !complete && !onClick
-          ? undefined
-          : !complete || !onClick
+        !complete || !onClick
           ? complete || onClick
           : (event: React.MouseEvent<HTMLAnchorElement>) => {
               onClick(event)
@@ -65,9 +63,10 @@ export const LinkSurface = forwardRef(
       [complete, onClick],
     )
 
-    const onMouseEnter = props.target
-      ? onMouseEnterProp
-      : navLinkProps.onMouseEnter
+    const onMouseEnter = useJoinedEventHandler(
+      onMouseEnterProp,
+      props.target ? navLinkProps.onMouseEnter : undefined,
+    )
 
     return provideActionSurface(
       // eslint-disable-next-line jsx-a11y/anchor-has-content
