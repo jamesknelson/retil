@@ -28,12 +28,7 @@ import {
   useDisableableConnector,
 } from './disableable'
 import { useEscapeContext } from './escape'
-import {
-  Focusable,
-  FocusableMergeableProps,
-  FocusableMergedProps,
-  useFocusableConnector,
-} from './focusable'
+import { Focusable } from './focusable'
 import {
   FocusableSelectableMergeableProps,
   FocusableSelectableMergedProps,
@@ -71,14 +66,12 @@ export function splitActionSurfaceOptions<P extends ActionSurfaceOptions>(
 export type ActionSurfaceMergedProps<
   TElement extends HTMLElement | SVGElement,
 > = DisableableMergedProps &
-  FocusableMergedProps<TElement> &
   FocusableSelectableMergedProps<TElement> &
   SurfaceSelectorsMergedProps
 
 export type ActionSurfaceMergableProps<
   TElement extends HTMLElement | SVGElement,
 > = DisableableMergeableProps &
-  FocusableMergeableProps<TElement> &
   FocusableSelectableMergeableProps<TElement> &
   SurfaceSelectorsMergeableProps
 
@@ -101,10 +94,11 @@ export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
 
   const [disableableState, mergeDisableableProps, provideDisableable] =
     useDisableableConnector(disabled)
-  const [focusableState, mergeFocusableProps, provideFocusable] =
-    useFocusableConnector(focusable)
-  const [selectableState, mergeSelectableProps, provideSelectable] =
-    useFocusableSelectableConnector()
+  const [
+    focusableSelectableState,
+    mergeFocusableSelectableProps,
+    provideSelectable,
+  ] = useFocusableSelectableConnector(focusable)
   const [
     surfaceSelectorsState,
     mergeSurfaceSelectorProps,
@@ -114,12 +108,13 @@ export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
     [
       [
         inHoveredSurface,
-        disableableState.disabled || selectableState.deselectedDuringHover
+        disableableState.disabled ||
+        focusableSelectableState.deselectedDuringHover
           ? false
           : null,
       ],
     ],
-    [[inSelectedSurface, selectableState.selected]],
+    [[inSelectedSurface, focusableSelectableState.selected]],
     overrideSelectors,
   )
 
@@ -131,22 +126,19 @@ export function useActionSurfaceConnector(options: ActionSurfaceOptions = {}) {
   const state = {
     complete,
     ...disableableState,
-    ...focusableState,
-    ...selectableState,
+    ...focusableSelectableState,
     ...surfaceSelectorsState,
   }
 
   const mergeProps: MergeActionSurfaceFocusableProps = compose(
     mergeDisableableProps as any,
-    mergeSelectableProps as any,
-    mergeFocusableProps as any,
+    mergeFocusableSelectableProps as any,
     mergeSurfaceSelectorProps,
   )
 
   const provide: (children: React.ReactNode) => React.ReactElement = compose(
     provideDisableable,
     provideSelectable,
-    provideFocusable,
     provideSurfaceSelectors,
   )
 

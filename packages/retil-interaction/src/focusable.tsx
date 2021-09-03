@@ -189,7 +189,8 @@ export function useFocusableConnector(
   // When focusable but rendered in a non-focusable/focus delegation
   // context, we'll need to stop propagation so that the parent control
   // doesn't move the focus away from us.
-  const focusableInUnfocusableParent = context !== true && focusable === true
+  const focusableInUnfocusableParent =
+    context !== undefined && context !== true && focusable === true
   const stopPropagationToUnfocusableIfRequired = useMemo(
     () =>
       !focusableInUnfocusableParent
