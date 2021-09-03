@@ -1,6 +1,6 @@
 {
   "name": "retil-interaction",
-  "version": "0.22.1",
+  "version": "0.22.3",
   "description": "Utilities to create unstyled interactive components",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
