@@ -1,6 +1,6 @@
 {
   "name": "retil-nav",
-  "version": "0.22.6",
+  "version": "0.22.7",
   "description": "Superpowers for routing and navigation in React apps.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
