@@ -18,8 +18,8 @@
     "@testing-library/react-hooks": "^5.1.0",
     "@types/jest": "^26.0.24",
     "@types/node": "^12.0.0",
-    "@types/react": "^17.0.8",
-    "@types/react-dom": "^17.0.5",
+    "@types/react": "^17.0.19",
+    "@types/react-dom": "^17.0.9",
     "@types/use-subscription": "^1.0.0",
     "@typescript-eslint/eslint-plugin": "^4.0.0",
     "@typescript-eslint/parser": "^4.0.0",
@@ -35,11 +35,11 @@
     "jest": "^27.0.6",
     "lerna": "^4.0.0",
     "path-to-regexp": "^6.2.0",
-    "react": "0.0.0-experimental-1a2d79250",
-    "react-dom": "0.0.0-experimental-1a2d79250",
-    "react-refresh": "0.0.0-experimental-1a2d79250",
+    "react": "0.0.0-experimental-b6ff9ad16-20210820",
+    "react-dom": "0.0.0-experimental-b6ff9ad16-20210820",
+    "react-refresh": "0.0.0-experimental-b6ff9ad16-20210820",
     "react-spring": "^9.2.4",
-    "react-test-renderer": "0.0.0-experimental-1a2d79250",
+    "react-test-renderer": "0.0.0-experimental-b6ff9ad16-20210820",
     "rimraf": "^3.0.2",
     "rollup": "^1.1.2",
     "rollup-plugin-commonjs": "^9.2.0",
@@ -55,6 +55,8 @@
     "site"
   ],
   "resolutions": {
+    "@types/react": "^17.0.19",
+    "@types/react-dom": "^17.0.9",
     "react-is": "0.0.0-experimental-1a2d79250",
     "react-refresh": "0.0.0-experimental-1a2d79250"
   }

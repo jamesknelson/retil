@@ -1,6 +1,5 @@
 import styled from '@emotion/styled'
 import { useRef } from 'react'
-import { createPortal } from 'react-dom'
 
 import { PopupTriggerSurface, PopupProvider } from 'retil-interaction'
 
