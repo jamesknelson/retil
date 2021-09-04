@@ -11,6 +11,12 @@ export interface CSSThemeRider {
   selectorTypeContexts: unknown[]
 }
 
+export type CSSInterpolation<
+  TTheme extends CSSTheme,
+  TInterpolationContext extends CSSInterpolationContext<TTheme>,
+  TStyles,
+> = (interpolationContext: TInterpolationContext) => TStyles
+
 export type CSSInterpolationContext<Theme extends CSSTheme = CSSTheme> =
   | Theme
   | (BaseExtensibleObject & {

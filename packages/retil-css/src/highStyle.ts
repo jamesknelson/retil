@@ -1,8 +1,9 @@
-import { isPlainObject } from 'retil-support'
+import { emptyObject, isPlainObject } from 'retil-support'
 
 import { getThemeRider } from './context'
 import { getCSSSelector } from './selector'
 import {
+  CSSInterpolation,
   CSSInterpolationContext,
   CSSObject,
   CSSTheme,
@@ -37,8 +38,8 @@ export function highStyle<
   TInterpolationContext extends CSSInterpolationContext<TTheme>,
   TStyles,
 >(
-  highStyle: HighStyle<TInterpolationContext>,
-): (interpolationContext: TInterpolationContext) => TStyles {
+  highStyle: HighStyle<TInterpolationContext> = emptyObject,
+): CSSInterpolation<TTheme, TInterpolationContext, TStyles> {
   const interpolation = (context: TInterpolationContext): TStyles => {
     const themeRider = getThemeRider(context)
     const styleProperties = Object.keys(highStyle)
