@@ -15,10 +15,7 @@ function App() {
 
   return (
     <PopupProvider>
-      <StyledPopupDialogTriggerSurface
-        triggerOnHover
-        triggerOnFocus
-        triggerOnPress>
+      <StyledPopupDialogTriggerSurface triggerOnFocus triggerOnPress>
         trigger
       </StyledPopupDialogTriggerSurface>
       <PopupConsumer>

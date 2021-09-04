@@ -38,6 +38,7 @@
     "react": "0.0.0-experimental-1a2d79250",
     "react-dom": "0.0.0-experimental-1a2d79250",
     "react-refresh": "0.0.0-experimental-1a2d79250",
+    "react-spring": "^9.2.4",
     "react-test-renderer": "0.0.0-experimental-1a2d79250",
     "rimraf": "^3.0.2",
     "rollup": "^1.1.2",
