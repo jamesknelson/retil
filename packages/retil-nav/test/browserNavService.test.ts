@@ -68,4 +68,16 @@ describe(`a browser nav service`, () => {
     expect(couldNavigate2).toBe(true)
     expect(snapshots[0][1].nav.pathname).toBe('/test')
   })
+
+  test(`precache release redirects`, async () => {
+    const [navSource, navController] = createBrowserNavEnvService()
+    const snapshots = sendToArray(navSource)
+
+    navController.precache('/test')
+    expect(snapshots[0].length).toBe(3)
+
+    const precachedNavController = getSnapshot(navSource)[2].nav
+    precachedNavController.redirect('/test/two')
+    expect(snapshots[0].length).toBe(2)
+  })
 })

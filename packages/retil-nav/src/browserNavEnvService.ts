@@ -204,22 +204,19 @@ export function createBrowserNavEnvService(
     history.replaceState({ ...history.state, idx: 0 }, '')
   }
 
-  const cancelPrecacheLocation = (location: NavLocation) => {
-    setPrecache((precache) => {
-      const index = precache.findIndex(createLocationPredicate(location))
-      if (index === -1) {
-        return precache
-      } else {
-        const copy = precache.slice(0)
-        precache.splice(index, 1)
-        return copy
-      }
-    })
-  }
-
   const getNavSnapshot = (
     location: NavLocation,
-    options: { key?: string; redirectDepth?: number } = {},
+    options: {
+      key?: string
+      precacheContext?: {
+        notFound: () => void
+        redirect: (
+          statusOrAction: number | string,
+          action?: string,
+        ) => Promise<void>
+      }
+      redirectDepth?: number
+    } = {},
   ): NavSnapshot => {
     const precachedEnv = getSnapshot(precacheSource).find(
       createLocationPredicate(location),
@@ -228,48 +225,45 @@ export function createBrowserNavEnvService(
       return precachedEnv
     }
 
-    const { key = createKey(), redirectDepth = 0 } = options
+    const { key = createKey(), precacheContext, redirectDepth = 0 } = options
 
-    const notFound = () => {
-      throw new NotFoundError(nav)
-    }
-    const redirect = (
-      statusOrAction: number | string,
-      action?: string,
-    ): Promise<void> => {
-      const to = resolveAction(
-        action || (statusOrAction as string),
-        location.pathname,
-      )
-
-      if (nav !== getSnapshot(stateSource).env) {
-        console.error(
-          `A redirect was attempted from a location that is not currently active` +
-            ` – from ${createHref(location)} to ${createHref(
-              to,
-            )}. This may be` +
-            `due to precaching a link that points to a redirect.`,
-        )
-        cancelPrecacheLocation(nav)
-        return Promise.resolve()
-      }
-
-      if ((options.redirectDepth || 0) > maxRedirectDepth) {
-        throw new Error('Possible redirect loop detected')
-      }
-
-      // Navigate in a microtask so that we don't cause any synchronous updates to
-      // components listening to the history.
-      return Promise.resolve().then(() => {
-        // There's no need to precache redirects or keep keys. We'll also force
-        // redirects even if there are blockers in play.
-        const redirectEnv = getNavSnapshot(to, {
-          redirectDepth: redirectDepth + 1,
-        })
-
-        write(redirectEnv, { replace: true })
+    const notFound =
+      precacheContext?.notFound ??
+      (() => {
+        throw new NotFoundError(nav)
       })
-    }
+    const redirect =
+      precacheContext?.redirect ??
+      ((statusOrAction: number | string, action?: string): Promise<void> => {
+        const to = resolveAction(
+          action || (statusOrAction as string),
+          location.pathname,
+        )
+
+        if (nav !== getSnapshot(stateSource).env) {
+          console.error(
+            `A redirect was attempted from a location that is not currently active` +
+              ` – from ${createHref(location)} to ${createHref(to)}.`,
+          )
+          return Promise.resolve()
+        }
+
+        if ((options.redirectDepth || 0) > maxRedirectDepth) {
+          throw new Error('Possible redirect loop detected')
+        }
+
+        // Navigate in a microtask so that we don't cause any synchronous updates to
+        // components listening to the history.
+        return Promise.resolve().then(() => {
+          // There's no need to precache redirects or keep keys. We'll also force
+          // redirects even if there are blockers in play.
+          const redirectEnv = getNavSnapshot(to, {
+            redirectDepth: redirectDepth + 1,
+          })
+
+          write(redirectEnv, { replace: true })
+        })
+      })
 
     const nav: NavSnapshot = {
       ...location,
@@ -431,28 +425,39 @@ export function createBrowserNavEnvService(
     precache: (action) => {
       const location = resolve(action)
       const predicate = createLocationPredicate(location)
-      const env = getNavSnapshot(location)
+
+      let released = false
+      const releasePrecacheImmediately = () => {
+        if (!released) {
+          released = true
+          setPrecache((precache) =>
+            precache.filter((precacheEnv) => precacheEnv.key !== nav.key),
+          )
+        }
+        return Promise.resolve()
+      }
+
+      const nav = getNavSnapshot(location, {
+        precacheContext: {
+          notFound: releasePrecacheImmediately,
+          redirect: releasePrecacheImmediately,
+        },
+      })
 
       // TODO:
       // - if a single location is has multiple `precache` calls holding
       //   it, then they should be reference counted instead of replaced.
+      // - TODO: turn this into an LRU cache, as we want a maximum to the
+      //   number of precacheable things.
       setPrecache((precache) => [
-        ...precache.filter((env) => !predicate(env)),
-        env,
+        ...precache.filter((nav) => !predicate(nav)),
+        nav,
       ])
 
-      let released = false
-
-      return () => {
-        if (!released) {
-          released = true
-          cancelPrecacheQueue.push(() => {
-            setPrecache((precache) =>
-              precache.filter((precacheEnv) => precacheEnv.key !== env.key),
-            )
-          })
-        }
+      const scheduleRelease = () => {
+        cancelPrecacheQueue.push(releasePrecacheImmediately)
       }
+      return scheduleRelease
     },
   }
 
