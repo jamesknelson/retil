@@ -8,6 +8,7 @@
  * Copyright (c) Seven Stripes Kabushiki Kaisha 2021
  * Licensed under MIT license
  */
+import deepEquals from 'fast-deep-equal'
 import { createEnvVector, fuseEnvSource } from 'retil-mount'
 import { createState, fuse, getSnapshot, observe } from 'retil-source'
 
@@ -484,8 +485,8 @@ function createKey() {
 
 function createLocationPredicate(location: NavLocation) {
   const href = createHref(location)
-  return (env: NavSnapshot) =>
-    createHref(env) === href && env.state === location.state
+  return (nav: NavSnapshot) =>
+    createHref(nav) === href && deepEquals(nav.state, location.state)
 }
 
 interface HistoryState {

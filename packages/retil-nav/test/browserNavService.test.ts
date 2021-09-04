@@ -80,4 +80,42 @@ describe(`a browser nav service`, () => {
     precachedNavController.redirect('/test/two')
     expect(snapshots[0].length).toBe(2)
   })
+
+  test(`precaches should be kept after navigation unless released`, async () => {
+    const [navSource, navController] = createBrowserNavEnvService()
+    const snapshots = sendToArray(navSource)
+
+    navController.precache('/test-a')
+    expect(snapshots[0].length).toBe(3)
+
+    await navController.navigate('/test-b')
+
+    expect(snapshots[0].length).toBe(3)
+  })
+
+  test(`precaches should be kept after release until after navigation`, async () => {
+    const [navSource, navController] = createBrowserNavEnvService()
+    const snapshots = sendToArray(navSource)
+
+    const releaseA = navController.precache('/test-a')
+    expect(snapshots[0].length).toBe(3)
+    releaseA()
+    expect(snapshots[0].length).toBe(3)
+
+    await navController.navigate('/test-b')
+
+    expect(snapshots[0].length).toBe(2)
+  })
+
+  test(`precaching the same link twice should only result in a single precache entry`, async () => {
+    const [navSource, navController] = createBrowserNavEnvService()
+    const snapshots = sendToArray(navSource)
+
+    navController.precache('/test')
+    navController.precache('/test')
+    expect(snapshots[0].length).toBe(3)
+
+    navController.precache('/test-1')
+    expect(snapshots[0].length).toBe(4)
+  })
 })
