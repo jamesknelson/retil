@@ -45,6 +45,13 @@ export const useNavLinkProps = (
     }
   }, [action, disabled, precache])
 
+  const doReleasePrecache = useCallback(() => {
+    if (releasePrecacheRef.current) {
+      releasePrecacheRef.current()
+      releasePrecacheRef.current = undefined
+    }
+  }, [])
+
   // Prefetch on mount if required, or if `prefetch` becomes `true`.
   useEffect(() => {
     if (precacheOn === 'mount') {
@@ -68,10 +75,10 @@ export const useNavLinkProps = (
   const handleMouseLeave = useMemo(
     () =>
       joinEventHandlers(
-        precacheOn === 'hover' ? releasePrecacheRef.current : undefined,
+        precacheOn === 'hover' ? doReleasePrecache : undefined,
         onMouseLeave,
       ),
-    [onMouseLeave, precacheOn],
+    [onMouseLeave, precacheOn, doReleasePrecache],
   )
 
   let handleClick = useCallback(

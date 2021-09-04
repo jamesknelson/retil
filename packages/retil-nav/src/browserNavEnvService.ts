@@ -142,7 +142,10 @@ export function createBrowserNavEnvService(
   const history = window.history
   const [precacheSource, setPrecache] = createState<NavSnapshot[]>([])
 
-  const cancelPrecacheQueue = [] as (() => void)[]
+  const cancelPrecacheQueue = [] as {
+    location: NavLocation
+    cancel: () => void
+  }[]
 
   const isBlocked = (
     location: NavLocation,
@@ -360,12 +363,15 @@ export function createBrowserNavEnvService(
       })
     }
 
+    // TODO: Only remove items if the primary state has changed; don't
+    //       remove anything if only the precache state has changed.
+    //       Use an LRU cache to prevent things from getting too large.
     // Remove precache items in an effect, so as to avoid unnecessary updates
-    // just to
+    // just to remove precached items.
     if (cancelPrecacheQueue.length) {
       return effect(() => {
         while (cancelPrecacheQueue.length) {
-          const cancel = cancelPrecacheQueue.pop()!
+          const { cancel } = cancelPrecacheQueue.pop()!
           cancel()
         }
       })
@@ -426,39 +432,53 @@ export function createBrowserNavEnvService(
     precache: (action) => {
       const location = resolve(action)
       const predicate = createLocationPredicate(location)
-
-      let released = false
-      const releasePrecacheImmediately = () => {
-        if (!released) {
-          released = true
-          setPrecache((precache) =>
-            precache.filter((precacheEnv) => precacheEnv.key !== nav.key),
-          )
+      const cancelQueueIndex = cancelPrecacheQueue.findIndex((item) =>
+        predicate(item.location),
+      )
+      if (cancelQueueIndex !== -1) {
+        const cancelQueueItem = cancelPrecacheQueue[cancelQueueIndex]
+        cancelPrecacheQueue.splice(cancelQueueIndex, 1)
+        const scheduleRelease = () => {
+          cancelPrecacheQueue.push(cancelQueueItem)
         }
-        return Promise.resolve()
+        return scheduleRelease
+      } else {
+        let released = false
+        const releasePrecacheImmediately = () => {
+          if (!released) {
+            released = true
+            setPrecache((precache) =>
+              precache.filter((precacheEnv) => precacheEnv.key !== nav.key),
+            )
+          }
+          return Promise.resolve()
+        }
+
+        const nav = getNavSnapshot(location, {
+          precacheContext: {
+            notFound: releasePrecacheImmediately,
+            redirect: releasePrecacheImmediately,
+          },
+        })
+
+        // TODO:
+        // - if a single location is has multiple `precache` calls holding
+        //   it, then they should be reference counted instead of replaced.
+        // - TODO: turn this into an LRU cache, as we want a maximum to the
+        //   number of precacheable things.
+        setPrecache((precache) => [
+          ...precache.filter((nav) => !predicate(nav)),
+          nav,
+        ])
+
+        const scheduleRelease = () => {
+          cancelPrecacheQueue.push({
+            location,
+            cancel: releasePrecacheImmediately,
+          })
+        }
+        return scheduleRelease
       }
-
-      const nav = getNavSnapshot(location, {
-        precacheContext: {
-          notFound: releasePrecacheImmediately,
-          redirect: releasePrecacheImmediately,
-        },
-      })
-
-      // TODO:
-      // - if a single location is has multiple `precache` calls holding
-      //   it, then they should be reference counted instead of replaced.
-      // - TODO: turn this into an LRU cache, as we want a maximum to the
-      //   number of precacheable things.
-      setPrecache((precache) => [
-        ...precache.filter((nav) => !predicate(nav)),
-        nav,
-      ])
-
-      const scheduleRelease = () => {
-        cancelPrecacheQueue.push(releasePrecacheImmediately)
-      }
-      return scheduleRelease
     },
   }
 
@@ -485,8 +505,9 @@ function createKey() {
 
 function createLocationPredicate(location: NavLocation) {
   const href = createHref(location)
-  return (nav: NavSnapshot) =>
-    createHref(nav) === href && deepEquals(nav.state, location.state)
+  return (navLocation: NavLocation) =>
+    createHref(navLocation) === href &&
+    deepEquals(navLocation.state, location.state)
 }
 
 interface HistoryState {
