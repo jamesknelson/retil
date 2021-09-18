@@ -21,18 +21,18 @@ export type Source<TSnapshot, TVersion = any> = readonly [
 ]
 
 export type SourceCore<TVersion = any> = readonly [
-  SourceGetVersion<TVersion>,
+  SourceGetVector<TVersion>,
   SourceSubscribe,
 ]
 
 export type GettableSource<TSnapshot, TVersion = any> = readonly [
-  readonly [SourceGetVersion<TVersion>, SourceSubscribe?],
+  readonly [SourceGetVector<TVersion>, SourceSubscribe?],
   SourceSelect<TSnapshot, TVersion>,
   SourceAct?,
 ]
 
 export type GettableSourceCore<TVersion = any> = readonly [
-  SourceGetVersion<TVersion>,
+  SourceGetVector<TVersion>,
   SourceSubscribe?,
 ]
 
@@ -55,19 +55,19 @@ export type SourceSubscribe = (
 
 export type SourceUnsubscribe = () => void
 
-export type SourceGetVersion<TVersion = any> = () => TVersion
+export type SourceGetVector<TVersion = any> = () => TVersion[]
 
 /**
- * Takes the value returned from a SourceGet function (i.e. the version), and
- * returns the part of the value that you're actually interested in (i.e. the
- * snapshot).
+ * Takes the value returned from a SourceGetVector function (i.e. the version
+ * vector), and returns the part of the value that you're actually interested in
+ * (i.e. the snapshot, typically the first item).
  *
- * Note that you can only select on a source with a version. If the source
- * currently has no version (i.e. it's in an error or busy state), then
- * there'll be no snapshot either.
+ * Note that you can only select on a source with a non-empty version vector. If
+ * the source currently has no version (i.e. it's in an error or busy state),
+ * then there'll be no snapshot either.
  */
 export type SourceSelect<TSnapshot, TVersion = any> = (
-  version: TVersion,
+  versionVector: TVersion[],
 ) => TSnapshot
 
 /**
@@ -86,21 +86,27 @@ export function act<TVersion, TActResult>(
 }
 
 export function getSnapshot<TSnapshot>([
-  [getVersion],
+  [getVersionVector],
   select,
 ]: GettableSource<TSnapshot>): TSnapshot {
-  return select(getVersion())
+  return select(getVersionVector())
 }
 
 export function getSnapshotPromise<TSnapshot>([
-  [getVersion],
+  [getVersionVector],
   select,
 ]: GettableSource<TSnapshot>): Promise<TSnapshot> {
+  // TODO: how should this work with version vectors?
+  // is it possible to get the same behavior without throwing a promise,
+  // given that we can now return an empty version vector?
+
   try {
-    return Promise.resolve(select(getVersion()))
+    return Promise.resolve(select(getVersionVector()))
   } catch (errorOrPromise) {
     if (isPromiseLike(errorOrPromise)) {
-      return Promise.resolve(errorOrPromise).then(() => select(getVersion()))
+      return Promise.resolve(errorOrPromise).then(() =>
+        select(getVersionVector()),
+      )
     }
     return Promise.reject(errorOrPromise)
   }

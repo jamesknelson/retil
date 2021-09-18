@@ -7,7 +7,7 @@ import {
   GettableSourceCore,
   SourceCore,
   Source,
-  SourceGetVersion,
+  SourceGetVector,
   hasSnapshot,
   identitySelector,
   nullSource,
@@ -17,7 +17,7 @@ import { UseSourceFunction, UseSourceOptions } from './useSourceType'
 
 interface ReactMutableSource {
   _source: SourceCore
-  _getVersion: SourceGetVersion
+  _getVersion: SourceGetVector
 }
 
 const {
@@ -26,7 +26,7 @@ const {
 } = React as any as {
   unstable_createMutableSource: (
     source: SourceCore,
-    getVersion: SourceGetVersion,
+    getVersion: SourceGetVector,
   ) => ReactMutableSource
   unstable_useMutableSource: <T>(
     source: ReactMutableSource,
