@@ -1,4 +1,9 @@
-import { Deferred, isPromiseLike, noop } from 'retil-support'
+import {
+  Deferred,
+  isPromiseLike,
+  noop,
+  areArraysShallowEqual,
+} from 'retil-support'
 
 import { Source, identitySelector } from './source'
 
@@ -6,16 +11,11 @@ export const TEARDOWN_DELAY = 10
 
 export interface ObserveSubscribeFunction<T> {
   (
-    next: (value: T) => void,
+    next: (value: T | T[]) => void,
     error: (error: any) => void,
-    complete: () => void, // noop
-    clear: () => void,
+    seal: () => void,
   ): (() => void) | { unsubscribe(): void }
 }
-
-type SnapshotState<T> =
-  | { value: T; deferred?: undefined }
-  | { value?: undefined; deferred: Deferred<T> }
 
 interface Subscription {
   count: number
@@ -35,30 +35,28 @@ export function observe<T>(
   let actDeferred: Deferred<void> | null = null
   let actDepth = 0
   let error: null | { value: any } = null
-  let nextSnapshot: null | { value: T } = null
+  let nextVector: null | T[] = null
   let sealed = false
-  let snapshot: null | SnapshotState<T> = null
+  // A null indicates that we don't know the current value. An empty array
+  // indicates that we should have a subscription.
+  let vector: null | T[] = null
   let subscription: null | Subscription = null
 
   const observableSubscribe =
     typeof observable === 'function' ? observable : observable.subscribe
 
-  const get = (): T => {
+  const get = (): T[] => {
     subscribeIfRequired()
     if (error) {
       throw error.value
     }
-    if (!snapshot) {
-      snapshot = { deferred: new Deferred() }
+    if (!vector) {
+      vector = []
     }
     // This must be called *after* the snapshot is created, as it checks if
     // the snapshot is a deferred.
     scheduleTeardownIfRequired()
-    if (!snapshot.deferred) {
-      return snapshot.value
-    }
-    // TODO: throw an object with a `then` that calls `subscribe`
-    throw snapshot.deferred!.promise
+    return vector
   }
 
   const subscribe = (change?: () => void, seal?: () => void): (() => void) => {
@@ -83,31 +81,23 @@ export function observe<T>(
     }
   }
 
-  const handleSnapshot = (value: T) => {
-    const hasValue = (snapshot && !snapshot.deferred) || nextSnapshot
-    const latestValue = nextSnapshot ? nextSnapshot.value : snapshot?.value
+  const handleValue = (value: T | T[]) => {
+    const receivedVector = Array.isArray(value) ? value : [value]
+    const latestVector = nextVector || vector
 
-    if (sealed || !subscription || (hasValue && latestValue === value)) {
+    if (
+      sealed ||
+      !subscription ||
+      (latestVector && areArraysShallowEqual(receivedVector, latestVector))
+    ) {
       return
     }
 
-    nextSnapshot = { value }
+    nextVector = receivedVector
 
     if (!actDepth) {
       commit()
     }
-  }
-
-  const handleClear = () => {
-    nextSnapshot = null
-
-    if (sealed || !subscription || !snapshot || snapshot.deferred) {
-      return
-    }
-
-    snapshot = null
-
-    notifySubscribers()
   }
 
   const handleSeal = () => {
@@ -115,11 +105,11 @@ export function observe<T>(
       return
     }
 
-    if (nextSnapshot) {
+    if (nextVector) {
       commit()
     }
 
-    if (snapshot === null || snapshot?.deferred) {
+    if (vector === null || !vector.length) {
       handleError(new Error('Attempted to seal an observe() with no value'))
     }
 
@@ -146,15 +136,11 @@ export function observe<T>(
     }
 
     error = { value: err }
-    const deferred = snapshot?.deferred
     notifySubscribers()
     teardownSubscription()
     callbacks.length = 0
     if (actDeferred) {
       actDeferred.reject(err)
-    }
-    if (deferred) {
-      deferred.reject(err)
     }
   }
 
@@ -183,10 +169,9 @@ export function observe<T>(
         isSubscribing: true,
       }
       const unsubscribeFunctionOrObject = observableSubscribe(
-        handleSnapshot,
+        handleValue,
         handleError,
         handleSeal,
-        handleClear,
       )
       const unsubscribe =
         typeof unsubscribeFunctionOrObject === 'function'
@@ -202,8 +187,13 @@ export function observe<T>(
   }
 
   const scheduleTeardownIfRequired = () => {
-    // Don't teardown if we've thrown a promises that hasn't yet resolved.
-    if (subscription && --subscription.count === 0 && !snapshot?.deferred) {
+    // Don't teardown if we've emitted an empty vector, without having emited
+    // a follow-on non-empty vector.
+    if (
+      subscription &&
+      --subscription.count === 0 &&
+      (!vector || vector.length > 0)
+    ) {
       scheduleTeardown(subscription)
     }
   }
@@ -220,8 +210,8 @@ export function observe<T>(
     // Avoid teardown if we've since resubscribed
     if (subscription && subscription.count === 0) {
       const unsubscribe = subscription.unsubscribe!
-      nextSnapshot = null
-      snapshot = null
+      nextVector = null
+      vector = null
       subscription = null
       try {
         unsubscribe()
@@ -230,31 +220,22 @@ export function observe<T>(
   }
 
   const commit = () => {
-    if (sealed || !subscription || !nextSnapshot) return
+    if (sealed || !subscription || !nextVector) return
 
     const actDeferredCopy = actDeferred
-    const snapshotDeferred = snapshot?.deferred
-    const value = nextSnapshot.value
-    snapshot = nextSnapshot
-    nextSnapshot = null
+    vector = nextVector
+    nextVector = null
     actDeferred = null
 
-    // Some observables will immediately synchronously call `next` during
-    // subscribe to let us know the current value. In this case, we'll
-    // skip notifying subscribers, as they can get the value if they need
-    // it.
     notifySubscribers()
 
-    if (snapshotDeferred) {
-      snapshotDeferred.resolve(value)
-    }
     if (actDeferredCopy) {
       actDeferredCopy.resolve()
     }
 
     // If we skipped a teardown due to an unresolved promise, we can now finish
     // it off.
-    if (subscription && subscription.count === 0) {
+    if (subscription && subscription.count === 0 && vector.length > 0) {
       scheduleTeardown(subscription)
     }
   }
@@ -290,10 +271,10 @@ export function observe<T>(
       asyncActs.add(asyncAct)
 
       // Temporarily clear the result while waiting for the async action.
-      if (snapshot && !snapshot?.deferred) {
+      if (vector && vector.length > 0) {
         // Save the current snapshot in case nothing happens
-        nextSnapshot = nextSnapshot || snapshot
-        snapshot = null
+        nextVector = nextVector || vector
+        vector = []
         notifySubscribers()
       }
     } else {

@@ -4,12 +4,11 @@
 import React, { useCallback, useMemo } from 'react'
 
 import {
-  GettableSourceCore,
   SourceCore,
   Source,
   SourceGetVector,
+  getSnapshotPromise,
   hasSnapshot,
-  identitySelector,
   nullSource,
 } from '../source'
 
@@ -39,6 +38,11 @@ const subscribe = ([, subscribe]: SourceCore, cb: () => void) => subscribe(cb)
 
 let mutableSources: WeakMap<SourceCore, ReactMutableSource>
 
+//
+// TODO
+// double check that I'm not relying on a promise being thrown by getVector anywhere
+//
+
 export const useSourceModern: UseSourceFunction = <T = null, U = T>(
   maybeSource: Source<T> | null,
   options: UseSourceOptions<U> = {},
@@ -54,10 +58,15 @@ export const useSourceModern: UseSourceFunction = <T = null, U = T>(
   }
 
   const getSnapshot = useCallback(
-    ([getVersion]: GettableSourceCore) =>
-      hasDefaultValue && !hasSnapshot([[getVersion], select])
-        ? MissingToken
-        : select(getVersion()),
+    (core: SourceCore) => {
+      const snapshot = hasSnapshot([core, select])
+        ? select(core[0]()[0])
+        : MissingToken
+      if (snapshot === MissingToken && !hasDefaultValue) {
+        throw getSnapshotPromise([core, select])
+      }
+      return snapshot
+    },
     [hasDefaultValue, select],
   )
 
@@ -74,9 +83,7 @@ export const useSourceModern: UseSourceFunction = <T = null, U = T>(
 
   let mutableSource = mutableSources.get(core)!
   if (!mutableSource) {
-    const getVersion = () =>
-      hasSnapshot([core, identitySelector]) ? core[0]() : MissingToken
-    mutableSource = createMutableSource(core, getVersion)
+    mutableSource = createMutableSource(core, core[0])
     mutableSources.set(core, mutableSource)
   }
 

@@ -1,4 +1,4 @@
-import { noop } from 'retil-support'
+import { pendingPromiseLike } from 'retil-support'
 
 import { fuse } from './fuse'
 import { Source } from './source'
@@ -18,10 +18,7 @@ export function filter<T>(
     const value = use(source)
     if (!predicate(value)) {
       // Throw a never-ending promise to wait for the next value.
-      // eslint-disable-next-line no-throw-literal
-      throw {
-        then: noop,
-      }
+      throw pendingPromiseLike
     }
     return value
   })

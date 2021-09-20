@@ -1,9 +1,4 @@
-import {
-  identity,
-  isPromiseLike,
-  noop,
-  pendingPromiseLike,
-} from 'retil-support'
+import { identity, isPromiseLike, noop } from 'retil-support'
 
 /**
  * Note, there's no need for a version, as snapshots are immutable. A change
@@ -14,26 +9,21 @@ import {
  * what the suspense is or what the error is -- only that an suspense/error
  * was thrown.
  */
-export type Source<TSnapshot, TVersion = any> = readonly [
-  SourceCore<TVersion>,
-  SourceSelect<TSnapshot, TVersion>,
+export type Source<TSelection, TValue = any> = readonly [
+  SourceCore<TValue>,
+  SourceSelect<TSelection, TValue>,
   SourceAct,
 ]
 
-export type SourceCore<TVersion = any> = readonly [
-  SourceGetVector<TVersion>,
+export type SourceCore<TValue = any> = readonly [
+  SourceGetVector<TValue>,
   SourceSubscribe,
 ]
 
-export type GettableSource<TSnapshot, TVersion = any> = readonly [
-  readonly [SourceGetVector<TVersion>, SourceSubscribe?],
-  SourceSelect<TSnapshot, TVersion>,
+export type GettableSource<TSelection, TValue = any> = readonly [
+  SourceCore<TValue>,
+  SourceSelect<TSelection, TValue>,
   SourceAct?,
-]
-
-export type GettableSourceCore<TVersion = any> = readonly [
-  SourceGetVector<TVersion>,
-  SourceSubscribe?,
 ]
 
 /**
@@ -55,7 +45,7 @@ export type SourceSubscribe = (
 
 export type SourceUnsubscribe = () => void
 
-export type SourceGetVector<TVersion = any> = () => TVersion[]
+export type SourceGetVector<TValue = any> = () => TValue[]
 
 /**
  * Takes the value returned from a SourceGetVector function (i.e. the version
@@ -66,9 +56,9 @@ export type SourceGetVector<TVersion = any> = () => TVersion[]
  * the source currently has no version (i.e. it's in an error or busy state),
  * then there'll be no snapshot either.
  */
-export type SourceSelect<TSnapshot, TVersion = any> = (
-  versionVector: TVersion[],
-) => TSnapshot
+export type SourceSelect<TSelection, TValue = any> = (
+  value: TValue,
+) => TSelection
 
 /**
  * An optional act function, which if exists, will batch synchronous updates,
@@ -78,53 +68,68 @@ export type SourceAct = <TActResult>(
   callback: () => PromiseLike<TActResult> | TActResult,
 ) => Promise<TActResult>
 
-export function act<TVersion, TActResult>(
-  source: Source<TVersion>,
+export function act<TSelection, TActResult>(
+  source: Source<TSelection>,
   callback: () => PromiseLike<TActResult> | TActResult,
 ): Promise<TActResult> {
   return source[2](callback)
 }
 
-export function getSnapshot<TSnapshot>([
-  [getVersionVector],
-  select,
-]: GettableSource<TSnapshot>): TSnapshot {
-  return select(getVersionVector())
-}
-
-export function getSnapshotPromise<TSnapshot>([
-  [getVersionVector],
-  select,
-]: GettableSource<TSnapshot>): Promise<TSnapshot> {
-  // TODO: how should this work with version vectors?
-  // is it possible to get the same behavior without throwing a promise,
-  // given that we can now return an empty version vector?
-
-  try {
-    return Promise.resolve(select(getVersionVector()))
-  } catch (errorOrPromise) {
-    if (isPromiseLike(errorOrPromise)) {
-      return Promise.resolve(errorOrPromise).then(() =>
-        select(getVersionVector()),
-      )
-    }
-    return Promise.reject(errorOrPromise)
+export function getSnapshot<TSelection>(
+  source: GettableSource<TSelection>,
+): TSelection {
+  const [[getVector], select] = source
+  const vector = getVector()
+  if (vector.length === 0) {
+    throw getSnapshotPromise(source)
+  } else {
+    return select(vector[0])
   }
 }
 
-export function hasSnapshot([[getVersion]]: readonly [
-  GettableSourceCore<unknown>,
+export function getSnapshotPromise<TSelection>([
+  [getVector, subscribe],
+  select,
+]: GettableSource<TSelection>): Promise<TSelection> {
+  try {
+    const vector = getVector()
+    if (vector.length > 0) {
+      return Promise.resolve(select(vector))
+    } else {
+      return new Promise((resolve, reject) => {
+        let unresolved = true
+        const unsubscribe = subscribe(
+          () => {
+            if (unresolved) {
+              unresolved = false
+              resolve(select(getVector()[0]))
+              unsubscribe()
+            }
+          },
+          () => {
+            if (unresolved) {
+              unresolved = false
+              reject(new Error('Sealed with no value'))
+              unsubscribe()
+            }
+          },
+        )
+      })
+    }
+  } catch (error) {
+    if (isPromiseLike(error)) {
+      return Promise.resolve(error).then(() => select(getVector()))
+    }
+    return Promise.reject(error)
+  }
+}
+
+export function hasSnapshot([[getVector]]: readonly [
+  SourceCore<unknown>,
   SourceSelect<any, any>?,
   SourceAct?,
 ]): boolean {
-  try {
-    getVersion()
-  } catch (errorOrPromise) {
-    if (isPromiseLike(errorOrPromise)) {
-      return false
-    }
-  }
-  return true
+  return getVector().length > 0
 }
 
 export function subscribe(
@@ -147,24 +152,19 @@ const constantAct = <U>(cb: () => U | PromiseLike<U>) => Promise.resolve(cb())
 export const identitySelector = <U>(value: unknown) => value as U
 
 export const constant = <T>(value: T): Source<T, T> => [
-  [() => value, constantSubscribe],
+  [() => [value], constantSubscribe],
   identity,
   constantAct,
 ]
 
 export const nullSource: Source<null, null> = [
-  [() => null, constantSubscribe],
+  [() => [null], constantSubscribe],
   identity,
   constantAct,
 ]
 
 export const pendingSource: Source<any> = [
-  [
-    () => {
-      throw pendingPromiseLike
-    },
-    constantSubscribe,
-  ],
+  [() => [], constantSubscribe],
   identity,
   constantAct,
 ]

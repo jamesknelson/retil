@@ -1,7 +1,13 @@
 import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useSubscription } from 'use-subscription'
 
-import { GettableSourceCore, Source, hasSnapshot, nullSource } from '../source'
+import {
+  SourceCore,
+  Source,
+  getSnapshotPromise,
+  hasSnapshot,
+  nullSource,
+} from '../source'
 
 import { UseSourceFunction, UseSourceOptions } from './useSourceType'
 
@@ -15,10 +21,10 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
   const { defaultValue, startTransition } = options
   const [core, inputSelect] = maybeSource || nullSource
   const select = useCallback(
-    ([getVersion]: GettableSourceCore) =>
-      hasDefaultValue && !hasSnapshot([[getVersion], inputSelect])
+    (core: SourceCore) =>
+      hasDefaultValue && !hasSnapshot([core, inputSelect])
         ? MissingToken
-        : inputSelect(getVersion()),
+        : inputSelect(core[0]()[0]),
     [hasDefaultValue, inputSelect],
   )
   const getCurrentValue = useCallback(() => select(core), [core, select])
@@ -50,8 +56,7 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
       return subscribe(() => {
         if (!hasSnapshot([core])) {
           setState((() => {
-            // Because hasSnapshot returns false, this'll throw a promise.
-            select(core)
+            throw getSnapshotPromise([core, select])
           }) as any)
         }
       })
