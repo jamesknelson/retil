@@ -1,6 +1,4 @@
-import { pendingPromiseLike } from 'retil-support'
-
-import { fuse } from './fuse'
+import { mapVector } from './mapVector'
 import { Source } from './source'
 
 /**
@@ -14,12 +12,5 @@ export function filter<T>(
   source: Source<T>,
   predicate: (value: T) => boolean,
 ): Source<T> {
-  return fuse((use) => {
-    const value = use(source)
-    if (!predicate(value)) {
-      // Throw a never-ending promise to wait for the next value.
-      throw pendingPromiseLike
-    }
-    return value
-  })
+  return mapVector(source, (vector: T[]) => vector.filter(predicate))
 }

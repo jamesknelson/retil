@@ -66,13 +66,13 @@ export type SourceSelect<TSelection, TValue = any> = (
  */
 export type SourceAct = <TActResult>(
   callback: () => PromiseLike<TActResult> | TActResult,
-) => Promise<TActResult>
+) => PromiseLike<TActResult> | TActResult
 
 export function act<TSelection, TActResult>(
   source: Source<TSelection>,
   callback: () => PromiseLike<TActResult> | TActResult,
 ): Promise<TActResult> {
-  return source[2](callback)
+  return Promise.resolve(source[2](callback))
 }
 
 export function getSnapshot<TSelection>(
@@ -122,6 +122,14 @@ export function getSnapshotPromise<TSelection>([
     }
     return Promise.reject(error)
   }
+}
+
+export function getVector<T>([[getVector]]: readonly [
+  SourceCore<T>,
+  SourceSelect<any, any>?,
+  SourceAct?,
+]): T[] {
+  return getVector()
 }
 
 export function hasSnapshot([[getVector]]: readonly [

@@ -4,11 +4,10 @@ import {
   act,
   getSnapshot,
   getSnapshotPromise,
-  mergeLatest,
   observe,
   subscribe,
 } from '../src'
-import { sendToArray } from './utils/sendToArray'
+import { sendVectorToArray } from './utils/sendToArray'
 
 describe(`observe`, () => {
   test(`can exit from an async act nested inside a sync act`, async () => {
@@ -21,7 +20,7 @@ describe(`observe`, () => {
     })
 
     // Open a subscription
-    const output = sendToArray(mergeLatest(source, (x, m) => [x, m]))
+    const output = sendVectorToArray(source)
 
     await act(source, () => {
       act(source, async () => {
@@ -31,11 +30,7 @@ describe(`observe`, () => {
       return
     })
 
-    expect(output.reverse()).toEqual([
-      [1, false],
-      [1, true],
-      [2, false],
-    ])
+    expect(output.reverse()).toEqual([[1], [], [2]])
   })
 
   test(`can still emit values on subscriptions created immediately after getting a promise snapshot`, async () => {
@@ -54,17 +49,14 @@ describe(`observe`, () => {
     next(1)
 
     // Open a subscription
-    const output = sendToArray(mergeLatest(source, (x, m) => [x, m]))
+    const output = sendVectorToArray(source)
 
     await delay(TEARDOWN_DELAY + 100)
 
     next(2)
 
     expect(await valuePromise).toBe(1)
-    expect(output.reverse()).toEqual([
-      [1, false],
-      [2, false],
-    ])
+    expect(output.reverse()).toEqual([[1], [2]])
   })
 
   test(`works with getSnapshotPromise() when a value takes longer than the default teardown period`, async () => {

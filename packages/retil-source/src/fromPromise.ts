@@ -6,7 +6,7 @@ import { Source } from './source'
 export function fromPromise<T>(promise: PromiseLike<T>): Source<T> {
   return observe((next, error, complete) => {
     promise.then((value) => {
-      next(value)
+      next([value])
       complete()
     }, error)
     return noop

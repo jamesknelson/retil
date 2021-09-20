@@ -5,7 +5,7 @@ import {
   areArraysShallowEqual,
 } from 'retil-support'
 
-import { Source, identitySelector } from './source'
+import { Source, SourceAct, identitySelector } from './source'
 
 export const TEARDOWN_DELAY = 10
 
@@ -28,6 +28,7 @@ export function observe<T>(
   observable:
     | ObserveSubscribeFunction<T>
     | { subscribe: ObserveSubscribeFunction<T> },
+  parentAct?: SourceAct,
 ): Source<T> {
   const asyncActs = new Set<PromiseLike<void>>()
   const callbacks = [] as (readonly [(() => void)?, (() => void)?])[]
@@ -243,12 +244,12 @@ export function observe<T>(
   // TODO: queue until the first subscriber is added - include listeners to the
   // promise returned by this function as listeners. All callbacks become async
   // if there's no listeners, and require any value to be cleared.
-  const act = <U>(callback: () => PromiseLike<U> | U): Promise<U> => {
+  const act = <U>(callback: () => U | PromiseLike<U>): U | PromiseLike<U> => {
     if (error) {
       throw error.value
     }
     if (sealed) {
-      return Promise.resolve(callback())
+      return callback()
     }
 
     const isTopLevelAct = ++actDepth === 1
@@ -256,7 +257,7 @@ export function observe<T>(
 
     subscribeIfRequired()
 
-    const result = callback()
+    const result = parentAct ? parentAct(callback) : callback()
 
     if (isPromiseLike(result)) {
       const asyncAct = result.then(() => {
@@ -282,6 +283,7 @@ export function observe<T>(
       scheduleTeardownIfRequired()
       if (isTopLevelAct && asyncActs.size === 0) {
         commit()
+        return result
       }
     }
 

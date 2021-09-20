@@ -1,4 +1,4 @@
-import { fuse } from './fuse'
+import { mapVector } from './mapVector'
 import { Source } from './source'
 
 /**
@@ -8,7 +8,7 @@ import { Source } from './source'
  */
 export function map<T, U>(
   source: Source<T>,
-  mapFn: (value: T) => U,
+  callback: (value: T) => U,
 ): Source<U> {
-  return fuse((use) => mapFn(use(source)))
+  return mapVector(source, (vector: T[]) => vector.map(callback))
 }

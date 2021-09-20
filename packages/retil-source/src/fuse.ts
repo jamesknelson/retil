@@ -1,253 +1,254 @@
-import { ArrayKeyedMap, isPromiseLike, Maybe } from 'retil-support'
+import { Maybe, isPromiseLike, noop } from 'retil-support'
 
-import { FuseEffect, FuseEffectSymbol, Fusor } from './fusor'
-import { fuse as scalarFuse } from './vectorFuse'
-import { Source, hasSnapshot, getSnapshotPromise } from './source'
-
-type UseInvocation = [
-  snapshot: unknown,
-  source: Source<unknown>,
-  maybeDefaultValue: Maybe<unknown>,
-  inject?: unknown,
-]
+import { FuseEffectSymbol, FuseEffect, FusorMemo, Fusor } from './fusor'
+import { observe } from './observe'
+import { Source, SourceCore, SourceSelect, getSnapshotPromise } from './source'
 
 const ValuelessSymbol = Symbol('valueless')
-type Valueless = typeof ValuelessSymbol
 
-export function fuseEnvSource<T>(fusor: Fusor<T>): Source<T> {
-  let previousNextQueue = [] as UseInvocation[][]
-  let previousResults = new ArrayKeyedMap<unknown[], T>()
-
-  const clearCache = () => {
-    previousNextQueue.length = 0
-    previousResults.clear()
-  }
-
-  return scalarFuse<T>((use) => {
-    const results = new ArrayKeyedMap<unknown[], T>()
-    const resultVector = [] as T[]
-
-    // Cache calls to use, as `fuse` isn't designed to deal with the many
-    // invocations of `use` that can result from combining vector sources.
-    const useCache = new Map<Source<unknown>, unknown | Valueless>()
-    const cachedUse = <T>(source: Source<T>): T | Valueless => {
-      let snapshot: T | Valueless
-      if (!useCache.has(source)) {
-        snapshot = hasSnapshot(source) ? use(source) : ValuelessSymbol
-        useCache.set(source, snapshot)
-      } else {
-        snapshot = useCache.get(source)! as T | Valueless
-      }
-      return snapshot
-    }
-
-    const queue = previousNextQueue.length ? previousNextQueue.slice() : [[]]
-    const nextQueue = [] as UseInvocation[][]
-
-    queueLoop: while (queue.length) {
-      // TODO: document the difference between these two
-      const useList = queue
-        .shift()!
-        .map((invocation) => invocation.slice() as UseInvocation)
-      const useInjects = [] as unknown[]
-
-      // Keep track of values to inject per-source, e.g. for if we've got
-      // a vector expansion and want to use the expanded value if the source
-      // comes up again
-      const replaceUseInvocationsBySource = new Map<
-        Source<unknown>,
-        UseInvocation
-      >()
-
-      for (let i = 0; i < useList.length; i++) {
-        const invocation = useList[i]
-
-        const [snapshot, source, maybeDefaultValue] = useList[i]
-        if (invocation.length === 4) {
-          if (Array.isArray(snapshot)) {
-            replaceUseInvocationsBySource.set(source, invocation)
-          }
-        } else if (replaceUseInvocationsBySource.has(source)) {
-          useList[i] = replaceUseInvocationsBySource
-            .get(source)!
-            .slice() as UseInvocation
-          useList[i][2] = maybeDefaultValue
-        } else {
-          const currentSnapshot = cachedUse(source)
-          // TODO: how do we deal with the fact that the current snapshot is
-          // always an array or a valueless symbol??
-          if (Array.isArray(currentSnapshot)) {
-            // Replace this item in the queue with an expansion for the
-            // vector
-            expandVectorFrom(
-              queue,
-              useList,
-              i,
-              currentSnapshot,
-              source,
-              maybeDefaultValue,
-              0, // startIndex
-            )
-            continue queueLoop
-          } else if (currentSnapshot !== snapshot) {
-            // Our prediction didn't match the current value for this source, so
-            // truncate the useList at this point and skip to the fusor.
-            useList.length = i
-            break
-          } else {
-            invocation[3] =
-              currentSnapshot === ValuelessSymbol
-                ? // TODO: should this be happening if there's no default value???
-                  // or should we be injecting the valueless symbol itself?
-                  maybeDefaultValue[0]
-                : currentSnapshot
-          }
-        }
-
-        useInjects.push(useList[i][3])
-      }
-
-      // At this point, we have a (maybe partial) list of "use" invocations that
-      // we •expect• to happen (based on previous fusor runs), along with values
-      // to inject when they do. If we have a saved result for these results,
-      // we'll use it as-is. Otherwise, we'll need to run the fusor to get the
-      // result.
-
-      let result: T
-      let maybeResult: Maybe<T>
-      if (
-        (maybeResult = results.getMaybe(useInjects)).length ||
-        (maybeResult = previousResults.getMaybe(useInjects)).length
-      ) {
-        result = maybeResult[0]
-      } else {
-        let useCount = 0
-
-        // Keep track of what is used, so that if we find we're producing a
-        // precached value, we can keep track of the inputs that correspond
-        // to it.
-        const wrappedUse = <T, U>(
-          source: Source<T>,
-          ...defaultValues: [U] | []
-        ): T | U => {
-          if (process.env.NODE_ENV !== 'production') {
-            if (defaultValues.length && Array.isArray(defaultValues[0])) {
-              throw new Error(
-                "You can't use a vector as a default value for use() within vectorFuse()",
-              )
-            }
-          }
-
-          const useIndex = useCount++
-          const preparedUseInvocation =
-            useIndex < useList.length && useList[useIndex]
-          if (
-            // We can't always guess what the arguments to use will be, and
-            // thus we need to ensure that the fusor passed the expected
-            // arguments before returning our specified injection value.
-            preparedUseInvocation &&
-            preparedUseInvocation[1] === source &&
-            (preparedUseInvocation[0] !== ValuelessSymbol ||
-              (preparedUseInvocation[2].length === defaultValues.length &&
-                preparedUseInvocation[2][0] === defaultValues[0]))
-          ) {
-            return preparedUseInvocation[3] as T | U
-          } else {
-            const snapshot = cachedUse(source)
-            let inject: T | U
-            if (snapshot === ValuelessSymbol) {
-              if (!defaultValues.length) {
-                // We have no default value for a missing source. We'll have to
-                // interrupt the fusor with an exception.
-                throw getSnapshotPromise(source)
-              }
-              inject = defaultValues[0] as U
-            } else {
-              expandVectorFrom(
-                queue,
-                useList,
-                useIndex,
-                snapshot,
-                source,
-                defaultValues,
-                1,
-              )
-              inject = snapshot[0]
-            }
-            useList.push([snapshot, source, defaultValues, inject])
-            useInjects.push(inject)
-            return inject
-          }
-        }
-
-        const effect: (callback: () => any) => FuseEffect = () => {
-          throw new Error('unimplemented!')
-          //return FuseEffectSymbol
-        }
-
-        try {
-          result = fusor(wrappedUse, effect)
-        } catch (promiseOrError) {
-          if (!isPromiseLike(promiseOrError) || resultVector.length === 1) {
-            throw promiseOrError
-          } else {
-            // One of the vector items had a missing value, so we'll bail
-            // early, but still return the values we've found so far.
-            previousResults = results
-            previousNextQueue = nextQueue
-            return resultVector
-          }
-        }
-      }
-
-      results.set(useInjects, result)
-      resultVector.push(result)
-      addToNextQueueIfRequired(nextQueue, useList)
-    }
-
-    previousResults = results
-    previousNextQueue = nextQueue
-
-    return resultVector
-  }, clearCache)
+const throwArg = (error: any) => {
+  throw error
 }
 
-function expandVectorFrom(
-  queue: UseInvocation[][],
-  useList: UseInvocation[],
-  vectorIndex: number,
-  vector: any[],
-  source: Source<any>,
-  defaultValues: Maybe<any>,
-  startIndex: number,
-) {
-  // Walk backwards so that the result of unshifting is that the vector will
-  // be added in the original order.
-  for (let j = vector.length - 1; j >= startIndex; j--) {
-    const toEnqueue = useList.slice()
-    toEnqueue.splice(vectorIndex, 1, [vector, source, defaultValues, vector[j]])
-    queue.unshift(toEnqueue)
-  }
+type UseState = {
+  select: SourceSelect<unknown>
+  defaultValues: Maybe<unknown>
+  result?: unknown
 }
 
-function addToNextQueueIfRequired(
-  nextQueue: UseInvocation[][],
-  useList: UseInvocation[],
-) {
-  const isAlreadyIncluded = nextQueue.find(
-    (queuedList) =>
-      queuedList.length === useList.length &&
-      queuedList.every(
-        (invocation, i) =>
-          invocation[0] === useList[i][0] &&
-          invocation[1] === useList[i][1] &&
-          invocation[2].length === useList[i][2].length &&
-          invocation[2][0] === useList[i][2][0],
-      ),
-  )
-  if (!isAlreadyIncluded) {
-    nextQueue.push(
-      useList.map((invocation) => invocation.slice(0, 3) as UseInvocation),
+type UsedCore = {
+  sealed?: boolean
+  unsubscribe: () => void
+  vector: unknown[]
+}
+
+export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
+  let onNext: null | ((value: T | T[]) => void) = null
+  let onError: (error: any) => void = throwArg
+  let onSeal: null | (() => void) = null
+
+  let isFusing = false
+  let isInEffect = false
+  let isInvalidated = false
+
+  const usedCores = new Map<SourceCore, UsedCore>()
+  const useStatesByCore = new Map<SourceCore, UseState[]>()
+
+  const effectQueue = [] as (() => any)[]
+  const effect = (callback: () => any): FuseEffect => {
+    effectQueue.push(callback)
+    return FuseEffectSymbol
+  }
+
+  const memo: FusorMemo = (callback, ...args) => {
+    console.warn(
+      'memo is not implemented; it currently just returns values without memoization',
     )
+    return callback(...args)
   }
+
+  const use = <T, U = T>(
+    source: Source<T>,
+    ...defaultValues: [U] | []
+  ): T | U => {
+    const [core, select] = source
+    let useStates = useStatesByCore.get(core)
+    if (!useStates) {
+      useStates = []
+      useStatesByCore.set(core, useStates)
+    }
+    const state: UseState = { select, defaultValues }
+    useStates.push(state)
+    const usedCore = addCore(core)
+    const result =
+      usedCore.vector.length > 0
+        ? select(usedCore.vector[0])
+        : defaultValues.length > 0
+        ? (defaultValues[0] as U)
+        : ValuelessSymbol
+    if (result === ValuelessSymbol) {
+      throw getSnapshotPromise(source)
+    }
+    state.result = result
+    return result
+  }
+
+  const addCore = (core: SourceCore) => {
+    let usedCore = usedCores.get(core)
+    if (usedCore) {
+      return usedCore
+    } else {
+      const [getVector, subscribe] = core
+
+      // On change, check if the new vector will cause a different result for
+      // any of the previous invocations of `use` that depend on this source.
+      // If there is a change, mark the current result as invalid, and if run
+      // the fusor if a re-run isn't already in progress or scheduled due to
+      // an effect.
+      const change = () => {
+        const useStates = useStatesByCore.get(core)
+        if (useStates) {
+          const vector = getVector()
+          usedCore.vector = vector
+          for (const useState of useStates) {
+            const hasDefaultValue = useState.defaultValues.length
+            const doesSourceHaveResult = vector.length > 0 || hasDefaultValue
+            const didSourceHaveResult = 'result' in useState
+            if (
+              doesSourceHaveResult !== didSourceHaveResult ||
+              (didSourceHaveResult &&
+                useState.result !==
+                  (vector.length > 0
+                    ? useState.select(vector[0])
+                    : useState.defaultValues[0]))
+            ) {
+              isInvalidated = true
+              if (!isInEffect && !isFusing) {
+                runFusor()
+              }
+              return
+            }
+          }
+        }
+      }
+
+      const usedCore: UsedCore = {
+        // This will be set after calling `subscribe`, but `subscribe` may
+        // synchronously call `seal`, which may mutate usedCore.
+        unsubscribe: undefined as any,
+        vector: getVector(),
+      }
+      const seal = () => {
+        usedCore.sealed = true
+        attemptSeal()
+      }
+      usedCore.unsubscribe = subscribe(change, seal)
+
+      usedCores.set(core, usedCore as UsedCore)
+      return usedCore
+    }
+  }
+
+  const cleanUpUnusedCores = () => {
+    for (const [core, { unsubscribe }] of Array.from(usedCores.entries())) {
+      if (!useStatesByCore.has(core)) {
+        usedCores.delete(core)
+        unsubscribe()
+      }
+    }
+
+    attemptSeal()
+  }
+
+  const attemptSeal = () => {
+    if (
+      !isFusing &&
+      !isInvalidated &&
+      !isInEffect &&
+      !effectQueue.length &&
+      onSeal &&
+      (!useStatesByCore.size ||
+        !Array.from(usedCores.values()).some((core) => !core.sealed))
+    ) {
+      onSeal()
+    }
+  }
+
+  const runEffects = () => {
+    let result: any
+    isInEffect = true
+    const finishEffect = () => {
+      isInEffect = false
+      if (isInvalidated) {
+        runFusor()
+      } else {
+        cleanUpUnusedCores()
+      }
+      return result
+    }
+    // Use an act to clear the result if the effects don't finish immediately,
+    // and to keep the subscription open.
+    act(() => {
+      while (effectQueue.length) {
+        const effect = effectQueue.shift()!
+        const effectResult = effect()
+        result =
+          isPromiseLike(result) || isPromiseLike(effectResult)
+            ? Promise.resolve(result).then(() => effectResult)
+            : effectResult
+      }
+      return isPromiseLike(result)
+        ? result.then(finishEffect, onError)
+        : finishEffect()
+    })
+  }
+
+  const runFusor = () => {
+    if (!onNext) {
+      throw new Error('Retil error')
+    }
+
+    try {
+      useStatesByCore.clear()
+      isInvalidated = false
+      isFusing = true
+      const snapshot = fusor(use, effect, memo)
+      isFusing = false
+
+      if (snapshot === FuseEffectSymbol) {
+        runEffects()
+      } else if (isInvalidated && effectQueue.length === 0) {
+        runFusor()
+      } else {
+        onNext(snapshot)
+        if (effectQueue.length) {
+          runEffects()
+        } else {
+          cleanUpUnusedCores()
+        }
+      }
+    } catch (errorOrPromise) {
+      isFusing = false
+
+      if (isPromiseLike(errorOrPromise)) {
+        onNext([])
+        isInvalidated = true
+        errorOrPromise.then(() => {
+          // It's possible a source update has caused a run to complete in the
+          // intervening time.
+          if (onNext && isInvalidated && !isInEffect) {
+            runFusor()
+          }
+        }, onError)
+      } else {
+        onError(errorOrPromise)
+      }
+    }
+  }
+
+  const source = observe<T>((next, error, seal) => {
+    onNext = next
+    onError = error
+    onSeal = seal
+
+    isInvalidated = true
+
+    runFusor()
+
+    return () => {
+      onNext = null
+      onError = throwArg
+      onSeal = null
+      for (const { unsubscribe } of Array.from(usedCores.values())) {
+        unsubscribe()
+      }
+      usedCores.clear()
+      useStatesByCore.clear()
+      onTeardown()
+    }
+  })
+
+  const act = source[2]
+
+  return source
 }

@@ -6,7 +6,7 @@ import {
   noopNavController,
   notFoundLoader,
 } from 'retil-nav'
-import { filter, fuse, map, mergeLatest } from 'retil-source'
+import { Source, filter, fuse, map, reduceVector } from 'retil-source'
 import { createMemo } from 'retil-support'
 
 import { AppEnv } from 'site/src/appEnv'
@@ -66,14 +66,18 @@ const exampleLoader = loadAsync<AppEnv>(async (props) => {
         } else {
           const defaultNavService = getDefaultBrowserNavEnvService()
           const [source, controller] = defaultNavService
-          const exampleNavSource = mergeLatest(
-            filter(
-              map(source, ([, currentEnv]) =>
-                // Ignore precache for the child service
-                createEnvVector([createNestedEnv(currentEnv)]),
-              ),
-              (vector) => vector[1].nav.pathname.startsWith(basename),
+          const filteredSource = filter(
+            map(source, ([, currentEnv]) =>
+              // Ignore precache for the child service
+              createEnvVector([createNestedEnv(currentEnv)]),
             ),
+            (vector) => vector[1].nav.pathname.startsWith(basename),
+          )
+          const exampleNavSource = reduceVector(
+            filteredSource,
+            (previousResult, currentVector) =>
+              currentVector.length ? currentVector : previousResult,
+            [] as typeof filteredSource extends Source<infer I> ? I[] : never,
           )
           return [exampleNavSource, controller] as const
         }

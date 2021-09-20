@@ -2,10 +2,10 @@ import { useCallback, useMemo, useState, useEffect } from 'react'
 import { useSubscription } from 'use-subscription'
 
 import {
-  SourceCore,
   Source,
   getSnapshotPromise,
   hasSnapshot,
+  identitySelector,
   nullSource,
 } from '../source'
 
@@ -19,15 +19,14 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
 ): T | U | null => {
   const hasDefaultValue = 'defaultValue' in options
   const { defaultValue, startTransition } = options
-  const [core, inputSelect] = maybeSource || nullSource
-  const select = useCallback(
-    (core: SourceCore) =>
-      hasDefaultValue && !hasSnapshot([core, inputSelect])
-        ? MissingToken
-        : inputSelect(core[0]()[0]),
-    [hasDefaultValue, inputSelect],
-  )
-  const getCurrentValue = useCallback(() => select(core), [core, select])
+  const [core, select] = maybeSource || nullSource
+  const getCurrentValue = useCallback(() => {
+    const vector = core[0]()
+    if (!hasDefaultValue && !vector.length) {
+      throw getSnapshotPromise([core, identitySelector])
+    }
+    return vector.length ? select(vector[0]) : MissingToken
+  }, [core, hasDefaultValue, select])
 
   const subscribe = useMemo(
     () =>
@@ -56,12 +55,12 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
       return subscribe(() => {
         if (!hasSnapshot([core])) {
           setState((() => {
-            throw getSnapshotPromise([core, select])
+            throw getSnapshotPromise([core, identitySelector])
           }) as any)
         }
       })
     }
-  }, [hasDefaultValue, core, select, subscribe])
+  }, [hasDefaultValue, core, subscribe])
 
   const value = useSubscription(subscription)
   return value === MissingToken || maybeSource === null ? defaultValue! : value
