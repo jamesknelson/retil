@@ -1,12 +1,12 @@
-import { observe } from './observe'
 import { Source } from './source'
+import { StateSealer, createVectorState } from './vectorState'
 
 export interface StateController<T> {
   (state: T): void
   (updater: (state: T) => T): void
 }
 
-export type StateSealer = () => void
+const defaultIsEqual = <T>(x: T, y: T) => x === y
 
 export function createState<T>(
   // Doesn't accept a setter function, as it's not a hook that stores state
@@ -14,44 +14,21 @@ export function createState<T>(
   initialState?: T,
   // If provided, the state will only be updated if this function indicates
   // that it is not equal to the current state.
-  isEqual?: (x: T, y: T) => boolean,
+  isEqual: (x: T, y: T) => boolean = defaultIsEqual,
 ): readonly [Source<T>, StateController<T>, StateSealer] {
-  let hasState = arguments.length !== 0
-  let state = initialState as T
+  const areVectorsEqual = (x: T[], y: T[]) =>
+    x.length === y.length && isEqual(x[0], y[0])
+  const [source, setVectorState, sealState] = createVectorState(
+    arguments.length === 0 ? [] : [initialState as T],
+    areVectorsEqual,
+  )
 
-  let next: null | ((value: T) => void) = null
-  let seal: null | (() => void) = null
-
-  const setState: StateController<T> = (stateOrUpdater: Function | T) => {
-    const nextState =
-      typeof stateOrUpdater === 'function'
-        ? (stateOrUpdater as Function)(state)
-        : stateOrUpdater
-    const shouldUpdate = !hasState || !isEqual || !isEqual(nextState, state)
-    if (shouldUpdate) {
-      hasState = true
-      state = nextState
-      if (next) {
-        next(state)
-      }
-    }
-  }
-
-  const source = observe<T>((onNext, _, onSeal) => {
-    next = onNext
-    seal = onSeal
-    if (hasState) {
-      onNext(state)
-    }
-    return () => {
-      next = null
-      seal = null
-    }
-  })
-
-  const sealState = () => {
-    if (seal) {
-      seal()
+  const setState = (stateOrUpdater: T | ((state: T) => T)) => {
+    if (typeof stateOrUpdater === 'function') {
+      const updater = stateOrUpdater as (state: T) => T
+      setVectorState((vector) => [updater(vector[0])])
+    } else {
+      setVectorState([stateOrUpdater as T])
     }
   }
 

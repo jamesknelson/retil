@@ -7,6 +7,7 @@ export * from './observe'
 export * from './select'
 export * from './source'
 export * from './state'
+export * from './vectorState'
 export * from './wait'
 
 export * from './hooks/useSource'

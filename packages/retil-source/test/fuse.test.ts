@@ -2,14 +2,16 @@ import { delay } from 'retil-support'
 import {
   act,
   createState,
+  createVectorState,
   fuse,
   getSnapshot,
   hasSnapshot,
+  pendingSource,
   select,
   subscribe,
   wait,
 } from '../src'
-import { sendToArray } from './utils/sendToArray'
+import { sendToArray, sendVectorToArray } from './utils/sendToArray'
 
 describe(`fuse`, () => {
   test(`can return a constant value without using any sources`, () => {
@@ -70,6 +72,140 @@ describe(`fuse`, () => {
     setState1(4)
     setState2(2)
     expect(output.reverse()).toEqual([1, 4, 2])
+  })
+
+  test(`can combine single-value sources with multip-value sources`, () => {
+    const [stateSource1] = createVectorState([1, 2])
+    const [stateSource2, setState2] = createState(3)
+    const source = fuse((use) => {
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    expect(output).toEqual([[3, 6]])
+    setState2(2)
+    expect(output.reverse()).toEqual([
+      [3, 6],
+      [2, 4],
+    ])
+  })
+
+  test(`can completely change vector sources`, () => {
+    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource2] = createState(3)
+    const source = fuse((use) => {
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    setState1([3, 4])
+    expect(output.reverse()).toEqual([
+      [3, 6],
+      [9, 12],
+    ])
+  })
+
+  test(`can reorder vector sources without recomputing`, () => {
+    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource2] = createState(3)
+    let fusorCount = 0
+    const source = fuse((use) => {
+      fusorCount++
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    const fusorCountBeforeReorder = fusorCount
+    setState1([2, 1])
+    expect(output.reverse()).toEqual([
+      [3, 6],
+      [6, 3],
+    ])
+    expect(fusorCount).toBe(fusorCountBeforeReorder)
+  })
+
+  test(`can partially change sources without recomputing previous known values`, () => {
+    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource2] = createState(3)
+    let fusorCount = 0
+    const source = fuse((use) => {
+      fusorCount++
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    const fusorCountBeforeReorder = fusorCount
+    setState1([2, 3])
+    expect(output.reverse()).toEqual([
+      [3, 6],
+      [6, 9],
+    ])
+    expect(fusorCount).toBe(fusorCountBeforeReorder + 1)
+  })
+
+  test(`can combine vector sources`, () => {
+    const [stateSource1] = createVectorState([1, 2])
+    const [stateSource2] = createVectorState([3, 4])
+    const source = fuse((use) => {
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    expect(output).toEqual([[3, 4, 6, 8]])
+  })
+
+  test(`can reorder combined vector sources without recomputing`, () => {
+    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource2, setState2] = createVectorState([3, 4])
+    let fusorCount = 0
+    const source = fuse((use) => {
+      fusorCount++
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    const fusorCountBeforeReorder = fusorCount
+    setState1([2, 1])
+    setState2([4, 3])
+    expect(output.reverse()).toEqual([
+      [3, 4, 6, 8],
+      [6, 8, 3, 4],
+      [8, 6, 4, 3],
+    ])
+    expect(fusorCount).toBe(fusorCountBeforeReorder)
+  })
+
+  test(`can partially changed combined vector sources without recomputing previous known values`, () => {
+    const [stateSource1] = createVectorState([1, 2])
+    const [stateSource2, setState2] = createVectorState([3, 4])
+    let fusorCount = 0
+    const source = fuse((use) => {
+      fusorCount++
+      const item = use(stateSource1)
+      const constant = use(stateSource2)
+      return item * constant
+    })
+    const output = sendVectorToArray(source)
+
+    const fusorCountBeforeReorder = fusorCount
+    setState2([4, 1])
+    expect(output.reverse()).toEqual([
+      [3, 4, 6, 8],
+      [4, 1, 8, 2],
+    ])
+    expect(fusorCount).toBe(fusorCountBeforeReorder + 2)
   })
 
   test(`allows batching of multiple external synchronous updates via the returned act function`, () => {
@@ -288,5 +424,28 @@ describe(`fuse`, () => {
     expect(() => {
       getSnapshot(source)
     }).toThrowError()
+  })
+
+  test(`outputs a value for each vector item up until the first missing value.`, () => {
+    const [stateSource, setState] = createVectorState([1, 1, 0])
+    const source = fuse((use) => {
+      const state = use(stateSource)
+      return state || use(pendingSource)
+    })
+    const output = sendVectorToArray(source)
+
+    expect(hasSnapshot(source)).toBe(true)
+    setState([1, 0, 0])
+    expect(hasSnapshot(source)).toBe(true)
+    setState([0, 0, 0])
+    expect(hasSnapshot(source)).toBe(false)
+    setState([1, 0, 0])
+    expect(hasSnapshot(source)).toBe(true)
+    setState([1, 1, 0])
+    expect(hasSnapshot(source)).toBe(true)
+    setState([1, 1, 1])
+    expect(hasSnapshot(source)).toBe(true)
+
+    expect(output.reverse()).toEqual([[1, 1], [1], [], [1], [1, 1], [1, 1, 1]])
   })
 })
