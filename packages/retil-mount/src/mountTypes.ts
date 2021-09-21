@@ -1,14 +1,9 @@
 import { ReactNode } from 'react'
-import { Source } from 'retil-source'
+import { Fusor, Source } from 'retil-source'
 
 import { DependencyList } from './dependencyList'
-import { EnvFusor, EnvSource } from './envSource'
 
-export type CastableToEnvSource<T extends object> =
-  | T
-  | Source<T>
-  | EnvFusor<T>
-  | EnvSource<T>
+export type CastableToEnvSource<T extends object> = T | Source<T> | Fusor<T>
 
 export type LoaderProps<Env extends object> = Env & {
   mount: MountSnapshot<Env, unknown>

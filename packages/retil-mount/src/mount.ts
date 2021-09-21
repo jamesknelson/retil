@@ -1,7 +1,6 @@
-import { Source, map } from 'retil-source'
+import { Fusor, Source, fuse, mapVector } from 'retil-source'
 
 import { DependencyList } from './dependencyList'
-import { EnvVector, EnvFusor, fuseEnvSource } from './envSource'
 import {
   CastableToEnvSource,
   Loader,
@@ -15,14 +14,14 @@ export function mount<Env extends object, Content>(
   loader: Loader<Env, Content>,
   env: CastableToEnvSource<Env>,
 ): MountSource<Env, Content> {
-  const vectorSource = fuseEnvSource((use) => {
+  const source = fuse((use, effect, memo) => {
     const contentRef = {} as { current?: Content }
     const dependencies = new DependencyList()
     const envSnapshot = (
       typeof env === 'function'
-        ? (env as EnvFusor<Env>)(use)
+        ? (env as Fusor<Env>)(use, effect, memo)
         : Array.isArray(env)
-        ? use(env as Source<Env | EnvVector<Env>>)
+        ? use(env as Source<Env>)
         : env
     ) as Env
     const mountSnapshot: MountSnapshot<Env, Content> = {
@@ -40,13 +39,13 @@ export function mount<Env extends object, Content>(
     contentRef.current = loader(loaderProps)
     return mountSnapshot as MountSnapshotWithContent<Env, Content>
   })
-  return map(vectorSource, (vectorSnapshot) => {
-    vectorSnapshot.slice(2).forEach((snapshot) => {
+  return mapVector(source, ([head, ...tail]) => {
+    tail.forEach((snapshot) => {
       // Start fetching dependencies for precache ahead of time
       ;(
         snapshot as MountSnapshotWithContent<Env, Content>
       ).dependencies.resolve()
     })
-    return vectorSnapshot[1]
+    return [head]
   })
 }

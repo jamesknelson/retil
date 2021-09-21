@@ -74,6 +74,21 @@ describe(`fuse`, () => {
     expect(output.reverse()).toEqual([1, 4, 2])
   })
 
+  test(`can memoize an independant value across fusor calls`, () => {
+    const [stateSource, setState] = createState<number>()
+    const source = fuse((use, _, memo) => {
+      const ref = memo(() => ({ current: 0 }))
+      const fuseIndex = ref.current++
+      return use(stateSource) * fuseIndex
+    })
+    const output = sendToArray(source)
+
+    expect(output.length).toBe(0)
+    setState(1)
+    setState(2)
+    expect(output.reverse()).toEqual([1, 4])
+  })
+
   test(`can combine single-value sources with multip-value sources`, () => {
     const [stateSource1] = createVectorState([1, 2])
     const [stateSource2, setState2] = createState(3)
@@ -206,6 +221,30 @@ describe(`fuse`, () => {
       [4, 1, 8, 2],
     ])
     expect(fusorCount).toBe(fusorCountBeforeReorder + 2)
+  })
+
+  test(`can memoize an value across combined vectors sources`, () => {
+    const [stateSource1] = createVectorState([1, 2])
+    const [stateSource2, setState2] = createVectorState([2, 1])
+    let productCount = 0
+    const source = fuse((use, _, memo) => {
+      const x = use(stateSource1)
+      const y = use(stateSource2)
+      const args = [x, y].sort()
+      return memo((item, constant) => {
+        productCount++
+        return item * constant
+      }, args)
+    })
+    const output = sendVectorToArray(source)
+
+    expect(productCount).toBe(3)
+    setState2([1, 3])
+    expect(output.reverse()).toEqual([
+      [2, 1, 4, 2],
+      [1, 3, 2, 6],
+    ])
+    expect(productCount).toBe(5)
   })
 
   test(`allows batching of multiple external synchronous updates via the returned act function`, () => {
