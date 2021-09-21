@@ -1,6 +1,6 @@
 import React, { ReactNode, createContext, useContext } from 'react'
 import { useBoundaryEffect } from 'retil-boundary'
-import { createEnvVector, useEnv } from 'retil-mount'
+import { useEnv } from 'retil-mount'
 import { useSource } from 'retil-source'
 
 import { getDefaultHydrationEnvService } from './hydrationEnvService'

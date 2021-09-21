@@ -165,6 +165,12 @@ export const constant = <T>(value: T): Source<T, T> => [
   constantAct,
 ]
 
+export const constantVector = <T>(value: T[]): Source<T, T> => [
+  [() => value, constantSubscribe],
+  identity,
+  constantAct,
+]
+
 export const nullSource: Source<null, null> = [
   [() => [null], constantSubscribe],
   identity,

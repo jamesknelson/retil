@@ -1,11 +1,10 @@
-import { createEnvVector, fuseEnvSource } from 'retil-mount'
-import { createState, constant } from 'retil-source'
+import { createVectorState, constant, fuse } from 'retil-source'
 import { noop } from 'retil-support'
 
 import { HydrationEnvService } from './hydrationTypes'
 
 // Servers don't do hydrationg, so we don't modify the env at all.
-const serverHydratingEnvSource = constant(createEnvVector([{}]))
+const serverHydratingEnvSource = constant({})
 const serverHydrationEnvService: HydrationEnvService = [
   serverHydratingEnvSource,
   noop,
@@ -47,10 +46,10 @@ export function createBrowserHydrationEnvService(
     throw new Error('Could not override the default hydration service.')
   }
 
-  const [hydratingSource, setHydrating] = createState(
-    createEnvVector(disablePrecache ? [true] : [true, false]),
+  const [hydratingSource, setHydrating] = createVectorState(
+    disablePrecache ? [true] : [true, false],
   )
-  const hydratingEnvSource = fuseEnvSource((use) => ({
+  const hydratingEnvSource = fuse((use) => ({
     hydrating: use(hydratingSource),
   }))
 
@@ -58,7 +57,7 @@ export function createBrowserHydrationEnvService(
   const hydrate = () => {
     if (!hasHydrated) {
       hasHydrated = true
-      setHydrating(createEnvVector([false]))
+      setHydrating([false])
     }
   }
 

@@ -1,10 +1,10 @@
-import { EnvSource } from 'retil-mount'
+import { Source } from 'retil-source'
 
 export interface HydrationEnv {
   hydrating?: boolean
 }
 
-export type HydrationEnvSource = EnvSource<HydrationEnv>
+export type HydrationEnvSource = Source<HydrationEnv>
 
 export type HydrationEnvService = readonly [
   source: HydrationEnvSource,

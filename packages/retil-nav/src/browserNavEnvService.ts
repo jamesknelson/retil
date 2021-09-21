@@ -9,7 +9,6 @@
  * Licensed under MIT license
  */
 import deepEquals from 'fast-deep-equal'
-import { createEnvVector, fuseEnvSource } from 'retil-mount'
 import { createState, fuse, getSnapshot, observe } from 'retil-source'
 
 import {
@@ -482,7 +481,7 @@ export function createBrowserNavEnvService(
     },
   }
 
-  const navEnvSource = fuseEnvSource((use) => ({ nav: use(navSource) }))
+  const navEnvSource = fuse((use) => ({ nav: use(navSource) }))
   const service = [navEnvSource, controller] as const
 
   if (!hasDefault && (defaultNavService || defaultNavService === undefined)) {
