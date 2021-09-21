@@ -13,7 +13,6 @@ import { Source, SourceCore, SourceSelect, getSnapshotPromise } from './source'
 type FusorInvocation = UseInvocation[]
 
 type UseInvocation = [
-  vector: unknown[],
   source: Source<unknown>,
   maybeDefaultValue: Maybe<unknown>,
   result?: unknown,
@@ -45,12 +44,12 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
 
   // Contains the results returned by each `memo` call on the latest update,
   // keyed by the args passed to the memo function.
-  let memos = new ArrayKeyedMap<unknown[], unknown>()
+  let memosMap = new ArrayKeyedMap<unknown[], unknown>()
 
   // Contains memo results from the previous update.
-  let cachedMemos = new ArrayKeyedMap<unknown[], unknown>()
+  let cachedMemosMap = new ArrayKeyedMap<unknown[], unknown>()
 
-  let cachedResults = new ArrayKeyedMap<unknown[], T>()
+  let cachedResultsMap = new ArrayKeyedMap<unknown[], T>()
 
   let cachedFusorInvocations = [] as FusorInvocation[]
 
@@ -60,15 +59,15 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
   ): U => {
     let maybeResult: Maybe<unknown>
     let result: U
-    if ((maybeResult = memos.getMaybe(args)).length) {
+    if ((maybeResult = memosMap.getMaybe(args)).length) {
       result = maybeResult[0] as U
     } else {
-      if ((maybeResult = cachedMemos.getMaybe(args)).length) {
+      if ((maybeResult = cachedMemosMap.getMaybe(args)).length) {
         result = maybeResult[0] as U
       } else {
         result = callback(...args)
       }
-      memos.set(args, result)
+      memosMap.set(args, result)
     }
     return result
   }
@@ -84,7 +83,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     maybeDefaultValue: Maybe<any>,
   ): unknown[] => {
     const usedCore = addCore(core)
-    const vector = usedCore.vector
+    const mappedVector = usedCore.vector.map(select)
     let selections = usedCoreSelections.get(core)
     if (!selections) {
       selections = []
@@ -93,9 +92,9 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     selections.push({
       select,
       maybeDefaultValue,
-      results: vector.length > 0 ? vector.map(select) : maybeDefaultValue,
+      results: mappedVector.length > 0 ? mappedVector : maybeDefaultValue,
     })
-    return vector
+    return mappedVector
   }
 
   const addCore = (core: SourceCore) => {
@@ -205,14 +204,14 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
 
     usedCoreSelections.clear()
 
-    memos = new ArrayKeyedMap<unknown[], unknown>()
+    memosMap = new ArrayKeyedMap<unknown[], unknown>()
 
     // Contains the results returned by each fusor on this update, keyed by
     // an array of the list of `use` results that produced them.
-    const results = new ArrayKeyedMap<unknown[], T>()
+    const resultsMap = new ArrayKeyedMap<unknown[], T>()
 
     // A vector of the results from all fusor invocations
-    const fusorResultsVector = [] as T[]
+    const results = [] as T[]
 
     // Contains a list of remaining fusor invocations that still must be run
     // for this update.
@@ -227,7 +226,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
     // invocations back as we complete them.
     cachedFusorInvocations = []
 
-    fusorInvocator: while (remainingFusorInvocations.length) {
+    while (remainingFusorInvocations.length) {
       // Holds a list of use invocations from a single previous fusor run,
       // sliced to remove the actual result, which we'll want to compute fresh.
       const fusorUseInvocations = remainingFusorInvocations
@@ -238,54 +237,53 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
       // for a fusor to use single source multiple times, and it should always
       // result in an identical result (so long as it has a value or has
       // identical default values).
-      const replaceUseInvocationsBySource = new Map<
-        Source<unknown>,
-        UseInvocation
-      >()
+      const fusorUseResultsBySource = new Map<Source<unknown>, unknown>()
 
       for (let i = 0; i < fusorUseInvocations.length; i++) {
-        const [, source, maybeDefaultValue] = fusorUseInvocations[i]
-        if (fusorUseInvocations[i].length === 4) {
-          // This is the first use of this source for this fusor invocation,
-          // so we'll store the value in case we encounter the same source
-          // again.
-          replaceUseInvocationsBySource.set(source, fusorUseInvocations[i])
-        } else if (replaceUseInvocationsBySource.has(source)) {
-          const [vector, , , result] =
-            replaceUseInvocationsBySource.get(source)!
-          // We've encountered a source that was previously used in the same
-          // fusor invocation, so we'll use the same value – but also be
-          // careful to record the correct default (which may matter in a future
-          // update, even though it won't be used now).
-          fusorUseInvocations[i] = [vector, source, maybeDefaultValue, result]
+        const [source, maybeDefaultValue] = fusorUseInvocations[i]
+        if (fusorUseInvocations[i].length === 3) {
+          // A result may have been added by a previous append, in which case
+          // we'll want to store the value to be used for this source within
+          // this fusor invocation.
+          if (!fusorUseResultsBySource.has(source)) {
+            fusorUseResultsBySource.set(source, fusorUseInvocations[i][2])
+          }
         } else {
-          const vector = vectorUse(source, maybeDefaultValue)
-          if (vector.length > 0) {
-            // Replace this item in the queue with an expansion for the vector,
-            // then keep working through the queue.
-            expandVectorIntoFusorInvocations(
-              remainingFusorInvocations,
-              fusorUseInvocations,
-              i,
-              vector,
-              source,
-              maybeDefaultValue,
-              0, // startIndex
-            )
-            continue fusorInvocator
-          } else if (maybeDefaultValue.length) {
-            fusorUseInvocations[i] = [
-              vector,
-              source,
-              maybeDefaultValue,
-              maybeDefaultValue[0],
-            ]
+          if (fusorUseResultsBySource.has(source)) {
+            // We've encountered a source that was previously used in the same
+            // fusor invocation, so we'll use the same value – but also be
+            // careful to record the correct default (which may matter in a future
+            // update, even though it won't be used now).
+            const result = fusorUseResultsBySource.get(source)!
+            fusorUseInvocations[i] = [source, maybeDefaultValue, result]
           } else {
-            // We don't have a value or default value for something that
-            // previously had a value, cut our planning short and bail to the
-            // fusor.
-            fusorUseInvocations.length = i
-            break
+            const vector = vectorUse(source, maybeDefaultValue)
+            if (vector.length > 0) {
+              // Replace this item in the queue with an expansion for the vector,
+              // then keep working through the queue.
+              appendFusorInvocationsFromVector(
+                remainingFusorInvocations,
+                fusorUseInvocations,
+                i,
+                vector,
+                source,
+                maybeDefaultValue,
+              )
+              fusorUseInvocations[i] = [source, maybeDefaultValue, vector[0]]
+              fusorUseResultsBySource.set(source, vector[0])
+            } else if (maybeDefaultValue.length) {
+              fusorUseInvocations[i] = [
+                source,
+                maybeDefaultValue,
+                maybeDefaultValue[0],
+              ]
+            } else {
+              // We don't have a value or default value for something that
+              // previously had a value, cut our planning short and bail to the
+              // fusor.
+              fusorUseInvocations.length = i
+              break
+            }
           }
         }
       }
@@ -297,14 +295,14 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
 
       // Holds a list of results that *have* been returned by use calls in
       const useResults = fusorUseInvocations.map(
-        (invocation) => invocation[3],
+        (invocation) => invocation[2],
       ) as unknown[]
 
       let result: T
       let maybeResult: Maybe<T>
       if (
-        (maybeResult = results.getMaybe(useResults)).length ||
-        (maybeResult = cachedResults.getMaybe(useResults)).length
+        (maybeResult = resultsMap.getMaybe(useResults)).length ||
+        (maybeResult = cachedResultsMap.getMaybe(useResults)).length
       ) {
         // If the previous update had a fusor invocation with exactly the same
         // results for it's `use` calls as this invocation, then we'll re-use
@@ -321,6 +319,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
           source: Source<T>,
           ...defaultValues: [U] | []
         ): T | U => {
+          let result: T | U
           const fusorUseIndex = fusorUseCount++
           const preparedUseInvocation =
             fusorUseIndex < fusorUseInvocations.length &&
@@ -330,15 +329,17 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
             // thus we need to ensure that the fusor passed the expected
             // arguments before returning our specified results.
             preparedUseInvocation &&
-            preparedUseInvocation[1] === source &&
-            (preparedUseInvocation[0].length > 0 ||
-              (preparedUseInvocation[2].length === defaultValues.length &&
-                preparedUseInvocation[2][0] === defaultValues[0]))
+            preparedUseInvocation[0] === source &&
+            ((preparedUseInvocation[1].length === defaultValues.length &&
+              preparedUseInvocation[1][0] === defaultValues[0]) ||
+              (defaultValues.length &&
+                defaultValues[0] === preparedUseInvocation[2]))
           ) {
-            return preparedUseInvocation[3] as T | U
+            return preparedUseInvocation[2] as T | U
+          } else if (fusorUseResultsBySource.has(source)) {
+            result = fusorUseResultsBySource.get(source)! as T | U
           } else {
             const vector = vectorUse(source, defaultValues)
-            let result: T | U
             if (vector.length === 0) {
               if (!defaultValues.length) {
                 // We have no default value for a missing source. We'll have to
@@ -347,27 +348,23 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
               }
               result = defaultValues[0]
             } else {
-              expandVectorIntoFusorInvocations(
+              // TODO: how do we ensure that any future uses of this source
+              // within the same fusor will result in the same value?
+              appendFusorInvocationsFromVector(
                 remainingFusorInvocations,
                 fusorUseInvocations,
                 fusorUseIndex,
                 vector,
                 source,
                 defaultValues,
-                1,
               )
-              const select = source[1]
-              result = select(vector[0])
+              result = vector[0] as T | U
+              fusorUseResultsBySource.set(source, result)
             }
-            fusorUseInvocations[fusorUseIndex] = [
-              vector,
-              source,
-              defaultValues,
-              result,
-            ]
-            useResults[fusorUseIndex] = result
-            return result
           }
+          fusorUseInvocations[fusorUseIndex] = [source, defaultValues, result]
+          useResults[fusorUseIndex] = result
+          return result
         }
 
         try {
@@ -399,24 +396,24 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
         }
       } // end if
 
-      results.set(useResults, result)
-      fusorResultsVector.push(result)
-      addToNextFusorInvocationsIfRequired(
+      resultsMap.set(useResults, result)
+      results.push(result)
+      addToCachedFusorInvocationsIfRequired(
         cachedFusorInvocations,
         fusorUseInvocations,
       )
     } // end fusorInvocator: while
 
-    cachedResults = results
-    cachedMemos = memos
+    cachedResultsMap = resultsMap
+    cachedMemosMap = memosMap
     isFusing = false
     isInvalidated = isInvalidated || bailedViaEffect || bailedViaPromise
 
     if (!bailedViaEffect && !bailedViaPromise && isInvalidated) {
       runFusors()
     } else {
-      if (!bailedViaEffect || fusorResultsVector.length > 0) {
-        onNext!(fusorResultsVector)
+      if (!bailedViaEffect || results.length > 0) {
+        onNext!(results)
       }
       if (effectQueue.length) {
         runEffects()
@@ -445,8 +442,8 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
       usedCores.clear()
       usedCoreSelections.clear()
       cachedFusorInvocations = []
-      cachedResults.clear()
-      cachedMemos.clear()
+      cachedResultsMap.clear()
+      cachedMemosMap.clear()
       onTeardown()
     }
   })
@@ -461,31 +458,24 @@ const throwArg = (error: any) => {
 }
 
 // Add extra fusor invocations for each item in the vector
-function expandVectorIntoFusorInvocations(
+function appendFusorInvocationsFromVector(
   fusorInvocations: FusorInvocation[],
   fusorUseInvocations: UseInvocation[],
   useIndex: number,
   vector: any[],
   source: Source<any>,
   defaultValues: Maybe<any>,
-  startIndex: number,
 ) {
   // Walk backwards so that the result of unshifting is that the vector will
   // be added in the original order.
-  for (let j = vector.length - 1; j >= startIndex; j--) {
-    const select = source[1]
+  for (let j = vector.length - 1; j >= 1; j--) {
     const expandedUseInvocations = fusorUseInvocations.slice()
-    expandedUseInvocations[useIndex] = [
-      vector,
-      source,
-      defaultValues,
-      select(vector[j]),
-    ]
+    expandedUseInvocations[useIndex] = [source, defaultValues, vector[j]]
     fusorInvocations.unshift(expandedUseInvocations)
   }
 }
 
-function addToNextFusorInvocationsIfRequired(
+function addToCachedFusorInvocationsIfRequired(
   nextFusorInvocations: FusorInvocation[],
   fusorInvocation: FusorInvocation,
 ) {
@@ -495,15 +485,14 @@ function addToNextFusorInvocationsIfRequired(
       includedFusorInvocation.every(
         (useInvocation, i) =>
           useInvocation[0] === fusorInvocation[i][0] &&
-          useInvocation[1] === fusorInvocation[i][1] &&
-          useInvocation[2].length === fusorInvocation[i][2].length &&
-          useInvocation[2][0] === fusorInvocation[i][2][0],
+          useInvocation[1].length === fusorInvocation[i][1].length &&
+          useInvocation[1][0] === fusorInvocation[i][1][0],
       ),
   )
   if (!isAlreadyIncluded) {
     nextFusorInvocations.push(
       fusorInvocation.map(
-        (useInvocation) => useInvocation.slice(0, 3) as UseInvocation,
+        (useInvocation) => useInvocation.slice(0, 2) as UseInvocation,
       ),
     )
   }

@@ -89,7 +89,7 @@ describe(`fuse`, () => {
     expect(output.reverse()).toEqual([1, 4])
   })
 
-  test(`can combine single-value sources with multip-value sources`, () => {
+  test(`can combine single-value sources with multi-value sources`, () => {
     const [stateSource1] = createVectorState([1, 2])
     const [stateSource2, setState2] = createState(3)
     const source = fuse((use) => {
