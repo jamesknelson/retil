@@ -1,8 +1,8 @@
 import {
   Deferred,
+  areArraysShallowEqual,
   isPromiseLike,
   noop,
-  areArraysShallowEqual,
 } from 'retil-support'
 
 import { Source, SourceAct, identitySelector } from './source'
@@ -260,7 +260,7 @@ export function observe<T>(
     const result = parentAct ? parentAct(callback) : callback()
 
     if (isPromiseLike(result)) {
-      const asyncAct = result.then(() => {
+      const asyncAct = Promise.resolve(result).then(() => {
         --actDepth
         scheduleTeardownIfRequired()
         asyncActs.delete(asyncAct)

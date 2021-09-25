@@ -136,13 +136,13 @@ describe(`fuse`, () => {
     })
     const output = sendVectorToArray(source)
 
-    const fusorCountBeforeReorder = fusorCount
+    expect(fusorCount).toBe(2)
     setState1([2, 1])
     expect(output.reverse()).toEqual([
       [3, 6],
       [6, 3],
     ])
-    expect(fusorCount).toBe(fusorCountBeforeReorder)
+    expect(fusorCount).toBe(2)
   })
 
   test(`can partially change sources without recomputing previous known values`, () => {
@@ -347,10 +347,10 @@ describe(`fuse`, () => {
 
   test('will not run the fusor again until an internal act() completes', async () => {
     const [stateSource, setState] = createState<number>()
-    const source = fuse((use, effect) => {
+    const source = fuse((use, act) => {
       const state = use(stateSource)
       if (state % 2 === 1) {
-        return effect(async () => {
+        return act(async () => {
           setState((state) => state + 1)
           await delay(10)
         })
@@ -358,6 +358,8 @@ describe(`fuse`, () => {
       return state
     })
     const output = sendToArray(source)
+
+    expect(output.reverse()).toEqual([])
 
     setState(1)
     setState(3)
@@ -462,6 +464,19 @@ describe(`fuse`, () => {
 
     expect(() => {
       getSnapshot(source)
+    }).toThrowError()
+  })
+
+  test('when a fuse uses a source in error state, the fused source should also fall into error state', () => {
+    const source1 = fuse((use) => {
+      throw new Error('test')
+    })
+    const source2 = fuse((use) => {
+      use(source1)
+    })
+
+    expect(() => {
+      getSnapshot(source2)
     }).toThrowError()
   })
 

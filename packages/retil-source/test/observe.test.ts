@@ -10,6 +10,26 @@ import {
 import { sendVectorToArray } from './utils/sendToArray'
 
 describe(`observe`, () => {
+  test(`only published an updated vector if it is shallow equal from the current vector`, async () => {
+    let next: any
+
+    const source = observe<number>((onNext) => {
+      next = onNext
+      onNext([1])
+      return () => {}
+    })
+
+    // Open a subscription
+    const output = sendVectorToArray(source)
+
+    next([1])
+    next([2])
+    next([2])
+    next([3])
+
+    expect(output.reverse()).toEqual([[1], [2], [3]])
+  })
+
   test(`can exit from an async act nested inside a sync act`, async () => {
     let next: any
 
@@ -120,5 +140,16 @@ describe(`observe`, () => {
     expect(() => {
       getSnapshot(source)
     }).toThrowError()
+  })
+
+  test(`rejected promises returned from an "act" callback will put the source into error state`, async () => {
+    const source = observe((next) => {
+      next(1)
+      return noop
+    })
+    try {
+      await act(source, () => Promise.reject('test error'))
+    } catch {}
+    expect(getSnapshotPromise(source)).rejects.toBe('test error')
   })
 })

@@ -9,7 +9,13 @@
  * Licensed under MIT license
  */
 import deepEquals from 'fast-deep-equal'
-import { createState, fuse, getSnapshot, observe } from 'retil-source'
+import {
+  createState,
+  fuse,
+  getSnapshot,
+  observe,
+  vectorFuse,
+} from 'retil-source'
 
 import {
   NavAction,
@@ -43,6 +49,11 @@ interface NavState {
   env: NavSnapshot
   index: number
   version: number
+}
+
+interface CancelQueueItem {
+  location: NavLocation
+  cancel: () => void
 }
 
 export const getDefaultBrowserNavEnvService: {
@@ -140,11 +151,9 @@ export function createBrowserNavEnvService(
   const blockPredicates = [] as NavBlockPredicate[]
   const history = window.history
   const [precacheSource, setPrecache] = createState<NavSnapshot[]>([])
-
-  const cancelPrecacheQueue = [] as {
-    location: NavLocation
-    cancel: () => void
-  }[]
+  const [precacheCancelQueueSource, setPrecacheCancelQueue] = createState<
+    CancelQueueItem[]
+  >([])
 
   const isBlocked = (
     location: NavLocation,
@@ -345,15 +354,19 @@ export function createBrowserNavEnvService(
     }
   })
 
-  const navSource = fuse((use, effect) => {
-    const pop = use(popSource)
-    const state = use(stateSource)
-    const precache = use(precacheSource)
+  const [resultStashSource, setResultStash] = createState<NavSnapshot[]>()
+  const navSource = vectorFuse((use, act, memo) => {
+    const [pop] = use(popSource)
+    const [state] = use(stateSource)
+
+    // TODO: Use an LRU cache to prevent things from getting too large.
+    const [precache] = use(precacheSource)
+    const [precacheCancelQueue] = use(precacheCancelQueueSource)
 
     const { env, version } = state
 
     if (pop.version > version) {
-      return effect(() => {
+      return act(() => {
         setState({
           version: pop.version,
           index: pop.index,
@@ -362,24 +375,35 @@ export function createBrowserNavEnvService(
       })
     }
 
-    // TODO: Only remove items if the primary state has changed; don't
-    //       remove anything if only the precache state has changed.
-    //       Use an LRU cache to prevent things from getting too large.
-    // Remove precache items in an effect, so as to avoid unnecessary updates
-    // just to remove precached items.
-    if (cancelPrecacheQueue.length) {
-      return effect(() => {
-        while (cancelPrecacheQueue.length) {
-          const { cancel } = cancelPrecacheQueue.pop()!
-          cancel()
+    const result = memo(
+      (env: NavSnapshot, ...precaches: NavSnapshot[]) => {
+        // Remove precache items in an effect, so as to avoid unnecessary
+        // updates just to remove precached items.
+        // NOTE: `precacheCancelQueue` is not listed in the memo dependencies,
+        // as we only want to remove items from the precache at points in time
+        // where we'd be performing a new output anyway.
+
+        return [env, ...precaches.filter((precacheEnv) => precacheEnv !== env)]
+      },
+      [env, ...precache],
+    )
+
+    // Cancel precache items only when env changes
+    const [resultStash] = use(resultStashSource)
+    if (resultStash !== result) {
+      return act(() => {
+        if (precacheCancelQueue.length) {
+          while (precacheCancelQueue.length) {
+            const { cancel } = precacheCancelQueue.pop()!
+            cancel()
+          }
+          setPrecacheCancelQueue([])
         }
+        setResultStash(result)
       })
     }
 
-    return createEnvVector([
-      env,
-      ...precache.filter((precacheEnv) => precacheEnv !== env),
-    ])
+    return result
   })
 
   const resolve = (action: NavAction): NavLocation => {
@@ -431,16 +455,16 @@ export function createBrowserNavEnvService(
     precache: (action) => {
       const location = resolve(action)
       const predicate = createLocationPredicate(location)
+      const cancelPrecacheQueue = getSnapshot(precacheCancelQueueSource)
       const cancelQueueIndex = cancelPrecacheQueue.findIndex((item) =>
         predicate(item.location),
       )
+      let cancelQueueItem: CancelQueueItem
       if (cancelQueueIndex !== -1) {
-        const cancelQueueItem = cancelPrecacheQueue[cancelQueueIndex]
+        // If this action has already been precached, and is queued to be
+        // removed from the precache, then just cancel the removal mutatively.
+        cancelQueueItem = cancelPrecacheQueue[cancelQueueIndex]
         cancelPrecacheQueue.splice(cancelQueueIndex, 1)
-        const scheduleRelease = () => {
-          cancelPrecacheQueue.push(cancelQueueItem)
-        }
-        return scheduleRelease
       } else {
         let released = false
         const releasePrecacheImmediately = () => {
@@ -470,14 +494,16 @@ export function createBrowserNavEnvService(
           nav,
         ])
 
-        const scheduleRelease = () => {
-          cancelPrecacheQueue.push({
-            location,
-            cancel: releasePrecacheImmediately,
-          })
+        cancelQueueItem = {
+          location,
+          cancel: releasePrecacheImmediately,
         }
-        return scheduleRelease
       }
+
+      const scheduleRelease = () => {
+        setPrecacheCancelQueue((cancels) => [...cancels, cancelQueueItem])
+      }
+      return scheduleRelease
     },
   }
 

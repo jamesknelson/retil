@@ -12,7 +12,7 @@ import {
   getSnapshot,
   getSnapshotPromise,
   hasSnapshot,
-  mergeLatest,
+  reduceVector,
   subscribe,
 } from 'retil-source'
 
@@ -35,9 +35,18 @@ export const useMountSource = <Env extends object, Content>(
 
   const mergedSource = useMemo(
     () =>
-      mergeLatest(
+      reduceVector(
         mountSource,
-        (latestSnapshot, isSuspended) => [latestSnapshot, isSuspended] as const,
+        ([latestOutput], latestVector) =>
+          !latestOutput && !latestVector.length
+            ? []
+            : [
+                [
+                  latestVector.length ? latestVector[0] : latestOutput[0],
+                  !latestVector.length,
+                ] as const,
+              ],
+        [] as (readonly [MountSnapshotWithContent<Env, Content>, boolean])[],
       ),
     [mountSource],
   )

@@ -12,8 +12,9 @@ import { cloneElement } from 'react'
 import { createRoot } from 'react-dom'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
-import { Mount, fuseEnvSource, useEnv } from 'retil-mount'
+import { Mount, useEnv } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
+import { fuse } from 'retil-source'
 import { CSSProvider } from 'retil-css'
 
 import { AppEnv } from './appEnv'
@@ -27,7 +28,7 @@ const reactRoot = createRoot(rootNode, { hydrate: true })
 const [hydrationEnvSource] = getDefaultHydrationEnvService()
 const [navEnvSource] = getDefaultBrowserNavEnvService()
 
-const envSource = fuseEnvSource((use) => {
+const envSource = fuse((use) => {
   const hydrationEnv = use(hydrationEnvSource)
   const navEnv = use(navEnvSource)
 

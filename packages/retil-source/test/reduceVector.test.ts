@@ -11,14 +11,17 @@ describe(`reduceVector`, () => {
     })
     const source = reduceVector(
       evenSource,
-      (previousOutput, currentVector) => [
-        {
-          latest: currentVector.length
-            ? currentVector[0]
-            : previousOutput![0].latest,
-          missing: !currentVector.length,
-        },
-      ],
+      (previousOutput, currentVector) =>
+        previousOutput.length || currentVector.length
+          ? [
+              {
+                latest: currentVector.length
+                  ? currentVector[0]
+                  : previousOutput[0].latest,
+                missing: !currentVector.length,
+              },
+            ]
+          : [],
       [] as { latest: number; missing: boolean }[],
     )
     const output = sendToArray(source)

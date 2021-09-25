@@ -1,0 +1,20 @@
+---
+title: Fusors
+packages:
+  - retil-source
+---
+
+# <Title />
+
+Composable, react-independent effects and state management.
+
+## The rules of fusors
+
+- any given set of `use` results should produce the same return value.
+- this return value can be an actor call, in which case, the actor must cause the `use` results to change.
+- hooks must be called synchronously with the fusor, and may not be called within try/catch blocks
+
+corollaries:
+
+- returning an effect when all your used sources are sealed is illegal
+- any function passed to `memo` must be pure

@@ -1,14 +1,11 @@
-import {
-  ArrayKeyedMap,
-  Maybe,
-  isPromiseLike,
-  noop,
-  areArraysShallowEqual,
-} from 'retil-support'
+import { ArrayKeyedMap, Maybe, isPromiseLike } from 'retil-support'
 
-import { FuseEffectSymbol, FuseEffect, Fusor, FusorMemo } from './fusor'
-import { observe } from './observe'
-import { Source, SourceCore, SourceSelect, getSnapshotPromise } from './source'
+import { fromPromise } from './fromPromise'
+import { FuseActSymbol, FuseAct, Fusor } from './fusor'
+import { Source } from './source'
+import { vectorFuse } from './vectorFuse'
+
+export const EmptySymbol = Symbol('empty')
 
 type FusorInvocation = UseInvocation[]
 
@@ -18,194 +15,39 @@ type UseInvocation = [
   result?: unknown,
 ]
 
-type UsedCoreSelection = {
-  select: SourceSelect<unknown>
-  maybeDefaultValue: Maybe<unknown>
-  results: unknown[]
-}
+type ActInvocation = [useResults: unknown[], resolutionSource?: Source<any>]
 
-type UsedCore = {
-  sealed?: boolean
-  unsubscribe: () => void
-  vector: unknown[]
-}
-
-export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
-  let onNext: null | ((value: T | T[]) => void) = null
-  let onError: (error: any) => void = throwArg
-  let onSeal: null | (() => void) = null
-
-  let isFusing = false
-  let isInEffect = false
-  let isInvalidated = false
-
-  const usedCores = new Map<SourceCore, UsedCore>()
-  const usedCoreSelections = new Map<SourceCore, UsedCoreSelection[]>()
-
-  // Contains the results returned by each `memo` call on the latest update,
-  // keyed by the args passed to the memo function.
-  let memosMap = new ArrayKeyedMap<unknown[], unknown>()
-
-  // Contains memo results from the previous update.
-  let cachedMemosMap = new ArrayKeyedMap<unknown[], unknown>()
-
+export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
   let cachedResultsMap = new ArrayKeyedMap<unknown[], T>()
-
   let cachedFusorInvocations = [] as FusorInvocation[]
 
-  const memo: FusorMemo = <U, V extends any[] = []>(
-    callback: (...args: V) => U,
-    args: V = [] as unknown as V,
-  ): U => {
-    let maybeResult: Maybe<unknown>
-    let result: U
-    if ((maybeResult = memosMap.getMaybe(args)).length) {
-      result = maybeResult[0] as U
-    } else {
-      if ((maybeResult = cachedMemosMap.getMaybe(args)).length) {
-        result = maybeResult[0] as U
-      } else {
-        result = callback(...args)
-      }
-      memosMap.set(args, result)
+  let isFusing = false
+  let enqueuedActor: undefined | (() => any)
+  let previousActInvocation: undefined | ActInvocation
+  let useResults = [] as unknown[]
+
+  const enqueueActor = (callback: () => any): FuseAct => {
+    if (!isFusing) {
+      throw new Error('You can only call fusor hooks while fusing.')
     }
-    return result
-  }
-
-  const effectQueue = [] as (() => any)[]
-  const effect = (callback: () => any): FuseEffect => {
-    effectQueue.push(callback)
-    return FuseEffectSymbol
-  }
-
-  const vectorUse = (
-    [core, select]: Source<unknown>,
-    maybeDefaultValue: Maybe<any>,
-  ): unknown[] => {
-    const usedCore = addCore(core)
-    const mappedVector = usedCore.vector.map(select)
-    let selections = usedCoreSelections.get(core)
-    if (!selections) {
-      selections = []
-      usedCoreSelections.set(core, selections)
+    if (enqueuedActor) {
+      throw new Error("A fusor may only call it's `act()` argument once.")
     }
-    selections.push({
-      select,
-      maybeDefaultValue,
-      results: mappedVector.length > 0 ? mappedVector : maybeDefaultValue,
-    })
-    return mappedVector
+    enqueuedActor = callback
+    return FuseActSymbol
   }
 
-  const addCore = (core: SourceCore) => {
-    let usedCore = usedCores.get(core)
-    if (usedCore) {
-      return usedCore
-    } else {
-      const [getVector, subscribe] = core
+  const handleTeardown = () => {
+    enqueuedActor = undefined
+    cachedFusorInvocations = []
+    cachedResultsMap.clear()
 
-      // On change, check if the new vector will cause a different result for
-      // any of the previous invocations of `use` that depend on this source.
-      // If there is a change, mark the current result as invalid, and if run
-      // the fusor if a re-run isn't already in progress or scheduled due to
-      // an effect.
-      const change = () => {
-        const vector = getVector()
-        usedCore.vector = vector
-        for (const selection of usedCoreSelections.get(core) || []) {
-          const results = vector.length
-            ? vector.map(selection.select)
-            : selection.maybeDefaultValue
-          if (!areArraysShallowEqual(results, selection.results)) {
-            isInvalidated = true
-            if (!isInEffect && !isFusing) {
-              debugger
-              runFusors()
-            }
-            return
-          }
-        }
-      }
-
-      const usedCore: UsedCore = {
-        // This will be set after calling `subscribe`, but `subscribe` may
-        // synchronously call `seal`, which may mutate usedCore.
-        unsubscribe: undefined as any,
-        vector: getVector(),
-      }
-      const seal = () => {
-        usedCore.sealed = true
-        attemptSeal()
-      }
-      usedCore.unsubscribe = subscribe(change, seal)
-
-      usedCores.set(core, usedCore as UsedCore)
-      return usedCore
+    if (onTeardown) {
+      onTeardown()
     }
   }
 
-  const cleanUpUnusedCores = () => {
-    for (const [core, { unsubscribe }] of Array.from(usedCores.entries())) {
-      if (!usedCoreSelections.has(core)) {
-        usedCores.delete(core)
-        unsubscribe()
-      }
-    }
-
-    attemptSeal()
-  }
-
-  const attemptSeal = () => {
-    if (
-      !isFusing &&
-      !isInvalidated &&
-      !isInEffect &&
-      !effectQueue.length &&
-      onSeal &&
-      (!usedCoreSelections.size ||
-        !Array.from(usedCores.values()).some((core) => !core.sealed))
-    ) {
-      onSeal()
-    }
-  }
-
-  const runEffects = () => {
-    let result: any
-    isInEffect = true
-    const finishEffect = () => {
-      isInEffect = false
-      if (isInvalidated) {
-        runFusors()
-      } else {
-        cleanUpUnusedCores()
-      }
-      return result
-    }
-    // Use an act to clear the result if the effects don't finish immediately,
-    // and to keep the subscription open.
-    act(() => {
-      while (effectQueue.length) {
-        const effect = effectQueue.shift()!
-        const effectResult = effect()
-        result =
-          isPromiseLike(result) || isPromiseLike(effectResult)
-            ? Promise.resolve(result).then(() => effectResult)
-            : effectResult
-      }
-      return isPromiseLike(result)
-        ? result.then(finishEffect, onError)
-        : finishEffect()
-    })
-  }
-
-  const runFusors = () => {
-    isFusing = true
-    isInvalidated = false
-
-    usedCoreSelections.clear()
-
-    memosMap = new ArrayKeyedMap<unknown[], unknown>()
-
+  return vectorFuse<T>((vectorUse, act, memo) => {
     // Contains the results returned by each fusor on this update, keyed by
     // an array of the list of `use` results that produced them.
     const resultsMap = new ArrayKeyedMap<unknown[], T>()
@@ -219,8 +61,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
       ? cachedFusorInvocations
       : [[]]
 
-    let bailedViaEffect = false
-    let bailedViaPromise = false
+    useResults = []
 
     // Reset the list of fusor invocations stored for next time. We'll then add
     // invocations back as we complete them.
@@ -286,17 +127,14 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
             }
           }
         }
+
+        useResults[i] = fusorUseInvocations[i][2]
       }
 
       // At this point, we have a (maybe partial) list of "use" invocations that
       // we •expect• to happen (based on previous fusor runs), along with
       // results if they do. If we have a saved result for these results, we'll
       // use it as-is. Otherwise, we'll need to run the fusor to get the result.
-
-      // Holds a list of results that *have* been returned by use calls in
-      const useResults = fusorUseInvocations.map(
-        (invocation) => invocation[2],
-      ) as unknown[]
 
       let result: T
       let maybeResult: Maybe<T>
@@ -309,16 +147,27 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
         // the result, as a fusor must obey the rule that identical `use`
         // results will produce an identical output.
         result = maybeResult[0]
+      } else if (previousActInvocation && previousActInvocation[1]) {
+        // If we've got no cached result and there's an unresolved async act,
+        // then wait for that to complete before continuing.
+        vectorUse(previousActInvocation[1])
+        cachedResultsMap = resultsMap
+        return results
       } else {
         let fusorUseCount = 0
 
         // Keep track of what is used, so that if we find we're producing a
         // precached value, we can keep track of the inputs that correspond
         // to it.
+        // eslint-disable-next-line no-loop-func
         const fusorUse = <T, U>(
           source: Source<T>,
           ...defaultValues: [U] | []
         ): T | U => {
+          if (!isFusing) {
+            throw new Error('You can only call fusor hooks while fusing.')
+          }
+
           let result: T | U
           const fusorUseIndex = fusorUseCount++
           const preparedUseInvocation =
@@ -343,13 +192,11 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
             if (vector.length === 0) {
               if (!defaultValues.length) {
                 // We have no default value for a missing source. We'll have to
-                // interrupt the fusor with an exception.
-                throw getSnapshotPromise(source)
+                // interrupt the fusor and try again once the source updates.
+                throw EmptySymbol
               }
               result = defaultValues[0]
             } else {
-              // TODO: how do we ensure that any future uses of this source
-              // within the same fusor will result in the same value?
               appendFusorInvocationsFromVector(
                 remainingFusorInvocations,
                 fusorUseInvocations,
@@ -368,30 +215,57 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
         }
 
         try {
-          const fusorResult = fusor(fusorUse, effect, memo)
-          if (fusorResult === FuseEffectSymbol) {
-            bailedViaEffect = true
-            break
-          } else {
-            result = fusorResult
-          }
-        } catch (errorOrPromise) {
-          if (isPromiseLike(errorOrPromise)) {
-            // Resolve to ensure that `then` is called in a separate tick.
-            // eslint-disable-next-line no-loop-func
-            Promise.resolve(errorOrPromise).then(() => {
-              // It's possible a source update has caused a run to complete in the
-              // intervening time.
-              if (onNext && isInvalidated && !isInEffect) {
-                runFusors()
-              }
-            }, onError)
+          isFusing = true
+          const fusorResult = fusor(fusorUse, enqueueActor, memo)
+          isFusing = false
 
-            bailedViaPromise = true
-            break
+          previousActInvocation = undefined
+          if (enqueuedActor) {
+            if (fusorResult !== FuseActSymbol) {
+              throw new Error(
+                'A fusor must return the result of any `act()` function that it calls.',
+              )
+            }
+
+            const actor = enqueuedActor
+            enqueuedActor = undefined
+            cachedResultsMap = resultsMap
+            // eslint-disable-next-line no-loop-func
+            return act(() => {
+              const actorResult = actor()
+              const invocation = [useResults] as ActInvocation
+              previousActInvocation = invocation
+
+              if (isPromiseLike(actorResult)) {
+                // Given that we're returning an `act()`, this vector fusor will
+                // be immediately re-run, and this time, instead of running the
+                // effect, it'll use this promise source to trigger a re-run
+                // once the actor completes.
+                invocation[1] = fromPromise(
+                  Promise.resolve(actorResult).then(() => {
+                    delete invocation[1]
+                  }),
+                )
+              }
+            })
           } else {
-            onError(errorOrPromise)
-            return
+            result = fusorResult as T
+          }
+        } catch (errorOrEmptySymbol) {
+          isFusing = false
+          if (errorOrEmptySymbol === EmptySymbol) {
+            // We've encountered a `use` on an empty source. Handle this by
+            // just returning what we have; given that it's an empty source,
+            // it should trigger an update soon anyway.
+            if (enqueuedActor) {
+              throw new Error(
+                'A fusor must return the result of any `act()` function that it calls.',
+              )
+            }
+            cachedResultsMap = resultsMap
+            return results
+          } else {
+            throw errorOrEmptySymbol
           }
         }
       } // end if
@@ -402,59 +276,11 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown = noop): Source<T> {
         cachedFusorInvocations,
         fusorUseInvocations,
       )
-    } // end fusorInvocator: while
+    } // end while
 
     cachedResultsMap = resultsMap
-    cachedMemosMap = memosMap
-    isFusing = false
-    isInvalidated = isInvalidated || bailedViaEffect || bailedViaPromise
-
-    if (!bailedViaEffect && !bailedViaPromise && isInvalidated) {
-      runFusors()
-    } else {
-      if (!bailedViaEffect || results.length > 0) {
-        onNext!(results)
-      }
-      if (effectQueue.length) {
-        runEffects()
-      } else {
-        cleanUpUnusedCores()
-      }
-    }
-  }
-
-  const source = observe<T>((next, error, seal) => {
-    onNext = next
-    onError = error
-    onSeal = seal
-
-    isInvalidated = true
-
-    runFusors()
-
-    return () => {
-      onNext = null
-      onError = throwArg
-      onSeal = null
-      for (const { unsubscribe } of Array.from(usedCores.values())) {
-        unsubscribe()
-      }
-      usedCores.clear()
-      usedCoreSelections.clear()
-      cachedFusorInvocations = []
-      cachedResultsMap.clear()
-      cachedMemosMap.clear()
-      onTeardown()
-    }
-  })
-
-  const act = source[2]
-
-  return source
-}
-
-const throwArg = (error: any) => {
-  throw error
+    return results
+  }, handleTeardown)
 }
 
 // Add extra fusor invocations for each item in the vector

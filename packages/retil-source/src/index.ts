@@ -9,6 +9,7 @@ export * from './reduceVector'
 export * from './select'
 export * from './source'
 export * from './state'
+export * from './vectorFuse'
 export * from './vectorState'
 export * from './wait'
 

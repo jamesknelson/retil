@@ -71,9 +71,9 @@ export function useIsHydrating() {
   const contextHydrating = useContext(HydratingContext)
   const source = getDefaultHydrationEnvService()[0]
   const serviceHydrating = useSource(env ? null : source, {
-    defaultValue: createEnvVector([env]),
+    defaultValue: env,
   })
-  return contextHydrating ?? serviceHydrating?.[1]?.hydrating
+  return contextHydrating ?? serviceHydrating?.hydrating
 }
 
 export function useHasHydrated() {

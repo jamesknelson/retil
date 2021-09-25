@@ -39,13 +39,14 @@ export function mount<Env extends object, Content>(
     contentRef.current = loader(loaderProps)
     return mountSnapshot as MountSnapshotWithContent<Env, Content>
   })
-  return mapVector(source, ([head, ...tail]) => {
+  return mapVector(source, (vector) => {
+    const [head, ...tail] = vector
     tail.forEach((snapshot) => {
       // Start fetching dependencies for precache ahead of time
       ;(
         snapshot as MountSnapshotWithContent<Env, Content>
       ).dependencies.resolve()
     })
-    return [head]
+    return vector.length === 0 ? vector : [head]
   })
 }

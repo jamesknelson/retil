@@ -9,16 +9,24 @@ export type ReduceVectorCallback<T, U> = (
 export function reduceVector<T, U>(
   source: Source<T>,
   callback: ReduceVectorCallback<T, U>,
-  initial: U[] | (() => U[]) = [],
+  initial: U[] = [],
 ): Source<U> {
   const [[getVector, subscribe], select, act] = source
 
   return observe((next, _error, seal) => {
-    let vector = typeof initial === 'function' ? initial() : initial
+    let vector = initial
     const handleChange = () => {
       vector = callback(vector, getVector().map(select))
       next(vector)
     }
-    return subscribe(handleChange, seal)
+    // Ensure we catch any events that are side effects of the initial
+    // `handleChange`.
+    const initialUnsubscribe = subscribe(handleChange)
+    handleChange()
+    // Now subscribe to to `seal()` events too -- we can't do this until we've
+    // made the initial call to `handleChange()`.
+    const unsubscribe = subscribe(handleChange, seal)
+    initialUnsubscribe()
+    return unsubscribe
   }, act)
 }

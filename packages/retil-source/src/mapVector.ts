@@ -19,7 +19,14 @@ export function mapVector<
     const handleChange = () => {
       next(callback(getVector().map(select)))
     }
-
-    return subscribe(handleChange, seal)
+    // Ensure we catch any events that are side effects of the initial
+    // `handleChange`.
+    const initialUnsubscribe = subscribe(handleChange)
+    handleChange()
+    // Now subscribe to to `seal()` events too -- we can't do this until we've
+    // made the initial call to `handleChange()`.
+    const unsubscribe = subscribe(handleChange, seal)
+    initialUnsubscribe()
+    return unsubscribe
   }, act)
 }

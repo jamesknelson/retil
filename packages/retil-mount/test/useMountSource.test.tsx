@@ -14,7 +14,7 @@ import {
 
 const getEmptyEnv = () => ({})
 
-export const SuspendForUnresolvedDependencies = ({
+const SuspendForUnresolvedDependencies = ({
   children,
   dependencies,
 }: {
@@ -51,6 +51,24 @@ describe('useMountSource', () => {
     expect(runCount).toBe(1)
   })
 
+  test(`throws an error when mounting a source in error state`, () => {
+    const rootSource = mount(() => {
+      throw new Error('errortest')
+    }, getEmptyEnv)
+    const Test = () => {
+      let result: string
+      try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        result = useMountSource(rootSource).content
+      } catch (error) {
+        result = error.message
+      }
+      return <>{result}</>
+    }
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('errortest')
+  })
+
   test(`lazily executes suspending sources just once, even in strict mode`, async () => {
     let runCount = 0
     let deferred: Deferred = new Deferred()
@@ -72,17 +90,18 @@ describe('useMountSource', () => {
       </StrictMode>,
     )
     expect(container).toHaveTextContent('loading')
-    deferred.resolve(true)
-    await waitFor(() => {
-      expect(runCount).toBe(1)
-      expect(container).toHaveTextContent('test')
+    await act(async () => {
+      deferred.resolve(true)
     })
+    expect(runCount).toBe(1)
+    expect(container).toHaveTextContent('test')
   })
 
   test(`can suspend to update env at startup`, async () => {
     const [envSource, setEnv] = createState({ pathname: '/start' })
+    const deferred: Deferred = new Deferred()
     const redirect = async (pathname: string) => {
-      await delay(1)
+      await deferred.promise
       setEnv({ pathname })
     }
 
@@ -111,9 +130,8 @@ describe('useMountSource', () => {
     )
 
     expect(container).toHaveTextContent('loading')
-    await waitFor(() => {
-      expect(container).toHaveTextContent('/complete')
-    })
+    await act(() => deferred.resolve(1))
+    expect(container).toHaveTextContent('/complete')
   })
 
   test(`can change to a suspended updating env without seeing a loading content`, async () => {
@@ -291,9 +309,9 @@ describe('useMountSource', () => {
     await act(async () => {
       deferred.resolve(true)
       expect(container).toHaveTextContent('/start suspended')
-      await stablePromise
-      expect(container).toHaveTextContent('/lazy')
     })
+    await act(() => stablePromise)
+    expect(container).toHaveTextContent('/lazy')
   })
 
   test(`waitUntilStable() waits until any subsequent envs have loaded before resolving`, async () => {
@@ -337,9 +355,11 @@ describe('useMountSource', () => {
     await act(async () => {
       deferred.resolve(true)
       expect(container).toHaveTextContent('/start suspended')
+    })
+    await act(async () => {
       setEnv({ pathname: '/complete' })
       await stablePromise
-      expect(container).toHaveTextContent('/complete')
     })
+    expect(container).toHaveTextContent('/complete')
   })
 })

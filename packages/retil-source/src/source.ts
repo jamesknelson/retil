@@ -1,4 +1,4 @@
-import { identity, isPromiseLike, noop } from 'retil-support'
+import { emptyArray, identity, noop } from 'retil-support'
 
 /**
  * Note, there's no need for a version, as snapshots are immutable. A change
@@ -87,14 +87,14 @@ export function getSnapshot<TSelection>(
   }
 }
 
-export function getSnapshotPromise<TSelection>([
+export function getSnapshotPromise<TSelection, TItem = TSelection>([
   [getVector, subscribe],
   select,
-]: GettableSource<TSelection>): Promise<TSelection> {
+]: GettableSource<TSelection, TItem>): Promise<TSelection> {
   try {
     const vector = getVector()
     if (vector.length > 0) {
-      return Promise.resolve(select(vector))
+      return Promise.resolve(select(vector[0]))
     } else {
       return new Promise((resolve, reject) => {
         let unresolved = true
@@ -117,9 +117,6 @@ export function getSnapshotPromise<TSelection>([
       })
     }
   } catch (error) {
-    if (isPromiseLike(error)) {
-      return Promise.resolve(error).then(() => select(getVector()))
-    }
     return Promise.reject(error)
   }
 }
@@ -159,11 +156,10 @@ const constantAct = <U>(cb: () => U | PromiseLike<U>) => Promise.resolve(cb())
 
 export const identitySelector = <U>(value: unknown) => value as U
 
-export const constant = <T>(value: T): Source<T, T> => [
-  [() => [value], constantSubscribe],
-  identity,
-  constantAct,
-]
+export const constant = <T>(value: T): Source<T, T> => {
+  const constantVector = [value]
+  return [[() => constantVector, constantSubscribe], identity, constantAct]
+}
 
 export const constantVector = <T>(value: T[]): Source<T, T> => [
   [() => value, constantSubscribe],
@@ -171,14 +167,15 @@ export const constantVector = <T>(value: T[]): Source<T, T> => [
   constantAct,
 ]
 
+const nullVector = [null]
 export const nullSource: Source<null, null> = [
-  [() => [null], constantSubscribe],
+  [() => nullVector, constantSubscribe],
   identity,
   constantAct,
 ]
 
 export const pendingSource: Source<any> = [
-  [() => [], constantSubscribe],
+  [() => emptyArray, constantSubscribe],
   identity,
   constantAct,
 ]

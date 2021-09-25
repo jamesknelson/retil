@@ -1,6 +1,7 @@
 import React, { ReactElement } from 'react'
-import { EnvSource, Mount, LoaderProps, useMountContent } from 'retil-mount'
+import { Mount, LoaderProps, useMountContent } from 'retil-mount'
 import { NavEnv, useNavLinkProps, useNavMatcher } from 'retil-nav'
+import { Source } from 'retil-source'
 
 export interface AppEnv extends NavEnv {}
 
@@ -18,7 +19,7 @@ export function appLoader({ nav }: LoaderProps<AppEnv>) {
 }
 
 export interface AppProps {
-  env: AppEnv | EnvSource<AppEnv>
+  env: AppEnv | Source<AppEnv>
 }
 
 export function App({ env }: AppProps) {

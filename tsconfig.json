@@ -2,6 +2,7 @@
   "extends": "./tsconfig.build.json",
 
   "compilerOptions": {
+    "sourceMap": true,
     "baseUrl": ".",
     "paths": {
       "retil": ["packages/retil/src"],

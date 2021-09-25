@@ -1,4 +1,4 @@
-import type { EnvSource } from 'retil-mount'
+import type { Source } from 'retil-source'
 
 export type NavTrigger = 'PUSH' | 'REPLACE' | 'POP'
 
@@ -60,7 +60,7 @@ export interface NavResponse {
   statusCode?: number
 }
 
-export type NavEnvSource = EnvSource<NavEnv>
+export type NavEnvSource = Source<NavEnv>
 
 export type NavEnvService = readonly [NavEnvSource, NavController]
 

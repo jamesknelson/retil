@@ -1,4 +1,4 @@
-import { ServerMountContext, createEnvVector, loadAsync } from 'retil-mount'
+import { ServerMountContext, loadAsync } from 'retil-mount'
 import {
   NavEnv,
   getDefaultBrowserNavEnvService,
@@ -6,7 +6,7 @@ import {
   noopNavController,
   notFoundLoader,
 } from 'retil-nav'
-import { Source, filter, fuse, map, reduceVector } from 'retil-source'
+import { Source, fuse, mapVector, reduceVector } from 'retil-source'
 import { createMemo } from 'retil-support'
 
 import { AppEnv } from 'site/src/appEnv'
@@ -59,24 +59,20 @@ const exampleLoader = loadAsync<AppEnv>(async (props) => {
     } else {
       const mappedEnv = mappedEnvMemo(() => {
         if (import.meta.env.SSR) {
-          return [
-            fuse(() => createEnvVector([createNestedEnv(env)])),
-            noopNavController,
-          ] as const
+          return [fuse(() => createNestedEnv(env)), noopNavController] as const
         } else {
           const defaultNavService = getDefaultBrowserNavEnvService()
           const [source, controller] = defaultNavService
-          const filteredSource = filter(
-            map(source, ([, currentEnv]) =>
-              // Ignore precache for the child service
-              createEnvVector([createNestedEnv(currentEnv)]),
-            ),
-            (vector) => vector[1].nav.pathname.startsWith(basename),
+          const filteredSource = mapVector(source, ([env]) =>
+            // Ignore precache for the child service
+            env && env.nav.pathname.startsWith(basename)
+              ? [createNestedEnv(env)]
+              : [],
           )
           const exampleNavSource = reduceVector(
             filteredSource,
-            (previousResult, currentVector) =>
-              currentVector.length ? currentVector : previousResult,
+            (previousVector, currentVector) =>
+              currentVector.length ? currentVector : previousVector,
             [] as typeof filteredSource extends Source<infer I> ? I[] : never,
           )
           return [exampleNavSource, controller] as const
