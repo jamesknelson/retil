@@ -25,7 +25,7 @@
     "tslib": "^2.2.0"
   },
   "devDependencies": {
-    "typescript": "4.3.5"
+    "typescript": "4.4.3"
   },
   "files": [
     "dist"
@@ -34,5 +34,5 @@
     "react",
     "loader"
   ],
-  "gitHead": "1fa948a087d38a7f3747425f593098f0614dc180"
+  "gitHead": "ca32de3a74011f7339f29295497b9d04ec8e442d"
 }

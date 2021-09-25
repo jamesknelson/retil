@@ -60,9 +60,7 @@ export function useOperation<Input = void, Output = void>(
         const instantProbe = Symbol()
         const probeResult = await Promise.race([
           resultPromise,
-          new Promise<typeof instantProbe>((resolve) =>
-            setTimeout(() => resolve(instantProbe)),
-          ),
+          Promise.resolve(instantProbe),
         ] as const)
         if (probeResult !== instantProbe) {
           // If the result promise resolves before a newly created promise, then

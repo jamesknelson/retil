@@ -60,7 +60,7 @@ describe('useMountSource', () => {
       try {
         // eslint-disable-next-line react-hooks/rules-of-hooks
         result = useMountSource(rootSource).content
-      } catch (error) {
+      } catch (error: any) {
         result = error.message
       }
       return <>{result}</>

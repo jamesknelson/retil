@@ -1,18 +1,20 @@
+/** @jsx jsx */
+import { matchers } from '@emotion/jest'
+import { css, jsx, ThemeContext } from '@emotion/react'
 import { render, cleanup } from '@testing-library/react'
-import 'jest-styled-components'
-import React, { forwardRef } from 'react'
+import { forwardRef } from 'react'
 import { CSSProvider, highStyle } from 'retil-css'
-import styled, { CSSProp, ThemeContext, css } from 'styled-components'
 
 import { inHoveredSurface, useSurfaceSelectorsConnector } from '../src'
+
+// Add the custom matchers provided by '@emotion/jest'
+expect.extend(matchers)
 
 afterEach(cleanup)
 
 describe('Surface Selectors', () => {
-  const TestDiv = styled.div<{ css: CSSProp }>(({ css }) => css)
-
   const ButtonBody = forwardRef<HTMLDivElement, any>((props, ref) => (
-    <TestDiv
+    <div
       {...props}
       ref={ref}
       css={highStyle({
@@ -44,7 +46,7 @@ describe('Surface Selectors', () => {
     )
 
     expect(getByTestId('body')).toHaveStyleRule('color', 'red', {
-      modifier: '.rx-1:hover &',
+      target: '.rx-1:hover',
     })
   })
 })

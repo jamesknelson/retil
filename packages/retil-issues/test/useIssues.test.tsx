@@ -10,7 +10,7 @@ describe('useIssues', () => {
     options?: UseIssuesOptions<Value>,
   ) {
     const result = {
-      current: (undefined as any) as UseIssuesTuple<Value>,
+      current: undefined as any as UseIssuesTuple<Value>,
     }
     const results = [] as UseIssuesTuple<Value>[]
     const Wrapper = ({ data, options }: any) => {
@@ -95,25 +95,25 @@ describe('useIssues', () => {
   test(`adding issues that have already been resolved returns a promise to "true"`, async () => {
     const { result } = renderUseIssues({ username: 'test-1' })
     const addIssues = result.current[1]
-    let valid: boolean
-    await act(async () => {
-      valid = await addIssues((value) => [
+    let valid!: Promise<boolean>
+    act(() => {
+      valid = addIssues((value) => [
         value.username === 'test-2' && { message: 'duplicate' },
       ])[1]
     })
-    expect(valid!).toBe(true)
+    expect(await valid).toBe(true)
   })
 
   test(`adding unresolved issues returns a promise to "false"`, async () => {
     const { result } = renderUseIssues({ username: 'test-1' })
     const addIssues = result.current[1]
-    let valid: boolean
-    await act(async () => {
-      valid = await addIssues((value) => [
+    let valid!: Promise<boolean>
+    act(() => {
+      valid = addIssues((value) => [
         value.username === 'test-1' && { message: 'duplicate' },
       ])[1]
     })
-    expect(valid!).toBe(false)
+    expect(await valid).toBe(false)
   })
 
   test(`added issues can be removed`, () => {

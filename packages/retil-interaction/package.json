@@ -28,10 +28,9 @@
     "tslib": "^2.2.0"
   },
   "devDependencies": {
-    "@types/styled-components": "^5.1.7",
-    "jest-styled-components": "^7.0.3",
-    "styled-components": "^5.3.0",
-    "typescript": "4.3.5"
+    "@emotion/jest": "^11.3.0",
+    "@emotion/react": "^11.4.1",
+    "typescript": "4.4.3"
   },
   "peerDependencies": {
     "react": "^17.0.1"
@@ -39,5 +38,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "1fa948a087d38a7f3747425f593098f0614dc180"
+  "gitHead": "ca32de3a74011f7339f29295497b9d04ec8e442d"
 }

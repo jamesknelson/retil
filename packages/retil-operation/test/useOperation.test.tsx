@@ -11,7 +11,7 @@ describe('useOperation', () => {
     ...deps: any[][]
   ) {
     const result = {
-      current: (undefined as any) as UseOperationResult<Input, Output>,
+      current: undefined as any as UseOperationResult<Input, Output>,
     }
     const results = [] as UseOperationResult<Input, Output>[]
     const Wrapper = ({ operation, deps }: any) => {
@@ -30,7 +30,8 @@ describe('useOperation', () => {
   }
 
   test(`returns an array of length 2 before a result is available`, async () => {
-    const { result } = renderUseOperation(() => delay(100))
+    const deferred = new Deferred()
+    const { result } = renderUseOperation(() => deferred.promise)
     const [trigger] = result.current
 
     await act(async () => {
@@ -52,13 +53,15 @@ describe('useOperation', () => {
   })
 
   test(`doesn't go pending immediately`, async () => {
-    const { result } = renderUseOperation(() => delay(100))
+    const deferred = new Deferred()
+    const { result } = renderUseOperation(() => deferred.promise)
     const [trigger] = result.current
 
-    act(() => {
-      trigger()
-    })
+    trigger()
     expect(result.current[1]).toBe(false)
+
+    // Wait for the non-immediate promise to resolve
+    await act(async () => {})
   })
 
   test(`doesn't enter pending at all for immediately resolved promises`, async () => {
@@ -84,50 +87,46 @@ describe('useOperation', () => {
     await waitFor(() => {
       expect(result.current[1]).toBe(true)
     })
-    await act(async () => {
-      deferred.resolve(true)
-    })
+    deferred.resolve(true)
+    await act(() => deferred.promise)
     expect(result.current[1]).toBe(false)
   })
 
   test(`changing the operation does not affect the pending operation`, async () => {
-    const { result, rerender } = renderUseOperation(() =>
-      delay(100).then(() => 'test-1'),
-    )
+    const deferred1 = new Deferred()
+    const deferred2 = new Deferred()
+    const { result, rerender } = renderUseOperation(() => deferred1.promise)
     const [trigger] = result.current
 
     await act(async () => {
       trigger()
     })
-    await waitFor(() => {
-      expect(result.current[1]).toBe(true)
-    })
+    expect(result.current[1]).toBe(true)
     await act(async () => {
-      rerender(() => delay(100).then(() => 'test-2'))
+      rerender(() => deferred2.promise.then(() => 'test-2'))
     })
-    await waitFor(() => {
-      expect(result.current[1]).toBe(false)
-    })
+    deferred1.resolve('test-1')
+    await act(() => deferred1.promise)
+    expect(result.current[1]).toBe(false)
     expect(result.current[2]).toBe('test-1')
   })
 
   test(`clears results when triggering a new operation`, async () => {
-    const { result } = renderUseOperation(delay)
+    const deferreds = [new Deferred(), new Deferred()]
+    const { result } = renderUseOperation((i: number) => deferreds[i].promise)
     const [trigger] = result.current
 
     await act(async () => {
       trigger(0)
     })
-    await waitFor(() => {
-      expect(result.current.length).toBe(3)
-    })
+    deferreds[0].resolve('test')
+    await act(() => deferreds[0].promise)
+    expect(result.current.length).toBe(3)
     expect(result.current[1]).toBe(false)
     await act(async () => {
-      trigger(100)
+      trigger(1)
     })
-    await waitFor(() => {
-      expect(result.current[1]).toBe(true)
-    })
+    expect(result.current[1]).toBe(true)
     expect(result.current.length).toBe(2)
   })
 
@@ -138,12 +137,11 @@ describe('useOperation', () => {
     const deferred2 = new Deferred()
     await act(async () => {
       trigger(deferred1.promise)
-      await delay(100)
     })
     await act(async () => {
       trigger(deferred2.promise)
-      await delay(100)
     })
+    await delay(50)
     await act(async () => {
       deferred2.resolve('test-2')
     })

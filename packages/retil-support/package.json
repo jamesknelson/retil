@@ -14,9 +14,7 @@
     "build": "yarn run clean && yarn build:es-and-types && yarn build:commonjs",
     "build:watch": "yarn run clean && yarn build:es-and-types -- --watch",
     "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn build",
-    "test": "jest",
-    "test:watch": "jest --watch"
+    "prepare": "yarn build"
   },
   "dependencies": {
     "fast-deep-equal": "^3.1.3",
@@ -28,10 +26,10 @@
   "devDependencies": {
     "@types/lodash": "^4.14.168",
     "@types/ramda": "^0.27.44",
-    "typescript": "4.3.5"
+    "typescript": "4.4.3"
   },
   "files": [
     "dist"
   ],
-  "gitHead": "1fa948a087d38a7f3747425f593098f0614dc180"
+  "gitHead": "ca32de3a74011f7339f29295497b9d04ec8e442d"
 }
