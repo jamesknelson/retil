@@ -1,6 +1,6 @@
 {
   "name": "retil-source",
-  "version": "0.23.1",
+  "version": "0.23.2",
   "description": "Utilities to create and combine suspendable, reactive sources",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",

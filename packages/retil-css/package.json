@@ -1,6 +1,6 @@
 {
   "name": "retil-css",
-  "version": "0.23.1",
+  "version": "0.23.2",
   "description": "Superpowers for decoupling style from behavior",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "fast-cartesian": "^5.1.0",
-    "retil-hydration": "^0.23.1",
+    "retil-hydration": "^0.23.2",
     "retil-support": "^0.23.1",
     "tslib": "^2.2.0"
   },
