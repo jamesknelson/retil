@@ -1,6 +1,6 @@
 {
   "name": "retil-boundary",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "description": "Superpowers for concurrent React apps.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
