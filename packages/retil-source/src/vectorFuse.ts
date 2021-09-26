@@ -58,15 +58,16 @@ export function vectorFuse<T>(
     }
     let maybeResult: Maybe<unknown>
     let result: U
-    if ((maybeResult = memosMap.getMaybe(args)).length) {
+    const key = [callback].concat(args)
+    if ((maybeResult = memosMap.getMaybe(key)).length) {
       result = maybeResult[0] as U
     } else {
-      if ((maybeResult = cachedMemosMap.getMaybe(args)).length) {
+      if ((maybeResult = cachedMemosMap.getMaybe(key)).length) {
         result = maybeResult[0] as U
       } else {
         result = callback(...args)
       }
-      memosMap.set(args, result)
+      memosMap.set(key, result)
     }
     return result
   }
@@ -174,6 +175,9 @@ export function vectorFuse<T>(
   const completeFusor = (value: T[]) => {
     isFusing = false
 
+    cachedMemosMap = memosMap
+    memosMap = new ArrayKeyedMap<unknown[], unknown>()
+
     onNext!(value)
 
     for (const [core, { unsubscribe }] of Array.from(usedCores.entries())) {
@@ -194,12 +198,10 @@ export function vectorFuse<T>(
     usedCoreSelections.clear()
     usedVectors.length = 0
     isInvalidated = false
-    memosMap = new ArrayKeyedMap<unknown[], unknown>()
 
     try {
       isFusing = true
       const result = fusor(use, enqueueActor, memo)
-      cachedMemosMap = memosMap
       if (enqueuedActor) {
         if (result !== FuseActSymbol) {
           throw new Error(
@@ -248,6 +250,7 @@ export function vectorFuse<T>(
       }
       usedCores.clear()
       usedCoreSelections.clear()
+      memosMap.clear()
       cachedMemosMap.clear()
       enqueuedActor = undefined
 

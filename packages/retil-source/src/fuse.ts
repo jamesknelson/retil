@@ -1,7 +1,7 @@
 import { ArrayKeyedMap, Maybe, isPromiseLike } from 'retil-support'
 
 import { fromPromise } from './fromPromise'
-import { FuseActSymbol, FuseAct, Fusor } from './fusor'
+import { FuseActSymbol, FuseAct, Fusor, FusorMemo } from './fusor'
 import { Source } from './source'
 import { vectorFuse } from './vectorFuse'
 
@@ -30,6 +30,36 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
   let previousActInvocation: undefined | ActInvocation
   let useResults = [] as unknown[]
 
+  // Contains the results returned by each `memo` call on the latest update,
+  // keyed by the args passed to the memo function.
+  let memosMap = new ArrayKeyedMap<unknown[], unknown>()
+
+  // Contains memo results from the previous update.
+  let cachedMemosMap = new ArrayKeyedMap<unknown[], unknown>()
+
+  const memo: FusorMemo = <U, V extends any[] = []>(
+    callback: (...args: V) => U,
+    args: V = [] as unknown as V,
+  ): U => {
+    if (!isFusing) {
+      throw new Error('You can only call fusor hooks while fusing.')
+    }
+    let maybeResult: Maybe<unknown>
+    let result: U
+    const key = [callback].concat(args)
+    if ((maybeResult = memosMap.getMaybe(key)).length) {
+      result = maybeResult[0] as U
+    } else {
+      if ((maybeResult = cachedMemosMap.getMaybe(key)).length) {
+        result = maybeResult[0] as U
+      } else {
+        result = callback(...args)
+      }
+      memosMap.set(key, result)
+    }
+    return result
+  }
+
   const enqueueActor = (callback: () => any): FuseAct => {
     if (!isFusing) {
       throw new Error('You can only call fusor hooks while fusing.')
@@ -44,6 +74,8 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
   const handleTeardown = () => {
     enqueuedActor = undefined
     cachedFusorInvocations = []
+    memosMap.clear()
+    cachedMemosMap.clear()
     cachedResultsMap.clear()
 
     if (onTeardown) {
@@ -51,7 +83,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
     }
   }
 
-  return vectorFuse<T>((vectorUse, act, memo) => {
+  return vectorFuse<T>((vectorUse, act) => {
     // Contains the results returned by each fusor on this update, keyed by
     // an array of the list of `use` results that produced them.
     const resultsMap = new ArrayKeyedMap<unknown[], T>()
@@ -290,7 +322,10 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
       )
     } // end while
 
+    cachedMemosMap = memosMap
     cachedResultsMap = resultsMap
+
+    memosMap = new ArrayKeyedMap<unknown[], unknown>()
     return results
   }, handleTeardown)
 }

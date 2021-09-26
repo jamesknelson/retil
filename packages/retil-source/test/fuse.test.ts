@@ -98,8 +98,9 @@ describe(`fuse`, () => {
 
   test(`can memoize an independant value across fusor calls`, () => {
     const [stateSource, setState] = createState<number>()
+    const memoFn = () => ({ current: 0 })
     const source = fuse((use, _, memo) => {
-      const ref = memo(() => ({ current: 0 }))
+      const ref = memo(memoFn)
       const fuseIndex = ref.current++
       return use(stateSource) * fuseIndex
     })
@@ -249,14 +250,15 @@ describe(`fuse`, () => {
     const [stateSource1] = createVectorState([1, 2])
     const [stateSource2, setState2] = createVectorState([2, 1])
     let productCount = 0
+    const memoFn = (item: number, constant: number) => {
+      productCount++
+      return item * constant
+    }
     const source = fuse((use, _, memo) => {
       const x = use(stateSource1)
       const y = use(stateSource2)
-      const args = [x, y].sort()
-      return memo((item, constant) => {
-        productCount++
-        return item * constant
-      }, args)
+      const args = [x, y].sort() as [number, number]
+      return memo(memoFn, args)
     })
     const output = sendVectorToArray(source)
 
