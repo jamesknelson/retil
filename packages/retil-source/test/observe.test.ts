@@ -6,10 +6,41 @@ import {
   getSnapshotPromise,
   observe,
   subscribe,
+  getVector,
 } from '../src'
 import { sendVectorToArray } from './utils/sendToArray'
 
 describe(`observe`, () => {
+  test(`will call unsubscibe function TEARDOWN_DELAY milliseconds after getVector`, async () => {
+    let unsubscribed = false
+    const source = observe<number>((onNext) => {
+      onNext([1])
+      return () => {
+        unsubscribed = true
+      }
+    })
+    getVector(source)
+    await delay(TEARDOWN_DELAY + 50)
+    expect(unsubscribed).toEqual(true)
+  })
+
+  test(`will *not* call unsubscibe function after getVector if followed by a subscribe`, async () => {
+    let unsubscribed = false
+    const source = observe<number>((onNext) => {
+      onNext([1])
+      return () => {
+        unsubscribed = true
+      }
+    })
+    getVector(source)
+    const unsubscribe = subscribe(source, () => {})
+    await delay(TEARDOWN_DELAY + 50)
+    expect(unsubscribed).toEqual(false)
+    unsubscribe()
+    await delay(TEARDOWN_DELAY + 50)
+    expect(unsubscribed).toEqual(true)
+  })
+
   test(`only published an updated vector if it is shallow equal from the current vector`, async () => {
     let next: any
 

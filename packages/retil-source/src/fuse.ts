@@ -15,7 +15,11 @@ type UseInvocation = [
   result?: unknown,
 ]
 
-type ActInvocation = [useResults: unknown[], resolutionSource?: Source<any>]
+type ActInvocation = [
+  useResults: unknown[],
+  resolutionSource: Source<any> | null,
+  deps: UseInvocation[],
+]
 
 export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
   let cachedResultsMap = new ArrayKeyedMap<unknown[], T>()
@@ -149,7 +153,11 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
         result = maybeResult[0]
       } else if (previousActInvocation && previousActInvocation[1]) {
         // If we've got no cached result and there's an unresolved async act,
-        // then wait for that to complete before continuing.
+        // then wait for that to complete before continuing. Also use its
+        // dependencies to prevent them from being unsubscribed.
+        for (const [source, maybeDefaultValues] of previousActInvocation[2]) {
+          vectorUse(source, ...maybeDefaultValues)
+        }
         vectorUse(previousActInvocation[1])
         cachedResultsMap = resultsMap
         return results
@@ -233,7 +241,11 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
             // eslint-disable-next-line no-loop-func
             return act(() => {
               const actorResult = actor()
-              const invocation = [useResults] as ActInvocation
+              const invocation = [
+                useResults,
+                null,
+                fusorUseInvocations.slice(0),
+              ] as ActInvocation
               previousActInvocation = invocation
 
               if (isPromiseLike(actorResult)) {
@@ -243,7 +255,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
                 // once the actor completes.
                 invocation[1] = fromPromise(
                   Promise.resolve(actorResult).then(() => {
-                    delete invocation[1]
+                    invocation[1] = null
                   }),
                 )
               }

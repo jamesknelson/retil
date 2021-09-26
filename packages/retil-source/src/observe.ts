@@ -221,14 +221,16 @@ export function observe<T>(
   }
 
   const commit = () => {
-    if (sealed || !subscription || !nextVector) return
+    if (sealed || !subscription) return
 
     const actDeferredCopy = actDeferred
-    vector = nextVector
-    nextVector = null
     actDeferred = null
 
-    notifySubscribers()
+    if (nextVector && (!vector || !areArraysShallowEqual(vector, nextVector))) {
+      vector = nextVector
+      nextVector = null
+      notifySubscribers()
+    }
 
     if (actDeferredCopy) {
       actDeferredCopy.resolve()
@@ -236,7 +238,12 @@ export function observe<T>(
 
     // If we skipped a teardown due to an unresolved promise, we can now finish
     // it off.
-    if (subscription && subscription.count === 0 && vector.length > 0) {
+    if (
+      subscription &&
+      subscription.count === 0 &&
+      vector &&
+      vector.length > 0
+    ) {
       scheduleTeardown(subscription)
     }
   }

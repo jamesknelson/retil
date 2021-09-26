@@ -1,10 +1,12 @@
-import { delay } from 'retil-support'
+import { Deferred, delay } from 'retil-support'
 import {
+  TEARDOWN_DELAY,
   act,
   createState,
   createVectorState,
   fuse,
   getSnapshot,
+  getVector,
   hasSnapshot,
   pendingSource,
   select,
@@ -40,6 +42,26 @@ describe(`fuse`, () => {
     expect(output).toEqual([3])
     seal2()
     expect(output).toEqual([3, 'seal'])
+  })
+
+  test(`will *not* call unsubscibe function after getVector if followed by a subscribe`, async () => {
+    let unsubscribed = false
+    const [stateSource] = createState(1)
+    const source = fuse(
+      (use) => {
+        return use(stateSource) * 2
+      },
+      () => {
+        unsubscribed = true
+      },
+    )
+    getVector(source)
+    const unsubscribe = subscribe(source, () => {})
+    await delay(TEARDOWN_DELAY + 50)
+    expect(unsubscribed).toEqual(false)
+    unsubscribe()
+    await delay(TEARDOWN_DELAY + 50)
+    expect(unsubscribed).toEqual(true)
   })
 
   test(`can map values from a single source`, () => {
@@ -501,5 +523,91 @@ describe(`fuse`, () => {
     expect(hasSnapshot(source)).toBe(true)
 
     expect(output.reverse()).toEqual([[1, 1], [1], [], [1], [1, 1], [1, 1, 1]])
+  })
+
+  test('used sources should stay subscribed while waiting for an async act() to complete', async () => {
+    const [source1, setState] = createState(1)
+
+    let unsubscribes = 0
+    const source2 = fuse(
+      (use) => use(source1),
+      () => {
+        unsubscribes++
+      },
+    )
+
+    const deferred = new Deferred()
+    const source = fuse((use, act) => {
+      const state = use(source2)
+      if (state % 2 === 1) {
+        return act(async () => {
+          await deferred.promise
+          setState(state + 1)
+        })
+      }
+
+      return state
+    })
+
+    const output = sendVectorToArray(source)
+
+    expect(unsubscribes).toEqual(0)
+    expect(output).toEqual([])
+
+    await delay(TEARDOWN_DELAY + 50)
+    deferred.resolve(null)
+    await wait(source, (value) => value === 2)
+
+    expect(output).toEqual([[2]])
+    expect(unsubscribes).toEqual(0)
+  })
+
+  test(`when a vector has multiple items, used sources on tail items should stay subscribed while waiting for an async act() to complete`, async () => {
+    const [source1, setState] = createVectorState([0, 1])
+
+    let unsubscribes = 0
+    const source2 = fuse(
+      (use) => {
+        return use(source1)
+      },
+      () => {
+        unsubscribes++
+      },
+    )
+    const source3 = fuse(
+      (use) => {
+        return use(source1)
+      },
+      () => {
+        unsubscribes++
+      },
+    )
+
+    const deferred = new Deferred()
+    const source = fuse((use, act) => {
+      const state2 = use(source2)
+      if (state2 % 2 === 1) {
+        const state3 = use(source3)
+
+        return act(async () => {
+          await deferred.promise
+          setState([state2 + state3])
+        })
+      }
+
+      return state2
+    })
+
+    const output = sendVectorToArray(source)
+
+    expect(unsubscribes).toEqual(0)
+    expect(output).toEqual([[0]])
+
+    await delay(TEARDOWN_DELAY + 50)
+    deferred.resolve(null)
+    await wait(source, (value) => value === 2)
+
+    expect(unsubscribes).toEqual(0)
+    expect(output.reverse()).toEqual([[0], [], [2]])
   })
 })

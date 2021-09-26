@@ -210,12 +210,14 @@ export function vectorFuse<T>(
         enqueuedActor = undefined
         // Use an act to clear the result if the effects don't finish immediately,
         // and to keep the subscription open.
-        const actResult = act(actor)
-        if (isPromiseLike(actResult)) {
-          actResult.then(runFusor, onError)
-        } else {
-          runFusor()
-        }
+        act(() => {
+          const actResult = actor()
+          if (isPromiseLike(actResult)) {
+            return actResult.then(runFusor, onError)
+          } else {
+            runFusor()
+          }
+        })
       } else if (isInvalidated) {
         // Re-run the fusor immediately if it caused any invalidations before
         // any bail.
