@@ -354,6 +354,12 @@ export function createBrowserNavEnvService(
     }
   })
 
+  const createResult = (env: NavSnapshot, ...precaches: NavSnapshot[]) => {
+    // Remove precache items in an effect, so as to avoid unnecessary
+    // updates just to remove precached items.
+    return [env, ...precaches.filter((precacheEnv) => precacheEnv !== env)]
+  }
+
   const [resultStashSource, setResultStash] = createState<NavSnapshot[]>()
   const navSource = vectorFuse((use, act, memo) => {
     const [pop] = use(popSource)
@@ -375,18 +381,7 @@ export function createBrowserNavEnvService(
       })
     }
 
-    const result = memo(
-      (env: NavSnapshot, ...precaches: NavSnapshot[]) => {
-        // Remove precache items in an effect, so as to avoid unnecessary
-        // updates just to remove precached items.
-        // NOTE: `precacheCancelQueue` is not listed in the memo dependencies,
-        // as we only want to remove items from the precache at points in time
-        // where we'd be performing a new output anyway.
-
-        return [env, ...precaches.filter((precacheEnv) => precacheEnv !== env)]
-      },
-      [env, ...precache],
-    )
+    const result = memo(createResult, [env, ...precache])
 
     // Cancel precache items only when env changes
     const [resultStash] = use(resultStashSource)
