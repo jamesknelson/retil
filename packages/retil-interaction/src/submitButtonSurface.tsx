@@ -41,6 +41,7 @@ export const SubmitButtonSurface = forwardRef<
       ),
     })
 
+  // Prevent the form from being submitted while the submit button is disabled.
   const handleClick = useJoinedEventHandler(
     onClick,
     actionSurfaceState.disabled ? preventDefaultEventHandler : undefined,

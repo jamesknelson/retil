@@ -17,7 +17,7 @@ import {
 
 export interface UseIssuesOptions<
   Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > {
   areValuesEqual?: (x: Value, y: Value) => boolean
   areValuePathsEqual?: (x: Value, y: Value, path: string) => boolean
@@ -27,7 +27,7 @@ export interface UseIssuesOptions<
 
 export type UseIssuesTuple<
   Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > = [
   issues: Issue<Value, Codes>[],
   addIssues: AddIssuesFunction<Value, Codes>,
@@ -42,7 +42,7 @@ interface IssuesState<Value extends object, Codes extends IssueCodes> {
 
 export function useIssues<
   Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(
   value: Value,
   options: UseIssuesOptions<Value> = {},
@@ -53,8 +53,8 @@ export function useIssues<
     areValuePathsEqual = areValuePropertiesEqual,
   } = options
 
-  const getMessage = ((options.getMessage ||
-    defaultGetMessage) as unknown) as GetIssueMessage<Value, Codes>
+  const getMessage = (options.getMessage ||
+    defaultGetMessage) as unknown as GetIssueMessage<Value, Codes>
 
   const [state, setState] = useState<IssuesState<Value, Codes>>(() =>
     getInitialState<Value, Codes>(value),
@@ -297,7 +297,7 @@ export function useIssues<
 
 function getInitialState<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(value: Value): IssuesState<Value, Codes> {
   return {
     value,
@@ -308,7 +308,7 @@ function getInitialState<
 
 function runValidator<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(
   key: IssueKey,
   validator: Validator<Value, Codes>,
@@ -328,7 +328,7 @@ function runValidator<
 
 function normalizeIssues<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(
   key: IssueKey,
   value: Value,
@@ -351,10 +351,11 @@ function normalizeIssues<
       ),
     )
   } else {
-    return (validatorIssues.filter(Boolean) as ValidatorIssue<
-      Value,
-      Codes
-    >[]).map((issue) => {
+    return (
+      validatorIssues.filter(
+        Boolean as unknown as (value: any) => boolean,
+      ) as ValidatorIssue<Value, Codes>[]
+    ).map((issue) => {
       const partialIssue = {
         ...(typeof issue !== 'string' && issue),
         code: ((typeof issue === 'string' ? issue : issue.code) ||
@@ -376,7 +377,7 @@ const defaultGetMessage: GetIssueMessage = (issue) =>
 
 function createDifferenceValidator<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(
   issuesWithValue: Value,
   issues: ValidatorIssues<Value, Codes>,

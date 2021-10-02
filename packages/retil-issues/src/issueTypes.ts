@@ -19,12 +19,12 @@ export type IssuePath<Codes extends IssueCodes = IssueCodes> = Extract<
 
 export type Validator<
   Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > = (data: Value, paths?: IssuePath<Codes>[]) => ValidatorIssues<Value, Codes>
 
 export type AsyncValidator<
   Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > = (
   data: Value,
   paths?: IssuePath<Codes>[],
@@ -33,7 +33,7 @@ export type AsyncValidator<
 export type ValidatorIssue<
   Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
-  Path extends IssuePath<Codes> = IssuePath<Codes>
+  Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
 > =
   | {
       message: string
@@ -49,10 +49,16 @@ export type ValidatorIssue<
 export type ValidatorIssues<
   Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
-  Path extends IssuePath<Codes> = IssuePath<Codes>
+  Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
 > =
   | null
-  | (ValidatorIssue<Value, Codes, Path> | string | false | null | undefined)[]
+  | (
+      | ValidatorIssue<Value, Codes, Path>
+      | Codes[Path]
+      | false
+      | null
+      | undefined
+    )[]
   | { [P in Path]?: ValidatorIssues<Value, Codes, P> }
 
 export type IssueKey = string | number | symbol | object | Validator<any>
@@ -60,7 +66,7 @@ export type IssueKey = string | number | symbol | object | Validator<any>
 export interface Issue<
   Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
-  Path extends IssuePath<Codes> = IssuePath<Codes>
+  Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
 > {
   message: string
   code: Codes[Path extends never ? RootType : Path]
@@ -68,15 +74,15 @@ export interface Issue<
   value: Value
 
   // This will be undefined in the case of a base path
-  path?: Path
+  path?: Extract<Path, string>
 }
 
 export interface AddIssuesFunction<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > {
-  (
-    issues: Readonly<ValidatorIssues<Value, Codes>>,
+  <I extends Readonly<ValidatorIssues<Value, Codes>>>(
+    issues: I,
     options?: {
       // For individual issues, any change from this value will result in the
       // issues being removed.
@@ -124,7 +130,7 @@ export type ClearIssuesFunction = (key?: IssueKey) => void
 
 export type GetIssueMessage<
   Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > = (
   issue: Omit<Issue<Value, Codes>, 'message'> & { message?: string },
 ) => string
