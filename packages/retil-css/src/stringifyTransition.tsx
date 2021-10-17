@@ -25,7 +25,7 @@ export interface StringifyTransitionOptions {
 export function stringifyTransition(
   transition: Transition,
   options: StringifyTransitionOptions = {},
-): string | null {
+): string | undefined {
   const { defaults: defaultsProp = {}, properties = {} } = options
 
   const propertyKeys = Object.keys(properties)
@@ -72,5 +72,5 @@ export function stringifyTransition(
     )
     .join(', ')
 
-  return stringifiedTransition || null
+  return stringifiedTransition || undefined
 }

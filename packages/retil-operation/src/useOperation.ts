@@ -22,6 +22,13 @@ export type UseOperationResult<Input = void, Output = void> = readonly [
   output?: Output,
 ]
 
+/**
+ * The operation function itself is passed in as an argument, so that we're able
+ * to type the output parameter.
+ *
+ * Note that if you'd like to execute an arbitrary function in response to an
+ * event, you can make an operation whose input is itself an async function.
+ */
 export function useOperation<Input = void, Output = void>(
   operation: Operation<Input, Output>,
   deps?: any[],
@@ -34,18 +41,24 @@ export function useOperation<Input = void, Output = void>(
   const [state, setState] = useState<[boolean, Output?]>([false])
 
   const abortControllerRef = useRef<AbortController | null>(null)
-  useEffect(
-    () => () => {
+  const mountedRef = useRef(true)
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
         abortControllerRef.current = null
       }
-    },
-    [],
-  )
+    }
+  }, [])
 
   const trigger = useCallback<OperationAct<Input, Output>>(
     async (data: Input) => {
+      if (!mountedRef.current) {
+        return Promise.reject()
+      }
+
       if (abortControllerRef.current) {
         abortControllerRef.current.abort()
       }
