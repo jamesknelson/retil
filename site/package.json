@@ -2,7 +2,7 @@
   "name": "retil.tech",
   "licence": "CC-BY-NC-4.0",
   "private": true,
-  "version": "0.23.4",
+  "version": "0.23.5",
   "scripts": {
     "typecheck": "tsc --noEmit",
     "dev": "node server",
@@ -29,7 +29,7 @@
     "retil-hydration": "^0.23.4",
     "retil-interaction": "^0.23.4",
     "retil-mount": "^0.23.4",
-    "retil-nav": "^0.23.4",
+    "retil-nav": "^0.23.5",
     "retil-support": "^0.23.4",
     "slugify": "^1.5.1",
     "styled-components": "^5.3.1",
