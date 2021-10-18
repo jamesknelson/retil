@@ -1,21 +1,31 @@
 import { useRef } from 'react'
 import { useBoundaryLayoutEffect } from 'retil-boundary'
 import { useEnv, useWaitForStableMount } from 'retil-mount'
+import { noop } from 'retil-support'
 
 import { NavEnv } from '../navTypes'
 
+export interface ScrollCoords {
+  top: number
+  left: number
+}
+
 export interface UseNavScrollerOptions<Env extends NavEnv> {
   getShouldScroll?: (prevEnv: Env, nextEnv: Env) => boolean
-  scrollTo?: (env: Env) => boolean
+  getScrollCoords?: (env: Env) => ScrollCoords | null
+  scrollTo?: (coords: ScrollCoords) => void | Promise<void>
 }
 
 let hasHydrated = false
+
+const defaultScrollTo = typeof window !== 'undefined' ? window.scrollTo : noop
 
 export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
   options: UseNavScrollerOptions<Env> = {},
 ) {
   const {
     getShouldScroll = defaultGetShouldScroll,
+    getScrollCoords = defaultGetScrollCoords,
     scrollTo = defaultScrollTo,
   } = options
 
@@ -50,11 +60,16 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
       window.history.scrollRestoration = 'manual'
       hasHydrated = true
     } else {
-      const didScroll = scrollTo(scrollRequest)
-      if (!didScroll) {
+      const coords = getScrollCoords(scrollRequest)
+      if (coords) {
+        scrollTo(coords)
+      } else {
         waitForStableMount().then(() => {
           if (!unmounted) {
-            scrollTo(scrollRequest)
+            const coords = getScrollCoords(scrollRequest)
+            if (coords) {
+              scrollTo(coords)
+            }
           }
         })
       }
@@ -69,7 +84,7 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
 const defaultGetShouldScroll = (prev: NavEnv, next: NavEnv) =>
   prev.nav.hash !== next.nav.hash || prev.nav.pathname !== next.nav.pathname
 
-export const defaultScrollTo = (env: NavEnv) => {
+export const defaultGetScrollCoords = (env: NavEnv): ScrollCoords | null => {
   // TODO: if scrolling to a hash within the same page, ignore
   // the scroll history and just scroll directly there
 
@@ -84,7 +99,7 @@ export const defaultScrollTo = (env: NavEnv) => {
     } else {
       const id = document.getElementById(env.nav.hash.slice(1))
       if (!id) {
-        return false
+        return null
       }
       const { top, left } = id.getBoundingClientRect()
       scrollCoords = {
@@ -106,10 +121,8 @@ export const defaultScrollTo = (env: NavEnv) => {
   )
 
   if (scrollCoords.x > maxScrollLeft || scrollCoords.y > maxScrollTop) {
-    return false
+    return null
   }
 
-  window.scroll(scrollCoords.x, scrollCoords.y)
-
-  return true
+  return { left: scrollCoords.x, top: scrollCoords.y }
 }
