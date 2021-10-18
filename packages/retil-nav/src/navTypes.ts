@@ -1,6 +1,6 @@
 import type { Source } from 'retil-source'
 
-export type NavTrigger = 'PUSH' | 'REPLACE' | 'POP'
+export type NavTrigger = 'PUSH' | 'REPLACE' | 'POP' | 'UNLOAD'
 
 export type NavAction = string | NavActionObject
 
@@ -87,9 +87,9 @@ export interface NavController {
 }
 
 export type NavBlockPredicate = (
-  location: NavLocation,
+  location: NavLocation | null,
   trigger: NavTrigger,
-) => Promise<boolean>
+) => boolean | Promise<boolean>
 
 export type NavReducer = (
   location: NavLocation,

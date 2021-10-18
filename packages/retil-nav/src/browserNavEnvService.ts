@@ -150,6 +150,28 @@ export function createBrowserNavEnvService(
   }
 
   const blockPredicates = [] as NavBlockPredicate[]
+
+  function promptBeforeUnload(event: BeforeUnloadEvent) {
+    const predicates = blockPredicates.slice()
+    let predicate: NavBlockPredicate | undefined
+    let block = false
+    // eslint-disable-next-line no-cond-assign
+    while ((predicate = predicates.pop())) {
+      const result = predicate(null, 'UNLOAD')
+      if (result !== false) {
+        block = true
+        break
+      }
+    }
+
+    if (block) {
+      // Cancel the event.
+      event.preventDefault()
+      // Chrome (and legacy IE) requires returnValue to be set.
+      event.returnValue = ''
+    }
+  }
+
   const history = window.history
   const [precacheSource, setPrecache] = createState<NavSnapshot[]>([])
   const [precacheCancelQueueSource, setPrecacheCancelQueue] = createState<
@@ -529,13 +551,6 @@ export function createBrowserNavEnvService(
   }
 
   return service
-}
-
-function promptBeforeUnload(event: BeforeUnloadEvent) {
-  // Cancel the event.
-  event.preventDefault()
-  // Chrome (and legacy IE) requires returnValue to be set.
-  event.returnValue = ''
 }
 
 function createKey() {
