@@ -1,3 +1,5 @@
+import { noop } from 'retil-support'
+
 import { NavEnv, NavResponse, NavSnapshot } from './navTypes'
 import { createHref, parseLocation, resolveAction } from './navUtils'
 import { NotFoundError } from './notFoundError'
@@ -52,6 +54,7 @@ export function createStaticNavEnv<TResponse extends NavResponse>(
     matchname: basename,
     notFound,
     params: {},
+    precache: noop,
     redirect,
   }
 

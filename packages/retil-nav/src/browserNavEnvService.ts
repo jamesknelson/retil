@@ -16,6 +16,7 @@ import {
   observe,
   vectorFuse,
 } from 'retil-source'
+import { noop } from 'retil-support'
 
 import {
   NavAction,
@@ -185,6 +186,11 @@ export function createBrowserNavEnvService(
     }
   }
 
+  const runBeforeEnvChange = [] as (() => void)[]
+  const precacheUntilEnvChange = (action: NavAction) => {
+    runBeforeEnvChange.push(controller.precache(action))
+  }
+
   const write = (env: NavSnapshot, options: { replace?: boolean } = {}) => {
     const index = readIndex() + Number(!options.replace)
     const historyState: HistoryState = {
@@ -200,6 +206,11 @@ export function createBrowserNavEnvService(
     try {
       history[method](historyState, '', url)
 
+      const callbacks = runBeforeEnvChange.slice()
+      runBeforeEnvChange.length = 0
+      for (const callback of callbacks) {
+        callback()
+      }
       setState({
         env,
         index,
@@ -226,6 +237,7 @@ export function createBrowserNavEnvService(
           statusOrAction: number | string,
           action?: string,
         ) => Promise<void>
+        precache: () => void
       }
       redirectDepth?: number
     } = {},
@@ -284,6 +296,7 @@ export function createBrowserNavEnvService(
       matchname: basename,
       notFound,
       params: {},
+      precache: precacheUntilEnvChange,
       redirect,
     }
 
@@ -373,6 +386,11 @@ export function createBrowserNavEnvService(
 
     if (pop.version > version) {
       return act(() => {
+        const callbacks = runBeforeEnvChange.slice()
+        runBeforeEnvChange.length = 0
+        for (const callback of callbacks) {
+          callback()
+        }
         setState({
           version: pop.version,
           index: pop.index,
@@ -476,6 +494,7 @@ export function createBrowserNavEnvService(
           precacheContext: {
             notFound: releasePrecacheImmediately,
             redirect: releasePrecacheImmediately,
+            precache: noop,
           },
         })
 

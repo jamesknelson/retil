@@ -43,6 +43,7 @@ export interface NavSnapshot extends NavLocation {
   matchname: string
   notFound(): void
   params: NavParams
+  precache(action: NavAction): void
   redirect: NavRedirectFunction
 }
 

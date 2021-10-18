@@ -1,3 +1,5 @@
+import { noop } from 'retil-support'
+
 import { NavEnv, NavSnapshot, NavRequest, NavResponse } from './navTypes'
 import { createHref, parseLocation, resolveAction } from './navUtils'
 import { NotFoundError } from './notFoundError'
@@ -43,6 +45,7 @@ export function createServerNavEnv<
     notFound,
     params: request.params || {},
     redirect,
+    precache: noop,
   }
 
   const navEnv = {

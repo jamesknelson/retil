@@ -149,4 +149,32 @@ describe(`a browser nav service`, () => {
     navController.precache('/test-1')
     expect(snapshots[0].length).toBe(3)
   })
+
+  test(`navEnv.precache releases on navigation`, async () => {
+    const [navSource, navController] = createBrowserNavEnvService()
+    const snapshots = sendVectorToArray(navSource)
+
+    expect(snapshots[0].length).toBe(1)
+
+    snapshots[0][0].nav.precache('/test')
+    expect(snapshots[0].length).toBe(2)
+
+    await navController.navigate('/complete')
+    expect(snapshots[0].length).toBe(1)
+  })
+
+  test(`navEnv.precache before navigation works correctly`, async () => {
+    const [navSource, navController] = createBrowserNavEnvService()
+    const snapshots = sendVectorToArray(navSource)
+
+    expect(snapshots.length).toBe(1)
+    expect(snapshots[0].length).toBe(1)
+
+    snapshots[0][0].nav.precache('/test')
+    expect(snapshots.length).toBe(2)
+
+    await navController.navigate('/test')
+    expect(snapshots.length).toBe(3)
+    expect(snapshots[0].length).toBe(1)
+  })
 })
