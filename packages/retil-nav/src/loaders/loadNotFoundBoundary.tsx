@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react'
+import React, { ReactElement, ReactNode } from 'react'
 import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
@@ -95,7 +95,7 @@ export const NotFound: React.FunctionComponent<NotFoundProps> = (props) => {
   throw props.error
 }
 
-export const notFoundLoader: Loader<NavEnv> = (env) => {
+export const notFoundLoader: Loader<NavEnv, ReactElement> = (env) => {
   env.nav.notFound()
 
   return <NotFound error={new NotFoundError(env.nav)} />
