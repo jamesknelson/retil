@@ -45,7 +45,7 @@ export function useIssues<
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(
   value: Value,
-  options: UseIssuesOptions<Value> = {},
+  options: UseIssuesOptions<Value, Codes> = {},
 ): UseIssuesTuple<Value, Codes> {
   const {
     attemptResolutionOnChange = true,
