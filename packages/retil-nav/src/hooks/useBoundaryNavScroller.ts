@@ -25,7 +25,7 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
 ) {
   const {
     getShouldScroll = defaultGetShouldScroll,
-    getScrollCoords = defaultGetScrollCoords,
+    getScrollCoords = getDefaultScrollCoords,
     scrollTo = defaultScrollTo,
   } = options
 
@@ -84,7 +84,7 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
 const defaultGetShouldScroll = (prev: NavEnv, next: NavEnv) =>
   prev.nav.hash !== next.nav.hash || prev.nav.pathname !== next.nav.pathname
 
-export const defaultGetScrollCoords = (env: NavEnv): ScrollCoords | null => {
+export const getDefaultScrollCoords = (env: NavEnv): ScrollCoords | null => {
   // TODO: if scrolling to a hash within the same page, ignore
   // the scroll history and just scroll directly there
 
