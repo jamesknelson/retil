@@ -1,9 +1,9 @@
 import { ArrayKeyedMap, Maybe, isPromiseLike } from 'retil-support'
 
 import { fromPromise } from './fromPromise'
+import { fuseVector } from './fuseVector'
 import { FuseActSymbol, FuseAct, Fusor, FusorMemo } from './fusor'
 import { Source } from './source'
-import { vectorFuse } from './vectorFuse'
 
 export const EmptySymbol = Symbol('empty')
 
@@ -83,7 +83,7 @@ export function fuse<T>(fusor: Fusor<T>, onTeardown?: () => void): Source<T> {
     }
   }
 
-  return vectorFuse<T>((vectorUse, act) => {
+  return fuseVector<T>((vectorUse, act) => {
     // Contains the results returned by each fusor on this update, keyed by
     // an array of the list of `use` results that produced them.
     const resultsMap = new ArrayKeyedMap<unknown[], T>()

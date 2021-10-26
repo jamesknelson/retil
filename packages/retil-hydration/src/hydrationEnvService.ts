@@ -1,4 +1,4 @@
-import { createVectorState, constant, fuse } from 'retil-source'
+import { createStateVector, constant, fuse } from 'retil-source'
 import { noop } from 'retil-support'
 
 import { HydrationEnvService } from './hydrationTypes'
@@ -46,7 +46,7 @@ export function createBrowserHydrationEnvService(
     throw new Error('Could not override the default hydration service.')
   }
 
-  const [hydratingSource, setHydrating] = createVectorState(
+  const [hydratingSource, setHydrating] = createStateVector(
     disablePrecache ? [true] : [true, false],
   )
   const hydratingEnvSource = fuse((use) => ({

@@ -161,7 +161,7 @@ describe(`observe`, () => {
       error('test error')
       return noop
     })
-    expect(getSnapshotPromise(source)).rejects.toBe('test error')
+    await expect(getSnapshotPromise(source)).rejects.toBe('test error')
   })
 
   test(`errors thrown within the observe function will be re-thrown when getSnapshot is called`, async () => {

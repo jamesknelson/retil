@@ -27,7 +27,7 @@ type UsedCore = {
   vector: unknown[]
 }
 
-export function vectorFuse<T>(
+export function fuseVector<T>(
   fusor: VectorFusor<T>,
   onTeardown?: () => void,
 ): Source<T> {

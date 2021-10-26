@@ -1,5 +1,5 @@
 import { Source } from './source'
-import { StateSealer, createVectorState } from './vectorState'
+import { StateSealer, createStateVector } from './stateVector'
 
 export interface StateController<T> {
   (state: T): void
@@ -18,7 +18,7 @@ export function createState<T>(
 ): readonly [Source<T>, StateController<T>, StateSealer] {
   const areVectorsEqual = (x: T[], y: T[]) =>
     x.length === y.length && isEqual(x[0], y[0])
-  const [source, setVectorState, sealState] = createVectorState(
+  const [source, setVectorState, sealState] = createStateVector(
     arguments.length === 0 ? [] : [initialState as T],
     areVectorsEqual,
   )

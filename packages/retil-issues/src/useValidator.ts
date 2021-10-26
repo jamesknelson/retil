@@ -10,7 +10,7 @@ import {
 
 export type UseValidatorTuple<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 > = readonly [
   validate: (path?: IssuePath<Codes>) => Promise<boolean>,
   clear: () => void,
@@ -18,10 +18,10 @@ export type UseValidatorTuple<
 
 export function useValidator<
   Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>
+  Codes extends IssueCodes = DefaultIssueCodes<Value>,
 >(
   addIssues: AddIssuesFunction<Value, Codes>,
-  validator: Validator<Value, Codes>,
+  validator: Validator<Value, Codes> | null,
 ): UseValidatorTuple<Value, Codes> {
   // The key we use to identify this validator is the ref object itself,
   // which stays the same between renders. The remove function inside is
@@ -30,9 +30,13 @@ export function useValidator<
 
   const validate = useCallback(
     (path?: IssuePath<Codes>): Promise<boolean> => {
-      const [remove, resultPromise] = addIssues(validator, { key, path })
-      key.current = remove
-      return resultPromise
+      if (validator) {
+        const [remove, resultPromise] = addIssues(validator, { key, path })
+        key.current = remove
+        return resultPromise
+      } else {
+        return Promise.resolve(false)
+      }
     },
     [addIssues, key, validator],
   )

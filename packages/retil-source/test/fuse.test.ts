@@ -3,9 +3,10 @@ import {
   TEARDOWN_DELAY,
   act,
   createState,
-  createVectorState,
+  createStateVector,
   fuse,
   getSnapshot,
+  getSnapshotPromise,
   getVector,
   hasSnapshot,
   pendingSource,
@@ -113,7 +114,7 @@ describe(`fuse`, () => {
   })
 
   test(`can combine single-value sources with multi-value sources`, () => {
-    const [stateSource1] = createVectorState([1, 2])
+    const [stateSource1] = createStateVector([1, 2])
     const [stateSource2, setState2] = createState(3)
     const source = fuse((use) => {
       const item = use(stateSource1)
@@ -131,7 +132,7 @@ describe(`fuse`, () => {
   })
 
   test(`can completely change vector sources`, () => {
-    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource1, setState1] = createStateVector([1, 2])
     const [stateSource2] = createState(3)
     const source = fuse((use) => {
       const item = use(stateSource1)
@@ -148,7 +149,7 @@ describe(`fuse`, () => {
   })
 
   test(`can reorder vector sources without recomputing`, () => {
-    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource1, setState1] = createStateVector([1, 2])
     const [stateSource2] = createState(3)
     let fusorCount = 0
     const source = fuse((use) => {
@@ -169,7 +170,7 @@ describe(`fuse`, () => {
   })
 
   test(`can partially change sources without recomputing previous known values`, () => {
-    const [stateSource1, setState1] = createVectorState([1, 2])
+    const [stateSource1, setState1] = createStateVector([1, 2])
     const [stateSource2] = createState(3)
     let fusorCount = 0
     const source = fuse((use) => {
@@ -190,8 +191,8 @@ describe(`fuse`, () => {
   })
 
   test(`can combine vector sources`, () => {
-    const [stateSource1] = createVectorState([1, 2])
-    const [stateSource2] = createVectorState([3, 4])
+    const [stateSource1] = createStateVector([1, 2])
+    const [stateSource2] = createStateVector([3, 4])
     const source = fuse((use) => {
       const item = use(stateSource1)
       const constant = use(stateSource2)
@@ -203,8 +204,8 @@ describe(`fuse`, () => {
   })
 
   test(`can reorder combined vector sources without recomputing`, () => {
-    const [stateSource1, setState1] = createVectorState([1, 2])
-    const [stateSource2, setState2] = createVectorState([3, 4])
+    const [stateSource1, setState1] = createStateVector([1, 2])
+    const [stateSource2, setState2] = createStateVector([3, 4])
     let fusorCount = 0
     const source = fuse((use) => {
       fusorCount++
@@ -226,8 +227,8 @@ describe(`fuse`, () => {
   })
 
   test(`can partially changed combined vector sources without recomputing previous known values`, () => {
-    const [stateSource1] = createVectorState([1, 2])
-    const [stateSource2, setState2] = createVectorState([3, 4])
+    const [stateSource1] = createStateVector([1, 2])
+    const [stateSource2, setState2] = createStateVector([3, 4])
     let fusorCount = 0
     const source = fuse((use) => {
       fusorCount++
@@ -247,8 +248,8 @@ describe(`fuse`, () => {
   })
 
   test(`can memoize an value across combined vectors sources`, () => {
-    const [stateSource1] = createVectorState([1, 2])
-    const [stateSource2, setState2] = createVectorState([2, 1])
+    const [stateSource1] = createStateVector([1, 2])
+    const [stateSource2, setState2] = createStateVector([2, 1])
     let productCount = 0
     const memoFn = (item: number, constant: number) => {
       productCount++
@@ -505,7 +506,7 @@ describe(`fuse`, () => {
   })
 
   test(`outputs a value for each vector item up until the first missing value.`, () => {
-    const [stateSource, setState] = createVectorState([1, 1, 0])
+    const [stateSource, setState] = createStateVector([1, 1, 0])
     const source = fuse((use) => {
       const state = use(stateSource)
       return state || use(pendingSource)
@@ -534,7 +535,8 @@ describe(`fuse`, () => {
       const state = use(inputSource)
       if (state === 1) {
         return act(async () => {
-          throw new Error('fail')
+          // eslint-disable-next-line no-throw-literal
+          throw 'fail'
         })
       }
 
@@ -543,9 +545,7 @@ describe(`fuse`, () => {
 
     expect(getSnapshot(source)).toBe(0)
     setState(1)
-    expect(() => {
-      getSnapshot(source)
-    }).toThrowError()
+    await expect(getSnapshotPromise(source)).rejects.toBe('fail')
   })
 
   test('used sources should stay subscribed while waiting for an async act() to complete', async () => {
@@ -586,7 +586,7 @@ describe(`fuse`, () => {
   })
 
   test(`when a vector has multiple items, used sources on tail items should stay subscribed while waiting for an async act() to complete`, async () => {
-    const [source1, setState] = createVectorState([0, 1])
+    const [source1, setState] = createStateVector([0, 1])
 
     let unsubscribes = 0
     const source2 = fuse(

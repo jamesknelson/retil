@@ -101,8 +101,12 @@ export function getSnapshotPromise<TSelection, TItem = TSelection>([
         const unsubscribe = subscribe(
           () => {
             if (unresolved) {
-              unresolved = false
-              resolve(select(getVector()[0]))
+              try {
+                unresolved = false
+                resolve(select(getVector()[0]))
+              } catch (error) {
+                reject(error)
+              }
               unsubscribe()
             }
           },

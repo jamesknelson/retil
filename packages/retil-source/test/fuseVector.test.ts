@@ -1,5 +1,5 @@
 import { Deferred, delay } from 'retil-support'
-import { TEARDOWN_DELAY, createState, vectorFuse, wait } from '../src'
+import { TEARDOWN_DELAY, createState, fuseVector, wait } from '../src'
 import { sendVectorToArray } from './utils/sendToArray'
 
 describe(`fuseVector`, () => {
@@ -7,7 +7,7 @@ describe(`fuseVector`, () => {
     const [source1, setState] = createState(1)
 
     let unsubscribes = 0
-    const source2 = vectorFuse(
+    const source2 = fuseVector(
       (use) => use(source1),
       () => {
         unsubscribes++
@@ -15,7 +15,7 @@ describe(`fuseVector`, () => {
     )
 
     const deferred = new Deferred()
-    const source = vectorFuse((use, act) => {
+    const source = fuseVector((use, act) => {
       const [state] = use(source2)
       if (state % 2 === 1) {
         return act(async () => {

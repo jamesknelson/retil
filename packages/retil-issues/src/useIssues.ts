@@ -111,6 +111,7 @@ export function useIssues<
   const addIssues = useCallback<AddIssuesFunction<Value, Codes>>(
     (
       validatorOrIssues:
+        | null
         | Validator<Value, Codes>
         | ValidatorIssues<Value, Codes>,
       options: {

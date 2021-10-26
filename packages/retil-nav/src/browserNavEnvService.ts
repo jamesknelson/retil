@@ -12,9 +12,9 @@ import deepEquals from 'fast-deep-equal'
 import {
   createState,
   fuse,
+  fuseVector,
   getSnapshot,
   observe,
-  vectorFuse,
 } from 'retil-source'
 import { noop } from 'retil-support'
 
@@ -396,7 +396,7 @@ export function createBrowserNavEnvService(
   }
 
   const [resultStashSource, setResultStash] = createState<NavSnapshot[]>()
-  const navSource = vectorFuse((use, act, memo) => {
+  const navSource = fuseVector((use, act, memo) => {
     const [pop] = use(popSource)
     const [state] = use(stateSource)
 
