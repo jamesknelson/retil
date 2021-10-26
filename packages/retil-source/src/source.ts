@@ -138,7 +138,11 @@ export function hasSnapshot([[getVector]]: readonly [
   SourceSelect<any, any>?,
   SourceAct?,
 ]): boolean {
-  return getVector().length > 0
+  try {
+    return getVector().length > 0
+  } catch {
+    return true
+  }
 }
 
 export function subscribe(
