@@ -1,6 +1,6 @@
 {
   "name": "retil-mount",
-  "version": "0.24.3",
+  "version": "0.24.4",
   "description": "Superpowers for loading screens in React apps.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
