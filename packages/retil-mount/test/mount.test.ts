@@ -27,10 +27,10 @@ describe('mount', () => {
 
     setState({ pathname: '/end' })
 
+    await Promise.resolve()
+
     deferred.reject('test')
 
-    await expect(
-      getSnapshotPromise(mountSource).then((x) => x.env.pathname),
-    ).rejects.toBe('test')
+    await expect(getSnapshotPromise(mountSource)).rejects.toBe('test')
   })
 })

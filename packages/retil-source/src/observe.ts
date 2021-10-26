@@ -124,8 +124,12 @@ export function observe<T>(
     } catch {}
 
     callbacks.slice().forEach(([, seal]) => {
-      if (seal) {
-        seal()
+      try {
+        if (seal) {
+          seal()
+        }
+      } catch (error) {
+        console.error('Error while sealing source:', error)
       }
     })
     callbacks.length = 0
@@ -137,9 +141,23 @@ export function observe<T>(
     }
 
     error = { value: err }
-    notifySubscribers()
-    teardownSubscription()
+
+    // Notify all subscribers, ignoring any further errors.
+    if (subscription && !subscription.isSubscribing) {
+      callbacks
+        .slice()
+        .forEach(([listener]: readonly [(() => void)?, (() => void)?]) => {
+          try {
+            if (listener) {
+              listener()
+            }
+          } catch {}
+        })
+    }
+
     callbacks.length = 0
+    teardownSubscription()
+
     if (actDeferred) {
       actDeferred.reject(err)
     }
@@ -151,7 +169,17 @@ export function observe<T>(
     // skip notifying subscribers, as they can get the value if they need
     // it.
     if (subscription && !subscription.isSubscribing) {
-      callbacks.slice().forEach(callChangeListener)
+      try {
+        callbacks
+          .slice()
+          .forEach(([listener]: readonly [(() => void)?, (() => void)?]) => {
+            if (listener) {
+              listener()
+            }
+          })
+      } catch (error) {
+        handleError(error)
+      }
     }
   }
 
@@ -307,13 +335,4 @@ export function observe<T>(
   }
 
   return [[get, subscribe], identitySelector, act]
-}
-
-const callChangeListener = ([listener]: readonly [
-  (() => void)?,
-  (() => void)?,
-]) => {
-  if (listener) {
-    listener()
-  }
 }
