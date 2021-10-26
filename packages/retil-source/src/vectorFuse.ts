@@ -126,19 +126,23 @@ export function vectorFuse<T>(
       // the fusor if a re-run isn't already in progress or scheduled due to
       // an effect.
       const change = () => {
-        const vector = getVector()
-        usedCore.vector = vector
-        for (const selection of usedCoreSelections.get(core) || []) {
-          const results = vector.length
-            ? vector.map(selection.select)
-            : selection.maybeDefaultValue
-          if (!areArraysShallowEqual(results, selection.results)) {
-            isInvalidated = true
-            if (!isFusing) {
-              runFusor()
+        try {
+          const vector = getVector()
+          usedCore.vector = vector
+          for (const selection of usedCoreSelections.get(core) || []) {
+            const results = vector.length
+              ? vector.map(selection.select)
+              : selection.maybeDefaultValue
+            if (!areArraysShallowEqual(results, selection.results)) {
+              isInvalidated = true
+              if (!isFusing) {
+                runFusor()
+              }
+              return
             }
-            return
           }
+        } catch (error) {
+          onError(error)
         }
       }
 

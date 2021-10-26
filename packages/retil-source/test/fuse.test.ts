@@ -527,6 +527,27 @@ describe(`fuse`, () => {
     expect(output.reverse()).toEqual([[1, 1], [1], [], [1], [1, 1], [1, 1, 1]])
   })
 
+  test('when an async act() errors, the source should error', async () => {
+    const [inputSource, setState] = createState(0)
+
+    const source = fuse((use, act) => {
+      const state = use(inputSource)
+      if (state === 1) {
+        return act(async () => {
+          throw new Error('fail')
+        })
+      }
+
+      return state
+    })
+
+    expect(getSnapshot(source)).toBe(0)
+    setState(1)
+    expect(() => {
+      getSnapshot(source)
+    }).toThrowError()
+  })
+
   test('used sources should stay subscribed while waiting for an async act() to complete', async () => {
     const [source1, setState] = createState(1)
 
