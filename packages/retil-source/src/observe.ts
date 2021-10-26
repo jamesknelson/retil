@@ -169,20 +169,24 @@ export function observe<T>(
         count: 1,
         isSubscribing: true,
       }
-      const unsubscribeFunctionOrObject = observableSubscribe(
-        handleValue,
-        handleError,
-        handleSeal,
-      )
-      const unsubscribe =
-        typeof unsubscribeFunctionOrObject === 'function'
-          ? unsubscribeFunctionOrObject
-          : unsubscribeFunctionOrObject.unsubscribe
-      if (subscription) {
-        subscription.isSubscribing = false
-        subscription.unsubscribe = unsubscribe
-      } else {
-        unsubscribe()
+      try {
+        const unsubscribeFunctionOrObject = observableSubscribe(
+          handleValue,
+          handleError,
+          handleSeal,
+        )
+        const unsubscribe =
+          typeof unsubscribeFunctionOrObject === 'function'
+            ? unsubscribeFunctionOrObject
+            : unsubscribeFunctionOrObject.unsubscribe
+        if (subscription) {
+          subscription.isSubscribing = false
+          subscription.unsubscribe = unsubscribe
+        } else {
+          unsubscribe()
+        }
+      } catch (err) {
+        handleError(err)
       }
     }
   }
@@ -202,18 +206,23 @@ export function observe<T>(
   const scheduleTeardown = (subscription: Subscription) => {
     // TODO: use requestIdleCallback instead if possible.
     subscription.teardownTimeout = setTimeout(
-      teardownSubscription,
+      teardownSubscriptionUnlessResubscribed,
       TEARDOWN_DELAY,
     )
   }
 
-  const teardownSubscription = () => {
-    // Avoid teardown if we've since resubscribed
+  const teardownSubscriptionUnlessResubscribed = () => {
     if (subscription && subscription.count === 0) {
-      const unsubscribe = subscription.unsubscribe!
-      nextVector = null
-      vector = null
-      subscription = null
+      teardownSubscription()
+    }
+  }
+
+  const teardownSubscription = () => {
+    const unsubscribe = subscription?.unsubscribe
+    nextVector = null
+    vector = null
+    subscription = null
+    if (unsubscribe) {
       try {
         unsubscribe()
       } catch {}
@@ -304,15 +313,7 @@ const callChangeListener = ([listener]: readonly [
   (() => void)?,
   (() => void)?,
 ]) => {
-  try {
-    if (listener) {
-      listener()
-    }
-  } catch (errorOrPromise) {
-    // Given callbacks will call `getSnapshot()`, which often throws a promise,
-    // let's ignore thrown promises so that the callback don't have to.
-    if (!isPromiseLike(errorOrPromise)) {
-      throw errorOrPromise
-    }
+  if (listener) {
+    listener()
   }
 }

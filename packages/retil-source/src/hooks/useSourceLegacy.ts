@@ -1,10 +1,9 @@
-import { useCallback, useMemo, useState, useEffect } from 'react'
+import { useCallback, useMemo } from 'react'
 import { useSubscription } from 'use-subscription'
 
 import {
   Source,
   getSnapshotPromise,
-  hasSnapshot,
   identitySelector,
   nullSource,
 } from '../source'
@@ -22,12 +21,8 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
   const [core, select] = maybeSource || nullSource
   const getCurrentValue = useCallback(() => {
     const vector = core[0]()
-    if (!hasDefaultValue && !vector.length) {
-      throw getSnapshotPromise([core, identitySelector])
-    }
     return vector.length ? select(vector[0]) : MissingToken
-  }, [core, hasDefaultValue, select])
-
+  }, [core, select])
   const subscribe = useMemo(
     () =>
       startTransition
@@ -38,7 +33,6 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
         : core[1],
     [core, startTransition],
   )
-
   const subscription = useMemo(
     () => ({
       getCurrentValue,
@@ -46,22 +40,11 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
     }),
     [getCurrentValue, subscribe],
   )
-
-  // useSubscription doesn't suspend if its value changes to a missing value.
-  // This hack normalizes it to act the same as useMutableSource.
-  const [, setState] = useState()
-  useEffect(() => {
-    if (!hasDefaultValue) {
-      return subscribe(() => {
-        if (!hasSnapshot([core])) {
-          setState((() => {
-            throw getSnapshotPromise([core, identitySelector])
-          }) as any)
-        }
-      })
-    }
-  }, [hasDefaultValue, core, subscribe])
-
   const value = useSubscription(subscription)
+
+  if (value === MissingToken && !hasDefaultValue) {
+    throw getSnapshotPromise([core, identitySelector])
+  }
+
   return value === MissingToken || maybeSource === null ? defaultValue! : value
 }

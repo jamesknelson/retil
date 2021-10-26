@@ -13,11 +13,15 @@ export function reduceVector<T, U>(
 ): Source<U> {
   const [[getVector, subscribe], select, act] = source
 
-  return observe((next, _error, seal) => {
+  return observe((next, error, seal) => {
     let vector = initial
     const handleChange = () => {
-      vector = callback(vector, getVector().map(select))
-      next(vector)
+      try {
+        vector = callback(vector, getVector().map(select))
+        next(vector)
+      } catch (err) {
+        error(err)
+      }
     }
     // Ensure we catch any events that are side effects of the initial
     // `handleChange`.

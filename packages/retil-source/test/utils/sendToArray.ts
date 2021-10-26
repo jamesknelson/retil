@@ -15,7 +15,11 @@ export function sendToArray<T, U>(source: Source<T>, sealWith?: U): (T | U)[] {
   }
   subscribe(
     source,
-    () => array.unshift(getSnapshot(source)),
+    () => {
+      if (hasSnapshot(source)) {
+        array.unshift(getSnapshot(source))
+      }
+    },
     () => {
       if (sealWith) {
         array.push(sealWith)

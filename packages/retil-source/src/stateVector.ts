@@ -18,7 +18,6 @@ export function createStateVector<T>(
   // that it is not equal to the current state.
   isEqual: (x: T[], y: T[]) => boolean = areArraysShallowEqual,
 ): readonly [Source<T>, StateVectorController<T>, StateSealer] {
-  let hasState = arguments.length !== 0
   let state = initialState as T[]
 
   let next: null | ((value: T[]) => void) = null
@@ -31,9 +30,8 @@ export function createStateVector<T>(
       typeof stateOrUpdater === 'function'
         ? (stateOrUpdater as Function)(state)
         : stateOrUpdater
-    const shouldUpdate = !hasState || !isEqual || !isEqual(nextState, state)
+    const shouldUpdate = !isEqual || !isEqual(nextState, state)
     if (shouldUpdate) {
-      hasState = true
       state = nextState
       if (next) {
         next(state)
@@ -44,9 +42,7 @@ export function createStateVector<T>(
   const source = observe<T>((onNext, _, onSeal) => {
     next = onNext
     seal = onSeal
-    if (hasState) {
-      onNext(state)
-    }
+    onNext(state)
     return () => {
       next = null
       seal = null

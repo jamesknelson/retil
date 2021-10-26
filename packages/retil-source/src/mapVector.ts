@@ -15,9 +15,13 @@ export function mapVector<
 ): Source<MappedValue, MappedValue> {
   const [[getVector, subscribe], select, act] = source
 
-  return observe((next, _error, seal) => {
+  return observe((next, error, seal) => {
     const handleChange = () => {
-      next(callback(getVector().map(select)))
+      try {
+        next(callback(getVector().map(select)))
+      } catch (err) {
+        error(err)
+      }
     }
     // Ensure we catch any events that are side effects of the initial
     // `handleChange`.
