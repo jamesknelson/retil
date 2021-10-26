@@ -33,6 +33,8 @@ export const useMountSource = <Env extends object, Content>(
 ): UseMountState<Env, Content> => {
   const { transitionTimeoutMs = Infinity } = options
 
+  const [error, setError] = useState<null | { current: any }>(null)
+
   const mergedSource = useMemo(
     () =>
       reduceVector(
@@ -72,31 +74,43 @@ export const useMountSource = <Env extends object, Content>(
     let hasGotInitialSnapshot = false
 
     return (force?: boolean, newSource?: boolean) => {
+      const hasGotCurrentSnapshot = hasSnapshot(mergedSource)
       hasGotInitialSnapshot =
-        !!force || hasGotInitialSnapshot || hasSnapshot(mergedSource)
-      let [newSnapshot, sourcePending] =
-        hasGotInitialSnapshot || transitionTimeoutMs === 0
+        !!force || hasGotInitialSnapshot || hasGotCurrentSnapshot
+
+      if (
+        !hasGotCurrentSnapshot &&
+        (hasGotInitialSnapshot || transitionTimeoutMs === 0)
+      ) {
+        throw getSnapshotPromise(mergedSource)
+      }
+
+      try {
+        let [newSnapshot, sourcePending] = hasGotInitialSnapshot
           ? getSnapshot(mergedSource)
           : [undefined, true]
-      const pendingSnapshot =
-        newSnapshot?.dependencies.unresolved && transitionTimeoutMs !== 0
-          ? newSnapshot
-          : null
-      setState((state) => {
-        const nextState = {
-          currentSnapshot:
-            !sourcePending && !pendingSnapshot
-              ? newSnapshot!
-              : state.currentSnapshot,
-          pendingSnapshot,
-          mergedSource,
-          sourcePending,
-        }
-        return (newSource || state.mergedSource === mergedSource) &&
-          !areObjectsShallowEqual(state, nextState)
-          ? nextState
-          : state
-      })
+        const pendingSnapshot =
+          newSnapshot?.dependencies.unresolved && transitionTimeoutMs !== 0
+            ? newSnapshot
+            : null
+        setState((state) => {
+          const nextState = {
+            currentSnapshot:
+              !sourcePending && !pendingSnapshot
+                ? newSnapshot!
+                : state.currentSnapshot,
+            pendingSnapshot,
+            mergedSource,
+            sourcePending,
+          }
+          return (newSource || state.mergedSource === mergedSource) &&
+            !areObjectsShallowEqual(state, nextState)
+            ? nextState
+            : state
+        })
+      } catch (error) {
+        setError({ current: error })
+      }
     }
   }, [mergedSource, transitionTimeoutMs])
 
@@ -174,7 +188,7 @@ export const useMountSource = <Env extends object, Content>(
     currentSnapshot.dependencies,
   )
 
-  return useMemo(
+  const result = useMemo(
     () => ({
       content: currentSnapshot.contentRef.current,
       env: currentSnapshot.env,
@@ -184,6 +198,12 @@ export const useMountSource = <Env extends object, Content>(
     }),
     [currentSnapshot, pending, pendingEnv, waitUntilStable],
   )
+
+  if (error) {
+    throw error.current
+  }
+
+  return result
 }
 
 function useWaitForStableMount(

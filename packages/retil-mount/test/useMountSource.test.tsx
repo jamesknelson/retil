@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
-import { createState, getSnapshot } from 'retil-source'
+import { createState, getSnapshot, fuse } from 'retil-source'
 import { Deferred, delay } from 'retil-support'
 import { act, render, waitFor } from '@testing-library/react'
 
@@ -66,6 +66,41 @@ describe('useMountSource', () => {
       return <>{result}</>
     }
     const { container } = render(<Test />)
+    expect(container).toHaveTextContent('errortest')
+  })
+
+  test(`throws an error when a mounted source changes to error state`, async () => {
+    const [stateSource, setState] = createState({ pathname: '/start' })
+    const deferred = new Deferred()
+    const envSource = fuse((use, act) => {
+      const state = use(stateSource)
+      if (state.pathname === '/start') {
+        return state
+      } else {
+        return act(() => deferred.promise)
+      }
+    })
+    const rootSource = mount((env) => <>{env.pathname}</>, envSource)
+    const Test = () => {
+      let result: any
+      try {
+        // eslint-disable-next-line react-hooks/rules-of-hooks
+        result = useMountSource(rootSource).content
+      } catch (error: any) {
+        result = error.message
+      }
+      return result
+    }
+    const { container } = render(<Test />)
+
+    expect(container).toHaveTextContent('/start')
+
+    await act(async () => {
+      setState({ pathname: '/end' })
+      await Promise.resolve()
+      await deferred.reject(new Error('errortest'))
+    })
+
     expect(container).toHaveTextContent('errortest')
   })
 
