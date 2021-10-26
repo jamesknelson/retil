@@ -18,7 +18,7 @@ export interface UseNavLinkPropsOptions {
 }
 
 export const useNavLinkProps = (
-  to: NavAction,
+  to: NavAction | null,
   options: UseNavLinkPropsOptions = {},
 ) => {
   const {
@@ -32,7 +32,7 @@ export const useNavLinkProps = (
   } = options
   const { navigate, precache } = useNavController()
   const resolver = useNavResolver()
-  const action = resolver(to, state)
+  const action = to !== null && resolver(to, state)
 
   const releasePrecacheRef = useRef<undefined | (() => void)>(undefined)
   const doPrecache = useCallback(() => {
@@ -40,7 +40,7 @@ export const useNavLinkProps = (
       releasePrecacheRef.current()
       releasePrecacheRef.current = undefined
     }
-    if (!disabled) {
+    if (!disabled && action !== false) {
       releasePrecacheRef.current = precache(action)
     }
   }, [action, disabled, precache])
@@ -112,10 +112,20 @@ export const useNavLinkProps = (
     [disabled, action, navigate, onClick, replace],
   )
 
-  return {
-    onClick: handleClick,
-    onMouseEnter: handleMouseEnter,
-    onMouseLeave: handleMouseLeave,
-    href: disabled ? undefined : action ? createHref(action) : (to as string),
-  }
+  return action === false
+    ? {
+        onClick,
+        onMouseEnter,
+        onMouseLeave,
+      }
+    : {
+        onClick: handleClick,
+        onMouseEnter: handleMouseEnter,
+        onMouseLeave: handleMouseLeave,
+        href: disabled
+          ? undefined
+          : action
+          ? createHref(action)
+          : (to as string),
+      }
 }
