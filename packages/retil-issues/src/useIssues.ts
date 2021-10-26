@@ -221,6 +221,13 @@ export function useIssues<
             !areValuesEqual(attemptValue, issue.value),
         )
 
+        // TODO:
+        //  - Instead of updating `issue.value` on revalidation, only update it
+        //    when the issue is added via `addIssues`. Instead, store the latest
+        //    value used to compute `issuesToCheck` somewhere else which isn't
+        //    visible externally, so that the issues array will stay equal after
+        //    a failed revalidation attempt with a new value.
+
         if (!issuesToCheck.length) {
           return !areValuesEqual(attemptValue, state.value)
             ? { ...state, value: attemptValue }

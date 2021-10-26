@@ -38,6 +38,7 @@ export function useOperation<Input = void, Output = void>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const memoizedOperation = useCallback(operation, deps)
 
+  const [error, setError] = useState<[any?]>([])
   const [state, setState] = useState<[boolean, Output?]>([false])
 
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -55,51 +56,60 @@ export function useOperation<Input = void, Output = void>(
 
   const trigger = useCallback<OperationAct<Input, Output>>(
     async (data: Input) => {
-      if (!mountedRef.current) {
-        return Promise.reject()
-      }
-
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort()
-      }
-
-      const abortController = new AbortController()
-      const signal = abortController.signal
-
-      abortControllerRef.current = abortController
-
-      const resultPromise = memoizedOperation(data, signal)
-      if (resultPromise && isPromiseLike(resultPromise)) {
-        const instantProbe = Symbol()
-        const probeResult = await Promise.race([
-          resultPromise,
-          Promise.resolve(instantProbe),
-        ] as const)
-        if (probeResult !== instantProbe) {
-          // If the result promise resolves before a newly created promise, then
-          // let's skip the pending state and immediately set the result on state.
-          if (abortControllerRef.current === abortController) {
-            setState([false, probeResult])
-          }
-          return probeResult
-        } else {
-          if (abortControllerRef.current === abortController) {
-            setState([true])
-          }
-          const result = await resultPromise
-          if (abortControllerRef.current === abortController) {
-            abortControllerRef.current = null
-            setState([false, result])
-          }
-          return result
+      try {
+        if (!mountedRef.current) {
+          return Promise.reject()
         }
-      } else {
-        setState([false, resultPromise])
-        return resultPromise
+
+        if (abortControllerRef.current) {
+          abortControllerRef.current.abort()
+        }
+
+        const abortController = new AbortController()
+        const signal = abortController.signal
+
+        abortControllerRef.current = abortController
+
+        const resultPromise = memoizedOperation(data, signal)
+        if (resultPromise && isPromiseLike(resultPromise)) {
+          const instantProbe = Symbol()
+          const probeResult = await Promise.race([
+            resultPromise,
+            Promise.resolve(instantProbe),
+          ] as const)
+          if (probeResult !== instantProbe) {
+            // If the result promise resolves before a newly created promise, then
+            // let's skip the pending state and immediately set the result on state.
+            if (abortControllerRef.current === abortController) {
+              setState([false, probeResult])
+            }
+            return probeResult
+          } else {
+            if (abortControllerRef.current === abortController) {
+              setState([true])
+            }
+            const result = await resultPromise
+            if (abortControllerRef.current === abortController) {
+              abortControllerRef.current = null
+              setState([false, result])
+            }
+            return result
+          }
+        } else {
+          setState([false, resultPromise])
+          return resultPromise
+        }
+      } catch (error: unknown) {
+        setError([error])
+        return Promise.reject()
       }
     },
     [memoizedOperation],
   )
+
+  if (error.length) {
+    throw error[0]
+  }
 
   return ([trigger] as any).concat(state) as UseOperationResult<Input, Output>
 }
