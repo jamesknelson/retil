@@ -60,7 +60,12 @@ export interface SelectorFunction {
     TInterpolationContext extends CSSInterpolationContext<TTheme>,
     TStyles extends boolean | string | any[] | Record<string, any>,
   >(
-    ...styles: (((context: TInterpolationContext) => TStyles) | TStyles)[]
+    ...styles: (
+      | ((
+          context: TInterpolationContext & CSSInterpolationContext<TTheme>,
+        ) => TStyles)
+      | TStyles
+    )[]
   ): SelectorInterpolation<TTheme, TInterpolationContext, TStyles>
 }
 
@@ -69,7 +74,11 @@ export interface SelectorInterpolation<
   TInterpolationContext extends CSSInterpolationContext<TTheme>,
   TStyles extends boolean | string | any[] | Record<string, any>,
 > {
-  (interpolationContext: TInterpolationContext): TStyles
+  (
+    interpolationContext:
+      | TInterpolationContext
+      | CSSInterpolationContext<TTheme>,
+  ): TStyles
 
   // These are stored to enable nesting of selectors
   [selectionsSymbol]?: SelectorSelection[]
