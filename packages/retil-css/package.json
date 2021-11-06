@@ -1,6 +1,6 @@
 {
   "name": "retil-css",
-  "version": "0.24.4",
+  "version": "0.24.5",
   "description": "Superpowers for decoupling style from behavior",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
