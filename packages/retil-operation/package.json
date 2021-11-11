@@ -1,6 +1,6 @@
 {
   "name": "retil-operation",
-  "version": "0.24.0",
+  "version": "0.25.0",
   "description": "Super-powers for asynchronous operations with React.",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-support": "^0.24.0",
+    "retil-support": "^0.25.0",
     "tslib": "^2.2.0"
   },
   "devDependencies": {
