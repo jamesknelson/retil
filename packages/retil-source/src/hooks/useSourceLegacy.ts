@@ -17,22 +17,13 @@ export const useSourceLegacy: UseSourceFunction = <T = null, U = T>(
   options: UseSourceOptions<U> = {},
 ): T | U | null => {
   const hasDefaultValue = 'defaultValue' in options
-  const { defaultValue, startTransition } = options
+  const { defaultValue } = options
   const [core, select] = maybeSource || nullSource
   const getCurrentValue = useCallback(() => {
     const vector = core[0]()
     return vector.length ? select(vector[0]) : MissingToken
   }, [core, select])
-  const subscribe = useMemo(
-    () =>
-      startTransition
-        ? (callback: () => void) =>
-            core[1](() => {
-              startTransition(callback)
-            })
-        : core[1],
-    [core, startTransition],
-  )
+  const subscribe = core[1]
   const subscription = useMemo(
     () => ({
       getCurrentValue,

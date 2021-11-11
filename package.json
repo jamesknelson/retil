@@ -35,11 +35,11 @@
     "jest": "^27.2.1",
     "lerna": "^4.0.0",
     "path-to-regexp": "^6.2.0",
-    "react": "0.0.0-experimental-b6ff9ad16-20210820",
-    "react-dom": "0.0.0-experimental-b6ff9ad16-20210820",
-    "react-refresh": "0.0.0-experimental-b6ff9ad16-20210820",
+    "react": "18.0.0-alpha-ee069065d-20211105",
+    "react-dom": "18.0.0-alpha-ee069065d-20211105",
+    "react-refresh": "0.11.0-alpha-ee069065d-20211105",
     "react-spring": "^9.2.4",
-    "react-test-renderer": "0.0.0-experimental-b6ff9ad16-20210820",
+    "react-test-renderer": "18.0.0-alpha-ee069065d-20211105",
     "rimraf": "^3.0.2",
     "rollup": "^1.1.2",
     "rollup-plugin-commonjs": "^9.2.0",
@@ -55,9 +55,9 @@
     "site"
   ],
   "resolutions": {
-    "@types/react": "^17.0.19",
-    "@types/react-dom": "^17.0.9",
-    "react-is": "0.0.0-experimental-1a2d79250",
-    "react-refresh": "0.0.0-experimental-1a2d79250"
+    "@types/react": "^17.0.34",
+    "@types/react-dom": "^17.0.11",
+    "react-is": "18.0.0-alpha-ee069065d-20211105",
+    "react-refresh": "0.11.0-alpha-ee069065d-20211105"
   }
 }

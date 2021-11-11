@@ -2,7 +2,6 @@ import { Source } from '../source'
 
 export interface UseSourceOptions<U> {
   defaultValue?: U
-  startTransition?: (callback: () => void) => void
 }
 
 export interface UseMaybeSourceOptions<U> extends UseSourceOptions<U> {
