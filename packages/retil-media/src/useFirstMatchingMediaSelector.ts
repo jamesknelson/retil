@@ -101,7 +101,8 @@ function getFirstMatchIndex(
 ): number | undefined {
   const firstMatchIndex = matches.findIndex((x) => x === true)
   const firstUndefinedIndex = matches.findIndex((x) => x === undefined)
-  return firstUndefinedIndex >= 0 && firstUndefinedIndex < firstMatchIndex
+  return firstUndefinedIndex >= 0 &&
+    (firstMatchIndex === -1 || firstUndefinedIndex < firstMatchIndex)
     ? undefined
     : firstMatchIndex
 }
