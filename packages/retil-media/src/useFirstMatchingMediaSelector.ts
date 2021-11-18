@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useIsHydrating } from 'retil-hydration'
 import { useCSSSelectors } from 'retil-css'
 import { areArraysShallowEqual, identity, memoizeOne } from 'retil-support'
@@ -16,7 +16,7 @@ export function useFirstMatchingMediaSelector(
   mediaSelectors: MediaSelector[],
 ): number | undefined {
   const isHydrating = useIsHydrating()
-  const hasValue =
+  const checkMedia =
     !isHydrating &&
     typeof window !== 'undefined' &&
     typeof window.matchMedia !== 'undefined'
@@ -37,28 +37,24 @@ export function useFirstMatchingMediaSelector(
   >(() => memoizeOne(identity, (x, y) => areArraysShallowEqual(x[0], y[0])), [])
   const mediaQueries = memoArray(unmemoizedMediaQueries)
 
-  const matchesRef = useRef<(undefined | boolean)[]>()
-  if (!matchesRef.current) {
-    matchesRef.current = mediaQueries.map((mediaQuery) =>
-      typeof mediaQuery === 'string'
-        ? hasValue
-          ? window.matchMedia(mediaQuery).matches
-          : undefined
-        : mediaQuery,
-    )
-  }
-  const [firstMatchIndex, setFirstMatchIndex] = useState<number>(() =>
-    matchesRef.current!.findIndex(Boolean),
+  const [firstMatchIndex, setFirstMatchIndex] = useState<number | undefined>(
+    () => getFirstMatchIndex(matchQueries(mediaQueries, checkMedia)),
   )
 
+  if (checkMedia && firstMatchIndex === undefined) {
+    setFirstMatchIndex(
+      getFirstMatchIndex(matchQueries(mediaQueries, checkMedia)),
+    )
+  }
+
   useEffect(() => {
-    if (hasValue) {
+    if (checkMedia) {
       const results = mediaQueries.map((query) =>
         typeof query === 'string' ? window.matchMedia(query) : query,
       )
-      const matches = (matchesRef.current = results.map((result) =>
+      const matches = results.map((result) =>
         typeof result === 'boolean' ? result : result.matches,
-      ))
+      )
 
       setFirstMatchIndex(matches.findIndex(Boolean))
 
@@ -85,7 +81,27 @@ export function useFirstMatchingMediaSelector(
         )
       }
     }
-  }, [hasValue, mediaQueries])
+  }, [checkMedia, mediaQueries])
 
-  return firstMatchIndex === -1 && !hasValue ? undefined : firstMatchIndex
+  return firstMatchIndex
+}
+
+function matchQueries(queries: (string | boolean)[], checkMedia: boolean) {
+  return queries.map((query) =>
+    typeof query === 'boolean'
+      ? query
+      : checkMedia
+      ? window.matchMedia(query).matches
+      : undefined,
+  )
+}
+
+function getFirstMatchIndex(
+  matches: (boolean | undefined)[],
+): number | undefined {
+  const firstMatchIndex = matches.findIndex((x) => x === true)
+  const firstUndefinedIndex = matches.findIndex((x) => x === undefined)
+  return firstUndefinedIndex >= 0 && firstUndefinedIndex < firstMatchIndex
+    ? undefined
+    : firstMatchIndex
 }
