@@ -18,6 +18,7 @@
       "retil-operation": ["packages/retil-operation/src"],
       "retil-source": ["packages/retil-source/src"],
       "retil-support": ["packages/retil-support/src"],
+      "retil-transition": ["packages/retil-transition/src"],
       "site": ["site/src"]
     }
   }

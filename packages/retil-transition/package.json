@@ -1,0 +1,30 @@
+{
+  "name": "retil-transition",
+  "version": "0.25.0",
+  "description": "Smooth transitions made easy",
+  "author": "James K Nelson <james@jamesknelson.com>",
+  "license": "MIT",
+  "main": "dist/commonjs/index.js",
+  "module": "dist/es/index.js",
+  "types": "dist/es/index.d.ts",
+  "scripts": {
+    "clean": "rimraf dist",
+    "build:commonjs": "tsc -p tsconfig.build.json --module commonjs --outDir dist/commonjs",
+    "build:es-and-types": "tsc -p tsconfig.build.json --module es2015 --outDir dist/es --declaration",
+    "build": "yarn run clean && yarn build:es-and-types && yarn build:commonjs",
+    "build:watch": "yarn run clean && yarn build:es-and-types -- --watch",
+    "lint": "eslint --ext ts,tsx src",
+    "prepare": "yarn build"
+  },
+  "dependencies": {
+    "react-spring": "9.3.0",
+    "retil-hydration": "^0.25.0",
+    "retil-support": "^0.25.0"
+  },
+  "devDependencies": {
+    "typescript": "4.4.3"
+  },
+  "files": [
+    "dist"
+  ]
+}
