@@ -19,7 +19,7 @@ import { ServerStyleSheet } from 'styled-components'
 
 import { App } from './components/app'
 import { AppGlobalStyles } from './styles/appGlobalStyles'
-import appLoader from './loaders/appLoader'
+import appLoader from './app/appLoader'
 
 export async function render(
   request: Omit<Request, 'params' | 'query'>,

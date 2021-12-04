@@ -20,7 +20,7 @@ import { CSSProvider } from 'retil-css'
 import { AppEnv } from './appEnv'
 import { App } from './components/app'
 import { AppGlobalStyles } from './styles/appGlobalStyles'
-import appLoader from './loaders/appLoader'
+import appLoader from './app/appLoader'
 
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
