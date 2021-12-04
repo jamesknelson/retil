@@ -27,7 +27,7 @@ export function createServerNavEnv<
   const redirect = async (
     statusOrAction: number | string,
     action?: string,
-  ): Promise<void> => {
+  ): Promise<null> => {
     const to = createHref(
       resolveAction(action || (statusOrAction as string), location.pathname),
     )
@@ -35,6 +35,8 @@ export function createServerNavEnv<
     response.setHeader('Location', to)
     response.statusCode =
       typeof statusOrAction === 'number' ? statusOrAction : 302
+
+    return null
   }
 
   const nav: NavSnapshot = {

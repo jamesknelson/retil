@@ -254,11 +254,11 @@ export function createBrowserNavEnvService(
     options: {
       key?: string
       precacheContext?: {
-        notFound: () => void
+        notFound: () => Promise<null>
         redirect: (
           statusOrAction: number | string,
           action?: string,
-        ) => Promise<void>
+        ) => Promise<null>
         precache: () => void
       }
       redirectDepth?: number
@@ -280,7 +280,7 @@ export function createBrowserNavEnvService(
       })
     const redirect =
       precacheContext?.redirect ??
-      ((statusOrAction: number | string, action?: string): Promise<void> => {
+      ((statusOrAction: number | string, action?: string): Promise<null> => {
         const to = resolveAction(
           action || (statusOrAction as string),
           location.pathname,
@@ -291,7 +291,7 @@ export function createBrowserNavEnvService(
             `A redirect was attempted from a location that is not currently active` +
               ` – from ${createHref(location)} to ${createHref(to)}.`,
           )
-          return Promise.resolve()
+          return Promise.resolve(null)
         }
 
         if ((options.redirectDepth || 0) > maxRedirectDepth) {
@@ -308,6 +308,8 @@ export function createBrowserNavEnvService(
           })
 
           write(redirectEnv, { replace: true })
+
+          return null
         })
       })
 
@@ -509,7 +511,7 @@ export function createBrowserNavEnvService(
               precache.filter((precacheEnv) => precacheEnv.key !== nav.key),
             )
           }
-          return Promise.resolve()
+          return Promise.resolve(null)
         }
 
         const nav = getNavSnapshot(location, {

@@ -35,7 +35,7 @@ export function createStaticNavEnv<TResponse extends NavResponse>(
   const redirect = async (
     statusOrAction: number | string,
     action?: string,
-  ): Promise<void> => {
+  ): Promise<null> => {
     const to = createHref(
       resolveAction(action || (statusOrAction as string), location.pathname),
     )
@@ -45,6 +45,8 @@ export function createStaticNavEnv<TResponse extends NavResponse>(
     }
     response.statusCode =
       typeof statusOrAction === 'number' ? statusOrAction : 302
+
+    return null
   }
 
   const nav: NavSnapshot = {

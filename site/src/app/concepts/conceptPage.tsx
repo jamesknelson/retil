@@ -10,7 +10,7 @@ export interface ConceptPageProps {
   content: ConceptContent
 }
 
-function ConceptPage({ content }: ConceptPageProps) {
+function Page({ content }: ConceptPageProps) {
   return (
     <ExampleContext.Provider value={content}>
       <MDXProvider components={{ Title }}>
@@ -25,4 +25,4 @@ function ConceptPage({ content }: ConceptPageProps) {
 
 const Title = () => <>{useContext(ExampleContext).meta.title}</>
 
-export default ConceptPage
+export default Page

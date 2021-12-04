@@ -21,8 +21,8 @@ export interface NavLocation {
 }
 
 export interface NavRedirectFunction {
-  (action: string): Promise<void>
-  (statusCode: number, action: string): Promise<void>
+  (action: string): Promise<null>
+  (statusCode: number, action: string): Promise<null>
 }
 
 export type NavQuery = { [name: string]: undefined | string | string[] }
@@ -41,7 +41,7 @@ export interface NavSnapshot extends NavLocation {
   basename: string
   key: string
   matchname: string
-  notFound(): void
+  notFound(): Promise<null>
   params: NavParams
   precache(action: NavAction): void
   redirect: NavRedirectFunction

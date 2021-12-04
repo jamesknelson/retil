@@ -8,7 +8,7 @@ export const Link = forwardRef<
 >(function Link(props, ref) {
   return !props.href || isExternalAction(props.href) ? (
     // eslint-disable-next-line jsx-a11y/anchor-has-content
-    <AnchorSurface {...props} />
+    <AnchorSurface {...props} ref={ref} />
   ) : (
     <LinkSurface
       {...props}
