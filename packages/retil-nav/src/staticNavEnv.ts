@@ -1,6 +1,12 @@
 import { noop } from 'retil-support'
 
-import { NavEnv, NavResponse, NavSnapshot } from './navTypes'
+import {
+  NavAction,
+  NavEnv,
+  NavRedirectFunction,
+  NavResponse,
+  NavSnapshot,
+} from './navTypes'
 import { createHref, parseLocation, resolveAction } from './navUtils'
 import { NotFoundError } from './notFoundError'
 
@@ -32,19 +38,19 @@ export function createStaticNavEnv<TResponse extends NavResponse>(
     throw new NotFoundError(nav)
   }
 
-  const redirect = async (
-    statusOrAction: number | string,
-    action?: string,
-  ): Promise<null> => {
-    const to = createHref(
-      resolveAction(action || (statusOrAction as string), location.pathname),
-    )
+  const redirect: NavRedirectFunction = (
+    statusOrAction: number | NavAction,
+    maybeAction?: NavAction,
+  ): null => {
+    const specifiesStatus = typeof statusOrAction === 'number'
+    const status = specifiesStatus ? statusOrAction : 302
+    const action = (specifiesStatus ? maybeAction : statusOrAction) as NavAction
+    const to = createHref(resolveAction(action, location.pathname))
 
     if (response.setHeader) {
       response.setHeader('Location', to)
     }
-    response.statusCode =
-      typeof statusOrAction === 'number' ? statusOrAction : 302
+    response.statusCode = status
 
     return null
   }

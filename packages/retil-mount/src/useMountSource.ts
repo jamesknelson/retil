@@ -71,22 +71,14 @@ export const useMountSource = <Env extends object, Content>(
   })
 
   const handleNewSnapshot = useMemo(() => {
-    let hasGotInitialSnapshot = false
-
     return (force?: boolean, newSource?: boolean) => {
-      const hasGotCurrentSnapshot = hasSnapshot(mergedSource)
-      hasGotInitialSnapshot =
-        !!force || hasGotInitialSnapshot || hasGotCurrentSnapshot
-
-      if (
-        !hasGotCurrentSnapshot &&
-        (hasGotInitialSnapshot || transitionTimeoutMs === 0)
-      ) {
+      const hasCurrentSnapshot = hasSnapshot(mergedSource)
+      if (!hasCurrentSnapshot && (force || transitionTimeoutMs === 0)) {
         throw getSnapshotPromise(mergedSource)
       }
 
       try {
-        let [newSnapshot, sourcePending] = hasGotInitialSnapshot
+        let [newSnapshot, sourcePending] = hasCurrentSnapshot
           ? getSnapshot(mergedSource)
           : [undefined, true]
         const pendingSnapshot =
@@ -152,15 +144,19 @@ export const useMountSource = <Env extends object, Content>(
   useEffect(() => {
     let unsubscribed = false
 
-    // If there's no initial snapshot, then calling getSnapshot() will throw
-    // a Suspense. But if we've given a transition timeout, we'll do it anyway.
+    // If there's no initial snapshot, then calling handleNewSnapshot() will
+    // throw a promise. But if we've given a transition timeout, we'll do it
+    // anyway.
     if (
       !hasSnapshot(mergedSource) &&
       transitionTimeoutMs !== Infinity &&
-      transitionTimeoutMs === 0
+      transitionTimeoutMs !== 0
     ) {
       delay(transitionTimeoutMs).then(() => {
         if (!unsubscribed) {
+          // FIXME: instead of directly calling this, set state which flags that
+          // the source should be directly called on each render until it returns
+          // a value, at which point the flag should be disabled.
           handleNewSnapshot(true)
         }
       })

@@ -1,4 +1,4 @@
-import { ReactElement, ReactNode } from 'react'
+import { ReactNode } from 'react'
 import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
@@ -16,7 +16,7 @@ export interface LoadMatchOptions<
 
 export function loadMatch<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
   handlers: LoadMatchOptions<TEnv, TContent>,
-): Loader<TEnv, TContent | ReactElement> {
+): Loader<TEnv, TContent | ReactNode> {
   const tests: [Matcher, Loader<TEnv, TContent>][] = []
 
   const patterns = Object.keys(handlers)

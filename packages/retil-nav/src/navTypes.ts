@@ -20,9 +20,13 @@ export interface NavLocation {
   state: object | null
 }
 
+/**
+ * The `redirect` function returns null, as a redirect response should result
+ * in a new nav snapshot being rendered, with the original one being abandoned.
+ */
 export interface NavRedirectFunction {
-  (action: string): Promise<null>
-  (statusCode: number, action: string): Promise<null>
+  (action: NavAction): null
+  (statusCode: number, action: NavAction): null
 }
 
 export type NavQuery = { [name: string]: undefined | string | string[] }
@@ -41,7 +45,12 @@ export interface NavSnapshot extends NavLocation {
   basename: string
   key: string
   matchname: string
-  notFound(): Promise<null>
+
+  /**
+   * Returns `never`, as the return should never actually be used.
+   */
+  notFound: () => null
+
   params: NavParams
   precache(action: NavAction): void
   redirect: NavRedirectFunction

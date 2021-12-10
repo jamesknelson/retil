@@ -1,4 +1,4 @@
-import React, { ReactElement, ReactNode } from 'react'
+import React, { ReactNode } from 'react'
 import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
@@ -71,6 +71,7 @@ export const loadNotFoundBoundary = <TEnv extends NavEnv = NavEnv>(
     const notFoundContentRef = { current: null } as NotFoundContentRef
     const notFound = () => {
       notFoundContentRef.current = { value: notFoundLoader(env) }
+      return null
     }
 
     return (
@@ -91,12 +92,6 @@ export interface NotFoundProps {
   error: NotFoundError
 }
 
-export const NotFound: React.FunctionComponent<NotFoundProps> = (props) => {
-  throw props.error
-}
-
-export const notFoundLoader: Loader<NavEnv, ReactElement> = (env) => {
-  env.nav.notFound()
-
-  return <NotFound error={new NotFoundError(env.nav)} />
+export const notFoundLoader: Loader<NavEnv, ReactNode> = (env) => {
+  return env.nav.notFound()
 }
