@@ -2,7 +2,7 @@ import { loadAsync } from 'retil-mount'
 import { loadMatch } from 'retil-nav'
 import { patternFor } from 'retil-nav-scheme'
 
-import { AppEnv } from 'site/src/appEnv'
+import { AppEnv } from 'site/src/env'
 import { getPackageContent } from 'site/src/data/packageContent'
 
 import scheme from './packageScheme'

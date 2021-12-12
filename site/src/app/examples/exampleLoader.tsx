@@ -10,7 +10,7 @@ import { patternFor } from 'retil-nav-scheme'
 import { Source, fuse, mapVector, reduceVector } from 'retil-source'
 import { createMemo } from 'retil-support'
 
-import { AppEnv } from 'site/src/appEnv'
+import { AppEnv } from 'site/src/env'
 import { getExampleContent } from 'site/src/data/exampleContent'
 
 import scheme from './exampleScheme'

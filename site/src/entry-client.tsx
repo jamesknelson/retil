@@ -8,19 +8,17 @@ import {
   CacheProvider as StyleCacheProvider,
   css,
 } from '@emotion/react'
-import { cloneElement } from 'react'
 import { hydrateRoot } from 'react-dom'
-import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
-import { Mount, useEnv } from 'retil-mount'
+import { Mount } from 'retil-mount'
 import { getDefaultBrowserNavEnvService } from 'retil-nav'
 import { fuse } from 'retil-source'
 import { CSSProvider } from 'retil-css'
 
-import { AppEnv } from './appEnv'
+import appLoader from './app/appLoader'
 import { App } from './components/app'
 import { AppGlobalStyles } from './styles/appGlobalStyles'
-import appLoader from './app/appLoader'
+import { Head } from './head'
 
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
@@ -37,22 +35,6 @@ const envSource = fuse((use) => {
     head: [],
   }
 })
-
-function Head() {
-  const env = useEnv<AppEnv>()
-
-  return env.hydrating ? null : (
-    <HelmetProvider>
-      <Helmet>
-        {env.head.length ? (
-          env.head.map((item, i) => cloneElement(item, { key: i }))
-        ) : (
-          <title>retil.tech</title>
-        )}
-      </Helmet>
-    </HelmetProvider>
-  )
-}
 
 hydrateRoot(
   rootNode,

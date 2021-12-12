@@ -17,9 +17,10 @@ import { createHref, createServerNavEnv } from 'retil-nav'
 import { CSSProvider } from 'retil-css'
 import { ServerStyleSheet } from 'styled-components'
 
+import appLoader from './app/appLoader'
 import { App } from './components/app'
 import { AppGlobalStyles } from './styles/appGlobalStyles'
-import appLoader from './app/appLoader'
+import { Head } from './head'
 
 export async function render(
   request: Omit<Request, 'params' | 'query'>,
@@ -52,6 +53,7 @@ export async function render(
     ) {
       return null
     } else {
+      const helmetContext = {} as { helmet: HelmetData }
       const { html: appHTML, styles: appStyles } = extractCriticalToChunks(
         renderToString(
           sheet.collectStyles(
@@ -60,6 +62,7 @@ export async function render(
                 <CSSProvider runtime={css} themeContext={ThemeContext}>
                   <AppGlobalStyles />
                   <Mount loader={appLoader} env={env}>
+                    <Head context={helmetContext} />
                     <App />
                   </Mount>
                 </CSSProvider>
@@ -69,7 +72,6 @@ export async function render(
         ),
       )
 
-      const helmetContext = {} as { helmet: HelmetData }
       renderToString(
         <HelmetProvider context={helmetContext}>
           <Helmet>
