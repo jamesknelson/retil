@@ -27,7 +27,7 @@ async function createServer(
       root,
       logLevel: isTest ? 'error' : 'info',
       server: {
-        middlewareMode: true,
+        middlewareMode: 'ssr',
         watch: {
           // During tests we edit the files too fast and sometimes chokidar
           // misses change events, so enforce polling for consistency
@@ -48,9 +48,9 @@ async function createServer(
   }
 
   app.use('/', async (req, res) => {
-    try {
-      const url = req.originalUrl
+    const url = req.originalUrl
 
+    try {
       let template, render
       if (viteDevServer) {
         // always read fresh template in dev

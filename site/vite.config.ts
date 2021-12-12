@@ -1,6 +1,6 @@
 import alias from '@rollup/plugin-alias'
-import reactRefresh from '@vitejs/plugin-react-refresh'
-import { join, resolve } from 'path'
+import react from '@vitejs/plugin-react'
+import { resolve } from 'path'
 import emoji from 'remark-emoji'
 import remarkFrontmatter from 'remark-frontmatter'
 import images from 'remark-images'
@@ -26,14 +26,9 @@ export default defineConfig(({ mode }) => ({
   define: {
     'process.env.NODE_ENV': JSON.stringify(mode),
   },
-  esbuild: {
-    jsxFactory: 'jsx',
-    jsxFragment: 'Fragment',
-
-    // We're using emotion's "jsx" factory, but instead of importing directly
-    // from emotion, we import from a local shim that also re-exports Fragment
-    // – allowing us to use JSX fragments without also importing React.
-    jsxInject: `import {Fragment, jsx} from '${join(__dirname, 'react-shim')}'`,
+  server: {
+    host: '*',
+    port: 9001,
   },
   plugins: [
     alias({
@@ -44,7 +39,9 @@ export default defineConfig(({ mode }) => ({
     importFrontMatterPlugin(),
     importHighlightedSourcePlugin(),
     importGlobExtensionsPlugin(),
-    mode !== 'production' && reactRefresh(),
+    react({
+      jsxImportSource: '@emotion/react',
+    }),
     mode !== 'production' &&
       tsconfigPaths({
         root: resolve(__dirname, '..'),

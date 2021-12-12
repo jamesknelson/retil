@@ -33,6 +33,7 @@ describe('loadMatch()', () => {
         ...env.nav,
         notFound: () => {
           notFound = true
+          return null
         },
       },
     })

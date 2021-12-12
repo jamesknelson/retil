@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^5.14.1",
-    "@testing-library/react": "^13.0.0-alpha.1",
+    "@testing-library/react": "^13.0.0-alpha.5",
     "@testing-library/react-hooks": "^8.0.0-alpha.1",
     "@types/jest": "^26.0.24",
     "@types/node": "^12.0.0",
@@ -35,11 +35,11 @@
     "jest": "^27.2.1",
     "lerna": "^4.0.0",
     "path-to-regexp": "^6.2.0",
-    "react": "18.0.0-alpha-ee069065d-20211105",
-    "react-dom": "18.0.0-alpha-ee069065d-20211105",
-    "react-refresh": "0.11.0-alpha-ee069065d-20211105",
+    "react": "18.0.0-rc.0",
+    "react-dom": "18.0.0-rc.0",
+    "react-refresh": "0.11.0-rc.0",
     "react-spring": "^9.2.4",
-    "react-test-renderer": "18.0.0-alpha-ee069065d-20211105",
+    "react-test-renderer": "18.0.0-rc.0",
     "rimraf": "^3.0.2",
     "rollup": "^1.1.2",
     "rollup-plugin-commonjs": "^9.2.0",
@@ -57,7 +57,7 @@
   "resolutions": {
     "@types/react": "^17.0.34",
     "@types/react-dom": "^17.0.11",
-    "react-is": "18.0.0-alpha-ee069065d-20211105",
-    "react-refresh": "0.11.0-alpha-ee069065d-20211105"
+    "react-is": "18.0.0-rc.0",
+    "react-refresh": "0.11.0-rc.0"
   }
 }

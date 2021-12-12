@@ -9,7 +9,7 @@ import {
   css,
 } from '@emotion/react'
 import { cloneElement } from 'react'
-import { createRoot } from 'react-dom'
+import { hydrateRoot } from 'react-dom'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
 import { getDefaultHydrationEnvService } from 'retil-hydration'
 import { Mount, useEnv } from 'retil-mount'
@@ -24,7 +24,6 @@ import appLoader from './app/appLoader'
 
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
-const reactRoot = createRoot(rootNode, { hydrate: true })
 const [hydrationEnvSource] = getDefaultHydrationEnvService()
 const [navEnvSource] = getDefaultBrowserNavEnvService()
 
@@ -55,7 +54,8 @@ function Head() {
   )
 }
 
-reactRoot.render(
+hydrateRoot(
+  rootNode,
   <StyleCacheProvider value={styleCache}>
     <CSSProvider runtime={css} themeContext={ThemeContext}>
       <AppGlobalStyles />
