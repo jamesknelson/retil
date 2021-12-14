@@ -1,6 +1,9 @@
-const express = require('express')
-const fs = require('fs')
-const path = require('path')
+import compression from 'compression'
+import express from 'express'
+import fs from 'fs'
+import { dirname, resolve as resolvePath } from 'path'
+import serveStatic from 'serve-static'
+import { fileURLToPath } from 'url'
 
 const isTest = process.env.NODE_ENV === 'test' || !!process.env.VITE_TEST_BUILD
 const port = process.env.PORT || 3000
@@ -9,7 +12,7 @@ async function createServer(
   root = process.cwd(),
   isProd = process.env.NODE_ENV === 'production',
 ) {
-  const resolve = (p) => path.resolve(__dirname, p)
+  const resolve = (p) => resolvePath(dirname(fileURLToPath(import.meta.url)), p)
 
   const indexProd = isProd
     ? fs.readFileSync(resolve('dist/server/index.html'), 'utf-8')
@@ -22,7 +25,7 @@ async function createServer(
    */
   let viteDevServer
   if (!isProd) {
-    const { createServer } = require('vite')
+    const { createServer } = await import('vite')
     viteDevServer = await createServer({
       root,
       logLevel: isTest ? 'error' : 'info',
@@ -39,9 +42,9 @@ async function createServer(
     // use vite's connect instance as middleware
     app.use(viteDevServer.middlewares)
   } else {
-    app.use(require('compression')())
+    app.use(compression())
     app.use(
-      require('serve-static')(resolve('dist/client'), {
+      serveStatic(resolve('dist/client'), {
         index: false,
       }),
     )
@@ -60,7 +63,7 @@ async function createServer(
           .render
       } else {
         template = indexProd
-        render = require('./dist/server/entry-server.js').render
+        render = (await import('./dist/server/entry-server.js')).render
       }
 
       const result = await render(req, res)
@@ -100,4 +103,4 @@ if (!isTest) {
 }
 
 // for test use
-exports.createServer = createServer
+// exports.createServer = createServer

@@ -1,15 +1,16 @@
+import type { Plugin as VitePlugin } from 'vite'
+
 import { promises as fs } from 'fs'
-import refractor from 'refractor'
-import rehype from 'rehype'
+import { rehype } from 'rehype'
+import prism from 'rehype-prism-plus'
 import path from 'path'
-import { Plugin } from 'vite'
 
 // We use prefix as trigger, and add an affix internally to stop the file
 // being processed like standard JS
 const trigger = 'highlightedSource:'
 const affix = '.hs'
 
-const importHighlightedSourcePlugin = (): Plugin => {
+const importHighlightedSourcePlugin = (): VitePlugin => {
   return {
     name: 'highlightedSource',
 
@@ -35,16 +36,18 @@ const importHighlightedSourcePlugin = (): Plugin => {
       return null
     },
 
-    transform(source, maybeIdWithTrigger) {
+    async transform(source, maybeIdWithTrigger) {
       if (maybeIdWithTrigger.startsWith(trigger)) {
         const id = maybeIdWithTrigger
           .slice(trigger.length)
           .slice(0, -affix.length)
-        const highlightedSource = rehype()
-          .stringify({
-            type: 'root',
-            children: refractor.highlight(source, path.extname(id).slice(1)),
-          })
+        const language = path.extname(id).slice(1)
+        const highlightedSource = await rehype()
+          .data('settings', { fragment: true })
+          .use(prism)
+          .processSync(
+            `<pre><code class="language-${language}">${source}</code></pre>`,
+          )
           .toString()
         return `export default ${JSON.stringify(highlightedSource)};`
       }

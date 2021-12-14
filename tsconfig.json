@@ -15,6 +15,7 @@
       "retil-media": ["packages/retil-media/src"],
       "retil-mount": ["packages/retil-mount/src"],
       "retil-nav": ["packages/retil-nav/src"],
+      "retil-nav-scheme": ["packages/retil-nav-scheme/src"],
       "retil-operation": ["packages/retil-operation/src"],
       "retil-source": ["packages/retil-source/src"],
       "retil-support": ["packages/retil-support/src"],

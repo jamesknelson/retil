@@ -3,26 +3,17 @@ import { css } from '@emotion/react'
 import { codeColors } from 'site/src/styles/colors'
 
 export interface CodeBlockProps extends React.HTMLAttributes<HTMLPreElement> {
-  'data-highlighted-line-numbers'?: string
-  'data-language'?: string
   theme?: 'dark' | 'light'
 }
 
 export function CodeBlock(props: CodeBlockProps) {
-  const {
-    children,
-    className,
-    'data-language': language = 'text',
-    theme = 'light',
-    ...rest
-  } = props
+  const { children, theme = 'light', ...rest } = props
 
   const colors = codeColors[theme]
 
   return (
     <pre
       {...rest}
-      className={[className, 'language-' + language].join(' ')}
       css={css`
         background: ${colors.background};
         border-radius: 5px;

@@ -1,25 +1,24 @@
 import alias from '@rollup/plugin-alias'
 import react from '@vitejs/plugin-react'
+import { createRequire } from 'module'
 import { resolve } from 'path'
-import emoji from 'remark-emoji'
-import remarkFrontmatter from 'remark-frontmatter'
-import images from 'remark-images'
-import { remarkMdxFrontmatter } from 'remark-mdx-frontmatter'
-import textr from 'remark-textr'
-import slug from 'remark-slug'
 import { defineConfig } from 'vite'
-import mdx from 'vite-plugin-mdx'
 import tsconfigPaths from 'vite-tsconfig-paths'
+
+import { refractor } from 'refractor'
+import tsx from 'refractor/lang/tsx.js'
 
 import importFrontMatterPlugin from './plugins/importFrontMatterPlugin'
 import importHighlightedSourcePlugin from './plugins/importHighlightedSourcePlugin'
 import importGlobExtensionsPlugin from './plugins/importGlobExtensionsPlugin'
-import mdxPrism from './plugins/mdxPrism'
+import mdxPlugin from './plugins/mdx'
 import reactEmotion from './plugins/reactEmotion'
 import reactStyledComponents from './plugins/reactStyledComponents'
-import typography from './plugins/typography'
+
+refractor.register(tsx)
 
 const projectRootDir = resolve(__dirname)
+const require = createRequire(import.meta.url)
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
@@ -49,17 +48,7 @@ export default defineConfig(({ mode }) => ({
       }),
     reactEmotion(),
     reactStyledComponents(),
-    mdx.withImports({ [resolve('./plugins/mdxEmotion.ts')]: ['mdx'] })({
-      remarkPlugins: [
-        remarkFrontmatter,
-        [remarkMdxFrontmatter, { name: 'meta' }],
-        slug,
-        images,
-        emoji,
-        [textr, { plugins: [typography] }],
-      ],
-      rehypePlugins: [mdxPrism],
-    }),
+    mdxPlugin(),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react-is'],

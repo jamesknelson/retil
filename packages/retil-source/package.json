@@ -24,7 +24,7 @@
     "use-subscription": "0.0.0-experimental-79740da4c"
   },
   "devDependencies": {
-    "typescript": "4.4.3"
+    "typescript": "4.5.3"
   },
   "peerDependencies": {
     "react": "^17.0.1"

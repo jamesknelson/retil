@@ -1,4 +1,5 @@
 import { transformSync } from '@babel/core'
+import babelPlugin from '@emotion/babel-plugin'
 import { Plugin } from 'vite'
 
 export function emotionPlugin(): Plugin {
@@ -49,7 +50,7 @@ export function emotionPlugin(): Plugin {
         generatorOpts: {
           decoratorsBeforeExport: true,
         },
-        plugins: [require('@emotion/babel-plugin')],
+        plugins: [babelPlugin],
         ast: true,
         sourceMaps: true,
         sourceFileName: id,

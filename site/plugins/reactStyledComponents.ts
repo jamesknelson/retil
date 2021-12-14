@@ -1,4 +1,5 @@
 import { transformSync } from '@babel/core'
+import babelPlugin from 'babel-plugin-styled-components'
 import { Plugin } from 'vite'
 
 export function styledComponentsPlugin(): Plugin {
@@ -49,7 +50,7 @@ export function styledComponentsPlugin(): Plugin {
         generatorOpts: {
           decoratorsBeforeExport: true,
         },
-        plugins: [[require('babel-plugin-styled-components'), { ssr: true }]],
+        plugins: [[babelPlugin, { ssr: true }]],
         ast: true,
         sourceMaps: true,
         sourceFileName: id,
