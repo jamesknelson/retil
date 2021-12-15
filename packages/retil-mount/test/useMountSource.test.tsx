@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
 import { createState, getSnapshot, fuse } from 'retil-source'
-import { Deferred, delay } from 'retil-support'
+import { Deferred, delay, pendingPromiseLike } from 'retil-support'
 import { act, render, waitFor } from '@testing-library/react'
 
 import {
@@ -29,6 +29,10 @@ const SuspendForUnresolvedDependencies = ({
 }
 
 describe('useMountSource', () => {
+  afterEach(() => {
+    jest.useRealTimers()
+  })
+
   test(`returns content`, () => {
     const rootSource = mount(() => 'success', getEmptyEnv)
     const Test = () => <>{useMountSource(rootSource).content}</>
@@ -396,5 +400,96 @@ describe('useMountSource', () => {
       await stablePromise
     })
     expect(container).toHaveTextContent('/complete')
+  })
+
+  test(`renders anyway after transitionTimeoutMs when changing to an env with pending dependiencies`, async () => {
+    jest.useFakeTimers()
+
+    const [envSource, setEnv] = createState({ pathname: '/start' })
+    const rootSource = mount(
+      (env: LoaderProps<{ pathname: string }>) => {
+        if (env.pathname === '/pending') {
+          env.mount.dependencies.add(pendingPromiseLike)
+        }
+        return (
+          <SuspendForUnresolvedDependencies
+            dependencies={env.mount.dependencies}>
+            {env.pathname}
+          </SuspendForUnresolvedDependencies>
+        )
+      },
+      (use) => use(envSource),
+    )
+
+    let root!: UseMountState<any>
+
+    const Test = () => {
+      root = useMountSource(rootSource, {
+        transitionTimeoutMs: 1000,
+      })
+      return (
+        <>
+          <Suspense fallback="fallback">{root.content}</Suspense>
+          {root.pendingEnv ? ' suspended' : ''}
+        </>
+      )
+    }
+
+    const { container } = render(<Test />)
+    expect(container).toHaveTextContent('/start')
+    act(() => {
+      setEnv({ pathname: '/pending' })
+    })
+    expect(container).toHaveTextContent('/start suspended')
+    await act(async () => {
+      jest.runAllTimers()
+      expect(container).toHaveTextContent('/start suspended')
+    })
+    expect(container).toHaveTextContent('fallback')
+  })
+
+  test.only(`suspends after transitionTimeoutMs when changing to a pending mount`, async () => {
+    jest.useFakeTimers()
+
+    const [envSource] = createState({ pathname: '/start' })
+    const [pendingEnvSource] = createState<{ pathname: string }>()
+    const loader = (env: LoaderProps<{ pathname: string }>) => (
+      <>{env.pathname}</>
+    )
+    const initialMountSource = mount(loader, (use) => use(envSource))
+    const pendingMountSource = mount(loader, pendingEnvSource)
+
+    let root!: UseMountState<any>
+    let mountSource = initialMountSource
+    let setMountSource: any
+
+    const Test = () => {
+      ;[mountSource, setMountSource] = useState(initialMountSource)
+      root = useMountSource(mountSource, {
+        transitionTimeoutMs: 1000,
+      })
+      return (
+        <>
+          {root.content}
+          {root.pending ? ' suspended' : ''}
+        </>
+      )
+    }
+
+    const { container } = render(
+      <Suspense fallback="fallback">
+        <Test />
+      </Suspense>,
+    )
+    expect(container).toHaveTextContent('/start')
+    await act(async () => {
+      setMountSource(pendingMountSource)
+    })
+    expect(container).toHaveTextContent('/start suspended')
+    await act(async () => {
+      jest.runAllTimers()
+      expect(container).toHaveTextContent('/start suspended')
+    })
+    expect(container).toHaveTextContent('fallback')
   })
 })
