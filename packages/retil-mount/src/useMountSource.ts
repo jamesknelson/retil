@@ -57,7 +57,7 @@ export const useMountSource = <Env extends object, Content>(
     currentSnapshot: MountSnapshotWithContent<Env, Content>
     pendingSnapshot: MountSnapshotWithContent<Env, Content> | null
     mergedSource: Source<any> | null
-    sourcePending: boolean
+    sourcePending: boolean | 'timeout'
   }>(() => {
     const initialSnapshot = getSnapshot(mergedSource)[0]
     return {
@@ -70,13 +70,13 @@ export const useMountSource = <Env extends object, Content>(
     }
   })
 
-  const handleNewSnapshot = useMemo(() => {
-    return (force?: boolean, newSource?: boolean) => {
-      const hasCurrentSnapshot = hasSnapshot(mergedSource)
-      if (!hasCurrentSnapshot && (force || transitionTimeoutMs === 0)) {
-        throw getSnapshotPromise(mergedSource)
-      }
+  if (state.sourcePending === 'timeout') {
+    throw getSnapshotPromise(mountSource)
+  }
 
+  const handleNewSnapshot = useMemo(() => {
+    return (newSource?: boolean) => {
+      const hasCurrentSnapshot = hasSnapshot(mergedSource)
       try {
         let [newSnapshot, sourcePending] = hasCurrentSnapshot
           ? getSnapshot(mergedSource)
@@ -93,7 +93,10 @@ export const useMountSource = <Env extends object, Content>(
                 : state.currentSnapshot,
             pendingSnapshot,
             mergedSource,
-            sourcePending,
+            sourcePending:
+              sourcePending && transitionTimeoutMs === 0
+                ? ('timeout' as const)
+                : sourcePending,
           }
           return (newSource || state.mergedSource === mergedSource) &&
             !areObjectsShallowEqual(state, nextState)
@@ -107,7 +110,7 @@ export const useMountSource = <Env extends object, Content>(
   }, [mergedSource, transitionTimeoutMs])
 
   if (mergedSource !== state.mergedSource) {
-    handleNewSnapshot(false, true)
+    handleNewSnapshot(true)
   }
 
   // Don't resolve the suspension list until an effect has run, as this can
@@ -141,39 +144,37 @@ export const useMountSource = <Env extends object, Content>(
     }
   }, [pendingSnapshot, mergedSource, transitionTimeoutMs])
 
+  const pendingSource = state.sourcePending && state.mergedSource
   useEffect(() => {
     let unsubscribed = false
-
-    // If there's no initial snapshot, then calling handleNewSnapshot() will
-    // throw a promise. But if we've given a transition timeout, we'll do it
-    // anyway.
-    if (
-      !hasSnapshot(mergedSource) &&
-      transitionTimeoutMs !== Infinity &&
-      transitionTimeoutMs !== 0
-    ) {
-      delay(transitionTimeoutMs).then(() => {
+    let timeout: any
+    if (pendingSource && transitionTimeoutMs !== Infinity) {
+      timeout = setTimeout(() => {
         if (!unsubscribed) {
-          // FIXME: instead of directly calling this, set state which flags that
-          // the source should be directly called on each render until it returns
-          // a value, at which point the flag should be disabled.
-          handleNewSnapshot(true)
+          setState((state) =>
+            state.mergedSource === pendingSource && state.sourcePending
+              ? {
+                  ...state,
+                  sourcePending: 'timeout',
+                }
+              : state,
+          )
         }
-      })
+      }, transitionTimeoutMs)
     }
+    return () => {
+      clearTimeout(timeout)
+      unsubscribed = true
+    }
+  }, [pendingSource, transitionTimeoutMs])
 
+  useEffect(() => {
     // It's possible that something has changed between the new source being
     // first rendered, and React calling this effect. So we'll call this
     // again just in case.
     handleNewSnapshot()
-
-    const unsubscribe = subscribe(mergedSource, handleNewSnapshot)
-
-    return () => {
-      unsubscribed = true
-      unsubscribe()
-    }
-  }, [mergedSource, handleNewSnapshot, transitionTimeoutMs])
+    return subscribe(mergedSource, handleNewSnapshot)
+  }, [mergedSource, handleNewSnapshot])
 
   const pendingEnv = pendingSnapshot?.env || null
   const pending =

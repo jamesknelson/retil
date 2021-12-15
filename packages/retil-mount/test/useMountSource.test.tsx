@@ -1,6 +1,6 @@
 import '@testing-library/jest-dom/extend-expect'
 import React, { StrictMode, Suspense, useState } from 'react'
-import { createState, getSnapshot, fuse } from 'retil-source'
+import { createState, getSnapshot, fuse, createStateVector } from 'retil-source'
 import { Deferred, delay, pendingPromiseLike } from 'retil-support'
 import { act, render, waitFor } from '@testing-library/react'
 
@@ -448,7 +448,7 @@ describe('useMountSource', () => {
     expect(container).toHaveTextContent('fallback')
   })
 
-  test.only(`suspends after transitionTimeoutMs when changing to a pending mount`, async () => {
+  test(`suspends after transitionTimeoutMs when changing to a pending mount`, async () => {
     jest.useFakeTimers()
 
     const [envSource] = createState({ pathname: '/start' })
@@ -484,6 +484,48 @@ describe('useMountSource', () => {
     expect(container).toHaveTextContent('/start')
     await act(async () => {
       setMountSource(pendingMountSource)
+    })
+    expect(container).toHaveTextContent('/start suspended')
+    await act(async () => {
+      jest.runAllTimers()
+      expect(container).toHaveTextContent('/start suspended')
+    })
+    expect(container).toHaveTextContent('fallback')
+  })
+
+  test(`suspends after transitionTimeoutMs when the env loses its value`, async () => {
+    jest.useFakeTimers()
+
+    const [envSource, setEnvSource] = createStateVector([
+      { pathname: '/start' },
+    ])
+    const mountSource = mount(
+      (env: LoaderProps<{ pathname: string }>) => <>{env.pathname}</>,
+      (use) => use(envSource),
+    )
+
+    let root!: UseMountState<any>
+
+    const Test = () => {
+      root = useMountSource(mountSource, {
+        transitionTimeoutMs: 1000,
+      })
+      return (
+        <>
+          {root.content}
+          {root.pending ? ' suspended' : ''}
+        </>
+      )
+    }
+
+    const { container } = render(
+      <Suspense fallback="fallback">
+        <Test />
+      </Suspense>,
+    )
+    expect(container).toHaveTextContent('/start')
+    await act(async () => {
+      setEnvSource([])
     })
     expect(container).toHaveTextContent('/start suspended')
     await act(async () => {
