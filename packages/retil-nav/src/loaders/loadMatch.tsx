@@ -5,8 +5,6 @@ import { NavEnv } from '../navTypes'
 import { Matcher, createMatcher } from '../matcher'
 import { joinPathnames } from '../navUtils'
 
-import { notFoundLoader } from './loadNotFoundBoundary'
-
 export interface LoadMatchOptions<
   TEnv extends NavEnv = NavEnv,
   TContent = ReactNode,
@@ -52,6 +50,6 @@ export function loadMatch<TEnv extends NavEnv = NavEnv, TContent = ReactNode>(
       }
     }
 
-    return notFoundLoader(env)
+    return env.nav.notFound()
   }
 }

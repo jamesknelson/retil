@@ -87,11 +87,3 @@ export const loadNotFoundBoundary = <TEnv extends NavEnv = NavEnv>(
     )
   }
 }
-
-export interface NotFoundProps {
-  error: NotFoundError
-}
-
-export const notFoundLoader: Loader<NavEnv, ReactNode> = (env) => {
-  return env.nav.notFound()
-}
