@@ -1,6 +1,6 @@
 {
   "name": "retil-transition",
-  "version": "0.25.3",
+  "version": "0.26.0",
   "description": "Smooth transitions made easy",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -18,8 +18,8 @@
   },
   "dependencies": {
     "react-spring": "^9.3.0",
-    "retil-hydration": "^0.25.0",
-    "retil-support": "^0.25.0"
+    "retil-hydration": "^0.26.0",
+    "retil-support": "^0.26.0"
   },
   "devDependencies": {
     "typescript": "4.5.3"
