@@ -140,7 +140,7 @@ export function nestScheme<
       })
     },
     get: (target, key) => {
-      if (key === nestedNavSchemeSymbol) {
+      if (target === leaf && key === nestedNavSchemeSymbol) {
         return true
       }
       const child = scheme[key as string]
@@ -150,7 +150,7 @@ export function nestScheme<
       return Reflect.get(target, key)
     },
     has: (target, key) => {
-      if (key === nestedNavSchemeSymbol) {
+      if (target === leaf && key === nestedNavSchemeSymbol) {
         return true
       }
       return Reflect.has(scheme, key) || Reflect.has(target, key)

@@ -14,7 +14,9 @@
     "build": "yarn run clean && yarn build:es-and-types && yarn build:commonjs",
     "build:watch": "yarn run clean && yarn build:es-and-types -- --watch",
     "lint": "eslint --ext ts,tsx src",
-    "prepare": "yarn build"
+    "prepare": "yarn test && yarn build",
+    "test": "jest",
+    "test:watch": "jest --watch"
   },
   "dependencies": {
     "retil-nav": "^0.25.0",
