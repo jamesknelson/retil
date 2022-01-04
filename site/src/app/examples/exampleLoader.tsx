@@ -4,7 +4,6 @@ import {
   getDefaultBrowserNavEnvService,
   loadMatch,
   noopNavController,
-  notFoundLoader,
 } from 'retil-nav'
 import { patternFor } from 'retil-nav-scheme'
 import { Source, fuse, mapVector, reduceVector } from 'retil-source'
@@ -34,7 +33,7 @@ export default loadMatch({
     const content = await getExampleContent(params.slug as string)
 
     if (!content) {
-      return notFoundLoader(props)
+      return props.nav.notFound()
     }
 
     const { clientMain, matchNestedRoutes, meta, serverMain } = content
