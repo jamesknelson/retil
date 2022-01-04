@@ -1,4 +1,4 @@
-import { emptyObject, isPlainObject } from 'retil-support'
+import { emptyObject, identity, isPlainObject } from 'retil-support'
 
 import { getThemeRider } from './context'
 import { getCSSSelector } from './selector'
@@ -17,19 +17,29 @@ import {
  * - a function mapping your theme to a value
  * - an object mapping selectors or media queries to nested High Style objects
  */
-export type HighStyle<InterpolationContext = unknown> = {
-  [K in keyof CSSObject]?: HighStyleValue<CSSObject[K], InterpolationContext>
+export type HighStyle<TInterpolationContext = unknown> = {
+  [K in keyof CSSObject]?: HighStyleValue<CSSObject[K], TInterpolationContext>
 }
 
-export type HighStyleValue<Value, InterpolationContext = unknown> =
+export type HighStyleInput<TValue, TInterpolationContext = unknown> =
   | ((
-      interpolationContext: InterpolationContext,
-    ) => HighStyleValue<Value, InterpolationContext>)
-  | HighStyleScopedValues<Value, InterpolationContext>
-  | Value
+      interpolationContext: TInterpolationContext,
+    ) => HighStyleValue<TValue, TInterpolationContext>)
+  | HighStyleScopedValues<TValue, TInterpolationContext>
+  | TValue
 
-export type HighStyleScopedValues<Value, InterpolationContext = unknown> = {
-  [selector: string]: HighStyleValue<Value, InterpolationContext>
+// Allows for mapping a high style value. This is structured as a tuple so:
+// 1. The map doesn't need to be run unless the value is required
+// 2. It may be possible to support mapping of multiple inputs at some point.
+export type HighStyleValue<TValue, TInterpolationContext = unknown> =
+  | readonly [
+      HighStyleInput<unknown, TInterpolationContext>,
+      (arg: unknown) => TValue,
+    ]
+  | HighStyleInput<TValue, TInterpolationContext>
+
+export type HighStyleScopedValues<TValue, TInterpolationContext = unknown> = {
+  [selector: string]: HighStyleValue<TValue, TInterpolationContext>
 }
 
 export type HighStyleInterpolation<
@@ -38,6 +48,22 @@ export type HighStyleInterpolation<
 > = <TStyles>(
   interpolationContext: TInterpolationContext & CSSInterpolationContext<TTheme>,
 ) => TStyles
+
+export function mapHighStyleValue<
+  TFromValue,
+  TToValue,
+  TInterpolationContext = unknown,
+>(
+  value: HighStyleValue<TFromValue, TInterpolationContext>,
+  mapCallback: (value: TFromValue) => TToValue,
+): HighStyleValue<TToValue, TInterpolationContext> {
+  return !Array.isArray(value)
+    ? ([value, mapCallback] as HighStyleValue<TToValue, TInterpolationContext>)
+    : ([
+        value[0],
+        (input: TFromValue) => mapCallback(value[1](input)),
+      ] as HighStyleValue<TToValue, TInterpolationContext>)
+}
 
 export function highStyle<
   TTheme extends CSSTheme,
@@ -72,20 +98,24 @@ function mutableCompileHighStyle<InterpolationContext>(
   property: string,
   highValue: HighStyleValue<any, InterpolationContext>,
 ): void {
-  if (typeof highValue === 'number' || typeof highValue === 'string') {
-    output[property] = highValue
-  } else if (typeof highValue === 'function') {
+  const [input, map] = Array.isArray(highValue)
+    ? highValue
+    : [highValue, identity]
+
+  if (typeof input === 'number' || typeof input === 'string') {
+    output[property] = map(input)
+  } else if (typeof input === 'function') {
     mutableCompileHighStyle(
       context,
       themeRider,
       output,
       property,
-      highValue(context),
+      map(input(context)),
     )
-  } else if (isPlainObject(highValue)) {
+  } else if (isPlainObject(input)) {
     // Ensure the default selector is always first, so that it doesn't override
     // other selectors.
-    const selectorKeys = Object.keys(highValue)
+    const selectorKeys = Object.keys(input)
     const defaultIndex = selectorKeys.indexOf('default')
     if (defaultIndex > 0) {
       selectorKeys.splice(defaultIndex, 1)
@@ -117,7 +147,7 @@ function mutableCompileHighStyle<InterpolationContext>(
           themeRider,
           selectorOutput,
           property,
-          highValue[selectorString],
+          map(input[selectorString]),
         )
       }
     }

@@ -2,6 +2,7 @@ import {
   getOrRegisterSelectorType,
   resetRegisteredSelectorTypes,
   highStyle,
+  mapHighStyleValue,
 } from '../src'
 
 describe('useHighStyle()', () => {
@@ -19,6 +20,16 @@ describe('useHighStyle()', () => {
     })
   })
 
+  test('accepts mapped values', () => {
+    const fn = highStyle({
+      boxShadow: mapHighStyleValue('black', (value) => '0 0 3px ' + value),
+    })
+
+    expect(fn({})).toEqual({
+      boxShadow: '0 0 3px black',
+    })
+  })
+
   test('accepts theme functions', () => {
     const theme = { borderColor: 'black' }
     const fn = highStyle({
@@ -29,6 +40,20 @@ describe('useHighStyle()', () => {
     expect(fn(theme)).toEqual({
       borderColor: 'black',
       borderWidth: 1,
+    })
+  })
+
+  test('accepts mapped theme values', () => {
+    const theme = { shadowColor: 'black' }
+    const fn = highStyle({
+      boxShadow: mapHighStyleValue(
+        (theme: any) => theme.shadowColor,
+        (value) => '0 0 3px ' + value,
+      ),
+    })
+
+    expect(fn(theme)).toEqual({
+      boxShadow: '0 0 3px black',
     })
   })
 
