@@ -30,10 +30,11 @@ export const useSourceModern: UseSourceFunction = <T = null, U = T>(
   const { defaultValue } = options
   const [core, select] = maybeSource || nullSource
   const subscribe = core[1]
-  const value = useSyncExternalStore(subscribe, () => {
+  const getSnapshot = () => {
     const vector = core[0]()
     return vector.length ? select(vector[0]) : MissingToken
-  })
+  }
+  const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot)
 
   if (value === MissingToken && !hasDefaultValue) {
     throw getSnapshotPromise([core, identitySelector])

@@ -37,8 +37,10 @@ interface PopupDialogSurfaceOwnOptions {
   overrideSelectors?: SurfaceSelectorOverrides
 }
 
-const partitionPopupDialogSurfaceOwnOptions: KeyPartitioner<PopupDialogSurfaceOwnOptions> =
-  (object) => partitionByKeys(['initialFocusRef', 'overrideSelectors'], object)
+const partitionPopupDialogSurfaceOwnOptions: KeyPartitioner<
+  PopupDialogSurfaceOwnOptions
+> = (object) =>
+  partitionByKeys(['initialFocusRef', 'overrideSelectors'], object)
 
 export const partitionPopupDialogSurfaceOptions = composeKeyPartitioners(
   partitionPopupDialogSurfaceOwnOptions,

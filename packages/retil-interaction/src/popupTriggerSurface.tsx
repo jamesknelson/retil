@@ -115,17 +115,6 @@ export function usePopupTriggerConnector(
   )
   const { open, setTriggerElement } = triggerHandle
 
-  const cleanupRef = useRef<(() => void) | null>()
-
-  useEffect(
-    () => () => {
-      if (cleanupRef.current) {
-        cleanupRef.current()
-      }
-    },
-    [],
-  )
-
   const keyMapHandler = useKeyMapHandler(
     fromEntries(triggerOnKeys.map((key) => [key, open])),
   )
@@ -136,6 +125,7 @@ export function usePopupTriggerConnector(
     },
   )
 
+  const cleanupRef = useRef<(() => void) | null>()
   const triggerRef = useCallback(
     (element: SVGElement | HTMLElement | null) => {
       // Adds event handlers, but does not cause any changes in state

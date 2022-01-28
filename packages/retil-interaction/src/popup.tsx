@@ -343,16 +343,6 @@ export function usePopupConnector(
     positionerHandle
 
   const cleanupRef = useRef<(() => void) | null>()
-
-  useEffect(
-    () => () => {
-      if (cleanupRef.current) {
-        cleanupRef.current()
-      }
-    },
-    [],
-  )
-
   const popupRef = useCallback(
     (element: SVGElement | HTMLElement | null) => {
       setPopupElement(element)
