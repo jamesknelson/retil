@@ -1,6 +1,6 @@
 {
   "name": "retil-nav-scheme",
-  "version": "0.26.0",
+  "version": "0.26.2",
   "description": "Consistent URLs made easy",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-nav": "^0.26.0",
+    "retil-nav": "^0.26.2",
     "retil-support": "^0.26.0"
   },
   "devDependencies": {
