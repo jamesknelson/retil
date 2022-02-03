@@ -27,6 +27,7 @@ export default loadMatch({
   }),
   [patternFor(scheme.one) + '*']: loadAsync<AppEnv>(async (props) => {
     const { mount, head, ...env } = props
+
     const basename = env.nav.matchname
     const params = env.nav.params
     const pageModule = import('./examplePage')
@@ -78,16 +79,18 @@ export default loadMatch({
             const defaultNavService = getDefaultBrowserNavEnvService()
             const [source, controller] = defaultNavService
             const filteredSource = mapVector(source, ([env]) =>
-              // Ignore precache for the child service
-              env && env.nav.pathname.startsWith(basename)
-                ? [createNestedEnv(env)]
-                : [],
+              // Ignore precache for the child service, to avoid breaking
+              // navigation.
+              env && env.nav.pathname.startsWith(basename) ? [env] : [],
+            )
+            const nestedEnv = fuse((use) =>
+              createNestedEnv(use(filteredSource)),
             )
             const exampleNavSource = reduceVector(
-              filteredSource,
+              nestedEnv,
               (previousVector, currentVector) =>
                 currentVector.length ? currentVector : previousVector,
-              [] as typeof filteredSource extends Source<infer I> ? I[] : never,
+              [] as typeof nestedEnv extends Source<infer I> ? I[] : never,
             )
             return [exampleNavSource, controller] as const
           }

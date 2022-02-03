@@ -19,7 +19,6 @@ import appLoader from './app/appLoader'
 import { App } from './components/app'
 import { AppGlobalStyles } from './styles/appGlobalStyles'
 import { Head } from './head'
-import React from 'react'
 
 const styleCache = createStyleCache({ key: 'sskk' })
 const rootNode = document.getElementById('root')!
@@ -39,15 +38,13 @@ const envSource = fuse((use) => {
 
 hydrateRoot(
   rootNode,
-  <React.StrictMode>
-    <StyleCacheProvider value={styleCache}>
-      <CSSProvider runtime={css} themeContext={ThemeContext}>
-        <AppGlobalStyles />
-        <Mount loader={appLoader} env={envSource}>
-          <Head />
-          <App />
-        </Mount>
-      </CSSProvider>
-    </StyleCacheProvider>
-  </React.StrictMode>,
+  <StyleCacheProvider value={styleCache}>
+    <CSSProvider runtime={css} themeContext={ThemeContext}>
+      <AppGlobalStyles />
+      <Mount loader={appLoader} env={envSource}>
+        <Head />
+        <App />
+      </Mount>
+    </CSSProvider>
+  </StyleCacheProvider>,
 )

@@ -17,12 +17,15 @@
     "prepare": "yarn build"
   },
   "dependencies": {
-    "react-spring": "^9.3.0",
     "retil-hydration": "^0.26.2",
     "retil-support": "^0.26.0"
   },
   "devDependencies": {
+    "react-spring": "^9.4.2",
     "typescript": "4.5.3"
+  },
+  "peerDependencies": {
+    "react-spring": "^9.4.2"
   },
   "files": [
     "dist"

@@ -1,9 +1,12 @@
-import { useContext, useMemo } from 'react'
+import { useContext } from 'react'
+import { createWeakMemo } from 'retil-support'
 
 import { mount } from './mount'
 import { CastableToEnvSource, Loader, UseMountState } from './mountTypes'
 import { ServerMountContext } from './serverMountContext'
 import { UseMountSourceOptions, useMountSource } from './useMountSource'
+
+const mountSourceMemo = createWeakMemo()
 
 export const useMount = <Env extends object, Content>(
   loader: Loader<Env, Content>,
@@ -23,10 +26,12 @@ export const useMount = <Env extends object, Content>(
     )
   }
 
-  const mountSource = useMemo(
-    () => serverMount?.source || mount(loader, env),
-    [env, loader, serverMount],
-  )
+  // Even in strict mode, we don't want to create two mount sources, so instead
+  // of useMemo, we'll use a WeakMemo to memoize the mount sources externally to
+  // the component.
+  const mountSource =
+    serverMount?.source ||
+    mountSourceMemo(() => mount(loader, env), [env, loader])
 
   return useMountSource(mountSource, options)
 }

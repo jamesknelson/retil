@@ -6,7 +6,6 @@ import {
   animated,
   useTransition,
 } from 'react-spring'
-import { useHasHydrated } from 'retil-hydration'
 import { Deferred } from 'retil-support'
 
 import { TransitionConfig, dropfadeTransitionConfig } from './transitionConfigs'
@@ -66,6 +65,13 @@ const columnTransitionDefaultStyles = {
 export interface ColumnTransitionOwnProps {
   transitionConfig?: TransitionConfig
   transitionKey: unknown
+
+  /**
+   * Allows you to pass in a handle to manually show/hide the current content.
+   * When set in, the content will be in it's `from` state on mount. Otherwise,
+   * it'll be in it's "initial" state (if given), or its "enter" state as a
+   * fallback.
+   */
   transitionHandleRef?: TransitionHandleRef
 
   itemContainerStyle?: Omit<React.CSSProperties, 'height' | 'overflow'>
@@ -80,6 +86,8 @@ export const ColumnTransition = memo(function ColumnTransition(
 ) {
   const {
     children,
+    itemContainerStyle,
+    itemStyle,
     style,
     transitionConfig = dropfadeTransitionConfig,
     transitionKey,
@@ -202,10 +210,14 @@ export const ColumnTransition = memo(function ColumnTransition(
     [mutableState, transitionActive, showTransition, hideTransition],
   )
 
-  const hasHydrated = useHasHydrated()
+  const hasMountedRef = useRef(false)
+  useEffect(() => {
+    hasMountedRef.current = true
+  })
 
   const transitions = useTransition(item, {
     key: (item: any) => item.key,
+    reset: !hasMountedRef.current,
     initial:
       (!mutableState.active
         ? transitionConfig.from
@@ -215,7 +227,7 @@ export const ColumnTransition = memo(function ColumnTransition(
       ? transitionConfig.from || {}
       : ({ key }) =>
           async (next) => {
-            if (hasHydrated) {
+            if (hasMountedRef.current) {
               await showTransition(key, next)
             }
           },
@@ -239,11 +251,12 @@ export const ColumnTransition = memo(function ColumnTransition(
       {...rest}>
       {transitions((spring, item, t) => (
         <TransitionItem
-          active={item.key === transitionKey}
+          itemContainerStyle={itemContainerStyle}
+          itemStyle={itemStyle}
           pageHandlesByKey={mutableState.pageHandlesByKey}
           spring={spring}
           transition={t}
-          transitionRef={
+          transitionRefWhenActive={
             item.key === transitionKey ? activeTransitionRef : null
           }>
           {item.children}
@@ -254,38 +267,79 @@ export const ColumnTransition = memo(function ColumnTransition(
 })
 
 interface TransitionItemProps {
-  active: boolean
   children: React.ReactNode
   itemStyle?: React.CSSProperties
   itemContainerStyle?: Omit<React.CSSProperties, 'overflow'>
   pageHandlesByKey: PageHandlesByKey
   spring: Record<any, SpringValue<any>>
   transition: TransitionState<any, any>
-  transitionRef: null | React.MutableRefObject<TransitionState<any, any> | null>
+  transitionRefWhenActive: null | React.MutableRefObject<TransitionState<
+    any,
+    any
+  > | null>
+}
+
+function TransitionItem(props: TransitionItemProps) {
+  const { pageHandlesByKey, transition, transitionRefWhenActive, ...rest } =
+    props
+  const containerRef = useRef<HTMLDivElement>(null)
+  const key: unknown = transition.key
+  const { current: pageHandle } = useRef<PageHandle>({
+    transitionKey: transition.key,
+    transitionHandle: null,
+  })
+
+  const transitionHandleRef = useCallback(
+    (transitionHandle: TransitionHandle | null) => {
+      if (pageHandle) {
+        pageHandle.transitionHandle = transitionHandle
+      }
+    },
+    [pageHandle],
+  )
+
+  useEffect(() => {
+    pageHandlesByKey.set(key, pageHandle)
+
+    if (transitionRefWhenActive) {
+      transitionRefWhenActive.current = transition
+    }
+
+    return () => {
+      if (transitionRefWhenActive?.current === transition) {
+        transitionRefWhenActive.current = null
+      }
+      pageHandlesByKey.delete(key)
+    }
+  })
+
+  return (
+    <transitionHandleRefContext.Provider value={transitionHandleRef}>
+      <InnerTransitionItem
+        active={transitionRefWhenActive !== null}
+        containerRef={containerRef}
+        {...rest}
+      />
+    </transitionHandleRefContext.Provider>
+  )
+}
+
+interface InnerTransitionItemProps {
+  active: boolean
+  children: React.ReactNode
+  containerRef: React.RefObject<HTMLDivElement>
+  itemStyle?: React.CSSProperties
+  itemContainerStyle?: Omit<React.CSSProperties, 'overflow'>
+  spring: Record<any, SpringValue<any>>
 }
 
 // This is a component class, as we need to use getSnapshotBeforeUpdate to
 // fix some dimensions during transitions – and this lifecycle method has no
 // hook-based alternative.
-class TransitionItem extends React.Component<TransitionItemProps> {
-  containerRef: React.RefObject<HTMLDivElement>
-  key: unknown
-  pageHandle?: PageHandle
-
-  constructor(props: TransitionItemProps) {
-    super(props)
-
-    this.containerRef = React.createRef()
-    this.key = this.props.transition.key
-    this.pageHandle = {
-      transitionKey: props.transition.key,
-      transitionHandle: null,
-    }
-  }
-
+class InnerTransitionItem extends React.Component<InnerTransitionItemProps> {
   getSnapshotBeforeUpdate(): number | null {
     if (!this.props.active) {
-      const container = this.containerRef.current
+      const container = this.props.containerRef.current
       if (container) {
         const { height } = container.getBoundingClientRect()
         return height
@@ -294,77 +348,48 @@ class TransitionItem extends React.Component<TransitionItemProps> {
     return null
   }
 
-  componentDidMount() {
-    this.props.pageHandlesByKey.set(this.key, this.pageHandle!)
-
-    if (this.props.active && this.props.transitionRef) {
-      this.props.transitionRef.current = this.props.transition
-    }
-  }
-
   componentDidUpdate(
-    prevProps: TransitionItemProps,
+    prevProps: InnerTransitionItemProps,
     _prevState: {},
     snapshot: number | null,
   ) {
-    if (this.props.transitionRef) {
-      this.props.transitionRef.current = this.props.transition
-    } else if (
-      prevProps.transitionRef &&
-      prevProps.transitionRef.current === this.props.transition
-    ) {
-      prevProps.transitionRef.current = null
-    }
-
     if (snapshot) {
       // Fix the height when leaving
-      this.containerRef.current!.style.height = snapshot + 'px'
+      this.props.containerRef.current!.style.height = snapshot + 'px'
     } else if (!prevProps.active) {
       // If the item transitions back in after starting to leave, reset the
       // height.
-      this.containerRef.current!.style.height = 'auto'
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.props.transitionRef?.current === this.props.transition) {
-      this.props.transitionRef.current = null
-    }
-
-    this.props.pageHandlesByKey.delete(this.key)
-    delete this.pageHandle
-  }
-
-  transitionHandleRef = (transitionHandle: TransitionHandle | null) => {
-    const pageHandle = this.pageHandle
-    if (pageHandle) {
-      pageHandle.transitionHandle = transitionHandle
+      this.props.containerRef.current!.style.height = 'auto'
     }
   }
 
   render() {
-    const { active, children, itemStyle, itemContainerStyle, spring } =
-      this.props
+    const {
+      active,
+      children,
+      containerRef,
+      itemStyle,
+      itemContainerStyle,
+      spring,
+    } = this.props
 
     return (
-      <transitionHandleRefContext.Provider value={this.transitionHandleRef}>
-        <div
-          ref={this.containerRef}
+      <div
+        ref={containerRef}
+        style={{
+          ...columnTransitionDefaultStyles.itemContainer,
+          overflow: active ? undefined : 'hidden',
+          ...itemContainerStyle,
+        }}>
+        <animated.div
           style={{
-            ...columnTransitionDefaultStyles.itemContainer,
-            overflow: active ? undefined : 'hidden',
-            ...itemContainerStyle,
+            ...columnTransitionDefaultStyles.item,
+            ...spring,
+            ...itemStyle,
           }}>
-          <animated.div
-            style={{
-              ...columnTransitionDefaultStyles.item,
-              ...spring,
-              ...itemStyle,
-            }}>
-            {children}
-          </animated.div>
-        </div>
-      </transitionHandleRefContext.Provider>
+          {children}
+        </animated.div>
+      </div>
     )
   }
 }

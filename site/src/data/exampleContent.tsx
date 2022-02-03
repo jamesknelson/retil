@@ -67,6 +67,7 @@ export async function getExampleContent(
     // Match nested routes by default when providing a main function
     matchNestedRoutes = !!mod.clientMain,
   } = mod
+
   const meta = getExampleMeta(slug, moduleMeta)
   const clientMain = moduleClientMain || createClientMain(mod)
 

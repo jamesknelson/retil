@@ -24,13 +24,16 @@ const components = {
   pre: styles.DocCodeBlock,
   strong: styles.DocStrong,
   ul: styles.DocUnorderedList,
-  wrapper: styles.DocWrapper,
 }
 
 export function DocumentContent({ Component }: DocumentContentProps) {
   return (
     <MDXProvider components={components}>
-      <Component />
+      {/* Note: as of MDX 2.0-rc.2, the wrapper cannot be set as a component,
+          because it'll cause the document to be unmounted on each ender. */}
+      <styles.DocWrapper>
+        <Component />
+      </styles.DocWrapper>
     </MDXProvider>
   )
 }
