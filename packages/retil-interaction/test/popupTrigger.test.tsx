@@ -14,11 +14,21 @@ import {
   useService,
 } from '../src'
 
-function TestComponent() {
+interface TestComponentProps {
+  triggerOnFocus?: boolean
+  triggerOnHover?: boolean
+  triggerOnPress?: boolean
+}
+
+function TestComponent({
+  triggerOnFocus = true,
+  triggerOnHover = true,
+  triggerOnPress = true,
+}: TestComponentProps) {
   const triggerService = useConfigurator(popupTriggerServiceConfigurator, {
-    triggerOnFocus: true,
-    triggerOnHover: true,
-    triggerOnPress: true,
+    triggerOnFocus,
+    triggerOnHover,
+    triggerOnPress,
     delayOut: 50,
   })
   const [triggered, controller] = useService(triggerService)
@@ -28,7 +38,7 @@ function TestComponent() {
       <button data-testid="trigger" ref={controller.setTriggerElement}>
         {triggered ? 'open' : 'closed'}
       </button>
-      <div ref={controller.setPopupElement} />
+      {triggered && <div ref={controller.setPopupElement} />}
     </div>
   )
 }
@@ -82,7 +92,9 @@ describe('hook', () => {
   })
 
   test('is closed on outside click after delay', async () => {
-    const { container, getByTestId } = render(<TestComponent />)
+    const { container, getByTestId } = render(
+      <TestComponent triggerOnFocus={false} />,
+    )
     const element = getByTestId('trigger')
 
     await act(async () => {
@@ -129,12 +141,12 @@ describe('hook', () => {
     expect(element).toHaveTextContent('open')
   })
 
-  test('is closed on outside click after popup node is nulled out and immediately re set', async () => {
+  test.only('is closed on outside click after popup node is nulled out and immediately re set', async () => {
     let controller: any
 
     function TestComponent() {
       const triggerService = useConfigurator(popupTriggerServiceConfigurator, {
-        triggerOnFocus: true,
+        triggerOnFocus: false,
         triggerOnHover: true,
         triggerOnPress: true,
         delayOut: 50,
@@ -148,14 +160,15 @@ describe('hook', () => {
           <button data-testid="trigger" ref={controller.setTriggerElement}>
             {triggered ? 'open' : 'closed'}
           </button>
-          <div data-testid="popup" ref={controller.setPopupElement} />
+          {triggered && (
+            <div data-testid="popup" ref={controller.setPopupElement} />
+          )}
         </div>
       )
     }
 
     const { container, getByTestId } = render(<TestComponent />)
     const trigger = getByTestId('trigger')
-    const popup = getByTestId('popup')
 
     await act(async () => {
       fireEvent.mouseDown(trigger)
@@ -163,6 +176,8 @@ describe('hook', () => {
       fireEvent.mouseUp(trigger)
       fireEvent.click(trigger)
     })
+
+    const popup = getByTestId('popup')
 
     controller.setPopupElement(null)
     controller.setPopupElement(popup)
