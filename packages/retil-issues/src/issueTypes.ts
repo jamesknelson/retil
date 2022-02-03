@@ -1,112 +1,105 @@
-export const Root = Symbol('basePath')
-export type RootType = typeof Root
+import { Root } from 'retil-support'
+
+export type IssueKey = string | number | symbol | object | Validator<any>
 
 // TODO: allow for nested types, using template literal types, e.g.
 // https://github.com/millsp/ts-toolbelt/blob/master/sources/Function/AutoPath.ts
-type ObjectPaths<Value extends object = any> = Extract<keyof Value, string>
-
-export type IssueCodes = Record<string | RootType, string>
-
-export type DefaultIssueCodes<Value extends object = any> = Record<
-  ObjectPaths<Value> | RootType,
-  string
+export type IssuePath<TValue extends object = any> = Extract<
+  keyof TValue,
+  Root | string
 >
 
-export type IssuePath<Codes extends IssueCodes = IssueCodes> = Extract<
-  keyof Codes,
+export type IssuePathOrRoot<TValue extends object = any> =
+  | Root
+  | IssuePath<TValue>
+
+export type CodesByPath<TValue extends object = any> = Record<
+  IssuePathOrRoot<TValue>,
   string
 >
 
 export type Validator<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
-> = (data: Value, paths?: IssuePath<Codes>[]) => ValidatorIssues<Value, Codes>
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
+> = (
+  data: TValue,
+  paths?: IssuePathOrRoot<TCodes>[],
+) => ValidatorIssues<TValue, TCodes>
 
 export type AsyncValidator<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
 > = (
-  data: Value,
-  paths?: IssuePath<Codes>[],
-) => Promise<ValidatorIssues<Value, Codes>>
+  data: TValue,
+  paths?: IssuePathOrRoot<TCodes>[],
+) => Promise<ValidatorIssues<TValue, TCodes>>
 
 export type ValidatorIssue<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
-  Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
+  TPath extends IssuePath<TCodes> = IssuePath<TCodes>,
 > =
   | {
       message: string
-      code?: Codes[Path]
-      path?: Extract<Path, string>
+      code?: TCodes[TPath]
+      path?: TPath
     }
   | {
       message?: string
-      code: Codes[Path]
-      path?: Extract<Path, string>
+      code: TCodes[TPath]
+      path?: TPath
     }
 
 export type ValidatorIssues<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
-  Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
+  TPath extends IssuePath<TCodes> = IssuePath<TCodes>,
 > =
   | null
   | (
-      | ValidatorIssue<Value, Codes, Path>
-      | Codes[Path]
+      | ValidatorIssue<TValue, TCodes, TPath>
+      | TCodes[TPath]
       | false
       | null
       | undefined
     )[]
-  | { [P in Path]?: ValidatorIssues<Value, Codes, P> }
+  | { [P in TPath]?: ValidatorIssues<TValue, TCodes, P> }
 
-export type IssueKey = string | number | symbol | object | Validator<any>
-
-// TODO:
-// This type is actuallyu more correct, as it lets us discriminate between
-// codes at different paths. However, it currently breaks the types for
-// useIssues.
-//
-// export type Issue<
-//   Value extends object = any,
-//   Codes extends IssueCodes = DefaultIssueCodes<Value>,
-//   Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
-// > = {
-//   [P in Path]: {
-//     message: string
-//     code: Codes[P extends never ? RootType : P]
-//     key: IssueKey
-//     value: Value
-
-//     // This will be undefined in the case of a base path
-//     path: P extends string ? P : undefined
-//   }
-// }[Path]
-export interface Issue<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
-  Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
-> {
+export interface IssueWithAnyCode<TValue extends object> {
   message: string
-  code: Codes[Path extends never ? RootType : Path]
+  code: string
   key: IssueKey
-  value: Value
+  value: TValue
 
-  // This will be undefined in the case of a base path
-  path?: Extract<Path, string>
+  // NOTE: this cannot be set based on the value, as the path on a coded
+  // issue object can only be set to a value that exists as a key on TCodes.
+  path: IssuePath<CodesByPath<TValue>>
 }
 
+export type Issue<
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
+  TPath extends IssuePath<TCodes> = IssuePath<TCodes>,
+> = {
+  [P in TPath]: {
+    message: string
+    code: TCodes[P]
+    key: IssueKey
+    value: TValue
+    path: P
+  }
+}[TPath]
+
 export interface AddIssuesFunction<
-  Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  TValue extends object,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
 > {
-  <I extends Readonly<ValidatorIssues<Value, Codes>>>(
+  <I extends Readonly<ValidatorIssues<TValue, TCodes>>>(
     issues: I,
     options?: {
       // For individual issues, any change from this value will result in the
       // issues being removed.
-      value?: Value
+      value?: TValue
 
       // If provided, the result of this validator for this path will override
       // the result of any previous validator with the same key. By default,
@@ -127,7 +120,7 @@ export interface AddIssuesFunction<
    * rejected.
    */
   (
-    validator: Validator<Value, Codes>,
+    validator: Validator<TValue, TCodes>,
     options?: {
       // If provided, the result of this validator for this path will override
       // the result of any previous validator with the same key. By default,
@@ -137,7 +130,7 @@ export interface AddIssuesFunction<
       // If provided, the path will be provided to the validator, and the result
       // of the validator will be filtered such that only issues with this path
       // are handled.
-      path?: IssuePath<Codes>
+      path?: IssuePath<TCodes>
     },
   ): readonly [removeIssues: () => void, resultPromise: Promise<boolean>]
 }
@@ -149,8 +142,9 @@ export interface AddIssuesFunction<
 export type ClearIssuesFunction = (key?: IssueKey) => void
 
 export type GetIssueMessage<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
 > = (
-  issue: Omit<Issue<Value, Codes>, 'message'> & { message?: string },
+  // If no message was received, it will be the empty string.
+  issue: Issue<TValue, TCodes>,
 ) => string

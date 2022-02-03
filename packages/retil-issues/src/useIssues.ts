@@ -1,52 +1,57 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Deferred, areShallowEqual, noop } from 'retil-support'
+import { Deferred, Root, areShallowEqual, noop, root } from 'retil-support'
 
 import {
   AddIssuesFunction,
   ClearIssuesFunction,
-  DefaultIssueCodes,
   GetIssueMessage,
   Issue,
-  IssueCodes,
+  CodesByPath,
   IssueKey,
   IssuePath,
+  IssuePathOrRoot,
+  IssueWithAnyCode,
   Validator,
   ValidatorIssue,
   ValidatorIssues,
 } from './issueTypes'
 
 export interface UseIssuesOptions<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
 > {
-  areValuesEqual?: (x: Value, y: Value) => boolean
-  areValuePathsEqual?: (x: Value, y: Value, path: string) => boolean
+  areValuesEqual?: (x: TValue, y: TValue) => boolean
+  areValuePathsEqual?: (
+    x: TValue,
+    y: TValue,
+    path: IssuePath<TValue>,
+  ) => boolean
   attemptResolutionOnChange?: boolean
-  getMessage?: GetIssueMessage<Value, Codes>
+  getMessage?: GetIssueMessage<TValue, TCodes>
 }
 
 export type UseIssuesTuple<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
 > = [
-  issues: Issue<Value, Codes>[],
-  addIssues: AddIssuesFunction<Value, Codes>,
+  issues: Issue<TValue, TCodes>[],
+  addIssues: AddIssuesFunction<TValue, TCodes>,
   clearIssues: ClearIssuesFunction,
 ]
 
-interface IssuesState<Value extends object, Codes extends IssueCodes> {
+interface IssuesState<Value extends object> {
   value: Value
-  issues: Issue<Value, Codes>[]
-  validators: ReadonlyMap<IssueKey, Validator<Value, Codes>>
+  issues: IssueWithAnyCode<Value>[]
+  validators: ReadonlyMap<IssueKey, Validator<Value>>
 }
 
 export function useIssues<
-  Value extends object = any,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
+  TValue extends object = any,
+  TCodes extends CodesByPath<TValue> = CodesByPath<TValue>,
 >(
-  value: Value,
-  options: UseIssuesOptions<Value, Codes> = {},
-): UseIssuesTuple<Value, Codes> {
+  value: TValue,
+  options: UseIssuesOptions<TValue, TCodes> = {},
+): UseIssuesTuple<TValue, TCodes> {
   const {
     attemptResolutionOnChange = true,
     areValuesEqual = areShallowEqual,
@@ -54,14 +59,14 @@ export function useIssues<
   } = options
 
   const getMessage = (options.getMessage ||
-    defaultGetMessage) as unknown as GetIssueMessage<Value, Codes>
+    defaultGetMessage) as unknown as GetIssueMessage<TValue>
 
-  const [state, setState] = useState<IssuesState<Value, Codes>>(() =>
-    getInitialState<Value, Codes>(value),
+  const [state, setState] = useState<IssuesState<TValue>>(() =>
+    getInitialState<TValue>(value),
   )
 
-  const resultsRef = useRef<Deferred<IssuesState<Value, Codes>>[]>([])
-  const stateRef = useRef<IssuesState<Value, Codes> | null>(state)
+  const resultsRef = useRef<Deferred<IssuesState<TValue>>[]>([])
+  const stateRef = useRef<IssuesState<TValue> | null>(state)
 
   stateRef.current = state
 
@@ -108,16 +113,16 @@ export function useIssues<
     })
   }, [])
 
-  const addIssues = useCallback<AddIssuesFunction<Value, Codes>>(
+  const addIssues = useCallback<AddIssuesFunction<TValue, TCodes>>(
     (
       validatorOrIssues:
         | null
-        | Validator<Value, Codes>
-        | ValidatorIssues<Value, Codes>,
+        | Validator<TValue, TCodes>
+        | ValidatorIssues<TValue, TCodes>,
       options: {
         key?: IssueKey
-        path?: IssuePath<Codes>
-        value?: Value
+        path?: IssuePathOrRoot<TCodes>
+        value?: TValue
       } = {},
     ): readonly [removeIssues: () => void, resultPromise: Promise<boolean>] => {
       if (!stateRef.current) {
@@ -136,12 +141,12 @@ export function useIssues<
       const { key = validatorOrIssues, path } = options
 
       setState((state) => {
-        const validator: Validator<Value, Codes> =
+        const validator: Validator<TValue> =
           typeof validatorOrIssues === 'function'
-            ? (validatorOrIssues as Validator<Value, Codes>)
+            ? (validatorOrIssues as unknown as Validator<TValue>)
             : createDifferenceValidator(
                 options.value || state.value,
-                validatorOrIssues as ValidatorIssues<Value, Codes>,
+                validatorOrIssues as ValidatorIssues<TValue>,
                 getMessage,
                 areValuePathsEqual,
               )
@@ -172,7 +177,7 @@ export function useIssues<
         }
       })
 
-      const result = new Deferred<IssuesState<Value, Codes>>()
+      const result = new Deferred<IssuesState<TValue>>()
 
       resultsRef.current.push(result)
 
@@ -208,7 +213,7 @@ export function useIssues<
    * the validation.
    */
   const updateValueAndIssues = useCallback(
-    (value?: Value, { key }: { key?: IssueKey } = {}) => {
+    (value?: TValue, { key }: { key?: IssueKey } = {}) => {
       // Bail if the component has already unmounted
       if (!stateRef.current) {
         return
@@ -237,7 +242,7 @@ export function useIssues<
 
         // Build a list of the validators that need to be called, and the
         // paths that they need to be called with.
-        const queueMap = new Map<IssueKey, IssuePath<Codes>[] | true>()
+        const queueMap = new Map<IssueKey, (Root | string)[] | true>()
         for (let i = 0; i < issuesToCheck.length; i++) {
           const issue = issuesToCheck[i]
           const current = queueMap.get(issue.key) || []
@@ -300,13 +305,12 @@ export function useIssues<
     }
   }
 
-  return [state.issues, addIssues, clearIssues]
+  return [state.issues as Issue<TValue, TCodes>[], addIssues, clearIssues]
 }
 
-function getInitialState<
-  Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
->(value: Value): IssuesState<Value, Codes> {
+function getInitialState<TValue extends object>(
+  value: TValue,
+): IssuesState<TValue> {
   return {
     value,
     issues: [],
@@ -314,16 +318,13 @@ function getInitialState<
   }
 }
 
-function runValidator<
-  Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
->(
+function runValidator<TValue extends object>(
   key: IssueKey,
-  validator: Validator<Value, Codes>,
-  data: Value,
-  paths: IssuePath<Codes>[] | undefined,
-  getMessage: GetIssueMessage<Value, Codes>,
-): Issue<Value, Codes>[] {
+  validator: Validator<TValue, any>,
+  data: TValue,
+  paths: IssuePathOrRoot<any>[] | undefined,
+  getMessage: GetIssueMessage<TValue, any>,
+): IssueWithAnyCode<TValue>[] {
   const validatorIssues = validator(data, paths)
   const issues = normalizeIssues(key, data, validatorIssues, getMessage)
 
@@ -334,27 +335,24 @@ function runValidator<
     : issues
 }
 
-function normalizeIssues<
-  Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
->(
+function normalizeIssues<TValue extends object>(
   key: IssueKey,
-  value: Value,
-  validatorIssues: ValidatorIssues<Value, Codes>,
-  getMessage: GetIssueMessage<Value, Codes>,
-  defaultPath?: IssuePath<Codes>,
-): Issue<Value, Codes>[] {
+  value: TValue,
+  validatorIssues: ValidatorIssues<TValue>,
+  getMessage: GetIssueMessage<TValue>,
+  defaultPath?: IssuePath<TValue>,
+): IssueWithAnyCode<TValue>[] {
   if (!validatorIssues) {
     return []
   } else if (!Array.isArray(validatorIssues)) {
-    return ([] as Issue<Value, Codes>[]).concat(
+    return ([] as IssueWithAnyCode<TValue>[]).concat(
       ...Object.keys(validatorIssues).map((path) =>
         normalizeIssues(
           key,
           value,
-          validatorIssues[path] as ValidatorIssues<Value, Codes>,
+          validatorIssues[path as never] as ValidatorIssues<TValue>,
           getMessage,
-          (defaultPath ? defaultPath + path + '.' : path) as IssuePath<Codes>,
+          (defaultPath ? defaultPath + path + '.' : path) as IssuePath<TValue>,
         ),
       ),
     )
@@ -362,16 +360,17 @@ function normalizeIssues<
     return (
       validatorIssues.filter(
         Boolean as unknown as (value: any) => boolean,
-      ) as ValidatorIssue<Value, Codes>[]
+      ) as ValidatorIssue<TValue>[]
     ).map((issue) => {
       const partialIssue = {
+        message: '',
         ...(typeof issue !== 'string' && issue),
         code: ((typeof issue === 'string' ? issue : issue.code) ||
           issue.message) as any,
-        path: issue.path || defaultPath,
+        path: issue.path ?? defaultPath ?? root,
         value,
         key,
-      }
+      } as Issue<TValue>
       return {
         ...partialIssue,
         message: getMessage(partialIssue),
@@ -383,30 +382,27 @@ function normalizeIssues<
 const defaultGetMessage: GetIssueMessage = (issue) =>
   ((typeof issue === 'string' ? issue : issue.code) || issue.message)!
 
-function createDifferenceValidator<
-  Value extends object,
-  Codes extends IssueCodes = DefaultIssueCodes<Value>,
->(
-  issuesWithValue: Value,
-  issues: ValidatorIssues<Value, Codes>,
-  getMessage: GetIssueMessage<Value, Codes>,
+function createDifferenceValidator<TValue extends object>(
+  valueWithIssues: TValue,
+  issues: ValidatorIssues<TValue>,
+  getMessage: GetIssueMessage<TValue>,
   areValuePathsEqual: (
-    x: Value,
-    y: Value,
-    path: string,
+    x: TValue,
+    y: TValue,
+    path: IssuePath<TValue>,
   ) => boolean = areValuePropertiesEqual,
-): Validator<Value, Codes> {
+): Validator<TValue> {
   const normalizedIssues = normalizeIssues(
     {},
-    issuesWithValue,
+    valueWithIssues,
     issues,
     getMessage,
   )
   return (latestData) =>
     normalizedIssues.filter(
       (issue) =>
-        !issue.path ||
-        areValuePathsEqual(issuesWithValue, latestData, issue.path),
+        issue.path === root ||
+        areValuePathsEqual(valueWithIssues, latestData, issue.path),
     )
 }
 

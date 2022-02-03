@@ -1,7 +1,7 @@
 import { useCallback, useMemo } from 'react'
-import { Issue, IssueCodes, IssuePath } from 'retil-issues'
+import { CodesByPath, Issue, IssuePath } from 'retil-issues'
 
-export interface Model<Value extends object, Codes extends IssueCodes> {
+export interface Model<Value extends object, Codes extends CodesByPath<Value>> {
   issues: Issue<Value, Codes>[]
   update: (updater: (value: Value) => Value) => void
   validate: (path?: IssuePath<Codes>) => Promise<boolean>
@@ -11,9 +11,10 @@ export interface Model<Value extends object, Codes extends IssueCodes> {
 /**
  * Utility to memoize and infer types.
  */
-export function useModel<Value extends object, Codes extends IssueCodes>(
-  model: Model<Value, Codes>,
-): Model<Value, Codes> {
+export function useModel<
+  Value extends object,
+  Codes extends CodesByPath<Value>,
+>(model: Model<Value, Codes>): Model<Value, Codes> {
   const { issues, update, validate, value } = model
 
   return useMemo(
@@ -29,7 +30,10 @@ export function useModel<Value extends object, Codes extends IssueCodes>(
 
 const noIssues = [] as Issue<any, any>[]
 
-export function useModelField<Value extends object, Codes extends IssueCodes>(
+export function useModelField<
+  Value extends object,
+  Codes extends CodesByPath<Value>,
+>(
   { issues, update, validate, value }: Model<Value, Codes>,
   path: Extract<keyof Value, string>,
 ) {

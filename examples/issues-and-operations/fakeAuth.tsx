@@ -1,5 +1,5 @@
-import { Root, ValidatorIssues } from 'retil-issues'
-import { delay } from 'retil-support'
+import { ValidatorIssues } from 'retil-issues'
+import { delay, root } from 'retil-support'
 
 export interface FakeAuthSignInRequest {
   email: string
@@ -7,7 +7,7 @@ export interface FakeAuthSignInRequest {
 }
 
 export type FakeAuthSignInCodes = {
-  [Root]: 'error'
+  [root]: 'error'
   email: 'missing' | 'invalid'
   password: 'missing' | 'invalid' | 'mismatch'
 }
