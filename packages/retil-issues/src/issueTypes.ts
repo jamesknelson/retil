@@ -63,6 +63,26 @@ export type ValidatorIssues<
 
 export type IssueKey = string | number | symbol | object | Validator<any>
 
+// TODO:
+// This type is actuallyu more correct, as it lets us discriminate between
+// codes at different paths. However, it currently breaks the types for
+// useIssues.
+//
+// export type Issue<
+//   Value extends object = any,
+//   Codes extends IssueCodes = DefaultIssueCodes<Value>,
+//   Path extends IssuePath<Codes> | RootType = IssuePath<Codes> | RootType,
+// > = {
+//   [P in Path]: {
+//     message: string
+//     code: Codes[P extends never ? RootType : P]
+//     key: IssueKey
+//     value: Value
+
+//     // This will be undefined in the case of a base path
+//     path: P extends string ? P : undefined
+//   }
+// }[Path]
 export interface Issue<
   Value extends object = any,
   Codes extends IssueCodes = DefaultIssueCodes<Value>,
