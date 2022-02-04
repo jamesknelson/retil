@@ -13,9 +13,8 @@ export type IssuePathOrRoot<TValue extends object = any> =
   | Root
   | IssuePath<TValue>
 
-export type CodesByPath<TValue extends object = any> = Record<
-  IssuePathOrRoot<TValue>,
-  string
+export type CodesByPath<TValue extends object = any> = Partial<
+  Record<IssuePathOrRoot<TValue>, string>
 >
 
 export type Validator<

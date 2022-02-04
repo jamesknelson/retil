@@ -370,11 +370,11 @@ function normalizeIssues<TValue extends object>(
         path: issue.path ?? defaultPath ?? root,
         value,
         key,
-      } as Issue<TValue>
+      }
       return {
         ...partialIssue,
-        message: getMessage(partialIssue),
-      }
+        message: getMessage(partialIssue as Issue<TValue>),
+      } as IssueWithAnyCode<TValue>
     })
   }
 }
