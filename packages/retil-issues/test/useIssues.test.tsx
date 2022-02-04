@@ -13,7 +13,7 @@ describe('useIssues', () => {
       current: undefined as any as UseIssuesTuple<Value>,
     }
     const results = [] as UseIssuesTuple<Value>[]
-    const Wrapper = ({ data, options }: any) => {
+    const Wrapper = ({ data, options }: { data: Value; options: any }) => {
       result.current = useIssues(data, options)
       results.push(result.current)
       return <></>
@@ -209,7 +209,7 @@ describe('useIssues', () => {
       {
         getMessage: (issue) =>
           issue.code === 'missing'
-            ? `Please enter a ${issue.path}`
+            ? `Please enter a ${String(issue.path)}`
             : 'Unknown error',
       },
     )
