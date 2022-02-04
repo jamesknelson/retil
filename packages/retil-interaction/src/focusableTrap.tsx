@@ -6,10 +6,11 @@ import { Connector } from './connector'
 import { FocusableDefaultProvider } from './focusable'
 
 export interface FocusableTrapOptions {
-  allowOutsideClick?: boolean | ((event: MouseEvent | TouchEvent) => boolean)
+  // allowOutsideClick?: boolean | ((event: MouseEvent | TouchEvent) => boolean)
   initialFocusRef?: React.RefObject<HTMLElement | SVGElement | null>
   preventScroll?: boolean
-  returnFocusOnDeactivate?: boolean
+  passThrough?: boolean
+  // returnFocusOnDeactivate?: boolean
 }
 
 export interface FocusableTrapMergedProps<
@@ -43,37 +44,34 @@ export function useFocusableTrapConnector(
   active: boolean,
   options: FocusableTrapOptions = {},
 ): FocusableTrapConnector {
-  const {
-    allowOutsideClick = true,
-    initialFocusRef,
-    preventScroll = false,
-    returnFocusOnDeactivate = true,
-  } = options
+  const { initialFocusRef, preventScroll = false, passThrough = true } = options
 
   const elementRef = useRef<HTMLElement | SVGElement | null>(null)
 
   useEffect(() => {
     if (active && elementRef.current) {
       const trap = createFocusTrap(elementRef.current, {
-        allowOutsideClick,
+        clickOutsideDeactivates: passThrough
+          ? (event: any) => {
+              return (
+                event.type === 'mousedown' ||
+                (!!document.activeElement &&
+                  !elementRef.current?.contains(document.activeElement))
+              )
+            }
+          : false,
         escapeDeactivates: false,
         initialFocus: initialFocusRef?.current || undefined,
         fallbackFocus: elementRef.current,
         preventScroll,
-        returnFocusOnDeactivate,
+        returnFocusOnDeactivate: true,
       })
       trap.activate()
       return () => {
         trap.deactivate()
       }
     }
-  }, [
-    active,
-    allowOutsideClick,
-    initialFocusRef,
-    preventScroll,
-    returnFocusOnDeactivate,
-  ])
+  }, [active, initialFocusRef, passThrough, preventScroll])
 
   const provide = (children: React.ReactNode) => (
     <FocusableDefaultProvider value={true}>{children}</FocusableDefaultProvider>

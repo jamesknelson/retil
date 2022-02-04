@@ -39,10 +39,13 @@ export function PopupDialog({
     ? null
     : createPortal(
         transition(
-          (transitionProps, active, { key }) =>
-            active && (
+          (transitionProps, displayed, { key }) =>
+            displayed && (
               <RetilPopupDialogSurface
                 {...restProps}
+                // Note: it's important to pass in the current "active", and
+                // *not* the transition active - as this ensures that focus
+                // moves out of the dialog as soon as it deactivates.
                 active={active}
                 adaptive={false}
                 as={AnimatedPopupCard as any}

@@ -5,10 +5,12 @@ import { Configurator } from './configurator'
 import { Service } from './service'
 
 // TODO:
-// - We also want to allow popup triggers to share some kinda of trigger group
-//   service, so that only one can be active at a time. This would reduce
-//   connected triggers' open delays to zero when any trigger is active, and
-//   would imperatively close other triggers when any trigger activates.
+// - We also want to allow popup triggers to share some kind of trigger group
+//   service, so that only one trigger can be active at a time. This would
+//   reduce connected triggers' open delays to zero when any trigger is active,
+//   and would imperatively close other triggers when any trigger activates.
+
+export type PopupTriggerElement = HTMLElement | SVGElement
 
 export type PopupTriggerService = Service<boolean, PopupTriggerHandle>
 
@@ -22,11 +24,12 @@ export interface PopupTriggerHandle {
   open: () => void
   toggle: () => void
 
-  setTriggerElement: (node: HTMLElement | SVGElement | null) => void
-  setPopupElement: (node: HTMLElement | SVGElement | null) => void
+  setTriggerElement: (node: PopupTriggerElement | null) => void
+  setPopupElement: (node: PopupTriggerElement | null) => void
 }
 
 export interface PopupTriggerConfig {
+  closeOnEscape?: boolean
   debounceWindowInteractionClosures?: number
   delayIn?: number
   delayOut?: number
@@ -42,6 +45,7 @@ export function splitPopupTriggerConfig<P extends PopupTriggerConfig>(
   props: P,
 ): readonly [PopupTriggerConfig, Omit<P, keyof PopupTriggerConfig>] {
   const {
+    closeOnEscape,
     debounceWindowInteractionClosures,
     delayIn,
     delayOut,
@@ -56,6 +60,7 @@ export function splitPopupTriggerConfig<P extends PopupTriggerConfig>(
 
   return [
     {
+      closeOnEscape,
       debounceWindowInteractionClosures,
       delayIn,
       delayOut,
@@ -81,6 +86,8 @@ function getPopupTriggerConfigWithDefaults(
   config: PopupTriggerConfig,
 ): PopupTriggerConfigWithDefaults {
   const {
+    closeOnEscape = true,
+
     // Prevents window interactions from closing the popup for a short period
     // after it was opened, which can help to prevent closures due to touch
     // events.
@@ -107,6 +114,7 @@ function getPopupTriggerConfigWithDefaults(
   const hasTriggerEvents = !disabled && trigger === undefined
 
   return {
+    closeOnEscape,
     debounceWindowInteractionClosures,
     delayIn,
     delayOut,
@@ -130,7 +138,7 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
   ) => {
     let mutableConfig = getPopupTriggerConfigWithDefaults(initialConfig)
 
-    const [stateSource, setState] = createState(initialState)
+    const [stateSource, setState] = createState(getInitialState(mutableConfig))
 
     const dispatch = <T extends any[]>(
       reducer: (state: PopupTriggerState, ...args: T) => PopupTriggerState,
@@ -159,10 +167,10 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
       delta: 1 | -1,
       delay: null | number,
     ) => {
-      const action = { name, update: [delta] as const }
-      dispatch(counterEnqueueReducer, action)
+      const update = [delta] as const
+      dispatch(counterEnqueueReducer, name, update)
       if (delay !== Infinity) {
-        dispatchWithDelay(delay, counterCommitReducer, action)
+        dispatchWithDelay(delay, counterCommitReducer, name, update)
       }
     }
 
@@ -175,15 +183,13 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
     // closed on mobile devices)
     let lastOpenedAt: number | false = false
 
-    const handleWindowInteraction = (event: Event) => {
+    const handleWindowMouseUpOrTouchEnd = (event: Event) => {
       if (
         lastOpenedAt &&
         Date.now() - lastOpenedAt >
           mutableConfig.debounceWindowInteractionClosures
       ) {
-        dispatch(windowInteractionReducer, {
-          target: event.target as HTMLElement,
-        })
+        dispatch(interactionEndOnWindowReducer, event.target)
       }
     }
 
@@ -220,7 +226,6 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
     }
     const handleTriggerFocusOut = () => {
       flushWhenFocusReentersWindow = !document.hasFocus()
-      dispatch(clearPotentialMouseTriggerReducer)
       dispatchCounterUpdate(
         'triggerFocus',
         -1,
@@ -240,33 +245,24 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
     const handleTriggerHoverOut = () =>
       dispatchCounterUpdate('triggerHover', -1, mutableConfig.delayOut)
 
-    const handleWindowMouseDown = (event: MouseEvent) => {
-      console.log('window mouse down')
-      // TODO:
-      // - if mouse is down outside trigger and popup element,
-      //   flag that it's down, so that we can delay any focusout
-      //   or window interaction closures until the mouse goes up
-      //   (assuming nothing else has happened in the meantime)
-      // - this is necessary to prevent the popup from closing due
-      //   to a mousedown, which then re-focuses the trigger (when
-      //   using a focus trap), which then re-opens the popup.
-    }
-
     const handleWindowKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        dispatch(clearPotentialMouseTriggerReducer)
+        dispatch(escapeReducer)
       }
     }
 
+    const handleWindowMouseDown = (event: MouseEvent) => {
+      dispatch(mouseDownOnWindowReducer, event.target)
+    }
     const handleTriggerMouseDown = (event: Event) =>
-      dispatch(mouseDownOnTriggerReducer, { target: event.target })
+      dispatch(mouseDownOnTriggerReducer, event.target)
 
     const handleTriggerMouseUp = (event: Event) =>
-      dispatch(mouseUpFromTriggerReducer, { target: event.target })
+      dispatch(mouseUpFromTriggerReducer, event.target)
 
     const handleTriggerTouch = (event: Event) => {
-      event.stopPropagation()
-      event.preventDefault()
+      // event.stopPropagation()
+      // event.preventDefault()
       dispatch(toggleReducer)
     }
 
@@ -281,10 +277,10 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
           element.addEventListener('mouseup', handleTriggerMouseUp, false)
           element.addEventListener('touchend', handleTriggerTouch, false)
         }
-        if (mutableConfig.triggerOnFocus) {
-          element.addEventListener('focusin', handleTriggerFocusIn, false)
-          element.addEventListener('focusout', handleTriggerFocusOut, false)
-        }
+        // if (mutableConfig.triggerOnFocus) {
+        element.addEventListener('focusin', handleTriggerFocusIn, false)
+        element.addEventListener('focusout', handleTriggerFocusOut, false)
+        //
         if (mutableConfig.triggerOnHover) {
           element.addEventListener('mouseenter', handleTriggerHoverIn, false)
           element.addEventListener('mouseleave', handleTriggerHoverOut, false)
@@ -306,10 +302,10 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
           element.removeEventListener('touchend', handleTriggerTouch, false)
         }
 
-        if (mutableConfig.triggerOnFocus) {
-          element.removeEventListener('focusin', handleTriggerFocusIn, false)
-          element.removeEventListener('focusout', handleTriggerFocusOut, false)
-        }
+        // if (mutableConfig.triggerOnFocus) {
+        element.removeEventListener('focusin', handleTriggerFocusIn, false)
+        element.removeEventListener('focusout', handleTriggerFocusOut, false)
+        // }
 
         if (mutableConfig.triggerOnHover) {
           element.removeEventListener('mouseenter', handleTriggerHoverIn, false)
@@ -324,45 +320,78 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
 
     const setupPopupEvents = (element: HTMLElement | SVGElement | null) => {
       if (element) {
-        if (mutableConfig.triggerOnFocus) {
+        if (mutableConfig.triggerOnFocus || mutableConfig.triggerOnPress) {
+          // We still need to listen for focus events when only triggering
+          // on press, as we want to use blur to toggle off.
           element.addEventListener('focusin', handlePopupFocusIn, false)
           element.addEventListener('focusout', handlePopupFocusOut, false)
 
           // Watch focus focus coming into the window on an unknown element
           // after focus leaving the window.
           window.addEventListener('focusin', handleFocusIntoWindow, false)
+
+          window.addEventListener('keydown', handleWindowKeyDown, false)
+
+          window.addEventListener(
+            'mouseup',
+            handleWindowMouseUpOrTouchEnd,
+            false,
+          )
+        }
+
+        if (mutableConfig.triggerOnFocus) {
+          // When focused, watch for mousedown outside the popup trigger,
+          // so that when focus moves from the popup to the trigger between
+          // mousedown and mouseup, we can treat that as a toggle event
+          // instead of an open event.
+          window.addEventListener('mousedown', handleWindowMouseDown, false)
+        }
+
+        // Add window-wide handlers that close the popup
+        if (mutableConfig.triggerOnPress) {
+          window.addEventListener(
+            'touchend',
+            handleWindowMouseUpOrTouchEnd,
+            false,
+          )
         }
 
         if (mutableConfig.triggerOnHover) {
           element.addEventListener('mouseenter', handlePopupHoverIn, false)
           element.addEventListener('mouseleave', handlePopupHoverOut, false)
         }
-
-        // Add window-wide handlers that close the popup
-        if (mutableConfig.triggerOnPress) {
-          window.addEventListener('mousedown', handleWindowMouseDown, false)
-          window.addEventListener('keydown', handleWindowKeyDown, false)
-          window.addEventListener('click', handleWindowInteraction, false)
-          window.addEventListener('touchend', handleWindowInteraction, false)
-        }
       }
     }
 
     const teardownPopupEvents = (element: HTMLElement | SVGElement | null) => {
       if (element) {
-        if (mutableConfig.triggerOnFocus) {
+        if (mutableConfig.triggerOnPress || mutableConfig.triggerOnFocus) {
           element.removeEventListener('focusin', handlePopupFocusIn, false)
           element.removeEventListener('focusout', handlePopupFocusOut, false)
+
+          window.removeEventListener('focusin', handleFocusIntoWindow, false)
+
+          window.removeEventListener('keydown', handleWindowKeyDown, false)
+
+          window.removeEventListener(
+            'mouseup',
+            handleWindowMouseUpOrTouchEnd,
+            false,
+          )
+        }
+        if (mutableConfig.triggerOnFocus) {
+          window.removeEventListener('mousedown', handleWindowMouseDown, false)
+        }
+        if (mutableConfig.triggerOnPress) {
+          window.removeEventListener(
+            'touchend',
+            handleWindowMouseUpOrTouchEnd,
+            false,
+          )
         }
         if (mutableConfig.triggerOnHover) {
           element.removeEventListener('mouseenter', handlePopupHoverIn, false)
           element.removeEventListener('mouseleave', handlePopupHoverOut, false)
-        }
-        if (mutableConfig.triggerOnPress) {
-          window.removeEventListener('mousedown', handleWindowMouseDown, false)
-          window.removeEventListener('keydown', handleWindowKeyDown, false)
-          window.removeEventListener('click', handleWindowInteraction, false)
-          window.removeEventListener('touchend', handleWindowInteraction, false)
         }
       }
     }
@@ -386,17 +415,12 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
 
     const source: Source<boolean> = fuse((use) => {
       const state = use(stateSource)
-
-      const focusCount =
-        state.counters.triggerFocus.value + state.counters.popupFocus.value
-      const hoverCount =
-        state.counters.triggerHover.value + state.counters.popupHover.value
-
+      const activeByCounters = state.toggledValue || hasActiveCounters(state)
       const active =
         state.configuredValue ??
-        (state.toggle ||
-          (hoverCount > 0 && mutableConfig.triggerOnHover) ||
-          (focusCount > 0 && mutableConfig.triggerOnFocus))
+        (!state.keepClosedUntilMouseUp &&
+          state.toggledValue !== false &&
+          activeByCounters)
 
       const nextActiveWithPopup = active && !!state.elements.popup.value
       const nextWatchedPopupElement = !state.configuredValue
@@ -433,27 +457,27 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
       return active
     }, teardownSource)
 
-    const close = () => dispatch(closeReducer)
     const open = () => dispatch(openReducer)
+    const close = () => dispatch(closeReducer)
     const toggle = () => dispatch(toggleReducer)
 
-    const setTriggerElement = (update: HTMLElement | SVGElement | null) => {
-      const action = { name: 'trigger' as const, update }
-      dispatch(enqueueElementReducer, action)
+    const setTriggerElement = (update: PopupTriggerElement | null) => {
+      dispatch(enqueueElementReducer, 'trigger', update)
       dispatchWithDelay(
         update === null ? 0 : null,
         commitElementReducer,
-        action,
+        'trigger',
+        update,
       )
     }
 
-    const setPopupElement = (update: HTMLElement | SVGElement | null) => {
-      const action = { name: 'popup' as const, update }
-      dispatch(enqueueElementReducer, action)
+    const setPopupElement = (update: PopupTriggerElement | null) => {
+      dispatch(enqueueElementReducer, 'popup', update)
       dispatchWithDelay(
         update === null ? mutableConfig.delayTeardownPopup : null,
         commitElementReducer,
-        action,
+        'popup',
+        update,
       )
     }
 
@@ -510,36 +534,31 @@ interface CounterState {
   value: number
 }
 
-interface CounterAction {
-  name: CounterName
-  update: CounterUpdate
-}
-
 type ElementName = 'trigger' | 'popup'
 
 interface ElementState {
-  queue: readonly [(HTMLElement | SVGElement | null)?]
-  value: HTMLElement | SVGElement | null
-}
-
-interface ElementAction {
-  name: ElementName
-  update: HTMLElement | SVGElement | null
+  queue: readonly [(PopupTriggerElement | null)?]
+  value: PopupTriggerElement | null
 }
 
 interface PopupTriggerState {
+  config: PopupTriggerConfigWithDefaults
   counters: Record<CounterName, CounterState>
   elements: Record<ElementName, ElementState>
-  toggle: boolean
   configuredValue: null | boolean
-  triggerOnMouseUpTarget: any | null
+  toggledValue: null | boolean
+  triggerOnMouseUpTarget: EventTarget | null
+  keepClosedUntilMouseUp: boolean
+  hadFocusSinceOpen: boolean
 }
 
 const initialCounterState: CounterState = { value: 0, queue: [] }
 const initialElementState: ElementState = { value: null, queue: [] }
 
-const initialState: PopupTriggerState = {
-  configuredValue: null,
+const getInitialState = (
+  config: PopupTriggerConfigWithDefaults,
+): PopupTriggerState => ({
+  config,
   counters: {
     triggerFocus: initialCounterState,
     popupFocus: initialCounterState,
@@ -550,9 +569,34 @@ const initialState: PopupTriggerState = {
     popup: initialElementState,
     trigger: initialElementState,
   },
-  toggle: false,
+  configuredValue: null,
+  toggledValue: null,
   triggerOnMouseUpTarget: null,
+  keepClosedUntilMouseUp: false,
+  hadFocusSinceOpen: false,
+})
+
+const getFocusCount = (counters: PopupTriggerState['counters']) =>
+  counters.triggerFocus.value + counters.popupFocus.value
+
+const hasActiveCounters = (state: PopupTriggerState) => {
+  const focusCount = getFocusCount(state.counters)
+  const hoverCount =
+    state.counters.triggerHover.value + state.counters.popupHover.value
+
+  return (
+    (hoverCount > 0 && state.config.triggerOnHover) ||
+    (focusCount > 0 && state.config.triggerOnFocus)
+  )
 }
+
+const targetIsInPopupTrigger = (
+  state: PopupTriggerState,
+  target: EventTarget | null,
+) =>
+  target &&
+  (state.elements.popup.value?.contains(target as Node) ||
+    state.elements.trigger.value?.contains(target as Node))
 
 const applyQueue = (value: number, updates: CounterUpdate[]) =>
   Math.max(
@@ -586,7 +630,8 @@ const flushFocusCountersReducer = (
 
 const counterEnqueueReducer = (
   state: PopupTriggerState,
-  { name, update }: CounterAction,
+  name: CounterName,
+  update: CounterUpdate,
 ): PopupTriggerState => ({
   ...state,
   counters: {
@@ -597,27 +642,58 @@ const counterEnqueueReducer = (
 
 const counterCommitReducer = (
   state: PopupTriggerState,
-  { name, update }: CounterAction,
+  name: CounterName,
+  update: CounterUpdate,
 ): PopupTriggerState => {
   const counter = state.counters[name]
   const updateIndex = counter.queue.indexOf(update)
-  return updateIndex === -1
-    ? state
-    : {
-        ...state,
-        counters: {
-          ...state.counters,
-          [name]: {
-            value: applyQueue(counter.value, counter.queue.slice(updateIndex)),
-            queue: counter.queue.slice(0, updateIndex),
-          },
-        },
-      }
+  if (updateIndex === -1) {
+    return state
+  }
+
+  const updatedCounters = {
+    ...state.counters,
+    [name]: {
+      value: applyQueue(counter.value, counter.queue.slice(updateIndex)),
+      queue: counter.queue.slice(0, updateIndex),
+    },
+  }
+
+  const toggleOnViaFocus =
+    state.config.triggerOnPress &&
+    state.config.triggerOnFocus &&
+    !getFocusCount(state.counters) &&
+    !!updatedCounters.triggerFocus.value
+
+  const toggleOffViaFocus =
+    (state.config.triggerOnPress &&
+      state.config.triggerOnFocus &&
+      getFocusCount(state.counters) &&
+      !getFocusCount(updatedCounters)) ||
+    (state.config.triggerOnPress &&
+      state.counters.triggerFocus.value &&
+      !getFocusCount(updatedCounters))
+
+  return housekeepingReducer({
+    ...state,
+    counters: updatedCounters,
+    // If focusing while a toggleable trigger, we'll immediately toggle it
+    // on and cancel any trigger on mouse up.
+    triggerOnMouseUpTarget: toggleOnViaFocus
+      ? null
+      : state.triggerOnMouseUpTarget,
+    toggledValue: toggleOffViaFocus
+      ? false
+      : toggleOnViaFocus
+      ? true
+      : state.toggledValue,
+  })
 }
 
 const enqueueElementReducer = (
   state: PopupTriggerState,
-  { name, update }: ElementAction,
+  name: ElementName,
+  update: PopupTriggerElement | null,
 ): PopupTriggerState => {
   const { value } = state.elements[name]
   return value === update
@@ -633,7 +709,8 @@ const enqueueElementReducer = (
 
 const commitElementReducer = (
   state: PopupTriggerState,
-  { name, update }: ElementAction,
+  name: ElementName,
+  update: PopupTriggerElement | null,
 ): PopupTriggerState => {
   const { value, queue } = state.elements[name]
 
@@ -659,7 +736,7 @@ const commitElementReducer = (
     [name + 'Hover']: initialCounterState,
   }
 
-  return {
+  return housekeepingReducer({
     ...state,
     counters: {
       ...state.counters,
@@ -669,8 +746,32 @@ const commitElementReducer = (
       ...state.elements,
       [name]: { value: update, queue: [] },
     },
-  }
+  })
 }
+
+const openReducer = (state: PopupTriggerState) =>
+  housekeepingReducer({
+    ...state,
+    toggledValue: true,
+  })
+
+const closeReducer = (state: PopupTriggerState) =>
+  housekeepingReducer({
+    ...state,
+    keepClosedUntilMouseUp: false,
+    toggledValue: false,
+  })
+
+const toggleReducer = (state: PopupTriggerState) =>
+  housekeepingReducer({
+    ...state,
+    toggledValue: !state.toggledValue,
+  })
+
+const escapeReducer = (state: PopupTriggerState) =>
+  clearPotentialMouseTriggerReducer(
+    state.config.closeOnEscape ? closeReducer(state) : state,
+  )
 
 const clearPotentialMouseTriggerReducer = (state: PopupTriggerState) => ({
   ...state,
@@ -679,80 +780,84 @@ const clearPotentialMouseTriggerReducer = (state: PopupTriggerState) => ({
 
 const mouseDownOnTriggerReducer = (
   state: PopupTriggerState,
-  action: { target: any },
+  target: EventTarget | null,
 ) =>
   !state.elements.trigger.value
     ? state
     : {
         ...state,
-        triggerOnMouseUpTarget: action.target,
+        triggerOnMouseUpTarget: target,
       }
 
 const mouseUpFromTriggerReducer = (
   state: PopupTriggerState,
-  action: { target: any },
-) => ({
+  target: EventTarget | null,
+) =>
+  clearPotentialMouseTriggerReducer(
+    state.triggerOnMouseUpTarget === target ? toggleReducer(state) : state,
+  )
+
+const mouseDownOnWindowReducer = (
+  state: PopupTriggerState,
+  target: EventTarget | null,
+): PopupTriggerState =>
+  targetIsInPopupTrigger(state, target) || !state.counters.popupFocus.value
+    ? state
+    : {
+        ...state,
+        // Allow the popup to close, even if focus immediately goes back to
+        // the trigger.
+        keepClosedUntilMouseUp: true,
+      }
+
+// Interaction with the window outside of the popup trigger's elements will
+// result in press and hover triggers being disabled. Focus triggers will
+// not be affected.
+const interactionEndOnWindowReducer = (
+  state: PopupTriggerState,
+  target: EventTarget | null,
+) =>
+  (state.config.triggerOnPress && !targetIsInPopupTrigger(state, target)) ||
+  state.keepClosedUntilMouseUp
+    ? closeReducer(state)
+    : state
+
+// If the popup is being held open by a `false` toggledValue but there are no
+// longer any counters that would keep the popup open, then set toggledValue
+// back to null.
+const housekeepingReducer = (state: PopupTriggerState): PopupTriggerState => ({
   ...state,
-  // TODO: if `toggle`, this should reset the focus/hover gates too
-  // (but only if toggle)
-  triggerOnMouseUpTarget: null,
-  toggle:
-    state.triggerOnMouseUpTarget === action.target
-      ? !state.toggle
-      : state.toggle,
+  hadFocusSinceOpen:
+    state.hadFocusSinceOpen &&
+    (!!getFocusCount(state.counters) || !!state.toggledValue),
+  toggledValue:
+    // Reset the toggle after closure to allow opening by counters, but only
+    // once all the counters allow it to stay closed.
+    state.toggledValue === false && !hasActiveCounters(state)
+      ? null
+      : state.toggledValue,
 })
 
 const reconfigureReducer = (
   state: PopupTriggerState,
   config: PopupTriggerConfig,
-) => ({
-  ...state,
-  configuredValue: config.trigger ?? null,
-  toggle: config.triggerOnPress ? state.toggle : false,
-  counters: {
-    triggerFocus: config.triggerOnFocus
-      ? state.counters.triggerFocus
-      : initialCounterState,
-    popupFocus: config.triggerOnFocus
-      ? state.counters.popupFocus
-      : initialCounterState,
-    triggerHover: config.triggerOnHover
-      ? state.counters.triggerHover
-      : initialCounterState,
-    popupHover: config.triggerOnHover
-      ? state.counters.popupHover
-      : initialCounterState,
-  },
-})
-
-const openReducer = (state: PopupTriggerState) => ({
-  ...state,
-  toggle: true,
-})
-
-const closeReducer = (state: PopupTriggerState) => ({
-  ...state,
-  toggle: false,
-})
-
-const toggleReducer = (state: PopupTriggerState) => ({
-  ...state,
-  toggle: !state.toggle,
-})
-
-// Interaction with the window outside of the popup trigger's elements will
-// result in press and hover triggers being disabled. Focus triggers will
-// not be affected.
-const windowInteractionReducer = (
-  state: PopupTriggerState,
-  { target }: { target: HTMLElement },
 ) =>
-  state.elements.popup.value?.contains(target) ||
-  state.elements.trigger.value?.contains(target)
-    ? state
-    : {
-        ...state,
-        toggle: false,
-        triggerHover: initialCounterState,
-        popupHover: initialCounterState,
-      }
+  housekeepingReducer({
+    ...state,
+    configuredValue: config.trigger ?? null,
+    toggledValue: config.triggerOnPress ? state.toggledValue : null,
+    counters: {
+      triggerFocus: config.triggerOnFocus
+        ? state.counters.triggerFocus
+        : initialCounterState,
+      popupFocus: config.triggerOnFocus
+        ? state.counters.popupFocus
+        : initialCounterState,
+      triggerHover: config.triggerOnHover
+        ? state.counters.triggerHover
+        : initialCounterState,
+      popupHover: config.triggerOnHover
+        ? state.counters.popupHover
+        : initialCounterState,
+    },
+  })

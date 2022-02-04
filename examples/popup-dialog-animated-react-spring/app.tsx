@@ -11,57 +11,165 @@ function App() {
   const initialFocusRef = useRef<HTMLInputElement | null>(null)
 
   return (
-    <div
-      css={css`
-        display: flex;
-        justify-content: space-between;
-      `}>
-      <PopupProvider>
-        <StyledPopupDialogTriggerSurface triggerOnHover triggerOnPress>
-          Trigger on hover or press
-        </StyledPopupDialogTriggerSurface>
-        <PopupDialog
-          initialFocusRef={initialFocusRef}
-          offset={[0, 6]}
-          placement="bottom-start">
-          <StyledCard>
-            <label>
-              <div>Email</div>
-              <input ref={initialFocusRef} type="text" />
-            </label>
-            <label>
-              <div>Password</div>
-              <input type="text" />
-            </label>
-          </StyledCard>
-          <PopupArrow />
-        </PopupDialog>
-      </PopupProvider>
-      <br />
-      <PopupProvider>
-        <StyledPopupDialogTriggerSurface triggerOnFocus triggerOnPress>
-          Trigger on focus or press
-        </StyledPopupDialogTriggerSurface>
-        <PopupDialog
-          initialFocusRef={initialFocusRef}
-          offset={[0, 6]}
-          placement="bottom-start">
-          <StyledCard>
-            <label>
-              <div>Email</div>
-              <input ref={initialFocusRef} type="text" />
-            </label>
-            <label>
-              <div>Password</div>
-              <input type="text" />
-            </label>
-          </StyledCard>
-          <PopupArrow />
-        </PopupDialog>
-      </PopupProvider>
-      <br />
-      <button>noop button</button>
-    </div>
+    <>
+      <div
+        css={css`
+          display: flex;
+          justify-content: space-between;
+          height: 100px;
+          margin-bottom: 1rem;
+        `}>
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface
+            triggerOnFocus
+            triggerOnHover
+            triggerOnPress>
+            Trigger on all
+          </StyledPopupDialogTriggerSurface>
+          <PopupDialog
+            initialFocusRef={initialFocusRef}
+            offset={[0, 6]}
+            placement="bottom-start">
+            <StyledCard>
+              <label>
+                <div>Email</div>
+                <input ref={initialFocusRef} type="text" />
+              </label>
+              <label>
+                <div>Password</div>
+                <input type="text" />
+              </label>
+            </StyledCard>
+            <PopupArrow />
+          </PopupDialog>
+        </PopupProvider>
+        <br />
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface triggerOnHover triggerOnPress>
+            Trigger on hover or press
+          </StyledPopupDialogTriggerSurface>
+          <PopupDialog
+            initialFocusRef={initialFocusRef}
+            offset={[0, 6]}
+            placement="bottom-start">
+            <StyledCard>
+              <label>
+                <div>Email</div>
+                <input ref={initialFocusRef} type="text" />
+              </label>
+              <label>
+                <div>Password</div>
+                <input type="text" />
+              </label>
+            </StyledCard>
+            <PopupArrow />
+          </PopupDialog>
+        </PopupProvider>
+        <br />
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface triggerOnFocus triggerOnPress>
+            Trigger on focus or press
+          </StyledPopupDialogTriggerSurface>
+          <PopupDialog
+            initialFocusRef={initialFocusRef}
+            offset={[0, 6]}
+            placement="bottom-start">
+            <StyledCard>
+              <label>
+                <div>Email</div>
+                <input ref={initialFocusRef} type="text" />
+              </label>
+              <label>
+                <div>Password</div>
+                <input type="text" />
+              </label>
+            </StyledCard>
+            <PopupArrow />
+          </PopupDialog>
+        </PopupProvider>
+      </div>
+
+      <div
+        css={css`
+          display: flex;
+          align-items: stretch;
+          justify-content: space-between;
+          height: 100px;
+          margin-bottom: 1rem;
+        `}>
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface triggerOnFocus>
+            Trigger on focus only
+          </StyledPopupDialogTriggerSurface>
+          <PopupDialog
+            initialFocusRef={initialFocusRef}
+            offset={[0, 6]}
+            placement="bottom-start">
+            <StyledCard>
+              <label>
+                <div>Email</div>
+                <input ref={initialFocusRef} type="text" />
+              </label>
+              <label>
+                <div>Password</div>
+                <input type="text" />
+              </label>
+            </StyledCard>
+            <PopupArrow />
+          </PopupDialog>
+        </PopupProvider>
+        <br />
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface triggerOnPress>
+            Trigger on press only
+          </StyledPopupDialogTriggerSurface>
+          <PopupDialog
+            initialFocusRef={initialFocusRef}
+            offset={[0, 6]}
+            placement="bottom-start">
+            <StyledCard>
+              <label>
+                <div>Email</div>
+                <input ref={initialFocusRef} type="text" />
+              </label>
+              <label>
+                <div>Password</div>
+                <input type="text" />
+              </label>
+            </StyledCard>
+            <PopupArrow />
+          </PopupDialog>
+        </PopupProvider>
+        <br />
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface>
+            No action
+          </StyledPopupDialogTriggerSurface>
+        </PopupProvider>
+      </div>
+
+      <div
+        css={css`
+          display: flex;
+          align-items: stretch;
+          justify-content: space-between;
+          height: 100px;
+          margin-bottom: 1rem;
+        `}>
+        <PopupProvider>
+          <StyledPopupDialogTriggerSurface triggerOnHover delayIn={1000}>
+            Trigger on hover only, delay 1s
+          </StyledPopupDialogTriggerSurface>
+          <PopupDialog
+            initialFocusRef={initialFocusRef}
+            offset={[0, 6]}
+            placement="bottom-start">
+            <StyledCard>Just a tooltip</StyledCard>
+            <PopupArrow />
+          </PopupDialog>
+        </PopupProvider>
+      </div>
+    </>
   )
 }
 
@@ -84,6 +192,11 @@ const StyledPopupDialogTriggerSurface = styled(PopupTriggerSurface)`
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   font-family: sans-serif;
   user-select: none;
+
+  &:focus {
+    box-shadow: 0 0 5px rgba(0, 0, 0, 0.1), 0 0 0 2px white inset,
+      0 0 0 4px blue inset;
+  }
 `
 
 export default App

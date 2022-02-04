@@ -59,6 +59,7 @@ export const ModalSurface = forwardRef<HTMLDivElement, ModalSurfaceProps>(
     const [, mergeFocusableTrapProps, provideFocusableTrap] =
       useFocusableTrapConnector(active, {
         initialFocusRef,
+        passThrough: false,
       })
 
     const [, mergeSurfaceSelectorProps, provideSurfaceSelectors] =
