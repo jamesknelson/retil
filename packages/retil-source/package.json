@@ -20,8 +20,7 @@
   },
   "dependencies": {
     "retil-support": "^0.28.0",
-    "tslib": "^2.2.0",
-    "use-subscription": "1.6.0-rc.0-next-848e802d2-20220204"
+    "tslib": "^2.2.0"
   },
   "devDependencies": {
     "typescript": "4.5.3"
