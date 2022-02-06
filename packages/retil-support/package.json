@@ -1,6 +1,6 @@
 {
   "name": "retil-support",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "A reactive source",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -31,5 +31,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "e28d7c65d64e131c555eed92175aeb7c403c40f8"
+  "gitHead": "fb398371415fdec87168a0d3132b665a666ed92c"
 }

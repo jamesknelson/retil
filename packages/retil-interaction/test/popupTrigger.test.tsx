@@ -1,5 +1,6 @@
 import React from 'react'
-import { delay } from 'retil-support'
+import { useService } from 'retil-source'
+import { useConfigurator, delay } from 'retil-support'
 import {
   act,
   render,
@@ -8,11 +9,7 @@ import {
   waitFor,
 } from '@testing-library/react'
 import '@testing-library/jest-dom/extend-expect'
-import {
-  popupTriggerServiceConfigurator,
-  useConfigurator,
-  useService,
-} from '../src'
+import { popupTriggerServiceConfigurator } from '../src'
 
 interface TestComponentProps {
   triggerOnFocus?: boolean

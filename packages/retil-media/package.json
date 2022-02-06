@@ -1,6 +1,6 @@
 {
   "name": "retil-media",
-  "version": "0.27.0",
+  "version": "0.28.0",
   "description": "Superpowers for developers building responsive React apps",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -19,9 +19,9 @@
     "test:watch": "jest --watch"
   },
   "dependencies": {
-    "retil-css": "^0.27.0",
-    "retil-hydration": "^0.27.0",
-    "retil-support": "^0.27.0",
+    "retil-css": "^0.28.0",
+    "retil-hydration": "^0.28.0",
+    "retil-support": "^0.28.0",
     "tslib": "^2.2.0"
   },
   "devDependencies": {
@@ -34,5 +34,5 @@
   "files": [
     "dist"
   ],
-  "gitHead": "e647bceb93afb9d32d13ac6f5bb8d8e569d96b20"
+  "gitHead": "fb398371415fdec87168a0d3132b665a666ed92c"
 }
