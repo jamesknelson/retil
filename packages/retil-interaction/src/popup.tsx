@@ -1,3 +1,4 @@
+/// <reference types="react/next" />
 import React, {
   CSSProperties,
   createContext,
@@ -5,6 +6,7 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -16,11 +18,10 @@ import {
   composeKeyPartitioners,
   identity,
   partitionByKeys,
+  useConfigurator,
   useJoinRefs,
-  useOpaqueIdentifier,
 } from 'retil-support'
 
-import { useConfigurator } from './configurator'
 import { Connector } from './connector'
 import { useEscapeConnector } from './escape'
 import { ProvideIncreasedKeyboardPriority } from './keyboard'
@@ -35,10 +36,14 @@ import { PopupTriggerHandle, PopupTriggerService } from './popupTrigger'
 
 // ---
 
-const popupActiveContext = createContext(false)
-const popupArrowContext = createContext<PopupArrowContext>(undefined as any)
-const popupIdsContext = createContext<PopupIds>(undefined as any)
-const popupHandleContext = createContext<PopupHandle>(undefined as any)
+const popupActiveContext = /*#__PURE__*/ createContext(false)
+const popupArrowContext = /*#__PURE__*/ createContext<PopupArrowContext>(
+  undefined as any,
+)
+const popupIdsContext = /*#__PURE__*/ createContext<PopupIds>(undefined as any)
+const popupHandleContext = /*#__PURE__*/ createContext<PopupHandle>(
+  undefined as any,
+)
 
 export function usePopupActive() {
   return useContext(popupActiveContext)
@@ -104,8 +109,8 @@ export type PopupProviderConnector = Connector<PopupProviderSnapshot>
 export const usePopupProviderConnector = (
   options: UsePopupProviderOptions = {},
 ): PopupProviderConnector => {
-  const defaultPopupId = useOpaqueIdentifier()
-  const defaultTriggerId = useOpaqueIdentifier()
+  const defaultPopupId = useId()
+  const defaultTriggerId = useId()
 
   const { popupId = defaultPopupId, triggerId = defaultTriggerId } = options
 
@@ -474,13 +479,15 @@ export function useMergePopupArrowProps(): MergePopupArrowProps {
 
 // ---
 
-export const PopupDialogArrowDiv = forwardRef(function PopupDialogArrowDiv(
-  props: JSX.IntrinsicElements['div'],
-  ref: React.Ref<HTMLDivElement>,
-) {
-  const mergeArrowProps = useMergePopupArrowProps()
-  return <div {...mergeArrowProps({ ...props, ref })} />
-})
+export const PopupDialogArrowDiv = /*#__PURE__*/ forwardRef(
+  function PopupDialogArrowDiv(
+    props: JSX.IntrinsicElements['div'],
+    ref: React.Ref<HTMLDivElement>,
+  ) {
+    const mergeArrowProps = useMergePopupArrowProps()
+    return <div {...mergeArrowProps({ ...props, ref })} />
+  },
+)
 
 // ---
 

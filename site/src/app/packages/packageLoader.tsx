@@ -2,13 +2,13 @@ import { loadAsync } from 'retil-mount'
 import { loadMatch } from 'retil-nav'
 import { patternFor } from 'retil-nav-scheme'
 
-import { AppEnv } from 'site/src/env'
+import { Env } from 'site/src/env'
 import { getPackageContent } from 'site/src/data/packageContent'
 
 import scheme from './packageScheme'
 
 export default loadMatch({
-  [patternFor(scheme.index)]: loadAsync<AppEnv>(async (props) => {
+  [patternFor(scheme.index)]: loadAsync<Env>(async (props) => {
     props.head.push(<title>retil - concepts</title>)
     const [{ default: data }, { default: Page }] = await Promise.all([
       import('site/src/data/packageIndex'),
@@ -17,7 +17,7 @@ export default loadMatch({
     return <Page data={data} />
   }),
 
-  [patternFor(scheme.one)]: loadAsync<AppEnv>(async (props) => {
+  [patternFor(scheme.one)]: loadAsync<Env>(async (props) => {
     const { mount, head, ...env } = props
     const params = env.nav.params
     const pageModule = import('./packagePage')

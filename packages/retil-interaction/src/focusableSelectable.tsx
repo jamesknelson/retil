@@ -1,7 +1,9 @@
+/// <reference types="react/next" />
 import React, {
   createContext,
   useCallback,
   useContext,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -12,7 +14,6 @@ import {
   joinRefs,
   memoizeOne,
   noop,
-  useOpaqueIdentifier,
   useSilencedLayoutEffect,
 } from 'retil-support'
 import { Connector } from './connector'
@@ -91,7 +92,8 @@ export interface SelectableContext {
   selectAndHold: (originalEvent?: React.SyntheticEvent) => () => void
 }
 
-export const selectableContext = createContext<SelectableContext | null>(null)
+export const selectableContext =
+  /*#__PURE__*/ createContext<SelectableContext | null>(null)
 
 export interface FocusableSelectableSnapshot
   extends FocusableSnapshot,
@@ -160,7 +162,7 @@ export function useSelected() {
 export function useFocusableSelectableConnector(
   focusableProp?: Focusable,
 ): FocusableSelectableConnector {
-  const defaultId = useOpaqueIdentifier()
+  const defaultId = useId()
   const context = useContext(selectableContext)
 
   // A focusableSelectable behaves as a plain focusable unless in a

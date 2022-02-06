@@ -48,7 +48,9 @@ const noopHandle: FocusableHandle = {
   focus: noop,
 }
 
-const focusableContext = createContext<Focusable | undefined>(undefined)
+const focusableContext = /*#__PURE__*/ createContext<Focusable | undefined>(
+  undefined,
+)
 
 export interface FocusableDefaultProviderProps {
   children: React.ReactNode

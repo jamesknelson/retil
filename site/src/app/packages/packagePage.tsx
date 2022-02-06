@@ -2,9 +2,9 @@ import { MDXProvider } from '@mdx-js/react'
 import { createContext, useContext } from 'react'
 import { LinkSurface } from 'retil-interaction'
 
-import { DocumentContent } from 'site/src/components/document'
+import appScheme from 'site/src/app/appScheme'
+import { DocumentContent } from 'site/src/component/document'
 import { PackageContent } from 'site/src/data/packageContent'
-import { urls } from 'site/src/utils/urlScheme'
 
 const PackageContext = createContext<PackageContent>(undefined as any)
 
@@ -28,7 +28,7 @@ const ConceptList = () => (
   <ul>
     {useContext(PackageContext).concepts.map((concept) => (
       <li key={concept.slug}>
-        <LinkSurface href={urls.conceptPage(concept)}>
+        <LinkSurface href={appScheme.concepts.one(concept)}>
           {concept.title}
         </LinkSurface>
       </li>
@@ -40,7 +40,7 @@ const ExampleList = () => (
   <ul>
     {useContext(PackageContext).examples.map((example) => (
       <li key={example.slug}>
-        <LinkSurface href={urls.examplePage(example)}>
+        <LinkSurface href={appScheme.examples.one(example)}>
           {example.title}
         </LinkSurface>
       </li>

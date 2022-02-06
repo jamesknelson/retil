@@ -1,4 +1,10 @@
-import React, { Context, createContext, useContext, useMemo } from 'react'
+import React, {
+  ReactNode,
+  Context,
+  createContext,
+  useContext,
+  useMemo,
+} from 'react'
 
 import { themeRiderSymbol } from './constants'
 import {
@@ -8,7 +14,9 @@ import {
   CSSThemeRider,
 } from './types'
 
-export const cssThemeContextContext = createContext<Context<CSSTheme>>({
+export const cssThemeContextContext = /*#__PURE__*/ createContext<
+  Context<CSSTheme>
+>({
   get Provider() {
     throw new Error(
       `retil-css isn't configured correctly. Did you add a top-level <CSSProvider>?`,
@@ -17,9 +25,9 @@ export const cssThemeContextContext = createContext<Context<CSSTheme>>({
 } as unknown as Context<CSSTheme>)
 
 export interface CSSProviderProps {
-  children: React.ReactNode
+  children: ReactNode
   runtime: CSSRuntime
-  themeContext: React.Context<CSSTheme>
+  themeContext: Context<CSSTheme>
 }
 
 export function CSSProvider({
@@ -48,11 +56,11 @@ export function CSSProvider({
   )
 }
 
-export function useCSSRuntime(themeContextArg?: React.Context<CSSTheme>) {
+export function useCSSRuntime(themeContextArg?: Context<CSSTheme>) {
   return useThemeRider(themeContextArg)?.runtime!
 }
 
-export function useThemeRider(themeContextArg?: React.Context<CSSTheme>) {
+export function useThemeRider(themeContextArg?: Context<CSSTheme>) {
   const defaultThemeContext = useContext(cssThemeContextContext)
   const themeContext = themeContextArg ?? defaultThemeContext
   const theme = useContext(themeContext)

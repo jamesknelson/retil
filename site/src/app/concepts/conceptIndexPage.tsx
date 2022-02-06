@@ -1,11 +1,11 @@
+import appScheme from 'site/src/app/appScheme'
 import {
   DocLink,
   DocTitle,
   DocUnorderedList,
   DocWrapper,
-} from 'site/src/components/document'
+} from 'site/src/component/document'
 import { ConceptMeta } from 'site/src/data/conceptMeta'
-import { urls } from 'site/src/utils/urlScheme'
 
 interface Props {
   data: ConceptMeta[]
@@ -20,7 +20,7 @@ function Page(props: Props) {
       <DocUnorderedList>
         {data.map((conceptModule) => (
           <li key={conceptModule.slug}>
-            <DocLink href={urls.conceptPage(conceptModule)}>
+            <DocLink href={appScheme.concepts.one(conceptModule)}>
               {conceptModule.title}
             </DocLink>
           </li>

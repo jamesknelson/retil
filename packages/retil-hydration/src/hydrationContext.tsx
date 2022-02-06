@@ -1,13 +1,17 @@
 import React, { ReactNode, createContext, useContext } from 'react'
 import { useBoundaryEffect } from 'retil-boundary'
-import { useEnv } from 'retil-mount'
+import { useMountEnv } from 'retil-mount'
 import { useSource } from 'retil-source'
 
 import { getDefaultHydrationEnvService } from './hydrationEnvService'
 import { HydrationEnv } from './hydrationTypes'
 
-const OnHydrationDetectedContext = createContext<null | (() => void)>(null)
-const HydratingContext = createContext<undefined | boolean>(undefined)
+const OnHydrationDetectedContext = /*#__PURE__*/ createContext<
+  null | (() => void)
+>(null)
+const HydratingContext = /*#__PURE__*/ createContext<undefined | boolean>(
+  undefined,
+)
 
 export interface HydrationProviderProps {
   children: ReactNode
@@ -67,7 +71,7 @@ export function useMarkAsHydrated() {
  *
  */
 export function useIsHydrating() {
-  const env = useEnv<HydrationEnv>()
+  const env = useMountEnv<HydrationEnv>()
   const contextHydrating = useContext(HydratingContext)
   const source = getDefaultHydrationEnvService()[0]
   const serviceHydrating = useSource(env ? null : source, {

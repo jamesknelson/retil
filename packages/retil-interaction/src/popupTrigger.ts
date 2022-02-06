@@ -1,8 +1,5 @@
-import { Source, createState, fuse } from 'retil-source'
-import { identity, delayOne } from 'retil-support'
-
-import { Configurator } from './configurator'
-import { Service } from './service'
+import { Service, Source, createState, fuse } from 'retil-source'
+import { Configurator, identity, delayOne } from 'retil-support'
 
 // TODO:
 // - We also want to allow popup triggers to share some kind of trigger group

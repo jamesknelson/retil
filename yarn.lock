@@ -11285,10 +11285,10 @@ uri-js@^4.2.2:
   dependencies:
     punycode "^2.1.0"
 
-use-subscription@0.0.0-experimental-79740da4c:
-  version "0.0.0-experimental-79740da4c"
-  resolved "https://registry.yarnpkg.com/use-subscription/-/use-subscription-0.0.0-experimental-79740da4c.tgz#7fe15f0f6b6356535e31123eaf6810fd32c66c28"
-  integrity sha512-TDSd3okize6f40WFYNvgdc20pFv3Bx1hIUPJRH4i7bGyOCUf0rSniElgCCpVf5Gy4i1+cl5KI6GzLwktq4MybA==
+use-subscription@1.6.0-rc.0-next-848e802d2-20220204:
+  version "1.6.0-rc.0-next-848e802d2-20220204"
+  resolved "https://registry.yarnpkg.com/use-subscription/-/use-subscription-1.6.0-rc.0-next-848e802d2-20220204.tgz#431afdfe4a48c93e329c42eb9686c22f9b1c4045"
+  integrity sha512-eZfGxKfUIN3XxppOIIzAwnn7gQH2ONCVBKm+zHXSEM7bcvOx6jgsWfQ4IK7N5cD3j7yv7f1SFr8DlvcDONVogw==
   dependencies:
     object-assign "^4.1.1"
 

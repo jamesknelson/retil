@@ -1,12 +1,14 @@
 import React, { ReactNode, createContext, useContext, useMemo } from 'react'
-import { useEnv, useWaitForStableMount } from 'retil-mount'
+import { useMountEnv, useWaitForStableMount } from 'retil-mount'
 
 import { getDefaultBrowserNavEnvService } from './browserNavEnvService'
 import { NavController, NavEnv, NavSnapshot } from './navTypes'
 import { noopNavController } from './noopNavController'
 
-const NavControllerContext = createContext<NavController | null>(null)
-const NavSnapshotContext = createContext<NavSnapshot | null>(null)
+const NavControllerContext = /*#__PURE__*/ createContext<NavController | null>(
+  null,
+)
+const NavSnapshotContext = /*#__PURE__*/ createContext<NavSnapshot | null>(null)
 
 const wrapNavigationMethod = <Args extends any[]>(
   fn: (...args: Args) => Promise<boolean>,
@@ -54,7 +56,7 @@ export function useNavController() {
 }
 
 export function useNavSnapshot() {
-  const mountEnv = useEnv<NavEnv>()
+  const mountEnv = useMountEnv<NavEnv>()
   const contextNavSnapshot = useContext(NavSnapshotContext)
   return contextNavSnapshot || mountEnv.nav
 }

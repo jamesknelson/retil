@@ -55,7 +55,7 @@ export interface MenuContext {
   provideAction: (i: number, node: React.ReactNode) => React.ReactElement
 }
 
-const menuContext = createContext<null | MenuContext>(null)
+const menuContext = /*#__PURE__*/ createContext<null | MenuContext>(null)
 
 export function useMenuContext(): MenuContext | null {
   return useContext(menuContext)
@@ -307,30 +307,31 @@ export interface MenuSurfaceProps
  * <MenuSurfaceDecoration> elements with a provider that treats the element
  * as one of the menu actions.
  */
-export const MenuSurface = forwardRef<HTMLDivElement, MenuSurfaceProps>(
-  function MenuSurface(
-    { actionCount: actionCountProp, children: childrenProp, ...props },
-    ref,
-  ) {
-    const [children, actionCountDefault] = wrapMenuSurfaceChildren(childrenProp)
-    const [options, { as: asProp = 'div', ...rest }] =
-      partitionMenuSurfaceOptions({
-        actionCount: actionCountProp ?? actionCountDefault,
-        ...props,
-      })
-    const [, mergeProps, provide] = useMenuSurfaceConnector(options)
-    return provide(
-      createElement(
-        asProp,
-        mergeProps({
-          ref,
-          ...rest,
-          children,
-        }),
-      ),
-    )
-  },
-)
+export const MenuSurface = /*#__PURE__*/ forwardRef<
+  HTMLDivElement,
+  MenuSurfaceProps
+>(function MenuSurface(
+  { actionCount: actionCountProp, children: childrenProp, ...props },
+  ref,
+) {
+  const [children, actionCountDefault] = wrapMenuSurfaceChildren(childrenProp)
+  const [options, { as: asProp = 'div', ...rest }] =
+    partitionMenuSurfaceOptions({
+      actionCount: actionCountProp ?? actionCountDefault,
+      ...props,
+    })
+  const [, mergeProps, provide] = useMenuSurfaceConnector(options)
+  return provide(
+    createElement(
+      asProp,
+      mergeProps({
+        ref,
+        ...rest,
+        children,
+      }),
+    ),
+  )
+})
 
 export function wrapMenuSurfaceChildren(
   childrenProp: React.ReactNode,

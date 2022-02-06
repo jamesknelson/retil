@@ -8,12 +8,13 @@ import {
   VirtualElement,
 } from '@popperjs/core'
 import * as CSS from 'csstype'
-import isDeepEqual from 'fast-deep-equal'
-import { createState } from 'retil-source'
-import { KeyPartitioner, partitionByKeys } from 'retil-support'
-
-import { Configurator } from './configurator'
-import { Service } from './service'
+import { Service, createState } from 'retil-source'
+import {
+  Configurator,
+  KeyPartitioner,
+  areDeepEqual,
+  partitionByKeys,
+} from 'retil-support'
 
 export type PopupPlacement = Placement
 
@@ -29,8 +30,6 @@ export type PopupPositionerServiceConfigurator = Configurator<
   PopupPositionerService
 >
 
-const areConfigsEqual = isDeepEqual
-
 export interface PopupPositionerConfig {
   adaptive?: boolean
   gpuAcceleration?: boolean
@@ -41,20 +40,21 @@ export interface PopupPositionerConfig {
   strategy?: PositioningStrategy
 }
 
-export const partitionPopupPositionerConfig: KeyPartitioner<PopupPositionerConfig> =
-  (object) =>
-    partitionByKeys(
-      [
-        'adaptive',
-        'gpuAcceleration',
-        'defaultReference',
-        'delayTeardownPopup',
-        'offset',
-        'placement',
-        'strategy',
-      ],
-      object,
-    )
+export const partitionPopupPositionerConfig: KeyPartitioner<
+  PopupPositionerConfig
+> = (object) =>
+  partitionByKeys(
+    [
+      'adaptive',
+      'gpuAcceleration',
+      'defaultReference',
+      'delayTeardownPopup',
+      'offset',
+      'placement',
+      'strategy',
+    ],
+    object,
+  )
 
 type PopupPositionerConfigWithDefaults = Omit<
   Required<PopupPositionerConfig>,
@@ -71,7 +71,6 @@ export const popupPositionerConfigDefaults = {
   strategy: 'absolute' as const,
 }
 
-const areSnapshotsEqual = isDeepEqual
 export interface PopupPositionerSnapshot {
   arrowStyles: CSS.Properties | undefined
   hasPopupEscaped: boolean
@@ -103,7 +102,7 @@ export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigura
 
     const [source, setSnapshot] = createState(
       createSnapshot(mutableConfig),
-      areSnapshotsEqual,
+      areDeepEqual,
     )
 
     const updateInstance = () => {
@@ -196,7 +195,7 @@ export const popupPositionerServiceConfigurator: PopupPositionerServiceConfigura
         ...popupPositionerConfigDefaults,
         ...nextConfig,
       }
-      if (!areConfigsEqual(mutableConfig, nextConfigWithDefaults)) {
+      if (!areDeepEqual(mutableConfig, nextConfigWithDefaults)) {
         mutableConfig = nextConfigWithDefaults
         if (mutableInstance) {
           mutableInstance.setOptions(

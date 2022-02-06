@@ -1,26 +1,18 @@
-/// <reference types="react/experimental" />
+/// <reference types="react/next" />
 /// <reference types="vite/client" />
 
 import createStyleCache from '@emotion/cache'
-import {
-  CacheProvider as StyleCacheProvider,
-  ThemeContext,
-  css,
-} from '@emotion/react'
 import createEmotionServer from '@emotion/server/create-instance'
 import { Request, Response } from 'express'
-import { ReactElement, cloneElement } from 'react'
+import { ReactElement } from 'react'
 import { renderToString } from 'react-dom/server'
-import { Helmet, HelmetData, HelmetProvider } from 'react-helmet-async'
-import { Mount, ServerMount } from 'retil-mount'
+import { ServerMount } from 'retil-mount'
 import { createHref, createServerNavEnv } from 'retil-nav'
-import { CSSProvider } from 'retil-css'
 import { ServerStyleSheet } from 'styled-components'
 
+import { App } from './app/app'
 import appLoader from './app/appLoader'
-import { App } from './components/app'
-import { AppGlobalStyles } from './styles/appGlobalStyles'
-import { Head } from './head'
+import { createHeadSink, renderHeadSinkToString } from './head'
 
 export async function render(
   request: Omit<Request, 'params' | 'query'>,
@@ -53,46 +45,21 @@ export async function render(
     ) {
       return null
     } else {
-      const helmetContext = {} as { helmet: HelmetData }
+      const headSink = createHeadSink()
       const { html: appHTML, styles: appStyles } = extractCriticalToChunks(
         renderToString(
           sheet.collectStyles(
             mount.provide(
-              <StyleCacheProvider value={styleCache}>
-                <CSSProvider runtime={css} themeContext={ThemeContext}>
-                  <AppGlobalStyles />
-                  <Mount loader={appLoader} env={env}>
-                    <Head context={helmetContext} />
-                    <App />
-                  </Mount>
-                </CSSProvider>
-              </StyleCacheProvider>,
+              <App env={env} headSink={headSink} styleCache={styleCache} />,
             ),
           ),
         ),
       )
-
-      renderToString(
-        <HelmetProvider context={helmetContext}>
-          <Helmet>
-            {head.length ? (
-              head.map((item, i) => cloneElement(item, { key: i }))
-            ) : (
-              <title>retil.tech</title>
-            )}
-          </Helmet>
-        </HelmetProvider>,
-      )
-
-      const styledComponentsStyleTags = sheet.getStyleTags()
-      const headHTML = `
-        ${helmetContext.helmet.title.toString()}
-        ${helmetContext.helmet.meta.toString()}
-        ${helmetContext.helmet.script.toString()}
-        ${helmetContext.helmet.style.toString()}
-        ${constructStyleTagsFromChunks({ html: appHTML, styles: appStyles })}
-        ${styledComponentsStyleTags}
-      `
+      const headHTML = [
+        renderHeadSinkToString(headSink),
+        constructStyleTagsFromChunks({ html: appHTML, styles: appStyles }),
+        sheet.getStyleTags(),
+      ].join('\n')
 
       return {
         appHTML,

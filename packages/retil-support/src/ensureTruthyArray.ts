@@ -1,4 +1,4 @@
-import flatMap from 'lodash/flatMap'
+import { chain } from 'ramda'
 
 export type CastableToTruthyArrayOf<T> =
   | undefined
@@ -13,7 +13,7 @@ export function ensureTruthyArray<T>(
   if (!maybeArray) {
     return []
   } else if (Array.isArray(maybeArray)) {
-    return flatMap(maybeArray.filter(Boolean), ensureTruthyArray)
+    return chain(ensureTruthyArray, maybeArray.filter(Boolean))
   } else {
     return [maybeArray]
   }

@@ -2,7 +2,7 @@ import { loadAsync } from 'retil-mount'
 import { loadMatch, loadNotFoundBoundary } from 'retil-nav'
 import { patternFor } from 'retil-nav-scheme'
 
-import { DocumentContent } from 'site/src/components/document'
+import { DocumentContent } from 'site/src/component/document'
 
 import conceptLoader from './concepts/conceptLoader'
 import exampleLoader from './examples/exampleLoader'

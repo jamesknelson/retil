@@ -1,6 +1,9 @@
-import partition from 'lodash/partition'
 import { useCallback, useEffect, useRef } from 'react'
-import { fromEntries, useFirstInstanceOfLatestValue } from 'retil-support'
+import {
+  fromEntries,
+  partition,
+  useFirstInstanceOfLatestValue,
+} from 'retil-support'
 import { CSSSelector, Selector, getOrRegisterSelectorType } from 'retil-css'
 
 import { Connector } from './connector'
@@ -171,8 +174,8 @@ export function useSurfaceSelectorsConnector(
     })
 
   const [unmemoizedStringEntries, maybeBooleanEntries] = partition(
-    entries,
     ([, override]) => Array.isArray(override),
+    entries,
   )
 
   // Keep track of all known overriden selector ids, in the order they've

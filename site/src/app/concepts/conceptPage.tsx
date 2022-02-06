@@ -1,7 +1,7 @@
 import { MDXProvider } from '@mdx-js/react'
 import { createContext, useContext } from 'react'
 
-import { DocumentContent, DocumentFooter } from 'site/src/components/document'
+import { DocumentContent, DocumentFooter } from 'site/src/component/document'
 import { ConceptContent } from 'site/src/data/conceptContent'
 
 const ExampleContext = createContext<ConceptContent>(undefined as any)

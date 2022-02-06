@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react'
+import React, { Component, ReactNode } from 'react'
 import { Loader } from 'retil-mount'
 
 import { NavEnv } from '../navTypes'
@@ -19,7 +19,7 @@ interface NotFoundBoundaryState {
   errorPathname?: string
 }
 
-class NotFoundBoundary extends React.Component<
+class NotFoundBoundary extends Component<
   NotFoundBoundaryProps,
   NotFoundBoundaryState
 > {

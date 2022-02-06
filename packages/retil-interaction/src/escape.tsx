@@ -6,7 +6,7 @@ import { MergeKeyboardProps, useKeyboard, useKeyMapHandler } from './keyboard'
 
 export type EscapeCallback = () => void
 
-const escapeContext = createContext<EscapeCallback>(noop)
+const escapeContext = /*#__PURE__*/ createContext<EscapeCallback>(noop)
 
 export type MergeEscapeProps = MergeKeyboardProps
 

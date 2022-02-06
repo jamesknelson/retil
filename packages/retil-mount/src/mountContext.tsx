@@ -2,22 +2,24 @@ import React, { createContext, useContext, useMemo } from 'react'
 
 import { UseMountState } from './mountTypes'
 
-const MountRootContext = createContext<readonly [object, any]>(undefined as any)
-const MountPendingContext = createContext<boolean>(false)
-const MountPendingEnvContext = createContext<object | null>(null)
-const WaitUntilStableMountContext = createContext<() => Promise<void>>(() =>
-  Promise.resolve(),
+const MountRootContext = /*#__PURE__*/ createContext<readonly [object, any]>(
+  undefined as any,
 )
+const MountPendingContext = /*#__PURE__*/ createContext<boolean>(false)
+const MountPendingEnvContext = /*#__PURE__*/ createContext<object | null>(null)
+const WaitUntilStableMountContext = /*#__PURE__*/ createContext<
+  () => Promise<void>
+>(() => Promise.resolve())
 
 export function useMountPending() {
   return useContext(MountPendingContext)
 }
 
-export function usePendingEnv<Env extends object>(): Env {
+export function useMountPendingEnv<Env extends object>(): Env {
   return useContext(MountPendingEnvContext) as Env
 }
 
-export function useEnv<Env extends object>(): Env {
+export function useMountEnv<Env extends object>(): Env {
   return useContext(MountRootContext)?.[0] as Env
 }
 

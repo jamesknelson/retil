@@ -15,7 +15,7 @@ import { Connector } from './connector'
 
 // ---
 
-const keyboardDepthContext = createContext(1)
+const keyboardDepthContext = /*#__PURE__*/ createContext(1)
 
 export const ProvideIncreasedKeyboardPriority: React.FunctionComponent = ({
   children,

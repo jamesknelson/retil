@@ -1,5 +1,4 @@
 import { Ref, RefObject, useCallback, useImperativeHandle, useRef } from 'react'
-import { AsyncResult } from 'react-spring'
 
 export interface TransitionHandle {
   show: () => Promise<void>
@@ -18,8 +17,8 @@ export function useTransitionHandle(
     show,
     hide,
   }: {
-    show: () => Promise<void> | Promise<AsyncResult<any>[]> | AsyncResult<any>[]
-    hide: () => Promise<void> | Promise<AsyncResult<any>[]> | AsyncResult<any>[]
+    show: () => Promise<unknown>
+    hide: () => Promise<unknown>
   },
   deps: any[],
 ): void {

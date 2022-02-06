@@ -1,7 +1,5 @@
-import cartesian from 'fast-cartesian'
-import partition from 'lodash/partition'
 import React, { useContext, useMemo } from 'react'
-import { memoizeOne } from 'retil-support'
+import { fastCartesian, memoizeOne, partition } from 'retil-support'
 
 import { selectionsSymbol, themeRiderSymbol } from './constants'
 import { cssThemeContextContext, getThemeRider, useThemeRider } from './context'
@@ -176,7 +174,7 @@ export function all(
         // selector arrays returned from `getCSSSelector` are treated as a
         // list of any selector that'll cause the styles to be applied, so
         // in order to combine them, we'll need to apply cartesian product.
-        const selectorStrings = cartesian(cartesianInput).map(
+        const selectorStrings = fastCartesian(cartesianInput).map(
           (selectorStrings) => {
             // TODO: figure out what to do if not all selectors have the same tail,
             // or if a selector is using an unsupported tail format
@@ -228,12 +226,12 @@ function registerSelectorType<Context, Config>(
       }
 
       const [selectionArgs, styleArgs] = partition(
-        args,
         (arg) =>
           typeof arg === 'function' &&
           selectionsSymbol in arg &&
           arg[selectionsSymbol][0].selectors[0][selectorTypeSymbol] ===
             typeIndex,
+        args,
       )
 
       const cssInterpolation = (props: any) => {

@@ -4,8 +4,8 @@ import React, { createContext, useContext } from 'react'
 import { CSSProvider } from 'retil-css'
 import { css as styledCSS, ThemeContext } from 'styled-components'
 
-import { CodeBlock } from 'site/src/components/codeBlock'
-import { DocumentContent, DocumentFooter } from 'site/src/components/document'
+import { CodeBlock } from 'site/src/component/codeBlock'
+import { DocumentContent, DocumentFooter } from 'site/src/component/document'
 import { ExampleContent } from 'site/src/data/exampleContent'
 
 const ExampleContext = createContext<ExamplePageProps>(undefined as any)

@@ -9,7 +9,7 @@ import { patternFor } from 'retil-nav-scheme'
 import { Source, fuse, mapVector, reduceVector } from 'retil-source'
 import { createMemo } from 'retil-support'
 
-import { AppEnv } from 'site/src/env'
+import { Env } from 'site/src/env'
 import { getExampleContent } from 'site/src/data/exampleContent'
 
 import scheme from './exampleScheme'
@@ -17,7 +17,7 @@ import scheme from './exampleScheme'
 const mappedEnvMemo = createMemo()
 
 export default loadMatch({
-  [patternFor(scheme.index)]: loadAsync<AppEnv>(async (props) => {
+  [patternFor(scheme.index)]: loadAsync<Env>(async (props) => {
     props.head.push(<title>retil - examples</title>)
     const [{ default: data }, { default: Page }] = await Promise.all([
       import('site/src/data/exampleIndex'),
@@ -25,7 +25,7 @@ export default loadMatch({
     ])
     return <Page data={data} />
   }),
-  [patternFor(scheme.one) + '*']: loadAsync<AppEnv>(async (props) => {
+  [patternFor(scheme.one) + '*']: loadAsync<Env>(async (props) => {
     const { mount, head, ...env } = props
 
     const basename = env.nav.matchname

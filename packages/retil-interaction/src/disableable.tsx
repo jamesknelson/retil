@@ -3,13 +3,17 @@
  * or with the help of the <DisableableProvider>, in an entire subtree.
  */
 
-import React, { createContext, useContext } from 'react'
+import React, { ProviderProps, createContext, useContext } from 'react'
 
 import { Connector } from './connector'
 
-const disabledContext = createContext<boolean>(false)
+const disabledContext = /*#__PURE__*/ createContext<boolean>(false)
 
-export const DisabledProvider = disabledContext.Provider
+// NOTE: this is a function instead of a direct export, as it allows for
+// tree shaking of the provider.
+export function DisabledProvider(props: ProviderProps<boolean>) {
+  return <disabledContext.Provider {...props} />
+}
 
 export interface DisableableMergedProps {
   'aria-disabled': boolean | 'false' | 'true'

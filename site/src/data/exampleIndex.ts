@@ -1,4 +1,4 @@
-import { extractGlobData } from 'site/src/utils/extractGlobData'
+import { extractGlobData } from 'site/src/util/extractGlobData'
 
 import { getExampleMeta } from './exampleMeta'
 

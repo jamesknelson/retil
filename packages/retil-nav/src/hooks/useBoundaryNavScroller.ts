@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 import { useBoundaryLayoutEffect } from 'retil-boundary'
-import { useEnv, useWaitForStableMount } from 'retil-mount'
+import { useMountEnv, useWaitForStableMount } from 'retil-mount'
 import { noop } from 'retil-support'
 
 import { NavEnv } from '../navTypes'
@@ -29,7 +29,7 @@ export function useBoundaryNavScroller<Env extends NavEnv = NavEnv>(
     scrollTo = defaultScrollTo,
   } = options
 
-  const env = useEnv() as Env
+  const env = useMountEnv() as Env
   const waitForStableMount = useWaitForStableMount()
   const scrollRequestRef = useRef(env)
 

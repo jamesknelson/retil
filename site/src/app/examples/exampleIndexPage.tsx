@@ -1,11 +1,11 @@
+import appScheme from 'site/src/app/appScheme'
 import {
   DocLink,
   DocTitle,
   DocUnorderedList,
   DocWrapper,
-} from 'site/src/components/document'
+} from 'site/src/component/document'
 import { ExampleMeta } from 'site/src/data/exampleMeta'
-import { urls } from 'site/src/utils/urlScheme'
 
 interface Props {
   data: ExampleMeta[]
@@ -20,7 +20,7 @@ function Page(props: Props) {
       <DocUnorderedList>
         {data.map((exampleModule) => (
           <li key={exampleModule.slug}>
-            <DocLink href={urls.examplePage(exampleModule)}>
+            <DocLink href={appScheme.examples.one(exampleModule)}>
               {exampleModule.title}
             </DocLink>
           </li>

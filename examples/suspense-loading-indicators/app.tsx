@@ -3,15 +3,15 @@ import React from 'react'
 import { Boundary } from 'retil-boundary'
 import { MatchedLinkSurface } from 'retil-interaction'
 import {
-  EnvSource,
   Mount,
   MountedContent,
   loadAsync,
   useMountPending,
-  usePendingEnv,
-  useEnv,
+  useMountPendingEnv,
+  useMountEnv,
 } from 'retil-mount'
 import { loadMatch, NavEnv } from 'retil-nav'
+import { Source } from 'retil-source'
 import { delay } from 'retil-support'
 
 export interface AppEnv extends NavEnv {}
@@ -28,7 +28,7 @@ export const appLoader = loadMatch<AppEnv>({
 })
 
 export interface AppProps {
-  env: AppEnv | EnvSource<AppEnv>
+  env: AppEnv | Source<AppEnv>
 }
 
 export const App: React.FunctionComponent<AppProps> = ({ env }) => {
@@ -51,8 +51,8 @@ export const App: React.FunctionComponent<AppProps> = ({ env }) => {
 
 function RouterPendingIndicator() {
   const pending = useMountPending()
-  const env = useEnv<AppEnv>()
-  const pendingEnv = usePendingEnv<AppEnv>()
+  const env = useMountEnv<AppEnv>()
+  const pendingEnv = useMountPendingEnv<AppEnv>()
   const loading =
     pending && (!pendingEnv || pendingEnv.nav.pathname !== env.nav.pathname)
   return <>{loading && 'loading concurrently...'}</>

@@ -26,7 +26,7 @@ interface BoundaryContext {
   layoutEffectQueues: BoundaryEffect[][]
 }
 
-const boundaryContext = createContext<BoundaryContext>({
+const boundaryContext = /*#__PURE__*/ createContext<BoundaryContext>({
   ancestors: [],
   effectLock: false,
   effectQueues: [[]],
