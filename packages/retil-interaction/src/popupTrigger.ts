@@ -837,10 +837,11 @@ const housekeepingReducer = (state: PopupTriggerState): PopupTriggerState => ({
 
 const reconfigureReducer = (
   state: PopupTriggerState,
-  config: PopupTriggerConfig,
+  config: PopupTriggerConfigWithDefaults,
 ) =>
   housekeepingReducer({
     ...state,
+    config,
     configuredValue: config.trigger ?? null,
     toggledValue: config.triggerOnPress ? state.toggledValue : null,
     counters: {

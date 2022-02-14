@@ -29,8 +29,12 @@ export interface NavRedirectFunction {
   (statusCode: number, action: NavAction): null
 }
 
-export type NavQuery = { [name: string]: undefined | string | string[] }
-export type NavParams = { [name: string]: undefined | string | string[] }
+export type NavQuery = {
+  [name: string]: undefined | string | readonly string[]
+}
+export type NavParams = {
+  [name: string]: undefined | string | readonly string[]
+}
 
 export interface NavEnv<
   TRequest extends NavRequest = NavRequest,
@@ -65,8 +69,13 @@ export interface NavRequest {
 }
 
 export interface NavResponse {
-  getHeaders(): { [name: string]: number | string | string[] | undefined }
-  setHeader(name: string, value: number | string | string[] | undefined): void
+  getHeaders(): {
+    [name: string]: number | string | readonly string[] | undefined
+  }
+  setHeader(
+    name: string,
+    value: number | string | readonly string[] | undefined,
+  ): void
   statusCode?: number
 }
 

@@ -12,17 +12,20 @@ import '@testing-library/jest-dom/extend-expect'
 import { popupTriggerServiceConfigurator } from '../src'
 
 interface TestComponentProps {
+  disabled?: boolean
   triggerOnFocus?: boolean
   triggerOnHover?: boolean
   triggerOnPress?: boolean
 }
 
 function TestComponent({
+  disabled = false,
   triggerOnFocus = true,
   triggerOnHover = true,
   triggerOnPress = true,
 }: TestComponentProps) {
   const triggerService = useConfigurator(popupTriggerServiceConfigurator, {
+    disabled,
     triggerOnFocus,
     triggerOnHover,
     triggerOnPress,
@@ -52,6 +55,42 @@ describe('hook', () => {
   test('goes active on click', async () => {
     const { getByTestId } = render(<TestComponent />)
     const element = getByTestId('trigger')
+
+    fireEvent.mouseDown(element)
+    element.focus()
+    fireEvent.mouseUp(element)
+    fireEvent.click(element)
+
+    expect(element).toHaveTextContent('open')
+  })
+
+  test("when disabled, doesn't go active on click", async () => {
+    const { getByTestId } = render(<TestComponent disabled />)
+    const element = getByTestId('trigger')
+
+    fireEvent.mouseDown(element)
+    element.focus()
+    fireEvent.mouseUp(element)
+    fireEvent.click(element)
+
+    expect(element).not.toHaveTextContent('open')
+  })
+
+  test('can be reconfigured to no longer be disabled', async () => {
+    const { getByTestId, rerender } = render(<TestComponent disabled />)
+    const element = getByTestId('trigger')
+
+    fireEvent.mouseDown(element)
+    element.focus()
+    fireEvent.mouseUp(element)
+    fireEvent.click(element)
+
+    expect(element).not.toHaveTextContent('open')
+
+    await act(async () => {
+      await rerender(<TestComponent />)
+      await delay(50)
+    })
 
     fireEvent.mouseDown(element)
     element.focus()
@@ -138,7 +177,31 @@ describe('hook', () => {
     expect(element).toHaveTextContent('open')
   })
 
-  test.only('is closed on outside click after popup node is nulled out and immediately re set', async () => {
+  test('is not closed on outside click immediately after open', async () => {
+    const { container, getByTestId } = render(<TestComponent />)
+    const element = getByTestId('trigger')
+
+    await act(async () => {
+      fireEvent.mouseDown(element)
+      element.focus()
+      fireEvent.mouseUp(element)
+      fireEvent.click(element)
+    })
+
+    expect(element).toHaveTextContent('open')
+
+    await act(async () => {
+      fireEvent.mouseDown(container)
+      fireEvent.mouseUp(container)
+      fireEvent.click(container)
+    })
+
+    await delay(500)
+
+    expect(element).toHaveTextContent('open')
+  })
+
+  test('is closed on outside click after popup node is nulled out and immediately re set', async () => {
     let controller: any
 
     function TestComponent() {
