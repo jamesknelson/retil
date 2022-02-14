@@ -1,6 +1,6 @@
 import { css } from '@emotion/react'
 import styled from '@emotion/styled'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 
 import { PopupTriggerSurface, PopupProvider } from 'retil-interaction'
 
@@ -9,6 +9,8 @@ import { PopupDialog } from './popupDialog'
 
 function App() {
   const initialFocusRef = useRef<HTMLInputElement | null>(null)
+  const [disabled, setDisabled] = useState(false)
+  const toggleDisabled = () => setDisabled((x) => !x)
 
   return (
     <>
@@ -21,6 +23,7 @@ function App() {
         `}>
         <PopupProvider>
           <StyledPopupDialogTriggerSurface
+            disabled={disabled}
             triggerOnFocus
             triggerOnHover
             triggerOnPress>
@@ -45,7 +48,10 @@ function App() {
         </PopupProvider>
         <br />
         <PopupProvider>
-          <StyledPopupDialogTriggerSurface triggerOnHover triggerOnPress>
+          <StyledPopupDialogTriggerSurface
+            disabled={disabled}
+            triggerOnHover
+            triggerOnPress>
             Trigger on hover or press
           </StyledPopupDialogTriggerSurface>
           <PopupDialog
@@ -67,7 +73,10 @@ function App() {
         </PopupProvider>
         <br />
         <PopupProvider>
-          <StyledPopupDialogTriggerSurface triggerOnFocus triggerOnPress>
+          <StyledPopupDialogTriggerSurface
+            disabled={disabled}
+            triggerOnFocus
+            triggerOnPress>
             Trigger on focus or press
           </StyledPopupDialogTriggerSurface>
           <PopupDialog
@@ -98,7 +107,7 @@ function App() {
           margin-bottom: 1rem;
         `}>
         <PopupProvider>
-          <StyledPopupDialogTriggerSurface triggerOnFocus>
+          <StyledPopupDialogTriggerSurface disabled={disabled} triggerOnFocus>
             Trigger on focus only
           </StyledPopupDialogTriggerSurface>
           <PopupDialog
@@ -120,7 +129,7 @@ function App() {
         </PopupProvider>
         <br />
         <PopupProvider>
-          <StyledPopupDialogTriggerSurface triggerOnPress>
+          <StyledPopupDialogTriggerSurface disabled={disabled} triggerOnPress>
             Trigger on press only
           </StyledPopupDialogTriggerSurface>
           <PopupDialog
@@ -157,7 +166,10 @@ function App() {
           margin-bottom: 1rem;
         `}>
         <PopupProvider>
-          <StyledPopupDialogTriggerSurface triggerOnHover delayIn={1000}>
+          <StyledPopupDialogTriggerSurface
+            disabled={disabled}
+            triggerOnHover
+            delayIn={1000}>
             Trigger on hover only, delay 1s
           </StyledPopupDialogTriggerSurface>
           <PopupDialog
@@ -168,6 +180,22 @@ function App() {
             <PopupArrow />
           </PopupDialog>
         </PopupProvider>
+        <br />
+
+        <button
+          onClick={toggleDisabled}
+          css={css`
+            border-radius: 8px;
+            line-height: 30px;
+            width: 100px;
+            text-align: center;
+            border: 1px solid #d0d0d0;
+            box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+            font-family: sans-serif;
+            user-select: none;
+          `}>
+          {disabled ? 'Re-enable' : 'Disable'}
+        </button>
       </div>
     </>
   )

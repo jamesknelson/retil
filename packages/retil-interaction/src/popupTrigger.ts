@@ -506,8 +506,8 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
       mutableConfig = nextConfigWithDefaults
 
       if (haveEventTriggersChanged) {
-        setupTriggerEvents(peekWatchedPopupElement())
-        setupPopupEvents(peekWatchedTriggerElement())
+        setupTriggerEvents(peekWatchedTriggerElement())
+        setupPopupEvents(peekWatchedPopupElement())
       }
 
       if (haveEventTriggersChanged || hasTriggerChanged) {
