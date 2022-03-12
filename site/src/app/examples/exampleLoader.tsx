@@ -30,7 +30,7 @@ export default loadMatch({
 
     const basename = env.nav.matchname
     const params = env.nav.params
-    const pageModule = import('./examplePage')
+    const pageModulePromise = import('./examplePage')
     const content = await getExampleContent(params.slug as string)
 
     if (!content) {
@@ -112,7 +112,7 @@ export default loadMatch({
           '/': () => exampleNode,
         })(props)
 
-    const { default: ExamplePage } = await pageModule
+    const { default: ExamplePage } = await pageModulePromise
 
     return <ExamplePage content={content} exampleNode={exampleNode} />
   }),

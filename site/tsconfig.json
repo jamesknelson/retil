@@ -6,6 +6,8 @@
     "allowSyntheticDefaultImports": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
+    "target": "ES2020",
+    "module": "ES2020",
     "jsxImportSource": "@emotion/react",
     "types": ["@emotion/react"],
     "noEmit": true,

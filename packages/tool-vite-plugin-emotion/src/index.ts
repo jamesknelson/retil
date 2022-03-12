@@ -2,7 +2,7 @@ import { transformSync } from '@babel/core'
 import babelPlugin from '@emotion/babel-plugin'
 import { Plugin } from 'vite'
 
-export function emotionPlugin(): Plugin {
+function emotionPlugin(): Plugin {
   return {
     name: 'emotion',
 

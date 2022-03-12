@@ -1,7 +1,7 @@
 {
-  "name": "retil-support",
+  "name": "@retil/tool-vite-plugin-emotion",
   "version": "0.28.2",
-  "description": "Support utilities for retil",
+  "description": "Add emotion support to vite",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
   "main": "dist/commonjs/index.js",
@@ -17,17 +17,17 @@
     "prepare": "yarn build"
   },
   "dependencies": {
-    "fast-deep-equal": "^3.1.3",
-    "memoize-one": "^5.1.1",
-    "ramda": "^0.27.1",
-    "tslib": "^2.2.0"
+    "@emotion/babel-plugin": "^11.7.2"
+  },
+  "peerDependencies": {
+    "@babel/core": "^7.0.0",
+    "vite": "^2.8.0"
   },
   "devDependencies": {
-    "@types/ramda": "^0.27.44",
-    "typescript": "4.6.2"
+    "@babel/core": "^7.13.10",
+    "vite": "^2.8.6"
   },
   "files": [
     "dist"
-  ],
-  "gitHead": "d0ff768907d2a89a04849eea3639fb59a7e00bc4"
+  ]
 }

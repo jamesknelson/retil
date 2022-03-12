@@ -20,7 +20,7 @@ export default loadMatch({
   [patternFor(scheme.one)]: loadAsync<Env>(async (props) => {
     const { mount, head, ...env } = props
     const params = env.nav.params
-    const pageModule = import('./packagePage')
+    const pageModulePromise = import('./packagePage')
     const content = await getPackageContent(params.packageName as string)
 
     if (!content) {
@@ -28,7 +28,7 @@ export default loadMatch({
     }
 
     const meta = content.meta
-    const { default: PackagePage } = await pageModule
+    const { default: PackagePage } = await pageModulePromise
 
     head.push(
       <title>

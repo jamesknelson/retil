@@ -12,9 +12,9 @@ import {
   ViteDevServer,
 } from 'vite'
 
-export interface SourceGlobPluginOptions {
-  include?: FilterPattern
-  exclude?: FilterPattern
+export interface ImportGlobExtensionOptions {
+  globInclude?: FilterPattern
+  globExclude?: FilterPattern
 }
 
 const eagerGlobTriggers: Record<string, (x: string) => string> = {
@@ -24,21 +24,21 @@ const eagerGlobTriggers: Record<string, (x: string) => string> = {
 const eagerGlobMethods = Object.keys(eagerGlobTriggers)
 
 /**
- * This plugin adds support for an `import.meta.frontMatterGlobEager` function,
- * which will return an object mapping filenames to objects representing their
- * YAML or TOML front matter.
+ * This plugin adds support for additional glob functions, allowing for
+ * the structure of content to be imported as opposed to the content itself.
  */
-const importGlobExtensionsPlugin = (
-  options: SourceGlobPluginOptions = {},
+const importGlobExtensionPlugin = (
+  options: ImportGlobExtensionOptions = {},
 ): Plugin => {
-  const { include = '**/*.[tj]s?(x)', exclude = [] } = options
+  const { globInclude: include = '**/*.[tj]s?(x)', globExclude: exclude = [] } =
+    options
   const filter = createFilter(include, exclude)
 
   let config: ResolvedConfig
   let server: ViteDevServer
 
   return {
-    name: 'importGlobExtensions',
+    name: 'importGlobExtension',
 
     configResolved(_config) {
       config = _config
@@ -70,7 +70,7 @@ const importGlobExtensionsPlugin = (
 
       try {
         imports = parseImports(source)[0]
-      } catch (e) {
+      } catch (e: any) {
         this.error(
           `Failed to parse source for import.meta because ` +
             `the content contains invalid JS syntax. `,
@@ -302,4 +302,4 @@ const hashRE = /#.*$/
 const cleanUrl = (url: string): string =>
   url.replace(hashRE, '').replace(queryRE, '')
 
-export default importGlobExtensionsPlugin
+export default importGlobExtensionPlugin

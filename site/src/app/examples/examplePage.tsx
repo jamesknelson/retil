@@ -1,5 +1,4 @@
 import { css } from '@emotion/react'
-import { MDXProvider } from '@mdx-js/react'
 import React, { createContext, useContext } from 'react'
 import { CSSProvider } from 'retil-css'
 import { css as styledCSS, ThemeContext } from 'styled-components'
@@ -11,24 +10,23 @@ import { ExampleContent } from 'site/src/data/exampleContent'
 const ExampleContext = createContext<ExamplePageProps>(undefined as any)
 
 export interface ExamplePageProps {
-  exampleNode: React.ReactNode
   content: ExampleContent
+  exampleNode: React.ReactNode
 }
 
 export default function ExamplePage(props: ExamplePageProps) {
-  const meta = props.content.meta
+  const { content } = props
+  const meta = content.meta
 
   const result = (
     <ExampleContext.Provider value={props}>
-      <MDXProvider components={{ Example, Source, Sources, Title }}>
-        <DocumentContent Component={props.content.Doc} />
-        <DocumentFooter
-          githubEditURL={`https://github.com/jamesknelson/retil/tree/master/examples/${meta.slug}`}
-        />
-      </MDXProvider>
+      <DocumentContent Doc={props.content.Doc} components={components} />
+      <DocumentFooter
+        githubEditURL={`https://github.com/jamesknelson/retil/tree/master/examples/${meta.slug}`}
+      />
     </ExampleContext.Provider>
   )
-  if (props.content.styledComponents) {
+  if (content.styledComponents) {
     return (
       <CSSProvider runtime={styledCSS} themeContext={ThemeContext}>
         {result}
@@ -92,3 +90,5 @@ const Sources = () => {
     </>
   )
 }
+
+const components = { Example, Source, Sources, Title }

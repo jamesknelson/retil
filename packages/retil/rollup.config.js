@@ -3,12 +3,11 @@
  */
 
 import * as React from 'react'
-import * as useSubscription from 'use-subscription'
 
-import commonjs from 'rollup-plugin-commonjs'
+import commonjs from '@rollup/plugin-commonjs'
 import builtins from 'rollup-plugin-node-builtins'
-import nodeResolve from 'rollup-plugin-node-resolve'
-import replace from 'rollup-plugin-replace'
+import nodeResolve from '@rollup/plugin-node-resolve'
+import replace from '@rollup/plugin-replace'
 import { terser } from 'rollup-plugin-terser'
 
 const env = process.env.NODE_ENV
@@ -38,7 +37,6 @@ const config = {
     commonjs({
       namedExports: {
         react: Object.keys(React),
-        'use-subscription': Object.keys(useSubscription),
       },
     }),
 

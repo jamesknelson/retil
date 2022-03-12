@@ -1,4 +1,3 @@
-import { MDXProvider } from '@mdx-js/react'
 import { createContext, useContext } from 'react'
 
 import { DocumentContent, DocumentFooter } from 'site/src/component/document'
@@ -13,16 +12,16 @@ export interface ConceptPageProps {
 function Page({ content }: ConceptPageProps) {
   return (
     <ExampleContext.Provider value={content}>
-      <MDXProvider components={{ Title }}>
-        <DocumentContent Component={content.Doc} />
-        <DocumentFooter
-          githubEditURL={`https://github.com/jamesknelson/retil/edit/master/docs/concept-${content.meta.slug}`}
-        />
-      </MDXProvider>
+      <DocumentContent Doc={content.Doc} components={components} />
+      <DocumentFooter
+        githubEditURL={`https://github.com/jamesknelson/retil/edit/master/docs/concept-${content.meta.slug}`}
+      />
     </ExampleContext.Provider>
   )
 }
 
 const Title = () => <>{useContext(ExampleContext).meta.title}</>
+
+const components = { Title }
 
 export default Page

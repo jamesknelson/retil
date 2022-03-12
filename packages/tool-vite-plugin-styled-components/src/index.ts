@@ -2,7 +2,7 @@ import { transformSync } from '@babel/core'
 import babelPlugin from 'babel-plugin-styled-components'
 import { Plugin } from 'vite'
 
-export function styledComponentsPlugin(): Plugin {
+function styledComponentsPlugin(): Plugin {
   return {
     name: 'styled-components',
 

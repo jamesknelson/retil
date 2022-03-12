@@ -1,9 +1,14 @@
-import { MDXProvider } from '@mdx-js/react'
+import type { MDXComponents } from 'mdx/types'
+import type { ComponentType } from 'react'
+
+import { MDXProvider } from 'mdx-context'
+import { useMemo } from 'react'
 
 import * as styles from './documentStyles'
 
 export interface DocumentContentProps {
-  Component: React.ComponentType
+  Doc: ComponentType
+  components?: MDXComponents
 }
 
 const components = {
@@ -24,15 +29,26 @@ const components = {
   pre: styles.DocCodeBlock,
   strong: styles.DocStrong,
   ul: styles.DocUnorderedList,
-}
+} as MDXComponents
 
-export function DocumentContent({ Component }: DocumentContentProps) {
+export function DocumentContent({
+  Doc,
+  components: componentsProp,
+}: DocumentContentProps) {
+  const mergedComponents = useMemo(
+    () => ({
+      ...components,
+      ...componentsProp,
+    }),
+    [componentsProp],
+  )
+
   return (
-    <MDXProvider components={components}>
+    <MDXProvider components={mergedComponents}>
       {/* Note: as of MDX 2.0-rc.2, the wrapper cannot be set as a component,
-          because it'll cause the document to be unmounted on each ender. */}
+          because it'll cause the document to be unmounted on each render. */}
       <styles.DocWrapper>
-        <Component />
+        <Doc />
       </styles.DocWrapper>
     </MDXProvider>
   )

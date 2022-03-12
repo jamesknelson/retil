@@ -1,4 +1,3 @@
-import { MDXProvider } from '@mdx-js/react'
 import { createContext, useContext } from 'react'
 import { LinkSurface } from 'retil-interaction'
 
@@ -15,9 +14,7 @@ export interface PackagePageProps {
 function PackagePage({ content }: PackagePageProps) {
   return (
     <PackageContext.Provider value={content}>
-      <MDXProvider components={{ ConceptList, ExampleList, Title }}>
-        <DocumentContent Component={content.Doc} />
-      </MDXProvider>
+      <DocumentContent Doc={content.Doc} components={components} />
     </PackageContext.Provider>
   )
 }
@@ -47,5 +44,7 @@ const ExampleList = () => (
     ))}
   </ul>
 )
+
+const components = { ConceptList, ExampleList, Title }
 
 export default PackagePage

@@ -23,7 +23,7 @@ export function Head(props: HeadProps) {
   return elements ? (
     <HelmetProvider context={props.sink}>
       <Helmet>
-        <title>letter.house</title>
+        <title>retil.tech</title>
         {elements.map((item, i) => cloneElement(item, { key: i }))}
       </Helmet>
     </HelmetProvider>

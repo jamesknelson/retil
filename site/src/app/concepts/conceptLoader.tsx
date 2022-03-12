@@ -20,7 +20,7 @@ export default loadMatch({
   [patternFor(scheme.one)]: loadAsync<Env>(async (props) => {
     const { mount, head, ...env } = props
     const params = env.nav.params
-    const pageModule = import('./conceptPage')
+    const pageModulePromise = import('./conceptPage')
     const content = await getConceptContent(params.slug as string)
 
     if (!content) {
@@ -28,7 +28,7 @@ export default loadMatch({
     }
 
     const meta = content.meta
-    const { default: Page } = await pageModule
+    const { default: Page } = await pageModulePromise
 
     head.push(<title>{meta.title} example</title>)
 

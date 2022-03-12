@@ -17,7 +17,7 @@ const appLoader = loadNotFoundBoundary(
       const { default: Component } = await import(
         '../../../docs/site/index.mdx'
       )
-      return <DocumentContent Component={Component} />
+      return <DocumentContent Doc={Component} />
     }),
 
     [patternFor(scheme.concepts)]: conceptLoader,

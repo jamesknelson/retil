@@ -1,3 +1,4 @@
+/// <reference types="@retil/tool-vite-plugin-code-as-content/client" />
 /// <reference types="react/next" />
 /// <reference types="react-dom/next" />
 /// <reference types="vite/client" />

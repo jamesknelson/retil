@@ -1,27 +1,17 @@
 import alias from '@rollup/plugin-alias'
 import react from '@vitejs/plugin-react'
-import { createRequire } from 'module'
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
 import tsconfigPaths from 'vite-tsconfig-paths'
 
-import { refractor } from 'refractor'
-import tsx from 'refractor/lang/tsx.js'
-
-import importFrontMatterPlugin from './plugins/importFrontMatterPlugin'
-import importHighlightedSourcePlugin from './plugins/importHighlightedSourcePlugin'
-import importGlobExtensionsPlugin from './plugins/importGlobExtensionsPlugin'
-import mdxPlugin from './plugins/mdx'
-import reactEmotion from './plugins/reactEmotion'
-import reactStyledComponents from './plugins/reactStyledComponents'
-
-refractor.register(tsx)
+import { getCodeAsContentPlugins } from '@retil/tool-vite-plugin-code-as-content'
+import emotionPlugin from '@retil/tool-vite-plugin-emotion'
+import styledComponentsPlugin from '@retil/tool-vite-plugin-styled-components'
 
 const projectRootDir = resolve(__dirname)
-const require = createRequire(import.meta.url)
 
 // https://vitejs.dev/config/
-export default defineConfig(({ mode }) => ({
+export default defineConfig(async ({ mode }) => ({
   define: {
     'process.env.NODE_ENV': JSON.stringify(mode),
   },
@@ -30,26 +20,29 @@ export default defineConfig(({ mode }) => ({
     port: 9001,
   },
   plugins: [
-    alias({
-      entries: [
-        { find: 'site/src', replacement: resolve(projectRootDir, 'src') },
-      ],
-    }) as any,
-    importFrontMatterPlugin(),
-    importHighlightedSourcePlugin(),
-    importGlobExtensionsPlugin(),
-    react({
-      jsxImportSource: '@emotion/react',
-    }),
     mode !== 'production' &&
       tsconfigPaths({
         root: resolve(__dirname, '..'),
         projects: ['.'],
       }),
-    reactEmotion(),
-    reactStyledComponents(),
-    mdxPlugin(),
+    alias({
+      entries: [
+        { find: 'site/src', replacement: resolve(projectRootDir, 'src') },
+      ],
+    }) as any,
+    react({
+      jsxImportSource: '@emotion/react',
+    }),
+    emotionPlugin(),
+    styledComponentsPlugin(),
+    await getCodeAsContentPlugins({
+      jsxImportSource: '@emotion/react',
+      providerImportSource: 'mdx-context',
+    }),
   ],
+  optimizeDeps: {
+    include: ['hoist-non-react-statics', 'react-is'],
+  },
   resolve: {
     dedupe: ['react', 'react-dom', 'react-is'],
   },

@@ -2,6 +2,7 @@ import type { CompileOptions as MDXCompileOptions } from '@mdx-js/mdx'
 import type { PluggableList } from 'unified'
 import type { Plugin as VitePlugin } from 'vite'
 
+import { createFormatAwareProcessors } from '@mdx-js/mdx/lib/util/create-format-aware-processors.js'
 import prism from 'rehype-prism-plus'
 import emoji from 'remark-emoji'
 import remarkFrontmatter from 'remark-frontmatter'
@@ -10,23 +11,23 @@ import images from 'remark-images'
 import { remarkMdxFrontmatter } from 'remark-mdx-frontmatter'
 import textr from 'remark-textr'
 import slug from 'remark-slug'
+import { SourceMapGenerator } from 'source-map'
 import { VFile } from 'vfile'
 
-import typography from './typography'
+import typography from './typography.js'
 
-export interface ViteMDXOptions
+export interface MDXVitePluginOptions
   extends Omit<MDXCompileOptions, 'remarkPlugins' | 'rehypePlugins'> {
   remarkPlugins?: PluggableList
   rehypePlugins?: PluggableList
 }
 
-export interface ViteMDXPlugin extends VitePlugin {
-  mdxOptions: ViteMDXOptions
+export interface MDXVitePlugin extends VitePlugin {
+  mdxOptions: MDXVitePluginOptions
 }
 
-export const defaultOptions: ViteMDXOptions = {
-  jsxImportSource: '@emotion/react',
-  providerImportSource: '@mdx-js/react',
+export const defaultOptions: MDXVitePluginOptions = {
+  jsxImportSource: 'react',
   remarkPlugins: [
     remarkFrontmatter,
     [remarkMdxFrontmatter, { name: 'meta' }],
@@ -39,11 +40,14 @@ export const defaultOptions: ViteMDXOptions = {
   rehypePlugins: [prism],
 }
 
-export default function mdxPlugin(options = defaultOptions): ViteMDXPlugin {
-  const mdxPlugin: ViteMDXPlugin = {
-    name: 'vite-plugin-mdx',
-    // I can't think of any reason why a plugin would need to run before mdx; let's make sure `vite-plugin-mdx` runs first.
-    enforce: 'pre',
+export default function mdxPlugin(optionsProp = {}): MDXVitePlugin {
+  const options = {
+    ...defaultOptions,
+    ...optionsProp,
+  }
+
+  const mdxPlugin: MDXVitePlugin = {
+    name: 'mdx',
     mdxOptions: options,
     configResolved({ plugins, mode }) {
       // @vitejs/plugin-react-refresh has been upgraded to @vitejs/plugin-react,
@@ -58,22 +62,27 @@ export default function mdxPlugin(options = defaultOptions): ViteMDXPlugin {
           p.name === 'vite:react-jsx',
       )
       const reactRefresh = reactRefreshPlugins.find((p) => p.transform)
-      const transform = createTransformer(mode)
+      const { process } = createFormatAwareProcessors({
+        // SourceMapGenerator,
+        development: mode !== 'production',
+        ...options,
+      })
 
-      this.transform = async function (code, id, ssr) {
-        if (/\.mdx?$/.test(id)) {
-          code = await transform(new VFile({ path: id, value: code }), options)
+      this.transform = async function (value, path, ssr) {
+        if (/\.mdx?$/.test(path)) {
+          const compiled = await process(new VFile({ path, value }))
           const refreshResult = await reactRefresh?.transform!.call(
             this,
-            code,
-            id + '.js',
+            value,
+            path + '.js',
             ssr,
           )
 
           return (
             refreshResult || {
-              code,
+              code: compiled.toString('utf-8'),
               map: { mappings: '' },
+              // map: compiled.map,
             }
           )
         }
@@ -82,15 +91,4 @@ export default function mdxPlugin(options = defaultOptions): ViteMDXPlugin {
   }
 
   return mdxPlugin
-}
-
-function createTransformer(mode: string) {
-  return async function transform(code: VFile, mdxOptions?: ViteMDXOptions) {
-    const { compile } = await import('@mdx-js/mdx')
-    const code_jsx = await compile(code, {
-      development: mode !== 'production',
-      ...mdxOptions,
-    })
-    return code_jsx.toString('utf-8')
-  }
 }
