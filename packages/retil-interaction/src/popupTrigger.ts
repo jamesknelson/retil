@@ -1,4 +1,4 @@
-import { Service, Source, createState, fuse } from 'retil-source'
+import { Service, Source, createState, fuse, getSnapshot } from 'retil-source'
 import { Configurator, identity, delayOne } from 'retil-support'
 
 // TODO:
@@ -27,6 +27,7 @@ export interface PopupTriggerHandle {
 
 export interface PopupTriggerConfig {
   closeOnEscape?: boolean
+  debounceMouseEventsFollowingTouches?: number
   debounceWindowInteractionClosures?: number
   delayIn?: number
   delayOut?: number
@@ -43,6 +44,7 @@ export function splitPopupTriggerConfig<P extends PopupTriggerConfig>(
 ): readonly [PopupTriggerConfig, Omit<P, keyof PopupTriggerConfig>] {
   const {
     closeOnEscape,
+    debounceMouseEventsFollowingTouches,
     debounceWindowInteractionClosures,
     delayIn,
     delayOut,
@@ -58,6 +60,7 @@ export function splitPopupTriggerConfig<P extends PopupTriggerConfig>(
   return [
     {
       closeOnEscape,
+      debounceMouseEventsFollowingTouches,
       debounceWindowInteractionClosures,
       delayIn,
       delayOut,
@@ -84,6 +87,8 @@ function getPopupTriggerConfigWithDefaults(
 ): PopupTriggerConfigWithDefaults {
   const {
     closeOnEscape = true,
+
+    debounceMouseEventsFollowingTouches = 100,
 
     // Prevents window interactions from closing the popup for a short period
     // after it was opened, which can help to prevent closures due to touch
@@ -112,6 +117,7 @@ function getPopupTriggerConfigWithDefaults(
 
   return {
     closeOnEscape,
+    debounceMouseEventsFollowingTouches,
     debounceWindowInteractionClosures,
     delayIn,
     delayOut,
@@ -179,6 +185,7 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
     // for a delay after opening (otherwise the popup will be immediately
     // closed on mobile devices)
     let lastOpenedAt: number | false = false
+    let lastTouchAt: number = 0
 
     const handleWindowMouseUpOrTouchEnd = (event: Event) => {
       if (
@@ -249,17 +256,40 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
     }
 
     const handleWindowMouseDown = (event: MouseEvent) => {
-      dispatch(mouseDownOnWindowReducer, event.target)
+      const touchGap = Date.now() - lastTouchAt
+      if (touchGap > mutableConfig.debounceMouseEventsFollowingTouches) {
+        dispatch(mouseDownOnWindowReducer, event.target)
+      }
     }
-    const handleTriggerMouseDown = (event: Event) =>
-      dispatch(mouseDownOnTriggerReducer, event.target)
+    const handleTriggerMouseDown = (event: Event) => {
+      const touchGap = Date.now() - lastTouchAt
+      if (touchGap > mutableConfig.debounceMouseEventsFollowingTouches) {
+        dispatch(mouseDownOnTriggerReducer, event.target)
+      }
+    }
 
-    const handleTriggerMouseUp = (event: Event) =>
-      dispatch(mouseUpFromTriggerReducer, event.target)
+    const handleTriggerMouseUp = (event: Event) => {
+      const touchGap = Date.now() - lastTouchAt
+      if (touchGap > mutableConfig.debounceMouseEventsFollowingTouches) {
+        dispatch(mouseUpFromTriggerReducer, event.target)
+      }
+    }
 
     const handleTriggerTouch = (event: Event) => {
-      // event.stopPropagation()
-      // event.preventDefault()
+      const state = getSnapshot(stateSource)
+
+      // On mobile, the element may not yet be focused, so we'll force focus
+      // the trigger so that any traps know where to return focus to.
+      const element = state.elements.trigger.value
+      if (
+        element &&
+        document.activeElement !== element &&
+        !state.toggledValue
+      ) {
+        state.elements.trigger.value?.focus()
+      }
+
+      lastTouchAt = Date.now()
       dispatch(toggleReducer)
     }
 
@@ -331,6 +361,11 @@ export const popupTriggerServiceConfigurator: PopupTriggerServiceConfigurator =
 
           window.addEventListener(
             'mouseup',
+            handleWindowMouseUpOrTouchEnd,
+            false,
+          )
+          window.addEventListener(
+            'touchend',
             handleWindowMouseUpOrTouchEnd,
             false,
           )
@@ -814,7 +849,10 @@ const interactionEndOnWindowReducer = (
   state: PopupTriggerState,
   target: EventTarget | null,
 ) =>
-  (state.config.triggerOnPress && !targetIsInPopupTrigger(state, target)) ||
+  // triggerOnFocus is added for mobile, where touching outside a focused
+  // element won't blur it by itself.
+  ((state.config.triggerOnFocus || state.config.triggerOnPress) &&
+    !targetIsInPopupTrigger(state, target)) ||
   state.keepClosedUntilMouseUp
     ? closeReducer(state)
     : state
