@@ -1,6 +1,6 @@
 {
   "name": "retil-interaction",
-  "version": "0.28.3",
+  "version": "0.28.4",
   "description": "Utilities to create unstyled interactive components",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -21,9 +21,9 @@
   "dependencies": {
     "@popperjs/core": "^2.11.2",
     "focus-trap": "^6.7.2",
-    "retil-css": "^0.28.3",
-    "retil-source": "^0.28.3",
-    "retil-support": "^0.28.3",
+    "retil-css": "^0.28.4",
+    "retil-source": "^0.28.4",
+    "retil-support": "^0.28.4",
     "tslib": "^2.2.0"
   },
   "devDependencies": {
