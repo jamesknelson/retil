@@ -9,9 +9,9 @@ import { getExampleMeta } from './exampleMeta'
 //
 // prettier-ignore
 const glob =
-  '../../../examples/*/example.mdx'
+  '../../../example/*/example.mdx'
 const frontMatters = import.meta.frontMatterGlobEager(
-  '../../../examples/*/example.mdx',
+  '../../../example/*/example.mdx',
 )
 
 const metas = extractGlobData(glob, frontMatters).map(

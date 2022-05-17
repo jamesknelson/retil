@@ -1,6 +1,6 @@
 import { createScheme, nestScheme } from 'retil-nav-scheme'
 
-import conceptScheme from './concepts/conceptScheme'
+import conceptScheme from './doc/docScheme'
 import exampleScheme from './examples/exampleScheme'
 import packageScheme from './packages/packageScheme'
 

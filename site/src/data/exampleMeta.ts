@@ -2,7 +2,7 @@ import startCase from 'lodash/startCase'
 
 export interface ExampleMeta {
   description?: string
-  packages?: string[]
+  tags?: string[]
   slug: string
   title: string
 }

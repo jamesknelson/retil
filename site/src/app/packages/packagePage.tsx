@@ -3,12 +3,12 @@ import { LinkSurface } from 'retil-interaction'
 
 import appScheme from 'site/src/app/appScheme'
 import { DocumentContent } from 'site/src/component/document'
-import { PackageContent } from 'site/src/data/packageContent'
+import { Tag } from 'site/src/data/tags'
 
-const PackageContext = createContext<PackageContent>(undefined as any)
+const PackageContext = createContext<Tag>(undefined as any)
 
 export interface PackagePageProps {
-  content: PackageContent
+  content: Tag
 }
 
 function PackagePage({ content }: PackagePageProps) {
@@ -35,7 +35,7 @@ const ConceptList = () => (
 
 const ExampleList = () => (
   <ul>
-    {useContext(PackageContext).examples.map((example) => (
+    {useContext(PackageContext).exampleMetas.map((example) => (
       <li key={example.slug}>
         <LinkSurface href={appScheme.examples.one(example)}>
           {example.title}

@@ -4,7 +4,7 @@ import styled from '@emotion/styled'
 import { CodeBlock } from 'site/src/component/codeBlock'
 import { Link } from 'site/src/component/link'
 import { colors, palette } from 'site/src/style/colors'
-import { columnWidth } from 'site/src/style/dimensions'
+import { columnWidth } from 'site/src/style/dimension'
 
 const baseCSS = css`
   font-size: 1rem;

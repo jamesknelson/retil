@@ -3,7 +3,7 @@ import { loadMatch } from 'retil-nav'
 import { patternFor } from 'retil-nav-scheme'
 
 import { Env } from 'site/src/env'
-import { getPackageContent } from 'site/src/data/packageContent'
+import { getTags } from 'site/src/data/tags'
 
 import scheme from './packageScheme'
 
@@ -21,7 +21,7 @@ export default loadMatch({
     const { mount, head, ...env } = props
     const params = env.nav.params
     const pageModulePromise = import('./packagePage')
-    const content = await getPackageContent(params.packageName as string)
+    const content = await getTags(params.packageName as string)
 
     if (!content) {
       return props.nav.notFound()

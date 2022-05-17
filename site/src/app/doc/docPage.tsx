@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 
 import { DocumentContent, DocumentFooter } from 'site/src/component/document'
-import { ConceptContent } from 'site/src/data/conceptContent'
+import { ConceptContent } from 'site/src/data/docContent'
 
 const ExampleContext = createContext<ConceptContent>(undefined as any)
 

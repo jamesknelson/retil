@@ -37,8 +37,8 @@ export type ExampleServerMain = (
 export async function getExampleContent(
   slug: string,
 ): Promise<null | ExampleContent> {
-  const loaders = import.meta.glob('../../../examples/*/index.tsx')
-  const key = `../../../examples/${slug}/index.tsx`
+  const loaders = import.meta.glob('../../../example/*/index.tsx')
+  const key = `../../../example/${slug}/index.tsx`
   const loader = loaders[key]
 
   if (!loader) {

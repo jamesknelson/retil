@@ -5,10 +5,10 @@ import {
   DocUnorderedList,
   DocWrapper,
 } from 'site/src/component/document'
-import { ConceptMeta } from 'site/src/data/conceptMeta'
+import { DocMeta } from 'site/src/data/docMeta'
 
 interface Props {
-  data: ConceptMeta[]
+  data: DocMeta[]
 }
 
 function Page(props: Props) {
@@ -16,7 +16,7 @@ function Page(props: Props) {
 
   return (
     <DocWrapper>
-      <DocTitle>Concepts</DocTitle>
+      <DocTitle>Docs</DocTitle>
       <DocUnorderedList>
         {data.map((conceptModule) => (
           <li key={conceptModule.slug}>

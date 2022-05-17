@@ -36,20 +36,6 @@ export const Layout = ({ children }: LayoutProps) => (
           flex-grow: 1;
         `}
       />
-      <div
-        css={css`
-          margin: 0 1rem;
-        `}>
-        <MatchedLinkSurface href={appScheme.examples.index()}>
-          <NavLinkBody>examples</NavLinkBody>
-        </MatchedLinkSurface>{' '}
-        <MatchedLinkSurface href={appScheme.concepts.index()}>
-          <NavLinkBody>concepts</NavLinkBody>
-        </MatchedLinkSurface>{' '}
-        <MatchedLinkSurface href={appScheme.packages.index()}>
-          <NavLinkBody>packages</NavLinkBody>
-        </MatchedLinkSurface>
-      </div>
       <div>
         {' '}
         <AnchorSurface href="https://github.com/jamesknelson/retil">

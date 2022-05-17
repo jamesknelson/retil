@@ -1,16 +1,16 @@
 import startCase from 'lodash/startCase'
 
-export interface ConceptMeta {
+export interface DocMeta {
   blurb?: string
-  packages?: string[]
+  tags?: string[]
   slug: string
   title: string
 }
 
-export function getConceptMeta(
+export function getDocMeta(
   slug: string,
   frontMatter: Record<string, any>,
-): ConceptMeta {
+): DocMeta {
   const metaDefaults = {
     slug,
     title: startCase(slug),

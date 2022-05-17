@@ -4,7 +4,7 @@ import { patternFor } from 'retil-nav-scheme'
 
 import { DocumentContent } from 'site/src/component/document'
 
-import conceptLoader from './concepts/conceptLoader'
+import conceptLoader from './doc/docLoader'
 import exampleLoader from './examples/exampleLoader'
 import packageLoader from './packages/packageLoader'
 
