@@ -1,6 +1,6 @@
 {
   "name": "@retil/tool-vite-plugin-emotion",
-  "version": "0.28.2",
+  "version": "0.28.3",
   "description": "Add emotion support to vite",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",

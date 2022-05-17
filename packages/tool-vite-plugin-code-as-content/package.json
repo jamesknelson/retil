@@ -1,6 +1,6 @@
 {
   "name": "@retil/tool-vite-plugin-code-as-content",
-  "version": "0.28.2",
+  "version": "0.28.3",
   "description": "Write your doc with the code-as-content paradigm – using React and MDX",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
