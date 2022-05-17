@@ -1,6 +1,7 @@
 {
   "name": "@retil/tool-vite-plugin-styled-components",
   "version": "0.28.3",
+  "private": false,
   "description": "Add styled-components support to vite",
   "author": "James K Nelson <james@jamesknelson.com>",
   "license": "MIT",
@@ -29,5 +30,6 @@
   },
   "files": [
     "dist"
-  ]
+  ],
+  "gitHead": "6c99063d3d8d4539ae81cce4f1b172ac2948c951"
 }
